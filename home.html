@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplic &amp; Go · Sistemas</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+  <style>
+    /* ================================================================
+       Aplic & Go — Landing de Sistemas
+       Design: dark theme, mesma paleta do dashboard
+       ================================================================ */
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif;
+      background: #0a0d12; color: #e6edf3;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Fundo com glow gradient sutil */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(29,158,117,0.10), transparent 50%),
+        radial-gradient(circle at 75% 70%, rgba(123,104,238,0.08), transparent 50%);
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 24px;
+    }
+
+    /* Header com logo */
+    .top {
+      text-align: center; margin-bottom: 48px;
+    }
+    .top img {
+      height: 64px; width: auto;
+      object-fit: contain;
+      filter: brightness(1.1);
+      margin-bottom: 20px;
+    }
+    .top .titulo {
+      font-size: 28px; font-weight: 500;
+      color: #f0f6fc; letter-spacing: -0.5px;
+      margin: 0 0 8px;
+    }
+    .top .subtitulo {
+      font-size: 14px; color: #7d8590;
+      margin: 0;
+    }
+
+    /* Grid de sistemas */
+    .sistemas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 880px;
+      width: 100%;
+    }
+    @media (max-width: 760px) {
+      .sistemas { grid-template-columns: 1fr; }
+    }
+
+    /* Card de sistema */
+    .sistema-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 14px;
+      padding: 28px 26px;
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+      min-height: 280px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: inherit; text-decoration: none;
+    }
+    .sistema-card::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+    }
+    .sistema-card.comercial::before {
+      background: linear-gradient(90deg, #0F6E56 0%, #1D9E75 100%);
+    }
+    .sistema-card.clinico::before {
+      background: linear-gradient(90deg, #C56847 0%, #E8945A 100%);
+    }
+    .sistema-card:hover:not(.disabled) {
+      border-color: #30363d;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    }
+    .sistema-card.comercial:hover:not(.disabled) {
+      box-shadow: 0 12px 32px rgba(29,158,117,0.15), 0 0 0 1px rgba(29,158,117,0.25);
+    }
+    .sistema-card.clinico:hover:not(.disabled) {
+      box-shadow: 0 12px 32px rgba(232,148,90,0.15), 0 0 0 1px rgba(232,148,90,0.25);
+    }
+    .sistema-card.disabled {
+      cursor: not-allowed; opacity: 0.85;
+    }
+    .sistema-card.disabled:hover { transform: none; }
+
+    .sistema-icon {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 28px; color: #fff;
+      margin-bottom: 18px;
+    }
+    .sistema-card.comercial .sistema-icon {
+      background: linear-gradient(135deg, #0F6E56 0%, #1D9E75 100%);
+      box-shadow: 0 0 24px rgba(29,158,117,0.3);
+    }
+    .sistema-card.clinico .sistema-icon {
+      background: linear-gradient(135deg, #C56847 0%, #E8945A 100%);
+      box-shadow: 0 0 24px rgba(232,148,90,0.3);
+    }
+
+    .sistema-nome {
+      font-size: 19px; font-weight: 500;
+      color: #f0f6fc;
+      margin: 0 0 4px;
+      display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sistema-tag {
+      font-size: 9px; font-weight: 600;
+      padding: 3px 8px; border-radius: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .sistema-tag.ativo {
+      background: rgba(29,158,117,0.18); color: #1D9E75;
+      border: 1px solid rgba(29,158,117,0.3);
+    }
+    .sistema-tag.breve {
+      background: rgba(239,159,39,0.15); color: #EF9F27;
+      border: 1px solid rgba(239,159,39,0.3);
+    }
+
+    .sistema-desc {
+      font-size: 13px; color: #c9d1d9;
+      line-height: 1.55;
+      margin: 0 0 18px;
+      flex: 1;
+    }
+
+    .sistema-features {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 18px;
+    }
+    .sistema-feat {
+      font-size: 10px;
+      padding: 4px 9px;
+      border-radius: 5px;
+      background: rgba(33,38,45,0.6);
+      color: #7d8590;
+      border: 1px solid #21262d;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .sistema-feat i { font-size: 11px; }
+
+    .sistema-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 500;
+      padding: 10px 16px;
+      border-radius: 8px;
+      transition: all 0.15s;
+      align-self: flex-start;
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .sistema-card.comercial .sistema-cta {
+      background: linear-gradient(135deg, #0F6E56 0%, #1D9E75 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(29,158,117,0.25);
+    }
+    .sistema-card.comercial:hover .sistema-cta {
+      transform: translateX(2px);
+      box-shadow: 0 6px 18px rgba(29,158,117,0.35);
+    }
+    .sistema-card.clinico .sistema-cta {
+      background: linear-gradient(135deg, #C56847 0%, #E8945A 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(232,148,90,0.25);
+    }
+    .sistema-card.clinico:hover .sistema-cta {
+      transform: translateX(2px);
+      box-shadow: 0 6px 18px rgba(232,148,90,0.35);
+    }
+
+    .footer {
+      margin-top: 56px;
+      font-size: 11px; color: #444c56;
+      text-align: center;
+    }
+    .footer span { color: #7d8590; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="top">
+      <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'">
+      <h1 class="titulo">Aplic &amp; Go</h1>
+      <p class="subtitulo">Escolha o sistema pra entrar</p>
+    </div>
+
+    <div class="sistemas">
+      <!-- SISTEMA COMERCIAL — ativo, leva pro dashboard atual -->
+      <a class="sistema-card comercial" href="index.html">
+        <div class="sistema-icon"><i class="ti ti-chart-line"></i></div>
+        <h2 class="sistema-nome">
+          Sistema Comercial
+          <span class="sistema-tag ativo">Ativo</span>
+        </h2>
+        <p class="sistema-desc">
+          Gestão de vendas, leads, Meta Ads, equipe e perdas. Acompanhe o funil comercial em tempo real, com insights, comissões e histórico mês a mês.
+        </p>
+        <div class="sistema-features">
+          <span class="sistema-feat"><i class="ti ti-layout-dashboard"></i> Painel Geral</span>
+          <span class="sistema-feat"><i class="ti ti-brand-meta"></i> Meta Ads</span>
+          <span class="sistema-feat"><i class="ti ti-trending-down"></i> Perdas</span>
+          <span class="sistema-feat"><i class="ti ti-history"></i> Histórico</span>
+          <span class="sistema-feat"><i class="ti ti-users"></i> Equipe</span>
+        </div>
+        <span class="sistema-cta">
+          Entrar <i class="ti ti-arrow-right"></i>
+        </span>
+      </a>
+
+      <!-- SISTEMA CLÍNICO — Fundação ao vivo (Etapa 1) -->
+      <a class="sistema-card clinico" href="clinico.html">
+        <div class="sistema-icon"><i class="ti ti-stethoscope"></i></div>
+        <h2 class="sistema-nome">
+          Sistema Clínico
+          <span class="sistema-tag ativo" style="background:rgba(232,148,90,0.18);color:#E8945A;border:1px solid rgba(232,148,90,0.3);">Em construção</span>
+        </h2>
+        <p class="sistema-desc">
+          Gestão de pacientes, prontuários, agendamentos e protocolos clínicos. Fundação ativa -- pacientes, agenda e prontuário em construção por etapas.
+        </p>
+        <div class="sistema-features">
+          <span class="sistema-feat"><i class="ti ti-user-heart"></i> Pacientes</span>
+          <span class="sistema-feat"><i class="ti ti-clipboard-text"></i> Prontuários</span>
+          <span class="sistema-feat"><i class="ti ti-calendar"></i> Agendamentos</span>
+          <span class="sistema-feat"><i class="ti ti-vaccine"></i> Aplicações</span>
+          <span class="sistema-feat"><i class="ti ti-package"></i> Estoque</span>
+        </div>
+        <span class="sistema-cta">
+          Entrar <i class="ti ti-arrow-right"></i>
+        </span>
+      </a>
+    </div>
+
+    <div class="footer">
+      <span>Aplic &amp; Go</span> · v1.0 · 2026
+    </div>
+  </div>
+
+  <script>
+    function aviseEmBreve() {
+      // Por enquanto só mostra um aviso curto. Quando o sistema clínico for construído,
+      // basta trocar o onclick por href="clinico.html" no card.
+      alert('Sistema Clínico ainda está em construção. Em breve.');
+    }
+  </script>
+</body>
+</html>

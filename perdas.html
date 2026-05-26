@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplic & Go — Perdas</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  .btn {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 6px 12px; font-size: 12px; cursor: pointer; color: #c9d1d9;
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .btn:hover { background: #21262d; border-color: #444c56; }
+
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #1D9E75; animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(29,158,117,0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(29,158,117,0); }
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #161b22 25%, #21262d 50%, #161b22 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px; color: transparent;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .empty {
+    text-align: center; color: #7d8590; font-size: 13px;
+    padding: 32px; background: #0d1117; border-radius: 8px;
+    border: 1px solid #21262d;
+  }
+
+  /* === HEADER === */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; padding-bottom: 16px;
+    border-bottom: 1px solid #21262d;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: linear-gradient(135deg, #8B1B1B 0%, #C73E3E 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 500; font-size: 22px;
+    box-shadow: 0 0 20px rgba(199,62,62,0.4);
+  }
+  .title { font-size: 20px; font-weight: 500; color: #f0f6fc; }
+  .subtitle { font-size: 12px; color: #7d8590; margin-top: 2px; }
+  .controls { display: flex; gap: 8px; align-items: center; }
+  .status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #7d8590; }
+
+  /* === SELECTOR DE PERÍODO === */
+  .period-selector {
+    display: flex; gap: 6px;
+    background: #161b22; border: 1px solid #21262d;
+    border-radius: 10px; padding: 4px;
+    margin-bottom: 24px;
+    width: fit-content;
+  }
+  .period-btn {
+    background: transparent; border: none;
+    color: #7d8590; padding: 8px 16px; font-size: 12px;
+    border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+    transition: all 0.2s;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .period-btn:hover { color: #c9d1d9; }
+  .period-btn.active {
+    background: linear-gradient(135deg, #8B1B1B 0%, #C73E3E 100%);
+    color: white;
+    box-shadow: 0 0 15px rgba(199,62,62,0.3);
+  }
+
+  /* === KPIs === */
+  .kpis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: #161b22; border-radius: 12px; padding: 18px 20px;
+    border: 1px solid #21262d; transition: border-color 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .kpi:hover { border-color: #30363d; }
+  .kpi.danger::before {
+    content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, #f85149 0%, #C73E3E 100%);
+  }
+  .kpi-label {
+    font-size: 11px; color: #7d8590; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px;
+  }
+  .kpi-value { font-size: 32px; font-weight: 500; line-height: 1.1; color: #f0f6fc; font-variant-numeric: tabular-nums; }
+  .kpi-extra { font-size: 11px; color: #7d8590; margin-top: 6px; }
+  .var-up { color: #f85149; font-weight: 600; }
+  .var-down { color: #1D9E75; font-weight: 600; }
+  .var-neutral { color: #7d8590; }
+
+  /* === VALOR HERO === */
+  .valor-hero {
+    background: linear-gradient(135deg, rgba(139,27,27,0.15) 0%, rgba(199,62,62,0.05) 100%);
+    border: 1px solid rgba(199,62,62,0.3);
+    border-radius: 16px; padding: 24px 28px;
+    margin-bottom: 24px;
+    display: grid; grid-template-columns: 2fr 1fr 1fr;
+    gap: 24px; align-items: center;
+  }
+  .valor-hero-main .label {
+    font-size: 12px; color: #f85149; text-transform: uppercase;
+    letter-spacing: 1px; font-weight: 500; margin-bottom: 8px;
+  }
+  .valor-hero-main .value {
+    font-size: 48px; font-weight: 500; color: #f0f6fc;
+    line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .valor-hero-main .periodo { font-size: 13px; color: #c9d1d9; margin-top: 8px; }
+  .valor-hero-sec .label {
+    font-size: 10px; color: #7d8590; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 4px;
+  }
+  .valor-hero-sec .value {
+    font-size: 22px; font-weight: 500; color: #f0f6fc;
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+
+  /* === CARDS === */
+  .card {
+    background: #161b22; border-radius: 12px; padding: 20px;
+    border: 1px solid #21262d;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 500; color: #7d8590;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title-extra { font-size: 11px; color: #7d8590; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  /* === DIAGNÓSTICO POR CATEGORIA === */
+  .categorias-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .categoria-card {
+    border-radius: 10px; padding: 16px;
+    background: #0d1117; border: 1px solid #21262d;
+    position: relative; overflow: hidden;
+  }
+  .categoria-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .cat-comercial-real::before { background: #f85149; }
+  .cat-problema-oferta::before { background: #EF9F27; }
+  .cat-operacional::before { background: #58A6FF; }
+  .cat-lixo-funil::before { background: #7d8590; }
+  .cat-sem-categoria::before { background: #444c56; }
+
+  .categoria-icon {
+    font-size: 24px; margin-bottom: 8px;
+  }
+  .categoria-label {
+    font-size: 11px; color: #7d8590; text-transform: uppercase;
+    letter-spacing: 0.5px; font-weight: 500;
+  }
+  .categoria-value { font-size: 26px; font-weight: 500; color: #f0f6fc; margin-top: 4px; line-height: 1; }
+  .categoria-extra { font-size: 11px; color: #7d8590; margin-top: 6px; }
+
+  /* === GRID PRINCIPAL (Pareto + Tendência) === */
+  .grid-main {
+    display: grid; grid-template-columns: 1.2fr 1fr;
+    gap: 20px; margin-bottom: 24px;
+  }
+  @media (max-width: 1100px) { .grid-main { grid-template-columns: 1fr; } }
+
+  /* === PARETO === */
+  .pareto-row { margin-bottom: 14px; }
+  .pareto-row:last-child { margin-bottom: 0; }
+  .pareto-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .pareto-motivo { font-size: 13px; color: #c9d1d9; font-weight: 500; }
+  .pareto-stats { font-size: 11px; color: #7d8590; font-variant-numeric: tabular-nums; }
+  .pareto-bar-wrap {
+    height: 22px; background: #0d1117; border-radius: 6px;
+    overflow: hidden; border: 1px solid #21262d; position: relative;
+  }
+  .pareto-bar {
+    height: 100%; border-radius: 6px;
+    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; align-items: center; padding: 0 8px;
+    font-size: 10px; font-weight: 600; color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  /* === GRÁFICO === */
+  .chart-wrap { position: relative; height: 280px; }
+
+  /* === TABELA === */
+  table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  thead th {
+    text-align: left; padding: 10px 8px;
+    font-size: 11px; color: #7d8590;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 1px solid #21262d; font-weight: 500;
+  }
+  thead th.right { text-align: right; }
+  tbody td {
+    padding: 12px 8px; border-bottom: 1px solid #21262d;
+    color: #c9d1d9;
+  }
+  tbody td.right { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(33,38,45,0.4); }
+  .td-vendedor-rank { font-size: 16px; color: #f85149; font-weight: 600; }
+  .td-perdas-qtd { font-weight: 600; color: #f0f6fc; }
+  .td-valor { font-variant-numeric: tabular-nums; color: #f85149; font-weight: 500; }
+  .td-time { font-size: 11px; color: #7d8590; }
+  .badge-cat {
+    display: inline-block; padding: 3px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .badge-comercial-real { background: rgba(248,81,73,0.15); color: #f85149; border: 1px solid rgba(248,81,73,0.3); }
+  .badge-problema-oferta { background: rgba(239,159,39,0.15); color: #EF9F27; border: 1px solid rgba(239,159,39,0.3); }
+  .badge-operacional { background: rgba(88,166,255,0.15); color: #58A6FF; border: 1px solid rgba(88,166,255,0.3); }
+  .badge-lixo-funil { background: rgba(125,133,144,0.15); color: #7d8590; border: 1px solid rgba(125,133,144,0.3); }
+  .badge-sem-categoria { background: rgba(68,76,86,0.3); color: #7d8590; border: 1px solid #444c56; }
+
+  /* === RESPONSIVO === */
+  @media (max-width: 768px) {
+    .valor-hero { grid-template-columns: 1fr; gap: 16px; }
+    .valor-hero-main .value { font-size: 36px; }
+  }
+
+  /* === ERROR === */
+  .error-state {
+    background: rgba(248,81,73,0.1); border: 1px solid #f85149;
+    border-radius: 12px; padding: 20px; text-align: center;
+    color: #f85149; margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <div class="logo"><i class="ti ti-trending-down"></i></div>
+      <div>
+        <div class="title">Perdas — Aplic &amp; Go</div>
+        <div class="subtitle">Diagnóstico estratégico de leads perdidos · <span id="periodo-label">Mês atual</span></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">Conectado</span>
+      </div>
+      <button class="btn" onclick="carregar(periodoAtual)">
+        <i class="ti ti-refresh"></i> Atualizar
+      </button>
+      <a class="btn" href="index.html">
+        <i class="ti ti-arrow-left"></i> Voltar à Gestão
+      </a>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div id="error-box" class="error-state" style="display:none;">
+    <strong>Erro ao carregar perdas</strong>
+    <div id="error-msg" style="margin-top: 8px; font-size: 13px;"></div>
+  </div>
+
+  <!-- SELECTOR DE PERÍODO -->
+  <div class="period-selector">
+    <button class="period-btn" data-p="hoje">Hoje</button>
+    <button class="period-btn" data-p="semana">Esta semana</button>
+    <button class="period-btn active" data-p="mes_atual">Mês atual</button>
+    <button class="period-btn" data-p="mes_anterior">Mês anterior</button>
+    <button class="period-btn" data-p="tudo">Tudo</button>
+  </div>
+
+  <!-- KPIs PRINCIPAIS -->
+  <div class="kpis-grid">
+    <div class="kpi danger">
+      <div class="kpi-label">Perdas hoje</div>
+      <div class="kpi-value skeleton" id="kpi-hoje">0</div>
+      <div class="kpi-extra" id="kpi-hoje-var">— vs ontem</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Esta semana</div>
+      <div class="kpi-value skeleton" id="kpi-semana">0</div>
+      <div class="kpi-extra">desde domingo</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Mês atual</div>
+      <div class="kpi-value skeleton" id="kpi-mes">0</div>
+      <div class="kpi-extra" id="kpi-mes-var">— vs mês anterior</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Mês anterior</div>
+      <div class="kpi-value skeleton" id="kpi-mes-anterior">0</div>
+      <div class="kpi-extra">referência</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total histórico</div>
+      <div class="kpi-value skeleton" id="kpi-total">0</div>
+      <div class="kpi-extra">desde sempre</div>
+    </div>
+  </div>
+
+  <!-- VALOR HERO -->
+  <div class="valor-hero">
+    <div class="valor-hero-main">
+      <div class="label"><i class="ti ti-currency-real"></i> Potencial perdido</div>
+      <div class="value skeleton" id="valor-periodo">R$ 0</div>
+      <div class="periodo">no período selecionado</div>
+    </div>
+    <div class="valor-hero-sec">
+      <div class="label">Mês atual</div>
+      <div class="value skeleton" id="valor-mes">R$ 0</div>
+    </div>
+    <div class="valor-hero-sec">
+      <div class="label">Acumulado total</div>
+      <div class="value skeleton" id="valor-total">R$ 0</div>
+    </div>
+  </div>
+
+  <!-- DIAGNÓSTICO POR CATEGORIA -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-title">
+      Diagnóstico por categoria
+      <span class="card-title-extra">classificação estratégica do tipo de perda</span>
+    </div>
+    <div class="categorias-grid" id="categorias-content">
+      <div class="empty">Carregando categorias…</div>
+    </div>
+  </div>
+
+  <!-- PARETO + TENDÊNCIA -->
+  <div class="grid-main">
+    <div class="card">
+      <div class="card-title">
+        Por que estamos perdendo (Pareto)
+        <span class="card-title-extra" id="pareto-total">—</span>
+      </div>
+      <div id="pareto-content">
+        <div class="empty">Carregando motivos…</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        Tendência — 6 meses
+        <span class="card-title-extra">total de perdas por mês</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-tendencia"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP OFENSORES -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-title">
+      Top ofensores
+      <span class="card-title-extra">vendedores com mais perdas no período</span>
+    </div>
+    <div id="vendedores-content">
+      <div class="empty">Carregando vendedores…</div>
+    </div>
+  </div>
+
+  <!-- ÚLTIMAS PERDAS -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-title">
+      Últimas perdas
+      <span class="card-title-extra">20 mais recentes</span>
+    </div>
+    <div id="recentes-content" style="overflow-x: auto;">
+      <div class="empty">Carregando perdas recentes…</div>
+    </div>
+  </div>
+
+  <div style="text-align:center; color:#444c56; font-size:11px; margin-top:24px;">
+    Atualiza automaticamente a cada 60 segundos · <span id="last-update">—</span>
+  </div>
+
+</div>
+
+<script>
+const APPS_SCRIPT_BASE = "https://script.google.com/macros/s/AKfycbwkrVn0KGy503_QBKX7ZP_gjpY23kDJlIt42AxVt_Emjmnd8I_HJJzFcH6SRwcXmDPx/exec";
+
+// Pega token da URL (?token=...) ou do localStorage (compat com chamada direta)
+const PERDAS_TOKEN = (function() {
+  const fromUrl = new URLSearchParams(window.location.search).get('token');
+  if (fromUrl) return fromUrl;
+  try { return localStorage.getItem('aplic_auth_token'); } catch (e) { return null; }
+})();
+
+const COR_CATEGORIA = {
+  "comercial-real":  "#f85149",
+  "problema-oferta": "#EF9F27",
+  "operacional":     "#58A6FF",
+  "lixo-funil":      "#7d8590",
+  "sem-categoria":   "#444c56"
+};
+
+const LABEL_CATEGORIA = {
+  "comercial-real":  "Comercial Real",
+  "problema-oferta": "Problema de Oferta",
+  "operacional":     "Operacional",
+  "lixo-funil":      "Lixo de Funil",
+  "sem-categoria":   "Sem categoria"
+};
+
+const ICON_CATEGORIA = {
+  "comercial-real":  "ti-flame",
+  "problema-oferta": "ti-package",
+  "operacional":     "ti-tool",
+  "lixo-funil":      "ti-trash",
+  "sem-categoria":   "ti-question-mark"
+};
+
+const PERIODO_LABEL = {
+  "hoje":         "Hoje",
+  "semana":       "Esta semana",
+  "mes_atual":    "Mês atual",
+  "mes_anterior": "Mês anterior",
+  "tudo":         "Todo o período"
+};
+
+let chartTendencia = null;
+let periodoAtual = "mes_atual";
+let intervaloRefresh = null;
+
+function pad(n) { return String(n).padStart(2,"0"); }
+function formatBRL(v) {
+  return "R$ " + (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function clearSkeletons() {
+  document.querySelectorAll(".skeleton").forEach(el => el.classList.remove("skeleton"));
+}
+function emailToName(email) {
+  if (!email || email === "—") return "—";
+  if (!email.includes("@")) return email;
+  const name = email.split("@")[0].replace(/[._-]/g, " ");
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+function variacaoHtml(v, contexto) {
+  if (v === 0 || !isFinite(v)) return `<span class="var-neutral">— ${contexto}</span>`;
+  const arrow = v > 0 ? '▲' : '▼';
+  const cls = v > 0 ? 'var-up' : 'var-down';
+  return `<span class="${cls}">${arrow} ${Math.abs(v)}%</span> ${contexto}`;
+}
+function formatarDataRel(ts) {
+  if (!ts) return '—';
+  const dt = new Date(ts);
+  if (isNaN(dt.getTime())) return '—';
+  const diff = Math.floor((Date.now() - dt.getTime()) / 1000);
+  if (diff < 60) return 'agora';
+  if (diff < 3600) return Math.floor(diff/60) + 'min';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h';
+  if (diff < 604800) return Math.floor(diff/86400) + 'd';
+  return dt.toLocaleDateString('pt-BR') + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+}
+function formatMesAbrev(mesIso) {
+  // "2026-05" → "mai/26"
+  const [ano, mes] = mesIso.split("-");
+  const meses = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  return meses[parseInt(mes)-1] + "/" + ano.slice(-2);
+}
+
+async function carregar(periodo) {
+  periodoAtual = periodo;
+  document.querySelectorAll('.period-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.p === periodo);
+  });
+  document.getElementById('periodo-label').textContent = PERIODO_LABEL[periodo] || periodo;
+
+  document.getElementById('status-text').textContent = 'Sincronizando…';
+  document.getElementById('status-dot').style.background = '#EF9F27';
+
+  try {
+    let url = APPS_SCRIPT_BASE + '?action=dashboard_perdas&periodo=' + periodo;
+    if (PERDAS_TOKEN) url += '&token=' + encodeURIComponent(PERDAS_TOKEN);
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+
+    if (!data.ok) {
+      mostrarErro(data.erro || "Resposta inválida");
+      return;
+    }
+
+    document.getElementById('error-box').style.display = 'none';
+    renderizar(data);
+
+    document.getElementById('status-text').textContent = 'Conectado';
+    document.getElementById('status-dot').style.background = '#1D9E75';
+
+    const agora = new Date();
+    document.getElementById('last-update').textContent =
+      "Atualizado às " + pad(agora.getHours()) + ":" + pad(agora.getMinutes()) + ":" + pad(agora.getSeconds());
+
+  } catch (err) {
+    mostrarErro(err.message);
+  }
+}
+
+function mostrarErro(msg) {
+  document.getElementById('error-box').style.display = 'block';
+  document.getElementById('error-msg').textContent = msg;
+  document.getElementById('status-text').textContent = 'Erro';
+  document.getElementById('status-dot').style.background = '#f85149';
+}
+
+function renderizar(d) {
+  clearSkeletons();
+
+  // === KPIs ===
+  document.getElementById('kpi-hoje').textContent = d.kpis.hoje;
+  document.getElementById('kpi-semana').textContent = d.kpis.semana;
+  document.getElementById('kpi-mes').textContent = d.kpis.mes_atual;
+  document.getElementById('kpi-mes-anterior').textContent = d.kpis.mes_anterior;
+  document.getElementById('kpi-total').textContent = d.kpis.total;
+
+  document.getElementById('kpi-hoje-var').innerHTML =
+    variacaoHtml(d.comparativos.hoje_vs_ontem, `vs ontem (${d.kpis.ontem})`);
+  document.getElementById('kpi-mes-var').innerHTML =
+    variacaoHtml(d.comparativos.mes_vs_anterior, "vs mês anterior");
+
+  // === Valores ===
+  document.getElementById('valor-periodo').textContent = formatBRL(d.valor.periodo);
+  document.getElementById('valor-mes').textContent = formatBRL(d.valor.mes);
+  document.getElementById('valor-total').textContent = formatBRL(d.valor.total);
+
+  // === Categorias ===
+  if (!d.por_categoria || d.por_categoria.length === 0) {
+    document.getElementById('categorias-content').innerHTML =
+      '<div class="empty">Sem perdas categorizadas no período</div>';
+  } else {
+    document.getElementById('categorias-content').innerHTML = d.por_categoria.map(c => {
+      const icon = ICON_CATEGORIA[c.categoria] || "ti-help";
+      return `
+        <div class="categoria-card cat-${c.categoria}">
+          <div class="categoria-icon" style="color: ${COR_CATEGORIA[c.categoria]}">
+            <i class="ti ${icon}"></i>
+          </div>
+          <div class="categoria-label">${LABEL_CATEGORIA[c.categoria] || c.categoria}</div>
+          <div class="categoria-value">${c.qtd}</div>
+          <div class="categoria-extra">${c.percentual.toFixed(0)}% · ${formatBRL(c.valor)}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // === Pareto ===
+  document.getElementById('pareto-total').textContent =
+    `${d.kpis.total_periodo} perdas no período`;
+
+  if (!d.por_motivo || d.por_motivo.length === 0) {
+    document.getElementById('pareto-content').innerHTML =
+      '<div class="empty">Sem perdas no período selecionado</div>';
+  } else {
+    const maxQtd = Math.max(...d.por_motivo.map(m => m.qtd), 1);
+    document.getElementById('pareto-content').innerHTML = d.por_motivo.map(m => {
+      const cor = COR_CATEGORIA[m.categoria] || '#7d8590';
+      const w = (m.qtd / maxQtd * 100).toFixed(1);
+      return `
+        <div class="pareto-row">
+          <div class="pareto-header">
+            <span class="pareto-motivo">${m.motivo}</span>
+            <span class="pareto-stats">${m.qtd} · ${m.percentual.toFixed(0)}% · ${formatBRL(m.valor)}</span>
+          </div>
+          <div class="pareto-bar-wrap">
+            <div class="pareto-bar" style="width: ${w}%; background: ${cor}"></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // === Tendência (gráfico) ===
+  renderizarTendencia(d.tendencia);
+
+  // === Top vendedores ===
+  if (!d.top_vendedores || d.top_vendedores.length === 0) {
+    document.getElementById('vendedores-content').innerHTML =
+      '<div class="empty">Sem vendedores com perdas no período</div>';
+  } else {
+    document.getElementById('vendedores-content').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px">#</th>
+            <th>Vendedor</th>
+            <th class="right">Perdas</th>
+            <th class="right">R$ Potencial</th>
+            <th>Motivo dominante</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${d.top_vendedores.map((v, i) => `
+            <tr>
+              <td class="td-vendedor-rank">#${i+1}</td>
+              <td><strong style="color: #f0f6fc">${emailToName(v.vendedor)}</strong></td>
+              <td class="right td-perdas-qtd">${v.qtd}</td>
+              <td class="right td-valor">${formatBRL(v.valor)}</td>
+              <td>${v.motivo_dominante} <span style="color: #7d8590; font-size: 11px;">(${v.motivo_dom_qtd})</span></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // === Últimas perdas ===
+  if (!d.recentes || d.recentes.length === 0) {
+    document.getElementById('recentes-content').innerHTML =
+      '<div class="empty">Sem perdas recentes</div>';
+  } else {
+    document.getElementById('recentes-content').innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Contato</th>
+            <th>Motivo</th>
+            <th>Categoria</th>
+            <th class="right">R$</th>
+            <th>Vendedor</th>
+            <th>Etapa</th>
+            <th class="right">Quando</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${d.recentes.map(p => `
+            <tr>
+              <td><strong style="color: #f0f6fc">${p.contato || "—"}</strong></td>
+              <td>${p.motivo || "—"}</td>
+              <td><span class="badge-cat badge-${p.categoria}">${LABEL_CATEGORIA[p.categoria] || "—"}</span></td>
+              <td class="right td-valor">${formatBRL(p.valor)}</td>
+              <td>${emailToName(p.vendedor)}</td>
+              <td style="font-size: 11px; color: #7d8590">${p.etapa || "—"}</td>
+              <td class="right td-time">${formatarDataRel(p.lost_at)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+}
+
+function renderizarTendencia(tendencia) {
+  if (!tendencia || tendencia.length === 0) return;
+
+  const labels = tendencia.map(t => formatMesAbrev(t.mes));
+  const totais = tendencia.map(t => t.total);
+
+  if (chartTendencia) chartTendencia.destroy();
+
+  const ctx = document.getElementById('chart-tendencia');
+  chartTendencia = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Perdas',
+        data: totais,
+        borderColor: '#f85149',
+        backgroundColor: 'rgba(248,81,73,0.1)',
+        tension: 0.35,
+        fill: true,
+        pointBackgroundColor: '#f85149',
+        pointBorderColor: '#0d1117',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 2.5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#f0f6fc',
+          bodyColor: '#c9d1d9',
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: ctx => ctx.parsed.y + ' perdas'
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: { color: '#7d8590', font: { size: 11 } },
+          grid: { color: '#21262d', drawBorder: false },
+          beginAtZero: true
+        },
+        x: {
+          ticks: { color: '#7d8590', font: { size: 11 } },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+// === Event listeners ===
+document.querySelectorAll('.period-btn').forEach(b => {
+  b.addEventListener('click', () => carregar(b.dataset.p));
+});
+
+// === Init ===
+carregar('mes_atual');
+intervaloRefresh = setInterval(() => carregar(periodoAtual), 60000);
+</script>
+</body>
+</html>
