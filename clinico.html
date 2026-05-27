@@ -724,12 +724,185 @@
     .pac-info-row .val { color: #f0f6fc; text-align: right; word-break: break-word; }
     .pac-info-row .val.empty { color: #444c56; font-style: italic; }
 
-    /* =================== AGENDA (Etapa 3) =================== */
+    /* =================== AGENDA (Etapa 3 - v2) =================== */
+    /* Layout 2-coluna: sidebar com filtros + mini-calendar | grid principal */
+    .ag-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    @media (max-width: 1100px) {
+      .ag-layout { grid-template-columns: 1fr; }
+    }
+    .ag-sidebar { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Cards de seleção (Unidade / Profissional) */
+    .ag-select-card {
+      background: #161b22; border: 1px solid #21262d;
+      border-radius: 10px; padding: 10px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      position: relative;
+    }
+    .ag-select-card:hover { border-color: rgba(232,148,90,0.4); }
+    .ag-select-card.active { border-color: #1D9E75; }
+    .ag-select-card-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 4px;
+    }
+    .ag-select-card-head i {
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      background: rgba(29,158,117,0.15);
+      color: #1D9E75;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .ag-select-card-head .lbl {
+      font-size: 10px; color: #1D9E75;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      font-weight: 600;
+    }
+    .ag-select-card-val {
+      font-size: 13px; color: #f0f6fc; font-weight: 500;
+      padding-left: 36px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ag-select-card-val i { color: #7d8590; font-size: 14px; }
+    .ag-select-popup {
+      display: none;
+      position: absolute; top: 100%; left: 0; right: 0;
+      margin-top: 4px;
+      background: #0d1117; border: 1px solid #21262d;
+      border-radius: 10px;
+      max-height: 260px; overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .ag-select-popup.aberto { display: block; }
+    .ag-select-popup-item {
+      padding: 9px 14px;
+      font-size: 12px; color: #c9d1d9;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(33,38,45,0.5);
+    }
+    .ag-select-popup-item:last-child { border-bottom: 0; }
+    .ag-select-popup-item:hover { background: rgba(33,38,45,0.6); color: #f0f6fc; }
+    .ag-select-popup-item.selecionado { background: rgba(29,158,117,0.10); color: #1D9E75; font-weight: 500; }
+
+    /* Mini-calendar */
+    .ag-mini-cal {
+      background: #161b22; border: 1px solid #21262d;
+      border-radius: 12px; padding: 12px;
+    }
+    .ag-mini-cal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .ag-mini-cal-head button {
+      background: transparent; border: 0; color: #1D9E75;
+      cursor: pointer; padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .ag-mini-cal-head button:hover { background: rgba(33,38,45,0.6); }
+    .ag-mini-cal-head .titulo {
+      font-size: 13px; font-weight: 500; color: #f0f6fc;
+      text-transform: capitalize;
+    }
+    .ag-mini-cal-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+      font-size: 10px;
+    }
+    .ag-mini-cal-dow {
+      text-align: center; color: #7d8590;
+      font-weight: 600; text-transform: uppercase;
+      padding: 3px 0;
+      letter-spacing: 0.3px;
+    }
+    .ag-mini-cal-dow.weekend { color: #f85149; }
+    .ag-mini-cal-day {
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px; font-weight: 500;
+      transition: transform 0.1s;
+    }
+    .ag-mini-cal-day:hover { transform: scale(1.1); }
+    .ag-mini-cal-day.outside { color: #444c56; cursor: default; }
+    .ag-mini-cal-day.hoje {
+      background: #1D9E75 !important;
+      color: #fff !important;
+      box-shadow: 0 0 0 2px rgba(29,158,117,0.3);
+    }
+    .ag-mini-cal-day.selected {
+      box-shadow: 0 0 0 2px #E8945A;
+    }
+    /* Cores por status de ocupação do dia */
+    .ag-mini-cal-day.livre { background: #6FD89A; color: #0a3d1f; }
+    .ag-mini-cal-day.parcial { background: #F4B785; color: #4a2a10; }
+    .ag-mini-cal-day.ocupada { background: #F4A8B5; color: #4a1a25; }
+    .ag-mini-cal-day.fechada_agendada { background: #4A90E2; color: #fff; }
+    .ag-mini-cal-day.passada { color: #7d8590; }
+
+    .ag-mini-cal-legenda {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid rgba(33,38,45,0.6);
+      font-size: 9px;
+    }
+    .ag-mini-cal-legenda-item {
+      display: flex; align-items: center; gap: 5px;
+      color: #7d8590;
+    }
+    .ag-mini-cal-legenda-item .dot {
+      width: 10px; height: 10px; border-radius: 3px;
+    }
+
+    /* Toolbar superior do grid */
     .ag-toolbar {
       display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       background: #161b22; border: 1px solid #21262d;
       border-radius: 10px; padding: 10px 12px;
+    }
+    .ag-toolbar .ag-period-label {
+      font-size: 14px; font-weight: 500; color: #f0f6fc;
+      text-transform: uppercase; letter-spacing: 0.3px;
+      flex: 1; text-align: center;
+    }
+    .ag-mode-pills {
+      display: inline-flex; gap: 2px;
+      background: #0d1117; border: 1px solid #21262d;
+      border-radius: 8px; padding: 3px;
+    }
+    .ag-mode-pill {
+      background: transparent; border: 0;
+      color: #7d8590; padding: 5px 10px;
+      border-radius: 5px; font-size: 11px;
+      cursor: pointer; font-family: inherit; font-weight: 500;
+    }
+    .ag-mode-pill:hover { color: #c9d1d9; }
+    .ag-mode-pill.active {
+      background: rgba(29,158,117,0.15);
+      color: #1D9E75;
+    }
+    .ag-icon-btn {
+      background: transparent; border: 1px solid #21262d;
+      color: #7d8590; padding: 6px 10px;
+      border-radius: 7px; cursor: pointer;
+      font-size: 13px; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .ag-icon-btn:hover { background: rgba(33,38,45,0.6); color: #f0f6fc; }
+    .ag-hoje-btn {
+      background: rgba(29,158,117,0.15);
+      border-color: rgba(29,158,117,0.3);
+      color: #1D9E75;
+      font-weight: 500;
     }
     .ag-nav-week {
       display: inline-flex; align-items: center; gap: 6px;
@@ -839,6 +1012,79 @@
       0%, 100% { box-shadow: 0 0 0 0 rgba(239,159,39,0.3); }
       50% { box-shadow: 0 0 0 4px rgba(239,159,39,0); }
     }
+
+    /* Status AGUARDANDO - paciente já chegou */
+    .ag-event.AGUARDANDO {
+      border-left-color: #6FD89A;
+      background: linear-gradient(135deg, rgba(111,216,154,0.20), rgba(111,216,154,0.10));
+    }
+
+    /* Drag and drop */
+    .ag-event {
+      user-select: none;
+    }
+    .ag-event[draggable="true"] {
+      cursor: grab;
+    }
+    .ag-event.dragging {
+      opacity: 0.4;
+      cursor: grabbing;
+    }
+    .ag-slot.drag-over {
+      background: rgba(232,148,90,0.15) !important;
+      box-shadow: inset 0 0 0 2px #E8945A;
+    }
+
+    /* ==== Modal de mudança de status (7 cards coloridos) ==== */
+    .ag-status-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      z-index: 9200; display: none;
+      align-items: flex-start; justify-content: center;
+      padding: 40px 20px; overflow-y: auto;
+    }
+    .ag-status-modal-overlay.aberto { display: flex; }
+    .ag-status-modal {
+      background: #fff;
+      border-radius: 16px;
+      width: 100%; max-width: 380px;
+      padding: 20px 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .ag-status-modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .ag-status-modal-head .ttl {
+      font-size: 14px; font-weight: 600; color: #1D9E75;
+    }
+    .ag-status-modal-head .close {
+      background: transparent; border: 0;
+      color: #7d8590; cursor: pointer;
+      font-size: 18px;
+    }
+    .ag-status-modal-list {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ag-status-opt {
+      border: 0; border-radius: 10px;
+      padding: 13px 14px;
+      cursor: pointer; font-family: inherit;
+      color: #fff; font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      display: flex; align-items: center; gap: 10px;
+      text-align: left;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .ag-status-opt:hover { transform: translateX(2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .ag-status-opt i { font-size: 18px; flex-shrink: 0; }
+    .ag-status-opt.AGENDADO       { background: #4A90E2; }
+    .ag-status-opt.CONFIRMADO     { background: #F1C648; color: #533c0a; }
+    .ag-status-opt.AGUARDANDO     { background: #6FD89A; color: #0a3d1f; }
+    .ag-status-opt.ATENDIDO       { background: #2BB673; }
+    .ag-status-opt.NO_SHOW        { background: #E55266; }
+    .ag-status-opt.CANCELADO_CLI  { background: #E68A47; }
+    .ag-status-opt.CANCELADO_PAC  { background: #C56847; }
 
     .ag-legenda {
       display: flex; flex-wrap: wrap; gap: 8px;
@@ -1891,43 +2137,100 @@
     </div>
   </div>
 
-  <!-- VIEW: Agenda -->
+  <!-- VIEW: Agenda v2 -->
   <div class="view" id="view-agenda">
-    <div class="ag-toolbar">
-      <div class="ag-nav-week">
-        <button onclick="agNavSemana(-1)" title="Semana anterior"><i class="ti ti-chevron-left"></i></button>
-        <button onclick="agNavSemana(0)">Hoje</button>
-        <span class="label" id="ag-semana-label">—</span>
-        <button onclick="agNavSemana(1)" title="Próxima semana"><i class="ti ti-chevron-right"></i></button>
-      </div>
-      <select class="pac-select" id="ag-filter-unit">
-        <option value="">Todas unidades</option>
-      </select>
-      <select class="pac-select" id="ag-filter-prof">
-        <option value="">Todos profissionais</option>
-      </select>
-      <div class="ag-toolbar-spacer"></div>
-      <button class="pac-btn-secondary" onclick="agCarregar()" title="Atualizar">
-        <i class="ti ti-refresh"></i>
-      </button>
-      <button class="pac-btn-primary" onclick="agAbrirNovoModal()">
-        <i class="ti ti-calendar-plus"></i> Novo agendamento
-      </button>
-    </div>
-
-    <div class="ag-grid-card">
-      <div class="ag-grid" id="ag-grid">
-        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: #7d8590;">
-          Carregando agenda…
+    <div class="ag-layout">
+      <!-- SIDEBAR ESQUERDA -->
+      <aside class="ag-sidebar">
+        <div class="ag-select-card" onclick="agToggleSelect('unit')">
+          <div class="ag-select-card-head">
+            <i class="ti ti-building-hospital"></i>
+            <span class="lbl">Unidade selecionada</span>
+          </div>
+          <div class="ag-select-card-val">
+            <span id="ag-sel-unit-label">Todas Unidades</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
+          <div class="ag-select-popup" id="ag-sel-unit-popup"></div>
         </div>
-      </div>
-      <div class="ag-legenda">
-        <div class="ag-legenda-item"><span class="dot" style="background:#4A90E2;"></span> Agendado</div>
-        <div class="ag-legenda-item"><span class="dot" style="background:#1D9E75;"></span> Confirmado</div>
-        <div class="ag-legenda-item"><span class="dot" style="background:#EF9F27;"></span> Em atendimento</div>
-        <div class="ag-legenda-item"><span class="dot" style="background:#7B68EE;"></span> Atendido</div>
-        <div class="ag-legenda-item"><span class="dot" style="background:#f85149;"></span> No-show</div>
-        <div class="ag-legenda-item"><span class="dot" style="background:#7d8590;"></span> Cancelado</div>
+
+        <div class="ag-select-card" onclick="agToggleSelect('prof')">
+          <div class="ag-select-card-head">
+            <i class="ti ti-stethoscope"></i>
+            <span class="lbl">Profissional selecionado</span>
+          </div>
+          <div class="ag-select-card-val">
+            <span id="ag-sel-prof-label">Todos profissionais</span>
+            <i class="ti ti-chevron-down"></i>
+          </div>
+          <div class="ag-select-popup" id="ag-sel-prof-popup"></div>
+        </div>
+
+        <div style="display:flex; gap:6px;">
+          <button class="ag-icon-btn ag-hoje-btn" onclick="agIrPraHoje()">
+            <i class="ti ti-calendar"></i> Hoje
+          </button>
+          <button class="ag-icon-btn" onclick="agMudarMode('lista')">
+            <i class="ti ti-list"></i> Modo lista
+          </button>
+        </div>
+
+        <div class="ag-mini-cal">
+          <div class="ag-mini-cal-head">
+            <button onclick="agMiniCalNav(-1)"><i class="ti ti-chevron-left"></i></button>
+            <span class="titulo" id="ag-mini-cal-title">—</span>
+            <button onclick="agMiniCalNav(1)"><i class="ti ti-chevron-right"></i></button>
+          </div>
+          <div class="ag-mini-cal-grid" id="ag-mini-cal-grid"></div>
+          <div class="ag-mini-cal-legenda">
+            <div class="ag-mini-cal-legenda-item"><span class="dot" style="background:#6FD89A;"></span>Livre</div>
+            <div class="ag-mini-cal-legenda-item"><span class="dot" style="background:#F4A8B5;"></span>Ocupada</div>
+            <div class="ag-mini-cal-legenda-item"><span class="dot" style="background:#F4B785;"></span>Parc. Livre</div>
+            <div class="ag-mini-cal-legenda-item"><span class="dot" style="background:#fff; border:1px solid #21262d;"></span>Fechada</div>
+            <div class="ag-mini-cal-legenda-item" style="grid-column: 1 / -1;"><span class="dot" style="background:#4A90E2;"></span>Fechada c/ Paciente</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- COLUNA PRINCIPAL -->
+      <div>
+        <div class="ag-toolbar">
+          <button class="ag-icon-btn" onclick="agNavPeriodo(-1)" title="Anterior"><i class="ti ti-chevron-left"></i></button>
+          <button class="ag-icon-btn" onclick="agNavPeriodo(1)" title="Próximo"><i class="ti ti-chevron-right"></i></button>
+          <button class="ag-icon-btn ag-hoje-btn" onclick="agIrPraHoje()">Hoje</button>
+          <button class="ag-icon-btn" onclick="document.documentElement.requestFullscreen()" title="Tela cheia">
+            <i class="ti ti-maximize"></i> Tela Cheia
+          </button>
+          <span class="ag-period-label" id="ag-period-label">—</span>
+          <div class="ag-mode-pills">
+            <button class="ag-mode-pill" data-mode="dia" onclick="agMudarMode('dia')">Dia</button>
+            <button class="ag-mode-pill active" data-mode="semana" onclick="agMudarMode('semana')">Semana</button>
+            <button class="ag-mode-pill" data-mode="seg-sex" onclick="agMudarMode('seg-sex')">Seg-Sex</button>
+            <button class="ag-mode-pill" data-mode="mes" onclick="agMudarMode('mes')">Mês</button>
+            <button class="ag-mode-pill" data-mode="lista" onclick="agMudarMode('lista')">Lista</button>
+          </div>
+          <button class="pac-btn-primary" onclick="agAbrirNovoModal()">
+            <i class="ti ti-calendar-plus"></i> Novo
+          </button>
+        </div>
+
+        <div class="ag-grid-card">
+          <div class="ag-grid" id="ag-grid">
+            <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: #7d8590;">
+              Carregando agenda…
+            </div>
+          </div>
+          <div class="ag-legenda">
+            <div class="ag-legenda-item"><span class="dot" style="background:#4A90E2;"></span> Agendado</div>
+            <div class="ag-legenda-item"><span class="dot" style="background:#F1C648;"></span> Confirmado</div>
+            <div class="ag-legenda-item"><span class="dot" style="background:#6FD89A;"></span> Aguardando</div>
+            <div class="ag-legenda-item"><span class="dot" style="background:#EF9F27;"></span> Em atendimento</div>
+            <div class="ag-legenda-item"><span class="dot" style="background:#2BB673;"></span> Atendido</div>
+            <div class="ag-legenda-item"><span class="dot" style="background:#E55266;"></span> Faltou</div>
+            <div class="ag-legenda-item"><span class="dot" style="background:#E68A47;"></span> Cancelada (clínica)</div>
+            <div class="ag-legenda-item"><span class="dot" style="background:#C56847;"></span> Cancelada (paciente)</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2928,6 +3231,44 @@
   </div>
 </div>
 
+<!-- ============== MODAL DE MUDANÇA DE STATUS (7 cards coloridos) ============== -->
+<div class="ag-status-modal-overlay" id="ag-status-modal" onclick="if(event.target.id==='ag-status-modal') agFecharStatusModal()">
+  <div class="ag-status-modal">
+    <div class="ag-status-modal-head">
+      <span class="ttl">Para que situação deseja alterar?</span>
+      <button class="close" onclick="agFecharStatusModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-status-modal-list">
+      <button class="ag-status-opt AGENDADO" onclick="agMudarStatusModal('AGENDADO')">
+        <i class="ti ti-calendar"></i> Paciente Agendado
+      </button>
+      <button class="ag-status-opt CONFIRMADO" onclick="agMudarStatusModal('CONFIRMADO')">
+        <i class="ti ti-circle-check"></i> Consulta Confirmada
+      </button>
+      <button class="ag-status-opt AGUARDANDO" onclick="agMudarStatusModal('AGUARDANDO')">
+        <i class="ti ti-user-check"></i> Presente e Aguardando Atendimento
+      </button>
+      <button class="ag-status-opt ATENDIDO" onclick="agMudarStatusModal('ATENDIDO')">
+        <i class="ti ti-checks"></i> Atendido
+      </button>
+      <button class="ag-status-opt NO_SHOW" onclick="agMudarStatusModal('NO_SHOW')">
+        <i class="ti ti-user-off"></i> Paciente Faltou
+      </button>
+      <button class="ag-status-opt CANCELADO_CLI" onclick="agMudarStatusModal('CANCELADO', 'CLINICA')">
+        <i class="ti ti-calendar-cancel"></i> Cancelada pela Clínica
+      </button>
+      <button class="ag-status-opt CANCELADO_PAC" onclick="agMudarStatusModal('CANCELADO', 'PACIENTE')">
+        <i class="ti ti-calendar-x"></i> Cancelada pelo Paciente
+      </button>
+    </div>
+    <div style="text-align: center; margin-top: 12px;">
+      <button onclick="agAbrirEditarDoStatus()" style="background:transparent; border:0; color:#1D9E75; font-size:12px; font-weight:500; cursor:pointer; padding:6px;">
+        <i class="ti ti-edit"></i> Editar detalhes (horário, paciente, profissional)
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ============== MODAL DE NOVIDADES ============== -->
 <div class="novidades-overlay" id="novidades-overlay" onclick="if(event.target.id==='novidades-overlay') fecharNovidades()">
   <div class="novidades-modal">
@@ -3854,43 +4195,32 @@ function agSameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+// Add mode field e edição de eventos sendo arrastados
+agState.mode = 'semana';            // 'dia' | 'semana' | 'seg-sex' | 'mes' | 'lista'
+agState.draggingId = null;
+agState.miniCalRef = new Date();    // mês visível no mini-calendar
+agState.miniCalDias = {};           // mapa de cores do mês
+agState.statusModalId = null;       // appointment id sendo editado no modal
+
 async function agInit() {
   if (agState.tipos.length === 0) {
-    // Carrega tipos
     const tipos = await pacApi('/api/clinico/appointments/types');
     if (tipos.ok) agState.tipos = tipos.data.tipos;
   }
-  // Reusa unidades e profissionais já carregados em pacState
   if (pacState.unidades.length === 0) {
     await pacCarregarApoio();
   }
-  agBindToolbar();
   agPreencherSelects();
+  agPreencherSelectsCustom();
   agState.semanaRef = new Date();
+  agState.miniCalRef = new Date();
+  await agCarregarMiniCal();
   agCarregar();
 }
 
-function agBindToolbar() {
-  document.getElementById('ag-filter-unit').addEventListener('change', e => {
-    agState.unidade = e.target.value;
-    agCarregar();
-  });
-  document.getElementById('ag-filter-prof').addEventListener('change', e => {
-    agState.prof = e.target.value;
-    agCarregar();
-  });
-}
-
+// Selects do MODAL (mantém os antigos pro form de criar/editar)
 function agPreencherSelects() {
-  const selUnit = document.getElementById('ag-filter-unit');
-  selUnit.innerHTML = '<option value="">Todas unidades</option>' +
-    pacState.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
   const profs = pacState.profissionais.filter(p => ['medico','nutricionista','enfermagem','gestor'].includes(p.role));
-  const selProf = document.getElementById('ag-filter-prof');
-  selProf.innerHTML = '<option value="">Todos profissionais</option>' +
-    profs.map(p => `<option value="${p.id || p.email}">${p.nome || p.email}</option>`).join('');
-
-  // Selects do modal
   const mUnit = document.getElementById('ag-unit');
   mUnit.innerHTML = '<option value="">—</option>' +
     pacState.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
@@ -3900,32 +4230,165 @@ function agPreencherSelects() {
   const mType = document.getElementById('ag-type');
   mType.innerHTML = '<option value="">—</option>' +
     agState.tipos.map(t => `<option value="${t.id}" data-dur="${t.duracao_minutos}">${t.nome} (${t.duracao_minutos}min)</option>`).join('');
-
-  // Pré-seleciona unidade primária
   const primaria = pacState.unidades.find(u => u.primaria);
   if (primaria) mUnit.value = primaria.id;
 }
 
-function agNavSemana(delta) {
-  if (delta === 0) {
-    agState.semanaRef = new Date();
-  } else {
-    const d = new Date(agState.semanaRef);
-    d.setDate(d.getDate() + delta * 7);
-    agState.semanaRef = d;
-  }
+// Selects CUSTOM da nova sidebar (Unidade + Profissional)
+function agPreencherSelectsCustom() {
+  const popUnit = document.getElementById('ag-sel-unit-popup');
+  popUnit.innerHTML = `<div class="ag-select-popup-item ${!agState.unidade ? 'selecionado' : ''}" onclick="agSelectUnit('', 'Todas Unidades')">Todas Unidades</div>` +
+    pacState.unidades.map(u => `<div class="ag-select-popup-item ${agState.unidade === u.id ? 'selecionado' : ''}" onclick="agSelectUnit('${u.id}', '${u.nome.replace(/'/g, "\\'")}')">${u.nome}</div>`).join('');
+
+  const profs = pacState.profissionais.filter(p => ['medico','nutricionista','enfermagem','gestor'].includes(p.role));
+  const popProf = document.getElementById('ag-sel-prof-popup');
+  popProf.innerHTML = `<div class="ag-select-popup-item ${!agState.prof ? 'selecionado' : ''}" onclick="agSelectProf('', 'Todos profissionais')">Todos profissionais</div>` +
+    profs.map(p => {
+      const label = (p.nome || p.email).replace(/'/g, "\\'");
+      const role = ({ medico: 'Dr.', nutricionista: 'Nutri', enfermagem: 'Enf.', gestor: '' })[p.role] || '';
+      const lblFull = role ? `${role} ${p.nome || p.email}` : (p.nome || p.email);
+      return `<div class="ag-select-popup-item ${agState.prof === p.id ? 'selecionado' : ''}" onclick="agSelectProf('${p.id}', '${lblFull.replace(/'/g, "\\'")}')">${lblFull}</div>`;
+    }).join('');
+}
+
+function agToggleSelect(qual) {
+  event.stopPropagation();
+  const id = qual === 'unit' ? 'ag-sel-unit-popup' : 'ag-sel-prof-popup';
+  const outroId = qual === 'unit' ? 'ag-sel-prof-popup' : 'ag-sel-unit-popup';
+  document.getElementById(outroId).classList.remove('aberto');
+  document.getElementById(id).classList.toggle('aberto');
+}
+document.addEventListener('click', () => {
+  const popups = document.querySelectorAll('.ag-select-popup');
+  popups.forEach(p => p.classList.remove('aberto'));
+});
+
+function agSelectUnit(id, label) {
+  agState.unidade = id;
+  document.getElementById('ag-sel-unit-label').textContent = label;
+  document.getElementById('ag-sel-unit-popup').classList.remove('aberto');
+  agPreencherSelectsCustom();
+  agCarregar();
+  agCarregarMiniCal();
+}
+function agSelectProf(id, label) {
+  agState.prof = id;
+  document.getElementById('ag-sel-prof-label').textContent = label;
+  document.getElementById('ag-sel-prof-popup').classList.remove('aberto');
+  agPreencherSelectsCustom();
+  agCarregar();
+  agCarregarMiniCal();
+}
+
+function agIrPraHoje() {
+  agState.semanaRef = new Date();
+  agState.miniCalRef = new Date();
+  agCarregar();
+  agCarregarMiniCal();
+}
+
+function agMudarMode(novoMode) {
+  agState.mode = novoMode;
+  document.querySelectorAll('.ag-mode-pill').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === novoMode)
+  );
   agCarregar();
 }
 
+function agNavPeriodo(delta) {
+  const d = new Date(agState.semanaRef);
+  const passo = (agState.mode === 'dia') ? 1
+              : (agState.mode === 'mes') ? 30
+              : 7;
+  d.setDate(d.getDate() + delta * passo);
+  agState.semanaRef = d;
+  agCarregar();
+}
+
+// (mantém função antiga pra compat com botão "Hoje" velho)
+function agNavSemana(delta) { agNavPeriodo(delta); }
+
+// ========== MINI-CALENDAR ==========
+async function agCarregarMiniCal() {
+  const ano = agState.miniCalRef.getFullYear();
+  const mes = agState.miniCalRef.getMonth() + 1;
+  const params = new URLSearchParams();
+  params.set('year', String(ano));
+  params.set('month', String(mes));
+  if (agState.unidade) params.set('unit', agState.unidade);
+  if (agState.prof) params.set('prof', agState.prof);
+  const r = await pacApi('/api/clinico/appointments/calendar?' + params.toString());
+  if (!r.ok) return;
+  agState.miniCalDias = {};
+  r.data.dias.forEach(d => { agState.miniCalDias[d.dia] = d; });
+  agRenderMiniCal();
+}
+
+function agRenderMiniCal() {
+  const ref = agState.miniCalRef;
+  const ano = ref.getFullYear();
+  const mes = ref.getMonth();
+  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('ag-mini-cal-title').textContent = MESES[mes] + ' ' + ano;
+
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia = new Date(ano, mes + 1, 0);
+  const dowInicio = primeiroDia.getDay();          // 0 = dom
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  let html = '';
+  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  dows.forEach((d, i) => {
+    html += `<div class="ag-mini-cal-dow${(i === 0 || i === 6) ? ' weekend' : ''}">${d}</div>`;
+  });
+
+  // Dias do mês anterior (preenchimento)
+  for (let i = 0; i < dowInicio; i++) {
+    html += '<div class="ag-mini-cal-day outside"></div>';
+  }
+  // Dias do mês
+  for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+    const dt = new Date(ano, mes, dia);
+    const key = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    const ehHoje = dt.getTime() === hoje.getTime();
+    const ehSelecionado = agState.semanaRef &&
+      dt.getDate() === agState.semanaRef.getDate() &&
+      dt.getMonth() === agState.semanaRef.getMonth() &&
+      dt.getFullYear() === agState.semanaRef.getFullYear();
+    const info = agState.miniCalDias[key];
+    const cor = info ? info.cor : 'livre';
+    const cls = ['ag-mini-cal-day', cor];
+    if (ehHoje) cls.push('hoje');
+    if (ehSelecionado && !ehHoje) cls.push('selected');
+    html += `<div class="${cls.join(' ')}" onclick="agClicarDia('${key}')" title="${info ? info.agendamentos + ' agendamentos' : ''}">${dia}</div>`;
+  }
+  document.getElementById('ag-mini-cal-grid').innerHTML = html;
+}
+
+function agMiniCalNav(delta) {
+  const d = new Date(agState.miniCalRef);
+  d.setMonth(d.getMonth() + delta);
+  agState.miniCalRef = d;
+  agCarregarMiniCal();
+}
+
+function agClicarDia(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  agState.semanaRef = new Date(y, m - 1, d);
+  if (agState.mode === 'mes') agState.mode = 'dia';
+  agCarregar();
+  agRenderMiniCal();
+}
+
 async function agCarregar() {
-  const ini = agInicioSemana(agState.semanaRef);
-  const fim = agFimSemana(agState.semanaRef);
-  document.getElementById('ag-semana-label').textContent =
-    agFmtDataExtensa(ini) + ' → ' + agFmtDataExtensa(new Date(fim.getTime() - 1));
+  const range = agJanelaPeriodo();
+  document.getElementById('ag-period-label').textContent = range.label;
 
   const params = new URLSearchParams();
-  params.set('start', ini.toISOString());
-  params.set('end', fim.toISOString());
+  params.set('start', range.ini.toISOString());
+  params.set('end', range.fim.toISOString());
   if (agState.unidade) params.set('unit', agState.unidade);
   if (agState.prof) params.set('prof', agState.prof);
 
@@ -3939,78 +4402,337 @@ async function agCarregar() {
   agRender();
 }
 
+// Janela de datas conforme o modo selecionado
+function agJanelaPeriodo() {
+  const ref = new Date(agState.semanaRef);
+  ref.setHours(0, 0, 0, 0);
+
+  if (agState.mode === 'dia') {
+    const ini = new Date(ref);
+    const fim = new Date(ref); fim.setHours(23, 59, 59, 999);
+    return { ini, fim, label: agFmtDataExtensa(ini) };
+  }
+  if (agState.mode === 'mes') {
+    const ini = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    const fim = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59);
+    const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return { ini, fim, label: MESES[ref.getMonth()] + ' ' + ref.getFullYear() };
+  }
+  // semana, seg-sex e lista usam janela semanal
+  const ini = agInicioSemana(ref);
+  const fim = agFimSemana(ref);
+  const fimVisivel = new Date(fim.getTime() - 1);
+  return {
+    ini, fim,
+    label: ini.getDate() + ' – ' + fimVisivel.getDate() + ' DE ' +
+      ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'][ini.getMonth()].toString()
+  };
+}
+
 function agRender() {
   const grid = document.getElementById('ag-grid');
-  const ini = agInicioSemana(agState.semanaRef);
+
+  if (agState.mode === 'lista') {
+    agRenderLista();
+    return;
+  }
+  if (agState.mode === 'mes') {
+    agRenderMes();
+    return;
+  }
+  // Dia, semana, seg-sex
+  const ehDia = agState.mode === 'dia';
+  const ehSegSex = agState.mode === 'seg-sex';
+  let diasMostrados, colsTemplate, startDow;
+  if (ehDia) {
+    diasMostrados = 1;
+    colsTemplate = '56px 1fr';
+    startDow = null; // só mostra o dia atual
+  } else if (ehSegSex) {
+    diasMostrados = 5;
+    colsTemplate = '56px repeat(5, 1fr)';
+    startDow = 1;
+  } else {
+    diasMostrados = 7;
+    colsTemplate = '56px repeat(7, 1fr)';
+    startDow = 0;
+  }
+  grid.style.gridTemplateColumns = colsTemplate;
+
+  const ini = ehDia ? new Date(agState.semanaRef) : agInicioSemana(agState.semanaRef);
+  if (ehSegSex) ini.setDate(ini.getDate() + 1);  // pula domingo
+  ini.setHours(0, 0, 0, 0);
   const hoje = new Date();
 
   let html = '<div class="ag-corner"></div>';
-  // Header dos dias
-  for (let i = 0; i < 7; i++) {
-    const d = agDiaDaSemana(ini, i);
+  for (let i = 0; i < diasMostrados; i++) {
+    const d = ehDia ? ini : agDiaDaSemana(ini, i);
     const ehHoje = agSameDay(d, hoje);
+    const dowIdx = d.getDay();
     html += `<div class="ag-day-header${ehHoje ? ' hoje' : ''}">
-      <div class="dow">${AG_DIAS_SEMANA[i]}</div>
+      <div class="dow">${AG_DIAS_SEMANA[dowIdx]}</div>
       <div class="num">${d.getDate()}</div>
     </div>`;
   }
-  // Linhas de hora
   const numSlots = ((AG_HORA_FIM - AG_HORA_INICIO) * 60) / AG_SLOT_MIN;
   for (let s = 0; s < numSlots; s++) {
     const hora = AG_HORA_INICIO + Math.floor(s * AG_SLOT_MIN / 60);
     const min = (s * AG_SLOT_MIN) % 60;
     const label = (min === 0) ? `${hora.toString().padStart(2,'0')}:00` : '';
     html += `<div class="ag-hour-cell">${label}</div>`;
-    for (let d = 0; d < 7; d++) {
-      const dia = agDiaDaSemana(ini, d);
+    for (let i = 0; i < diasMostrados; i++) {
+      const dia = ehDia ? ini : agDiaDaSemana(ini, i);
       const ehHoje = agSameDay(dia, hoje);
       const slotDate = new Date(dia);
       slotDate.setHours(hora, min, 0, 0);
-      html += `<div class="ag-slot${ehHoje ? ' hoje' : ''}" onclick="agAbrirNovoModalEm('${agIsoLocal(slotDate)}')" data-iso="${agIsoLocal(slotDate)}"></div>`;
+      const iso = agIsoLocal(slotDate);
+      html += `<div class="ag-slot${ehHoje ? ' hoje' : ''}" onclick="agAbrirNovoModalEm('${iso}')" data-iso="${iso}" ondragover="agSlotDragOver(event)" ondragleave="agSlotDragLeave(event)" ondrop="agSlotDrop(event)"></div>`;
     }
   }
   grid.innerHTML = html;
 
-  // Posiciona os agendamentos como overlays absolutos
+  // Posiciona os eventos
   agState.agendamentos.forEach(a => {
-    agPosicionarEvento(a, ini);
+    agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex);
   });
 }
 
-function agPosicionarEvento(a, semanaIni) {
+// Visão MÊS
+function agRenderMes() {
+  const grid = document.getElementById('ag-grid');
+  grid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+  const ref = agState.semanaRef;
+  const ano = ref.getFullYear();
+  const mes = ref.getMonth();
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia = new Date(ano, mes + 1, 0);
+  const dowInicio = primeiroDia.getDay();
+
+  // Agrupa agendamentos por dia
+  const porDia = {};
+  agState.agendamentos.forEach(a => {
+    const d = new Date(a.start_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (!porDia[key]) porDia[key] = [];
+    porDia[key].push(a);
+  });
+
+  let html = '';
+  const dows = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  dows.forEach(d => {
+    html += `<div class="ag-day-header"><div class="dow">${d}</div></div>`;
+  });
+  // Padding início
+  for (let i = 0; i < dowInicio; i++) {
+    html += '<div class="ag-slot" style="min-height:90px; background:rgba(13,17,23,0.4);"></div>';
+  }
+  const hoje = new Date();
+  for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+    const dt = new Date(ano, mes, dia);
+    const ehHoje = agSameDay(dt, hoje);
+    const key = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    const events = porDia[key] || [];
+    html += `<div class="ag-slot${ehHoje ? ' hoje' : ''}" style="min-height:90px; align-items:flex-start; padding:6px 8px;" onclick="agClicarDia('${key}')">
+      <div style="font-size:11px; font-weight:500; color:${ehHoje ? '#E8945A' : '#f0f6fc'}; margin-bottom:4px;">${dia}</div>
+      ${events.slice(0, 3).map(a => `
+        <div style="font-size:9px; padding:2px 5px; margin-bottom:2px; border-radius:3px; background:${agStatusCor(a.status, a.cancelado_por_origem)}30; color:${agStatusCor(a.status, a.cancelado_por_origem)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agFmtHora(new Date(a.start_at))} ${a.patient.nomeCompleto.split(' ')[0]}</div>
+      `).join('')}
+      ${events.length > 3 ? `<div style="font-size:9px; color:#7d8590;">+${events.length - 3}</div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+// Visão LISTA
+function agRenderLista() {
+  const grid = document.getElementById('ag-grid');
+  grid.style.gridTemplateColumns = '1fr';
+  if (agState.agendamentos.length === 0) {
+    grid.innerHTML = '<div style="padding:30px; text-align:center; color:#7d8590;">Sem agendamentos no período.</div>';
+    return;
+  }
+  const ordenados = [...agState.agendamentos].sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
+  grid.innerHTML = ordenados.map(a => {
+    const dt = new Date(a.start_at);
+    const cor = agStatusCor(a.status, a.cancelado_por_origem);
+    return `<div style="padding:12px 14px; border-bottom:1px solid rgba(33,38,45,0.5); cursor:pointer; display:flex; align-items:center; gap:14px;" onclick="agAbrirEditarModal('${a.id}')">
+      <div style="text-align:center; min-width:60px;">
+        <div style="font-size:11px; color:#7d8590; text-transform:uppercase;">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()]}</div>
+        <div style="font-size:18px; font-weight:500; color:#f0f6fc;">${dt.getDate()}</div>
+        <div style="font-size:10px; color:#7d8590;">${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][dt.getMonth()]}</div>
+      </div>
+      <div style="border-left:3px solid ${cor}; padding-left:12px; flex:1;">
+        <div style="font-size:13px; color:#f0f6fc; font-weight:500;">${a.patient.nomeCompleto}</div>
+        <div style="font-size:11px; color:#7d8590; margin-top:2px;">${agFmtHora(dt)} · ${a.type.nome} · ${a.professional.name || a.professional.email}</div>
+      </div>
+      <span style="font-size:10px; padding:3px 10px; border-radius:5px; background:${cor}25; color:${cor}; font-weight:600;">${agStatusLabel(a.status, a.cancelado_por_origem)}</span>
+    </div>`;
+  }).join('');
+}
+
+// Cor de cada status pra render (combina com o modal)
+function agStatusCor(status, origem) {
+  if (status === 'AGENDADO') return '#4A90E2';
+  if (status === 'CONFIRMADO') return '#F1C648';
+  if (status === 'AGUARDANDO') return '#6FD89A';
+  if (status === 'EM_ATENDIMENTO') return '#EF9F27';
+  if (status === 'ATENDIDO') return '#2BB673';
+  if (status === 'NO_SHOW') return '#E55266';
+  if (status === 'CANCELADO') return origem === 'PACIENTE' ? '#C56847' : '#E68A47';
+  return '#7d8590';
+}
+function agStatusLabel(status, origem) {
+  if (status === 'AGENDADO') return 'Agendado';
+  if (status === 'CONFIRMADO') return 'Confirmado';
+  if (status === 'AGUARDANDO') return 'Aguardando';
+  if (status === 'EM_ATENDIMENTO') return 'Em atendimento';
+  if (status === 'ATENDIDO') return 'Atendido';
+  if (status === 'NO_SHOW') return 'Faltou';
+  if (status === 'CANCELADO') return origem === 'PACIENTE' ? 'Cancel. paciente' : 'Cancel. clínica';
+  return status;
+}
+
+function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
   const start = new Date(a.start_at);
   const end = new Date(a.end_at);
-  const diaSemana = start.getDay();
-  if (diaSemana < 0 || diaSemana > 6) return;
-  // Pula se está fora da janela visível de horas
+
+  // Calcula índice da coluna no grid
+  let col = 0;
+  if (ehDia) {
+    if (!agSameDay(start, ini)) return;
+    col = 0;
+  } else if (ehSegSex) {
+    // ini = segunda; col = 0..4
+    col = start.getDay() - 1;
+    if (col < 0 || col > 4) return;
+  } else {
+    // semana completa, ini = domingo, col = 0..6
+    col = start.getDay();
+    if (col < 0 || col > 6) return;
+    // Confere que está na semana certa
+    const fimVisivel = new Date(ini);
+    fimVisivel.setDate(fimVisivel.getDate() + 7);
+    if (start < ini || start >= fimVisivel) return;
+  }
+
   const horaInicio = start.getHours() + start.getMinutes() / 60;
   const horaFim = end.getHours() + end.getMinutes() / 60;
   if (horaFim < AG_HORA_INICIO || horaInicio > AG_HORA_FIM) return;
 
-  // Acha o slot inicial e duração em slots
   const slotInicial = Math.round(((horaInicio - AG_HORA_INICIO) * 60) / AG_SLOT_MIN);
   const slotFinal = Math.round(((horaFim - AG_HORA_INICIO) * 60) / AG_SLOT_MIN);
   if (slotInicial < 0) return;
 
-  // Cria o evento como overlay no slot inicial
   const slots = document.querySelectorAll('.ag-slot');
-  // O grid tem 7 dias × N slots. Index = (slotIdx * 7) + diaSemana
-  const idx = slotInicial * 7 + diaSemana;
+  // Index = slotIdx * diasMostrados + col
+  const idx = slotInicial * diasMostrados + col;
   const slot = slots[idx];
   if (!slot) return;
 
-  const altura = Math.max(1, slotFinal - slotInicial) * 30 - 2; // 30 px por slot
+  const altura = Math.max(1, slotFinal - slotInicial) * 30 - 2;
   const ev = document.createElement('div');
   ev.className = 'ag-event ' + a.status;
   ev.style.top = '1px';
   ev.style.height = altura + 'px';
   ev.dataset.id = a.id;
-  ev.onclick = (e) => { e.stopPropagation(); agAbrirEditarModal(a.id); };
+  ev.dataset.duracao = String(Math.round((end - start) / 60000));
+  ev.setAttribute('draggable', 'true');
+  ev.addEventListener('click', (e) => {
+    e.stopPropagation();
+    agAbrirStatusModal(a.id);
+  });
+  ev.addEventListener('dragstart', (e) => {
+    agState.draggingId = a.id;
+    ev.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', a.id);
+  });
+  ev.addEventListener('dragend', () => {
+    agState.draggingId = null;
+    ev.classList.remove('dragging');
+    document.querySelectorAll('.ag-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+  });
   ev.innerHTML = `
     <div class="ev-paciente">${a.patient.nomeCompleto}</div>
     <div class="ev-meta">${agFmtHora(start)} · ${a.type.nome}</div>
   `;
   slot.appendChild(ev);
+}
+
+// ========== DRAG AND DROP HANDLERS ==========
+function agSlotDragOver(e) {
+  if (!agState.draggingId) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function agSlotDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+async function agSlotDrop(e) {
+  e.preventDefault();
+  const slot = e.currentTarget;
+  slot.classList.remove('drag-over');
+  const id = e.dataTransfer.getData('text/plain') || agState.draggingId;
+  if (!id) return;
+  const iso = slot.dataset.iso;
+  if (!iso) return;
+
+  // Pega duração do evento original
+  const oldEvent = agState.agendamentos.find(x => x.id === id);
+  if (!oldEvent) return;
+  const dur = (new Date(oldEvent.end_at) - new Date(oldEvent.start_at)) / 60000;
+
+  const newStart = new Date(iso);
+  const newEnd = new Date(newStart.getTime() + dur * 60000);
+
+  const r = await pacApi('/api/clinico/appointments/' + id, {
+    method: 'PUT',
+    body: JSON.stringify({
+      start_at: newStart.toISOString(),
+      end_at: newEnd.toISOString(),
+    })
+  });
+  if (!r.ok) {
+    alert('Erro ao mover: ' + (r.data.erro || '—'));
+  }
+  agCarregar();
+}
+
+// ========== MODAL DE STATUS (7 botões coloridos) ==========
+function agAbrirStatusModal(id) {
+  agState.statusModalId = id;
+  document.getElementById('ag-status-modal').classList.add('aberto');
+}
+function agFecharStatusModal() {
+  agState.statusModalId = null;
+  document.getElementById('ag-status-modal').classList.remove('aberto');
+}
+async function agMudarStatusModal(novoStatus, origem) {
+  if (!agState.statusModalId) return;
+  let motivo = null;
+  if (novoStatus === 'CANCELADO') {
+    motivo = prompt('Motivo do cancelamento (opcional):') || null;
+  }
+  const body = { status: novoStatus };
+  if (motivo) body.motivo_cancelamento = motivo;
+  if (origem) body.cancelado_por_origem = origem;
+
+  const r = await pacApi('/api/clinico/appointments/' + agState.statusModalId + '/status', {
+    method: 'PUT',
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) return alert('Erro: ' + r.data.erro);
+  agFecharStatusModal();
+  agCarregar();
+  agCarregarMiniCal();
+}
+
+// ========== Botão "Editar agendamento" no modal de status (não usado, abre direto modal antigo) ==========
+function agAbrirEditarDoStatus() {
+  const id = agState.statusModalId;
+  agFecharStatusModal();
+  if (id) agAbrirEditarModal(id);
 }
 
 // ===== MODAL DE AGENDAMENTO =====
