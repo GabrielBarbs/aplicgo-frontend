@@ -1035,56 +1035,109 @@
       box-shadow: inset 0 0 0 2px #E8945A;
     }
 
-    /* ==== Modal de mudança de status (7 cards coloridos) ==== */
+    /* ==== Modal de mudança de status (estilo dark Aplic) ==== */
     .ag-status-modal-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
       z-index: 9200; display: none;
-      align-items: flex-start; justify-content: center;
+      align-items: center; justify-content: center;
       padding: 40px 20px; overflow-y: auto;
     }
     .ag-status-modal-overlay.aberto { display: flex; }
     .ag-status-modal {
-      background: #fff;
-      border-radius: 16px;
-      width: 100%; max-width: 380px;
-      padding: 20px 18px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 14px;
+      width: 100%; max-width: 420px;
+      overflow: hidden;
       box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     }
     .ag-status-modal-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid #21262d;
+      background: linear-gradient(135deg, rgba(197,104,71,0.10), rgba(232,148,90,0.06));
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 16px;
     }
     .ag-status-modal-head .ttl {
-      font-size: 14px; font-weight: 600; color: #1D9E75;
+      font-size: 14px; font-weight: 500; color: #f0f6fc;
+      display: flex; align-items: center; gap: 8px;
     }
+    .ag-status-modal-head .ttl i { color: #E8945A; font-size: 16px; }
     .ag-status-modal-head .close {
       background: transparent; border: 0;
       color: #7d8590; cursor: pointer;
-      font-size: 18px;
+      width: 28px; height: 28px; border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px;
     }
+    .ag-status-modal-head .close:hover { background: rgba(33,38,45,0.6); color: #f0f6fc; }
     .ag-status-modal-list {
-      display: flex; flex-direction: column; gap: 8px;
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 14px;
     }
+
+    /* Cada opção é card dark com border-left colorida — como os cards do prontuário */
     .ag-status-opt {
-      border: 0; border-radius: 10px;
-      padding: 13px 14px;
+      background: rgba(33,38,45,0.4);
+      border: 1px solid #21262d;
+      border-left: 3px solid #7d8590;
+      border-radius: 8px;
+      padding: 11px 14px;
       cursor: pointer; font-family: inherit;
-      color: #fff; font-size: 12px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; font-weight: 500;
+      letter-spacing: 0.3px;
+      display: flex; align-items: center; gap: 12px;
       text-align: left;
-      transition: transform 0.1s, box-shadow 0.1s;
+      color: #c9d1d9;
+      transition: all 0.12s;
     }
-    .ag-status-opt:hover { transform: translateX(2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .ag-status-opt i { font-size: 18px; flex-shrink: 0; }
-    .ag-status-opt.AGENDADO       { background: #4A90E2; }
-    .ag-status-opt.CONFIRMADO     { background: #F1C648; color: #533c0a; }
-    .ag-status-opt.AGUARDANDO     { background: #6FD89A; color: #0a3d1f; }
-    .ag-status-opt.ATENDIDO       { background: #2BB673; }
-    .ag-status-opt.NO_SHOW        { background: #E55266; }
-    .ag-status-opt.CANCELADO_CLI  { background: #E68A47; }
-    .ag-status-opt.CANCELADO_PAC  { background: #C56847; }
+    .ag-status-opt:hover {
+      background: rgba(33,38,45,0.7);
+      border-color: #30363d;
+      transform: translateX(2px);
+    }
+    .ag-status-opt i {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .ag-status-opt .lbl {
+      flex: 1; text-transform: none;
+      color: #f0f6fc; font-weight: 500;
+    }
+
+    /* Variações por status — só pinta a borda esquerda + ícone */
+    .ag-status-opt.AGENDADO      { border-left-color: #4A90E2; }
+    .ag-status-opt.AGENDADO i    { background: rgba(74,144,226,0.18); color: #4A90E2; }
+    .ag-status-opt.CONFIRMADO    { border-left-color: #F1C648; }
+    .ag-status-opt.CONFIRMADO i  { background: rgba(241,198,72,0.18); color: #F1C648; }
+    .ag-status-opt.AGUARDANDO    { border-left-color: #6FD89A; }
+    .ag-status-opt.AGUARDANDO i  { background: rgba(111,216,154,0.18); color: #6FD89A; }
+    .ag-status-opt.ATENDIDO      { border-left-color: #2BB673; }
+    .ag-status-opt.ATENDIDO i    { background: rgba(43,182,115,0.18); color: #2BB673; }
+    .ag-status-opt.NO_SHOW       { border-left-color: #E55266; }
+    .ag-status-opt.NO_SHOW i     { background: rgba(229,82,102,0.18); color: #E55266; }
+    .ag-status-opt.CANCELADO_CLI { border-left-color: #E68A47; }
+    .ag-status-opt.CANCELADO_CLI i { background: rgba(230,138,71,0.18); color: #E68A47; }
+    .ag-status-opt.CANCELADO_PAC { border-left-color: #C56847; }
+    .ag-status-opt.CANCELADO_PAC i { background: rgba(197,104,71,0.18); color: #C56847; }
+
+    .ag-status-modal-footer {
+      padding: 10px 14px;
+      border-top: 1px solid #21262d;
+      text-align: center;
+      background: rgba(13,17,23,0.6);
+    }
+    .ag-status-edit-link {
+      background: transparent; border: 0;
+      color: #E8945A; font-size: 11px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+      padding: 6px 10px; border-radius: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .ag-status-edit-link:hover { background: rgba(232,148,90,0.10); }
 
     .ag-legenda {
       display: flex; flex-wrap: wrap; gap: 8px;
@@ -3231,38 +3284,45 @@
   </div>
 </div>
 
-<!-- ============== MODAL DE MUDANÇA DE STATUS (7 cards coloridos) ============== -->
+<!-- ============== MODAL DE MUDANÇA DE STATUS (estilo dark Aplic) ============== -->
 <div class="ag-status-modal-overlay" id="ag-status-modal" onclick="if(event.target.id==='ag-status-modal') agFecharStatusModal()">
   <div class="ag-status-modal">
     <div class="ag-status-modal-head">
-      <span class="ttl">Para que situação deseja alterar?</span>
+      <div class="ttl"><i class="ti ti-circle-dot"></i> Alterar situação</div>
       <button class="close" onclick="agFecharStatusModal()"><i class="ti ti-x"></i></button>
     </div>
     <div class="ag-status-modal-list">
       <button class="ag-status-opt AGENDADO" onclick="agMudarStatusModal('AGENDADO')">
-        <i class="ti ti-calendar"></i> Paciente Agendado
+        <i class="ti ti-calendar"></i>
+        <span class="lbl">Paciente agendado</span>
       </button>
       <button class="ag-status-opt CONFIRMADO" onclick="agMudarStatusModal('CONFIRMADO')">
-        <i class="ti ti-circle-check"></i> Consulta Confirmada
+        <i class="ti ti-circle-check"></i>
+        <span class="lbl">Consulta confirmada</span>
       </button>
       <button class="ag-status-opt AGUARDANDO" onclick="agMudarStatusModal('AGUARDANDO')">
-        <i class="ti ti-user-check"></i> Presente e Aguardando Atendimento
+        <i class="ti ti-user-check"></i>
+        <span class="lbl">Presente e aguardando atendimento</span>
       </button>
       <button class="ag-status-opt ATENDIDO" onclick="agMudarStatusModal('ATENDIDO')">
-        <i class="ti ti-checks"></i> Atendido
+        <i class="ti ti-checks"></i>
+        <span class="lbl">Atendido</span>
       </button>
       <button class="ag-status-opt NO_SHOW" onclick="agMudarStatusModal('NO_SHOW')">
-        <i class="ti ti-user-off"></i> Paciente Faltou
+        <i class="ti ti-user-off"></i>
+        <span class="lbl">Paciente faltou</span>
       </button>
       <button class="ag-status-opt CANCELADO_CLI" onclick="agMudarStatusModal('CANCELADO', 'CLINICA')">
-        <i class="ti ti-calendar-cancel"></i> Cancelada pela Clínica
+        <i class="ti ti-calendar-cancel"></i>
+        <span class="lbl">Cancelada pela clínica</span>
       </button>
       <button class="ag-status-opt CANCELADO_PAC" onclick="agMudarStatusModal('CANCELADO', 'PACIENTE')">
-        <i class="ti ti-calendar-x"></i> Cancelada pelo Paciente
+        <i class="ti ti-calendar-x"></i>
+        <span class="lbl">Cancelada pelo paciente</span>
       </button>
     </div>
-    <div style="text-align: center; margin-top: 12px;">
-      <button onclick="agAbrirEditarDoStatus()" style="background:transparent; border:0; color:#1D9E75; font-size:12px; font-weight:500; cursor:pointer; padding:6px;">
+    <div class="ag-status-modal-footer">
+      <button class="ag-status-edit-link" onclick="agAbrirEditarDoStatus()">
         <i class="ti ti-edit"></i> Editar detalhes (horário, paciente, profissional)
       </button>
     </div>
