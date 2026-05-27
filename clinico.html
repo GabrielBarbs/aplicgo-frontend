@@ -627,6 +627,83 @@
     }
     .pac-field textarea { min-height: 60px; resize: vertical; }
 
+    /* Tags (comorbidades) no modal de cadastro */
+    .pac-tags-wrap {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      min-height: 32px;
+      padding: 6px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 7px;
+      margin-bottom: 6px;
+    }
+    .pac-tags-wrap:empty::before {
+      content: "Nenhuma comorbidade adicionada";
+      color: #484f58; font-size: 11px; font-style: italic;
+      padding: 4px 6px;
+    }
+    .pac-ctag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 8px 4px 10px;
+      background: rgba(232,148,90,0.12);
+      border: 1px solid rgba(232,148,90,0.30);
+      border-radius: 14px;
+      font-size: 11px; color: #E8945A;
+    }
+    .pac-ctag .rm {
+      cursor: pointer; opacity: 0.6;
+      display: inline-flex; align-items: center;
+      font-size: 12px;
+      transition: opacity 0.15s;
+    }
+    .pac-ctag .rm:hover { opacity: 1; }
+
+    .pac-tags-suggest {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      margin-bottom: 6px;
+    }
+    .pac-tags-suggest .sug {
+      cursor: pointer;
+      padding: 3px 8px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      font-size: 10px; color: #8b949e;
+      transition: all 0.12s;
+    }
+    .pac-tags-suggest .sug:hover {
+      border-color: #E8945A; color: #E8945A;
+    }
+    .pac-tags-suggest .sug.ja {
+      background: rgba(232,148,90,0.08);
+      border-color: rgba(232,148,90,0.30);
+      color: #E8945A;
+      cursor: default;
+    }
+
+    .pac-tags-input-wrap {
+      display: flex; gap: 6px;
+    }
+    .pac-tags-input-wrap input {
+      flex: 1;
+      background: #161b22; border: 1px solid #21262d;
+      color: #f0f6fc; padding: 8px 10px;
+      border-radius: 7px; font-size: 12px;
+    }
+    .pac-tags-input-wrap input:focus { outline: none; border-color: #E8945A; }
+    .pac-btn-mini {
+      background: rgba(232,148,90,0.10);
+      border: 1px solid rgba(232,148,90,0.30);
+      color: #E8945A;
+      width: 32px;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .pac-btn-mini:hover {
+      background: rgba(232,148,90,0.18);
+    }
+
     .pac-lead-alert {
       background: rgba(74,144,226,0.08);
       border: 1px solid rgba(74,144,226,0.30);
@@ -1443,6 +1520,140 @@
     .pr-pat-info .info .nome { font-size: 13px; font-weight: 500; color: #f0f6fc; }
     .pr-pat-info .info .meta { font-size: 11px; color: #7d8590; }
     .pr-pat-info .info .meta .cod { color: #E8945A; font-family: 'SF Mono', Consolas, monospace; }
+
+    /* ========== HEADER RICO DO PRONTUÁRIO ========== */
+    .pr-header-card {
+      background: #161b22; border: 1px solid #21262d;
+      border-radius: 12px; padding: 16px;
+      margin-bottom: 14px;
+      display: flex; gap: 16px;
+      flex-wrap: wrap;
+    }
+    .pr-header-card .pr-h-left {
+      display: flex; gap: 14px; align-items: center;
+      min-width: 280px; flex: 1;
+    }
+    .pr-header-card .pr-h-avatar {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, #C56847, #E8945A);
+      color: #fff; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 500;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(197,104,71,0.30);
+    }
+    .pr-header-card .pr-h-id .nome {
+      font-size: 18px; font-weight: 600; color: #f0f6fc;
+      line-height: 1.2;
+    }
+    .pr-header-card .pr-h-id .sub {
+      margin-top: 4px;
+      font-size: 12px; color: #8b949e;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .pr-header-card .pr-h-id .sub .cod {
+      color: #E8945A; font-family: 'SF Mono', Consolas, monospace;
+      font-size: 11px;
+    }
+    .pr-header-card .pr-h-id .sub .dot {
+      width: 3px; height: 3px; background: #484f58; border-radius: 50%;
+      display: inline-block;
+    }
+    .pr-header-card .pr-h-id .badges {
+      margin-top: 6px;
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .pr-header-card .pr-h-id .badges .b {
+      font-size: 10px; padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      font-weight: 500;
+    }
+    .pr-header-card .pr-h-id .badges .b.status-ATIVO { background: rgba(29,158,117,0.10); color: #1D9E75; border-color: rgba(29,158,117,0.30); }
+    .pr-header-card .pr-h-id .badges .b.status-PAUSADO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
+    .pr-header-card .pr-h-id .badges .b.status-FINALIZADO { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
+    .pr-header-card .pr-h-id .badges .b.status-CANCELADO { background: rgba(125,133,144,0.10); color: #7d8590; border-color: rgba(125,133,144,0.30); }
+
+    .pr-header-card .pr-h-actions {
+      display: flex; gap: 6px;
+    }
+
+    .pr-h-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      width: 100%;
+    }
+    .pr-h-stat {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .pr-h-stat .lbl {
+      font-size: 10px; color: #7d8590;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .pr-h-stat .lbl i { color: #E8945A; font-size: 11px; }
+    .pr-h-stat .val {
+      margin-top: 4px;
+      font-size: 16px; color: #f0f6fc; font-weight: 600;
+    }
+    .pr-h-stat .ext {
+      font-size: 10px; color: #6e7681; margin-top: 2px;
+    }
+    .pr-h-stat .ext.positivo { color: #1D9E75; }
+    .pr-h-stat .ext.negativo { color: #f85149; }
+
+    .pr-h-section {
+      width: 100%;
+      padding-top: 12px;
+      border-top: 1px solid #21262d;
+    }
+    .pr-h-section .ttl {
+      font-size: 10px; color: #7d8590;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 6px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pr-h-section .ttl i { color: #E8945A; }
+
+    .pr-h-comorb {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .pr-h-comorb .c {
+      font-size: 11px; padding: 3px 10px;
+      background: rgba(232,148,90,0.10);
+      border: 1px solid rgba(232,148,90,0.25);
+      color: #E8945A; border-radius: 12px;
+    }
+    .pr-h-comorb .vazio {
+      font-size: 11px; color: #6e7681; font-style: italic;
+    }
+    .pr-h-clinical {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .pr-h-clinical .row {
+      font-size: 12px; color: #c9d1d9;
+    }
+    .pr-h-clinical .row .l { color: #7d8590; }
+    .pr-h-clinical .row .v { color: #f0f6fc; }
+    .pr-h-clinical .row.alerta .v { color: #f85149; }
+
+    /* Barra de progresso do objetivo */
+    .pr-h-progress {
+      height: 6px; background: #21262d; border-radius: 4px;
+      overflow: hidden; margin-top: 6px;
+    }
+    .pr-h-progress > span {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, #C56847, #E8945A);
+      transition: width 0.4s;
+    }
 
     .pr-actions-bar {
       display: flex; flex-wrap: wrap; gap: 8px;
@@ -2843,10 +3054,10 @@
           </div>
         </div>
 
-        <!-- Antropometria -->
+        <!-- Antropometria + Objetivo -->
         <div class="pac-form-section">
-          <div class="pac-form-section-title"><i class="ti ti-scale"></i> Antropometria inicial</div>
-          <div class="pac-form-grid">
+          <div class="pac-form-section-title"><i class="ti ti-scale"></i> Antropometria e objetivo</div>
+          <div class="pac-form-grid col-3">
             <div class="pac-field">
               <label>Altura (cm)</label>
               <input type="number" id="pac-altura" min="0" max="250" step="1">
@@ -2855,8 +3066,61 @@
               <label>Peso inicial (kg)</label>
               <input type="number" id="pac-peso" min="0" max="500" step="0.1">
             </div>
-            <div class="pac-field full">
-              <label>Observações</label>
+            <div class="pac-field">
+              <label>Peso objetivo (kg)</label>
+              <input type="number" id="pac-peso-objetivo" min="0" max="500" step="0.1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Saúde / Histórico -->
+        <div class="pac-form-section">
+          <div class="pac-form-section-title"><i class="ti ti-heartbeat"></i> Saúde e histórico</div>
+          <div class="pac-form-grid col-2">
+            <div class="pac-field">
+              <label>Tipo sanguíneo</label>
+              <select id="pac-tipo-sanguineo">
+                <option value="">--</option>
+                <option>A+</option><option>A-</option>
+                <option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option>
+                <option>O+</option><option>O-</option>
+              </select>
+            </div>
+            <div class="pac-field">
+              <label>Bariátrica prévia?</label>
+              <select id="pac-bariatrica">
+                <option value="false">Não</option>
+                <option value="true">Sim</option>
+              </select>
+            </div>
+          </div>
+          <div class="pac-field" style="margin-top:10px;">
+            <label>Comorbidades</label>
+            <div class="pac-tags-wrap" id="pac-comorb-wrap"></div>
+            <div class="pac-tags-suggest" id="pac-comorb-suggest"></div>
+            <div class="pac-tags-input-wrap">
+              <input type="text" id="pac-comorb-input" placeholder="Digite ou clique nas sugestões..." onkeydown="pacComorbKey(event)">
+              <button type="button" class="pac-btn-mini" onclick="pacComorbAddDigitada()"><i class="ti ti-plus"></i></button>
+            </div>
+          </div>
+          <div class="pac-form-grid col-2" style="margin-top:10px;">
+            <div class="pac-field">
+              <label>Alergias</label>
+              <textarea id="pac-alergias" placeholder="Medicamentos, alimentos, látex..."></textarea>
+            </div>
+            <div class="pac-field">
+              <label>Medicações em uso</label>
+              <textarea id="pac-medicacoes" placeholder="Lista de medicações de uso contínuo"></textarea>
+            </div>
+          </div>
+          <div class="pac-form-grid col-2" style="margin-top:10px;">
+            <div class="pac-field">
+              <label>Motivação atual</label>
+              <textarea id="pac-motivacao" placeholder="O que motivou o paciente a buscar tratamento agora"></textarea>
+            </div>
+            <div class="pac-field">
+              <label>Observações gerais</label>
               <textarea id="pac-observacoes" placeholder="Notas livres sobre o paciente"></textarea>
             </div>
           </div>
@@ -4023,6 +4287,7 @@ let pacState = {
   unidades: [],
   profissionais: [],
   detalheAtual: null,
+  comorbidades: [],     // tags da seção Saúde no modal
 };
 
 async function pacApi(path, opts = {}) {
@@ -4211,10 +4476,19 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-uf').value = p.uf || '';
   document.getElementById('pac-altura').value = p.altura_cm || '';
   document.getElementById('pac-peso').value = p.peso_inicial_kg || '';
+  document.getElementById('pac-peso-objetivo').value = p.anamnesis?.peso_objetivo_kg || '';
   document.getElementById('pac-unit').value = p.unit_id || '';
   document.getElementById('pac-medico').value = p.medico_id || '';
   document.getElementById('pac-nutri').value = p.nutri_id || '';
   document.getElementById('pac-observacoes').value = p.observacoes || '';
+  // Saúde
+  document.getElementById('pac-tipo-sanguineo').value = p.health?.tipo_sanguineo || '';
+  document.getElementById('pac-bariatrica').value = p.anamnesis?.cirurgia_bariatrica ? 'true' : 'false';
+  document.getElementById('pac-alergias').value = p.health?.alergias || '';
+  document.getElementById('pac-medicacoes').value = p.health?.medicacoes_em_uso || '';
+  document.getElementById('pac-motivacao').value = p.anamnesis?.motivacao_atual || '';
+  pacState.comorbidades = Array.isArray(p.health?.comorbidades) ? [...p.health.comorbidades] : [];
+  pacRenderComorbidades();
   document.getElementById('pac-modal-erro').style.display = 'none';
   document.getElementById('pac-lead-alert-wrap').innerHTML = p.lead ? renderLeadLinked(p.lead) : '';
   document.getElementById('pac-modal').classList.add('aberto');
@@ -4226,9 +4500,73 @@ function pacResetForm() {
   document.getElementById('pac-form-contact-id').value = '';
   document.getElementById('pac-modal-erro').style.display = 'none';
   document.getElementById('pac-lead-alert-wrap').innerHTML = '';
+  pacState.comorbidades = [];
+  pacRenderComorbidades();
   // Re-pré-seleciona unidade primária
   const primaria = pacState.unidades.find(u => u.primaria);
   if (primaria) document.getElementById('pac-unit').value = primaria.id;
+}
+
+// ===== COMORBIDADES (tags) =====
+const PAC_COMORB_SUGESTOES = [
+  'Hipertensão',
+  'Diabetes tipo 2',
+  'Pré-diabetes',
+  'Dislipidemia',
+  'Esteatose hepática',
+  'SOP',
+  'Hipotireoidismo',
+  'Apneia do sono',
+  'Ansiedade',
+  'Depressão',
+  'Compulsão alimentar',
+  'Refluxo (DRGE)',
+  'Asma',
+  'Artrose',
+];
+
+function pacRenderComorbidades() {
+  const wrap = document.getElementById('pac-comorb-wrap');
+  const sug = document.getElementById('pac-comorb-suggest');
+  if (!wrap || !sug) return;
+  wrap.innerHTML = (pacState.comorbidades || []).map((c, i) => `
+    <span class="pac-ctag">
+      ${c}
+      <span class="rm" onclick="pacComorbRemover(${i})"><i class="ti ti-x"></i></span>
+    </span>
+  `).join('');
+  sug.innerHTML = PAC_COMORB_SUGESTOES.map(s => {
+    const ja = (pacState.comorbidades || []).map(x => x.toLowerCase()).includes(s.toLowerCase());
+    return `<span class="sug ${ja ? 'ja' : ''}" ${ja ? '' : `onclick="pacComorbAdd('${s.replace(/'/g, "\\'")}')"`}>${s}</span>`;
+  }).join('');
+}
+function pacComorbAdd(nome) {
+  const c = String(nome || '').trim();
+  if (!c) return;
+  pacState.comorbidades = pacState.comorbidades || [];
+  if (pacState.comorbidades.map(x => x.toLowerCase()).includes(c.toLowerCase())) return;
+  pacState.comorbidades.push(c);
+  pacRenderComorbidades();
+}
+function pacComorbAddDigitada() {
+  const inp = document.getElementById('pac-comorb-input');
+  if (!inp) return;
+  pacComorbAdd(inp.value);
+  inp.value = '';
+  inp.focus();
+}
+function pacComorbKey(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    pacComorbAddDigitada();
+  } else if (e.key === 'Backspace' && !e.target.value && (pacState.comorbidades || []).length > 0) {
+    pacState.comorbidades.pop();
+    pacRenderComorbidades();
+  }
+}
+function pacComorbRemover(idx) {
+  pacState.comorbidades.splice(idx, 1);
+  pacRenderComorbidades();
 }
 
 function pacFecharModal() {
@@ -4316,6 +4654,17 @@ async function pacSalvar() {
     peso_inicial_kg: parseFloat(document.getElementById('pac-peso').value) || null,
     observacoes: document.getElementById('pac-observacoes').value.trim() || null,
     contact_id: contactId || null,
+    health: {
+      tipo_sanguineo: document.getElementById('pac-tipo-sanguineo').value || null,
+      alergias: document.getElementById('pac-alergias').value.trim() || null,
+      medicacoes_em_uso: document.getElementById('pac-medicacoes').value.trim() || null,
+      comorbidades: pacState.comorbidades || [],
+    },
+    anamnesis: {
+      cirurgia_bariatrica: document.getElementById('pac-bariatrica').value === 'true',
+      motivacao_atual: document.getElementById('pac-motivacao').value.trim() || null,
+      peso_objetivo_kg: parseFloat(document.getElementById('pac-peso-objetivo').value) || null,
+    },
   };
 
   if (!body.nome_completo) { erroEl.textContent = 'Nome completo é obrigatório'; erroEl.style.display = 'block'; return; }
@@ -5629,6 +5978,7 @@ const PR_EXAMES_PADRAO = [
 
 let prState = {
   pacienteAtual: null,
+  headerData: null,
   timeline: [],
   prescItens: [],
 };
@@ -5673,23 +6023,187 @@ async function prBuscarPaciente() {
   wrap.classList.add('aberto');
 }
 
-function prSelecionarPaciente(p) {
+async function prSelecionarPaciente(p) {
   prState.pacienteAtual = p;
-  // Esconde input, mostra info do paciente
+  // Esconde input, mostra placeholder enquanto carrega o header
   const sel = document.getElementById('pr-pat-selector');
   sel.innerHTML = `
     <div class="pr-pat-info" style="flex:1;">
       <div class="avatar">${p.nome.charAt(0).toUpperCase()}</div>
       <div class="info">
         <div class="nome">${p.nome}</div>
-        <div class="meta"><span class="cod">${p.codigo}</span> · ${fmtTel(p.telefone)}</div>
+        <div class="meta"><span class="cod">${p.codigo}</span> -- carregando...</div>
       </div>
     </div>
     <button class="pac-btn-secondary" onclick="prLimparPaciente()">
       <i class="ti ti-arrow-back"></i> Trocar paciente
     </button>
   `;
+  // prCarregarTimeline já busca o header em paralelo
   prCarregarTimeline();
+}
+
+async function prCarregarHeader() {
+  const id = prState.pacienteAtual?.id;
+  if (!id) return;
+  const r = await pacApi('/api/clinico/prontuario/patient/' + id + '/header');
+  if (!r.ok) return;
+  const h = r.data.header;
+  prState.headerData = h;
+  // Atualiza barrinha curta no topo (selector)
+  const sel = document.getElementById('pr-pat-selector');
+  sel.innerHTML = `
+    <div class="pr-pat-info" style="flex:1;">
+      <div class="avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
+      <div class="info">
+        <div class="nome">${h.nome_completo}</div>
+        <div class="meta"><span class="cod">${h.codigo}</span> · ${fmtTel(h.telefone1)}</div>
+      </div>
+    </div>
+    <button class="pac-btn-secondary" onclick="prEditarPacienteDoHeader()">
+      <i class="ti ti-edit"></i> Editar
+    </button>
+    <button class="pac-btn-secondary" onclick="prLimparPaciente()">
+      <i class="ti ti-arrow-back"></i> Trocar paciente
+    </button>
+  `;
+}
+
+function prEditarPacienteDoHeader() {
+  const h = prState.headerData;
+  if (!h) return;
+  pacAbrirEditarModal(h.id);
+}
+
+function prFmtSexo(s) {
+  if (!s) return null;
+  if (s === 'M') return 'Masculino';
+  if (s === 'F') return 'Feminino';
+  return 'Outro';
+}
+function prFmtIMC(imc) {
+  if (imc == null) return null;
+  let classe = '';
+  if (imc < 18.5) classe = 'baixo peso';
+  else if (imc < 25) classe = 'normal';
+  else if (imc < 30) classe = 'sobrepeso';
+  else if (imc < 35) classe = 'obesidade I';
+  else if (imc < 40) classe = 'obesidade II';
+  else classe = 'obesidade III';
+  return { val: imc.toFixed(1).replace('.', ','), classe };
+}
+
+function prRenderHeaderRico() {
+  const h = prState.headerData;
+  if (!h) return '';
+  const imcAtual = prFmtIMC(h.imc_atual);
+  const imcInicial = prFmtIMC(h.imc_inicial);
+  const dif = h.diferenca_kg;
+  let extDif = null, classeDif = '';
+  if (dif != null) {
+    if (dif < 0) { extDif = `${dif.toFixed(1).replace('.', ',')} kg perdidos`; classeDif = 'positivo'; }
+    else if (dif > 0) { extDif = `+${dif.toFixed(1).replace('.', ',')} kg`; classeDif = 'negativo'; }
+    else { extDif = 'mantido'; }
+  }
+
+  const fmtData = (iso) => {
+    if (!iso) return '--';
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' às ' +
+      d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+  const fmtDataCurta = (iso) => {
+    if (!iso) return '--';
+    return new Date(iso).toLocaleDateString('pt-BR');
+  };
+
+  // 4 cards de stats (peso atual, peso inicial, diferença, IMC atual + objetivo)
+  const cardsStats = `
+    <div class="pr-h-stats">
+      <div class="pr-h-stat">
+        <div class="lbl"><i class="ti ti-scale"></i> Peso atual</div>
+        <div class="val">${h.peso_atual_kg != null ? h.peso_atual_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
+        <div class="ext">${h.peso_atualizado_em ? 'em ' + fmtDataCurta(h.peso_atualizado_em) : 'sem evolução com peso'}</div>
+      </div>
+      <div class="pr-h-stat">
+        <div class="lbl"><i class="ti ti-flag"></i> Peso inicial</div>
+        <div class="val">${h.peso_inicial_kg != null ? h.peso_inicial_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
+        <div class="ext">${h.altura_cm ? 'altura ' + h.altura_cm + ' cm' : 'altura não informada'}</div>
+      </div>
+      <div class="pr-h-stat">
+        <div class="lbl"><i class="ti ti-trending-down"></i> Diferença</div>
+        <div class="val">${dif != null ? (dif > 0 ? '+' : '') + dif.toFixed(1).replace('.', ',') + ' kg' : '--'}</div>
+        <div class="ext ${classeDif}">${extDif || 'sem comparação'}${h.diferenca_pct != null ? ' · ' + h.diferenca_pct.toFixed(1).replace('.', ',') + '%' : ''}</div>
+      </div>
+      <div class="pr-h-stat">
+        <div class="lbl"><i class="ti ti-calculator"></i> IMC atual</div>
+        <div class="val">${imcAtual ? imcAtual.val : '--'}</div>
+        <div class="ext">${imcAtual ? imcAtual.classe : (imcInicial ? 'inicial ' + imcInicial.val : 'sem IMC')}</div>
+      </div>
+      <div class="pr-h-stat">
+        <div class="lbl"><i class="ti ti-target"></i> Objetivo</div>
+        <div class="val">${h.peso_objetivo_kg != null ? h.peso_objetivo_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
+        ${h.progresso_objetivo_pct != null ? `
+          <div class="ext">${h.progresso_objetivo_pct.toFixed(0)}% do caminho</div>
+          <div class="pr-h-progress"><span style="width:${h.progresso_objetivo_pct}%;"></span></div>
+        ` : `<div class="ext">${h.peso_objetivo_kg == null ? 'sem meta definida' : 'sem progresso ainda'}</div>`}
+      </div>
+    </div>
+  `;
+
+  // Sub do paciente: idade · sexo · telefone
+  const partesSub = [];
+  if (h.idade != null) partesSub.push(h.idade + ' anos');
+  if (h.sexo) partesSub.push(prFmtSexo(h.sexo));
+  if (h.telefone1) partesSub.push(fmtTel(h.telefone1));
+
+  // Comorbidades
+  const comorbHtml = (h.comorbidades && h.comorbidades.length > 0)
+    ? h.comorbidades.map(c => `<span class="c">${c}</span>`).join('')
+    : `<span class="vazio">Nenhuma comorbidade registrada.</span>`;
+
+  // Bloco de contexto clínico
+  const linhas = [];
+  if (h.alergias) linhas.push(`<div class="row alerta"><span class="l">Alergias:</span> <span class="v">${h.alergias}</span></div>`);
+  if (h.medicacoes_em_uso) linhas.push(`<div class="row"><span class="l">Medicações:</span> <span class="v">${h.medicacoes_em_uso}</span></div>`);
+  if (h.tipo_sanguineo) linhas.push(`<div class="row"><span class="l">Tipo sanguíneo:</span> <span class="v">${h.tipo_sanguineo}</span></div>`);
+  if (h.cirurgia_bariatrica) linhas.push(`<div class="row"><span class="l">Bariátrica:</span> <span class="v">sim${h.bariatrica_quando ? ' (' + fmtDataCurta(h.bariatrica_quando) + ')' : ''}</span></div>`);
+  if (h.motivacao_atual) linhas.push(`<div class="row"><span class="l">Motivação:</span> <span class="v">${h.motivacao_atual}</span></div>`);
+  if (h.medico) linhas.push(`<div class="row"><span class="l">Médico:</span> <span class="v">${h.medico.name || h.medico.email}</span></div>`);
+  if (h.nutri) linhas.push(`<div class="row"><span class="l">Nutri:</span> <span class="v">${h.nutri.name || h.nutri.email}</span></div>`);
+  if (h.unidade) linhas.push(`<div class="row"><span class="l">Unidade:</span> <span class="v">${h.unidade.nome}</span></div>`);
+  if (h.proximo_agendamento) linhas.push(`<div class="row"><span class="l">Próx. retorno:</span> <span class="v">${fmtData(h.proximo_agendamento.start_at)} · ${h.proximo_agendamento.tipo}</span></div>`);
+  if (h.ultima_evolucao) linhas.push(`<div class="row"><span class="l">Última evolução:</span> <span class="v">${fmtData(h.ultima_evolucao.data)} (${h.ultima_evolucao.profissional})</span></div>`);
+
+  return `
+    <div class="pr-header-card">
+      <div class="pr-h-left">
+        <div class="pr-h-avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
+        <div class="pr-h-id">
+          <div class="nome">${h.nome_completo}</div>
+          <div class="sub">
+            <span class="cod">${h.codigo}</span>
+            ${partesSub.length ? '<span class="dot"></span>' + partesSub.join('<span class="dot"></span>') : ''}
+          </div>
+          <div class="badges">
+            <span class="b status-${h.status}">${h.status}</span>
+            ${h.fase_programa ? `<span class="b" style="border-color:#30363d; color:#8b949e;">${h.fase_programa}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${cardsStats}
+      <div class="pr-h-section">
+        <div class="ttl"><i class="ti ti-list-check"></i> Comorbidades</div>
+        <div class="pr-h-comorb">${comorbHtml}</div>
+      </div>
+      ${linhas.length > 0 ? `
+        <div class="pr-h-section">
+          <div class="ttl"><i class="ti ti-info-circle"></i> Contexto clínico</div>
+          <div class="pr-h-clinical">${linhas.join('')}</div>
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 function prLimparPaciente() {
@@ -5718,10 +6232,14 @@ function prLimparPaciente() {
 async function prCarregarTimeline() {
   document.getElementById('pr-conteudo').innerHTML =
     '<div class="pr-empty"><i class="ti ti-loader"></i>Carregando prontuário…</div>';
-  const r = await pacApi('/api/clinico/prontuario/patient/' + prState.pacienteAtual.id + '/timeline');
+  // Recarrega header em paralelo pra refletir peso atual após evolução
+  const [r, _h] = await Promise.all([
+    pacApi('/api/clinico/prontuario/patient/' + prState.pacienteAtual.id + '/timeline'),
+    prCarregarHeader(),
+  ]);
   if (!r.ok) {
     document.getElementById('pr-conteudo').innerHTML =
-      '<div class="pr-empty" style="color:#f85149;"><i class="ti ti-alert-circle"></i>Erro: ' + (r.data.erro || '—') + '</div>';
+      '<div class="pr-empty" style="color:#f85149;"><i class="ti ti-alert-circle"></i>Erro: ' + (r.data.erro || '--') + '</div>';
     return;
   }
   prState.timeline = r.data.timeline;
@@ -5731,6 +6249,8 @@ async function prCarregarTimeline() {
 function prRenderTimeline() {
   const conteudo = document.getElementById('pr-conteudo');
   const items = prState.timeline;
+
+  const headerHtml = prRenderHeaderRico();
 
   const actionsBar = `
     <div class="pr-actions-bar">
@@ -5747,7 +6267,7 @@ function prRenderTimeline() {
   `;
 
   if (items.length === 0) {
-    conteudo.innerHTML = actionsBar + `
+    conteudo.innerHTML = headerHtml + actionsBar + `
       <div class="pr-empty">
         <i class="ti ti-history"></i>
         Sem registros no prontuário ainda. Cria a primeira evolução pra começar.
@@ -5756,7 +6276,7 @@ function prRenderTimeline() {
     return;
   }
 
-  conteudo.innerHTML = actionsBar + '<div class="pr-timeline">' + items.map(prRenderItem).join('') + '</div>';
+  conteudo.innerHTML = headerHtml + actionsBar + '<div class="pr-timeline">' + items.map(prRenderItem).join('') + '</div>';
 }
 
 function prRenderItem(it) {
