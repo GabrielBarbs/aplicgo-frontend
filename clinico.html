@@ -1035,6 +1035,156 @@
       box-shadow: inset 0 0 0 2px #E8945A;
     }
 
+    /* Ícones extra no evento (recorrência, teleconsulta) */
+    .ag-event .ev-icons {
+      position: absolute;
+      top: 3px; right: 4px;
+      display: flex; gap: 3px;
+      align-items: center;
+      z-index: 2;
+    }
+    .ag-event .ev-icons .ev-ico {
+      width: 14px; height: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 4px;
+      font-size: 10px;
+      background: rgba(0,0,0,0.35);
+      color: #f0f6fc;
+    }
+    .ag-event .ev-icons .ev-ico.recorrencia { color: #E8945A; }
+    .ag-event .ev-icons .ev-ico.tele { color: #6FD89A; }
+
+    /* Bloqueio de agenda (compromisso) */
+    .ag-event.bloqueio {
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(125,133,144,0.18),
+        rgba(125,133,144,0.18) 6px,
+        rgba(125,133,144,0.08) 6px,
+        rgba(125,133,144,0.08) 12px
+      );
+      border-left: 3px solid #7d8590;
+      cursor: pointer;
+      opacity: 0.92;
+    }
+    .ag-event.bloqueio .ev-paciente { color: #c9d1d9; font-style: italic; }
+    .ag-event.bloqueio .ev-meta { color: #8b949e; }
+    .ag-event.bloqueio:hover { transform: scale(1.01); }
+
+    /* Botão "Bloquear horário" na toolbar */
+    .pac-btn-block {
+      background: rgba(125,133,144,0.10);
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 7px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: all 0.12s;
+    }
+    .pac-btn-block:hover {
+      background: rgba(125,133,144,0.18);
+      border-color: #484f58;
+      color: #f0f6fc;
+    }
+
+    /* Seção de recorrência no modal */
+    .ag-recorrencia-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(232,148,90,0.05);
+      border: 1px solid rgba(232,148,90,0.20);
+    }
+    .ag-recorrencia-box .toggle-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ag-recorrencia-box .toggle-row label {
+      font-size: 12px; color: #c9d1d9; margin: 0;
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer;
+    }
+    .ag-recorrencia-box .toggle-row input[type="checkbox"] {
+      width: 16px; height: 16px; cursor: pointer; accent-color: #E8945A;
+    }
+    .ag-recorrencia-box .toggle-row i { color: #E8945A; }
+    .ag-recorrencia-box .opts {
+      display: none;
+      margin-top: 10px;
+    }
+    .ag-recorrencia-box.aberto .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ag-recorrencia-info {
+      font-size: 11px; color: #7d8590;
+      margin-top: 8px; padding: 8px 10px;
+      background: rgba(125,133,144,0.08);
+      border-radius: 6px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ag-recorrencia-info i { color: #E8945A; }
+
+    /* Modal de escolha cancelar recorrência */
+    .ag-recur-cancel-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      z-index: 9300; display: none;
+      align-items: center; justify-content: center;
+      padding: 40px 20px;
+    }
+    .ag-recur-cancel-overlay.aberto { display: flex; }
+    .ag-recur-cancel-modal {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 14px;
+      width: 100%; max-width: 460px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .ag-recur-cancel-modal .head {
+      padding: 14px 18px;
+      border-bottom: 1px solid #21262d;
+      background: linear-gradient(135deg, rgba(248,81,73,0.10), rgba(248,81,73,0.04));
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ag-recur-cancel-modal .head i { color: #f85149; font-size: 16px; }
+    .ag-recur-cancel-modal .head .ttl { font-size: 14px; color: #f0f6fc; font-weight: 500; }
+    .ag-recur-cancel-modal .body { padding: 16px 18px; }
+    .ag-recur-cancel-modal .body .desc {
+      font-size: 12px; color: #8b949e; margin-bottom: 14px;
+    }
+    .ag-recur-cancel-modal .opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.12s;
+      margin-bottom: 8px;
+      background: #161b22;
+    }
+    .ag-recur-cancel-modal .opt:hover {
+      border-color: #f85149;
+      background: rgba(248,81,73,0.06);
+    }
+    .ag-recur-cancel-modal .opt .ico {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: rgba(248,81,73,0.10);
+      color: #f85149;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .ag-recur-cancel-modal .opt .ttl {
+      font-size: 13px; color: #f0f6fc; font-weight: 500;
+    }
+    .ag-recur-cancel-modal .opt .sub {
+      font-size: 11px; color: #7d8590; margin-top: 2px;
+    }
+    .ag-recur-cancel-modal .foot {
+      padding: 10px 18px 14px;
+      display: flex; justify-content: flex-end;
+    }
+
     /* ==== Modal de mudança de status (estilo dark Aplic) ==== */
     .ag-status-modal-overlay {
       position: fixed; inset: 0;
@@ -2262,6 +2412,9 @@
             <button class="ag-mode-pill" data-mode="mes" onclick="agMudarMode('mes')">Mês</button>
             <button class="ag-mode-pill" data-mode="lista" onclick="agMudarMode('lista')">Lista</button>
           </div>
+          <button class="pac-btn-block" onclick="agAbrirBlockModal()" title="Bloquear horário (compromisso)">
+            <i class="ti ti-lock"></i> Bloquear
+          </button>
           <button class="pac-btn-primary" onclick="agAbrirNovoModal()">
             <i class="ti ti-calendar-plus"></i> Novo
           </button>
@@ -2785,6 +2938,37 @@
         </div>
       </div>
 
+      <!-- Recorrência -->
+      <div class="pac-form-section" id="ag-recorrencia-section">
+        <div class="ag-recorrencia-box" id="ag-recorrencia-box">
+          <div class="toggle-row">
+            <label>
+              <input type="checkbox" id="ag-recorrente-toggle" onchange="agToggleRecorrencia()">
+              <i class="ti ti-repeat"></i> Repetir agendamento?
+            </label>
+          </div>
+          <div class="opts">
+            <div class="pac-field">
+              <label>Quando</label>
+              <select id="ag-recor-pattern">
+                <option value="WEEKLY">Semanalmente</option>
+                <option value="BIWEEKLY">Quinzenalmente</option>
+                <option value="MONTHLY">Mensalmente</option>
+              </select>
+            </div>
+            <div class="pac-field">
+              <label>Termina em</label>
+              <input type="date" id="ag-recor-until">
+            </div>
+          </div>
+        </div>
+        <!-- Info de recorrência existente (somente edição) -->
+        <div class="ag-recorrencia-info" id="ag-recor-info" style="display:none;">
+          <i class="ti ti-repeat"></i>
+          <span id="ag-recor-info-text">Este atendimento faz parte de uma série recorrente.</span>
+        </div>
+      </div>
+
       <!-- Observações -->
       <div class="pac-form-section">
         <div class="pac-form-section-title"><i class="ti ti-note"></i> Observações</div>
@@ -2808,6 +2992,101 @@
           <i class="ti ti-device-floppy"></i> Salvar
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL DE BLOQUEIO DE AGENDA ============== -->
+<div class="ag-modal-overlay" id="ag-block-modal" onclick="if(event.target.id==='ag-block-modal') agFecharBlockModal()">
+  <div class="ag-modal" style="max-width: 560px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-lock"></i> <span>Bloquear horário</span></div>
+      <button class="pac-modal-close" onclick="agFecharBlockModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="ag-block-erro"></div>
+      <input type="hidden" id="ag-block-id">
+
+      <div class="pac-form-section">
+        <div class="pac-form-section-title"><i class="ti ti-user"></i> Quem fica indisponível</div>
+        <div class="pac-form-grid col-2">
+          <div class="pac-field">
+            <label>Profissional <span class="req">*</span></label>
+            <select id="ag-block-prof" required><option value="">--</option></select>
+          </div>
+          <div class="pac-field">
+            <label>Unidade (opcional)</label>
+            <select id="ag-block-unit"><option value="">Todas</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="pac-form-section">
+        <div class="pac-form-section-title"><i class="ti ti-clock"></i> Período</div>
+        <div class="pac-form-grid col-2">
+          <div class="pac-field">
+            <label>Início <span class="req">*</span></label>
+            <input type="datetime-local" id="ag-block-start" required>
+          </div>
+          <div class="pac-field">
+            <label>Fim <span class="req">*</span></label>
+            <input type="datetime-local" id="ag-block-end" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="pac-form-section">
+        <div class="pac-form-section-title"><i class="ti ti-tag"></i> Compromisso</div>
+        <div class="pac-form-grid">
+          <div class="pac-field">
+            <label>Título <span class="req">*</span></label>
+            <input type="text" id="ag-block-titulo" placeholder="Ex: Reunião, Almoço, Folga" required>
+          </div>
+          <div class="pac-field">
+            <label>Motivo (opcional)</label>
+            <textarea id="ag-block-motivo" placeholder="Detalhes do compromisso"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="agFecharBlockModal()">Cancelar</button>
+        <button class="pac-btn-primary" onclick="agSalvarBlock()">
+          <i class="ti ti-device-floppy"></i> Bloquear
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL: CANCELAR RECORRÊNCIA (escolha) ============== -->
+<div class="ag-recur-cancel-overlay" id="ag-recur-cancel-modal" onclick="if(event.target.id==='ag-recur-cancel-modal') agFecharRecurCancel()">
+  <div class="ag-recur-cancel-modal">
+    <div class="head">
+      <i class="ti ti-repeat-off"></i>
+      <div class="ttl">Cancelar agendamento recorrente</div>
+    </div>
+    <div class="body">
+      <div class="desc">Este agendamento faz parte de uma série recorrente. O que deseja cancelar?</div>
+      <div class="opt" onclick="agConfirmarRecurCancel('this')">
+        <div class="ico"><i class="ti ti-calendar-x"></i></div>
+        <div>
+          <div class="ttl">Somente este</div>
+          <div class="sub">Cancela apenas o agendamento selecionado.</div>
+        </div>
+      </div>
+      <div class="opt" onclick="agConfirmarRecurCancel('future')">
+        <div class="ico"><i class="ti ti-repeat-off"></i></div>
+        <div>
+          <div class="ttl">Este e os próximos</div>
+          <div class="sub">Cancela este e todos os futuros da mesma série.</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="pac-btn-secondary" onclick="agFecharRecurCancel()">Voltar</button>
     </div>
   </div>
 </div>
@@ -4214,8 +4493,11 @@ let agState = {
   prof: '',
   tipos: [],
   agendamentos: [],
+  bloqueios: [],                  // schedule blocks
   pacienteSelecionado: null,      // { id, codigo, nome, telefone }
   pacientesSearchResults: [],
+  recurCancelTarget: null,        // { id, statusAlvo, motivo, origem } para modal de escolha
+  edicaoRecurInfo: null,          // { recurrenceId, pattern, until } para o modal de edição
 };
 
 function agInicioSemana(d) {
@@ -4452,13 +4734,17 @@ async function agCarregar() {
   if (agState.unidade) params.set('unit', agState.unidade);
   if (agState.prof) params.set('prof', agState.prof);
 
-  const r = await pacApi('/api/clinico/appointments?' + params.toString());
+  const [r, rb] = await Promise.all([
+    pacApi('/api/clinico/appointments?' + params.toString()),
+    pacApi('/api/clinico/appointments/blocks/list?' + params.toString()),
+  ]);
   if (!r.ok) {
     document.getElementById('ag-grid').innerHTML =
-      '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: #f85149;">Erro: ' + (r.data.erro || '—') + '</div>';
+      '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: #f85149;">Erro: ' + (r.data.erro || '--') + '</div>';
     return;
   }
   agState.agendamentos = r.data.agendamentos;
+  agState.bloqueios = (rb.ok && rb.data.blocos) ? rb.data.blocos : [];
   agRender();
 }
 
@@ -4554,6 +4840,10 @@ function agRender() {
   // Posiciona os eventos
   agState.agendamentos.forEach(a => {
     agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex);
+  });
+  // Posiciona os bloqueios
+  (agState.bloqueios || []).forEach(b => {
+    agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex);
   });
 }
 
@@ -4712,11 +5002,78 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
     ev.classList.remove('dragging');
     document.querySelectorAll('.ag-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
   });
+  const ehRecorrente = !!a.recurrence_id;
+  const ehTele = (a.type?.slug || '').toLowerCase().includes('tele');
+  const iconsHtml = (ehRecorrente || ehTele) ? `
+    <div class="ev-icons">
+      ${ehRecorrente ? '<span class="ev-ico recorrencia" title="Agendamento recorrente"><i class="ti ti-repeat"></i></span>' : ''}
+      ${ehTele ? '<span class="ev-ico tele" title="Teleconsulta"><i class="ti ti-video"></i></span>' : ''}
+    </div>` : '';
   ev.innerHTML = `
+    ${iconsHtml}
     <div class="ev-paciente">${a.patient.nomeCompleto}</div>
     <div class="ev-meta">${agFmtHora(start)} · ${a.type.nome}</div>
   `;
   slot.appendChild(ev);
+}
+
+// ========== RENDER DE BLOQUEIO ==========
+function agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex) {
+  const start = new Date(b.start_at);
+  const end = new Date(b.end_at);
+
+  let col = 0;
+  if (ehDia) {
+    if (!agSameDay(start, ini)) return;
+    col = 0;
+  } else if (ehSegSex) {
+    col = start.getDay() - 1;
+    if (col < 0 || col > 4) return;
+  } else {
+    col = start.getDay();
+    if (col < 0 || col > 6) return;
+    const fimVisivel = new Date(ini);
+    fimVisivel.setDate(fimVisivel.getDate() + 7);
+    if (start < ini || start >= fimVisivel) return;
+  }
+
+  const horaInicio = start.getHours() + start.getMinutes() / 60;
+  const horaFim = end.getHours() + end.getMinutes() / 60;
+  if (horaFim < AG_HORA_INICIO || horaInicio > AG_HORA_FIM) return;
+
+  const slotInicial = Math.round(((horaInicio - AG_HORA_INICIO) * 60) / AG_SLOT_MIN);
+  const slotFinal = Math.round(((horaFim - AG_HORA_INICIO) * 60) / AG_SLOT_MIN);
+  if (slotInicial < 0) return;
+
+  const slots = document.querySelectorAll('.ag-slot');
+  const idx = slotInicial * diasMostrados + col;
+  const slot = slots[idx];
+  if (!slot) return;
+
+  const altura = Math.max(1, slotFinal - slotInicial) * 30 - 2;
+  const ev = document.createElement('div');
+  ev.className = 'ag-event bloqueio';
+  ev.style.top = '1px';
+  ev.style.height = altura + 'px';
+  ev.dataset.blockId = b.id;
+  ev.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirm('Remover bloqueio "' + b.titulo + '"?')) {
+      agRemoverBloqueio(b.id);
+    }
+  });
+  ev.innerHTML = `
+    <div class="ev-icons"><span class="ev-ico" title="Bloqueio"><i class="ti ti-lock"></i></span></div>
+    <div class="ev-paciente">${b.titulo}</div>
+    <div class="ev-meta">${agFmtHora(start)} - ${agFmtHora(end)}${b.motivo ? ' · ' + b.motivo : ''}</div>
+  `;
+  slot.appendChild(ev);
+}
+
+async function agRemoverBloqueio(id) {
+  const r = await pacApi('/api/clinico/appointments/blocks/' + id, { method: 'DELETE' });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  agCarregar();
 }
 
 // ========== DRAG AND DROP HANDLERS ==========
@@ -4772,6 +5129,19 @@ async function agMudarStatusModal(novoStatus, origem) {
   if (!agState.statusModalId) return;
   let motivo = null;
   if (novoStatus === 'CANCELADO') {
+    // Se for recorrente, abre o modal de escolha antes
+    const ag = agState.agendamentos.find(x => x.id === agState.statusModalId);
+    if (ag && ag.recurrence_id) {
+      agState.recurCancelTarget = {
+        id: agState.statusModalId,
+        statusAlvo: novoStatus,
+        motivo: null,
+        origem,
+      };
+      agFecharStatusModal();
+      document.getElementById('ag-recur-cancel-modal').classList.add('aberto');
+      return;
+    }
     motivo = prompt('Motivo do cancelamento (opcional):') || null;
   }
   const body = { status: novoStatus };
@@ -4786,6 +5156,114 @@ async function agMudarStatusModal(novoStatus, origem) {
   agFecharStatusModal();
   agCarregar();
   agCarregarMiniCal();
+}
+
+// ========== MODAL DE ESCOLHA: cancelar recorrência ==========
+function agFecharRecurCancel() {
+  agState.recurCancelTarget = null;
+  document.getElementById('ag-recur-cancel-modal').classList.remove('aberto');
+}
+async function agConfirmarRecurCancel(scope) {
+  const target = agState.recurCancelTarget;
+  if (!target) return;
+  const motivo = prompt('Motivo do cancelamento (opcional):') || null;
+  const body = { status: 'CANCELADO' };
+  if (motivo) body.motivo_cancelamento = motivo;
+  if (target.origem) body.cancelado_por_origem = target.origem;
+
+  const r = await pacApi('/api/clinico/appointments/' + target.id + '/status?scope=' + scope, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  agFecharRecurCancel();
+  agCarregar();
+  agCarregarMiniCal();
+}
+
+// ========== MODAL DE BLOQUEIO DE AGENDA ==========
+function agAbrirBlockModal(isoLocal) {
+  // Popula selects de profissional e unidade
+  const profSel = document.getElementById('ag-block-prof');
+  profSel.innerHTML = '<option value="">--</option>';
+  (pacState.profissionais || [])
+    .filter(p => ['medico','nutricionista','enfermagem','gestor','medico_gerente'].includes(p.role))
+    .forEach(p => {
+      profSel.innerHTML += `<option value="${p.id}">${p.nome || p.name || p.email}</option>`;
+    });
+  const unitSel = document.getElementById('ag-block-unit');
+  unitSel.innerHTML = '<option value="">Todas</option>';
+  (pacState.unidades || []).forEach(u => {
+    unitSel.innerHTML += `<option value="${u.id}">${u.nome}</option>`;
+  });
+  // Pré-seleciona filtros atuais
+  if (agState.prof) profSel.value = agState.prof;
+  if (agState.unidade) unitSel.value = agState.unidade;
+
+  // Defaults: agora + 1h
+  let inicio = new Date();
+  if (isoLocal) {
+    inicio = new Date(isoLocal);
+  }
+  inicio.setSeconds(0, 0);
+  // Arredonda para o slot de 30 min mais próximo
+  inicio.setMinutes(Math.floor(inicio.getMinutes() / 30) * 30);
+  const fim = new Date(inicio.getTime() + 60 * 60 * 1000);
+  document.getElementById('ag-block-start').value = agIsoLocal(inicio);
+  document.getElementById('ag-block-end').value = agIsoLocal(fim);
+
+  document.getElementById('ag-block-id').value = '';
+  document.getElementById('ag-block-titulo').value = '';
+  document.getElementById('ag-block-motivo').value = '';
+  document.getElementById('ag-block-erro').style.display = 'none';
+
+  document.getElementById('ag-block-modal').classList.add('aberto');
+}
+function agFecharBlockModal() {
+  document.getElementById('ag-block-modal').classList.remove('aberto');
+}
+async function agSalvarBlock() {
+  const erroEl = document.getElementById('ag-block-erro');
+  erroEl.style.display = 'none';
+  const profId = document.getElementById('ag-block-prof').value;
+  const unitId = document.getElementById('ag-block-unit').value || null;
+  const startVal = document.getElementById('ag-block-start').value;
+  const endVal = document.getElementById('ag-block-end').value;
+  const titulo = document.getElementById('ag-block-titulo').value.trim();
+  const motivo = document.getElementById('ag-block-motivo').value.trim() || null;
+
+  if (!profId) { erroEl.textContent = 'Selecione o profissional'; erroEl.style.display = 'block'; return; }
+  if (!startVal || !endVal) { erroEl.textContent = 'Informe início e fim'; erroEl.style.display = 'block'; return; }
+  if (!titulo) { erroEl.textContent = 'Informe um título'; erroEl.style.display = 'block'; return; }
+
+  const startAt = new Date(startVal);
+  const endAt = new Date(endVal);
+  if (endAt <= startAt) {
+    erroEl.textContent = 'O fim deve ser depois do início';
+    erroEl.style.display = 'block';
+    return;
+  }
+
+  const body = {
+    professional_id: profId,
+    unit_id: unitId,
+    start_at: startAt.toISOString(),
+    end_at: endAt.toISOString(),
+    titulo,
+    motivo,
+  };
+
+  const r = await pacApi('/api/clinico/appointments/blocks/create', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    erroEl.textContent = r.data.erro || 'Erro ao salvar';
+    erroEl.style.display = 'block';
+    return;
+  }
+  agFecharBlockModal();
+  agCarregar();
 }
 
 // ========== Botão "Editar agendamento" no modal de status (não usado, abre direto modal antigo) ==========
@@ -4852,6 +5330,22 @@ async function agAbrirEditarModal(id) {
   tagEl.textContent = a.status;
   tagEl.className = 'ag-status-tag ' + a.status;
 
+  // Recorrência: na edição esconde o toggle e mostra info se for parte de série
+  document.getElementById('ag-recorrencia-box').style.display = 'none';
+  if (a.recurrenceId) {
+    agState.edicaoRecurInfo = {
+      recurrenceId: a.recurrenceId,
+      pattern: a.recurrencePattern,
+      until: a.recurrenceUntil ? new Date(a.recurrenceUntil).toLocaleDateString('pt-BR') : null,
+    };
+    const PAD = { WEEKLY: 'semanal', BIWEEKLY: 'quinzenal', MONTHLY: 'mensal' };
+    const info = document.getElementById('ag-recor-info');
+    info.style.display = 'flex';
+    document.getElementById('ag-recor-info-text').textContent =
+      'Faz parte de uma série recorrente (' + (PAD[a.recurrencePattern] || a.recurrencePattern) +
+      (agState.edicaoRecurInfo.until ? ', até ' + agState.edicaoRecurInfo.until : '') + ').';
+  }
+
   // Botões de transição de status
   agRenderStatusActions(a.id, a.status);
 
@@ -4885,6 +5379,13 @@ function agRenderStatusActions(id, statusAtual) {
 async function agMudarStatus(id, novoStatus) {
   let motivo = null;
   if (novoStatus === 'CANCELADO') {
+    // Se for recorrente, abre modal de escolha
+    if (agState.edicaoRecurInfo && agState.edicaoRecurInfo.recurrenceId) {
+      agState.recurCancelTarget = { id, statusAlvo: 'CANCELADO', motivo: null, origem: null };
+      agFecharModal();
+      document.getElementById('ag-recur-cancel-modal').classList.add('aberto');
+      return;
+    }
     motivo = prompt('Motivo do cancelamento:');
     if (motivo === null) return;
   }
@@ -4901,6 +5402,7 @@ function agResetForm() {
   document.getElementById('ag-form-id').value = '';
   document.getElementById('ag-form-patient-id').value = '';
   agState.pacienteSelecionado = null;
+  agState.edicaoRecurInfo = null;
   agRenderPacienteSelecionado();
   document.getElementById('ag-type').value = '';
   document.getElementById('ag-data').value = '';
@@ -4913,9 +5415,39 @@ function agResetForm() {
   document.getElementById('ag-pat-results').classList.remove('aberto');
   document.getElementById('ag-status-wrap').style.display = 'none';
   document.getElementById('ag-modal-actions-status').innerHTML = '';
+  // Recorrência reset
+  const tog = document.getElementById('ag-recorrente-toggle');
+  if (tog) tog.checked = false;
+  const box = document.getElementById('ag-recorrencia-box');
+  if (box) box.classList.remove('aberto');
+  const pat = document.getElementById('ag-recor-pattern');
+  if (pat) pat.value = 'WEEKLY';
+  const until = document.getElementById('ag-recor-until');
+  if (until) until.value = '';
+  const info = document.getElementById('ag-recor-info');
+  if (info) info.style.display = 'none';
+  const recSec = document.getElementById('ag-recorrencia-section');
+  if (recSec) recSec.style.display = '';
   // Pré-seleciona unidade primária
   const primaria = pacState.unidades.find(u => u.primaria);
   if (primaria) document.getElementById('ag-unit').value = primaria.id;
+}
+
+function agToggleRecorrencia() {
+  const tog = document.getElementById('ag-recorrente-toggle');
+  const box = document.getElementById('ag-recorrencia-box');
+  if (tog.checked) {
+    box.classList.add('aberto');
+    // Sugere "termina em" 3 meses à frente
+    const until = document.getElementById('ag-recor-until');
+    if (!until.value) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + 3);
+      until.value = d.toISOString().slice(0, 10);
+    }
+  } else {
+    box.classList.remove('aberto');
+  }
 }
 
 function agFecharModal() {
@@ -5036,6 +5568,22 @@ async function agSalvar() {
     end_at: endAt.toISOString(),
     observacoes: document.getElementById('ag-observacoes').value.trim() || null,
   };
+
+  // Recorrência: só envia na criação (edit não permite mudar série)
+  if (!id) {
+    const recorTog = document.getElementById('ag-recorrente-toggle');
+    if (recorTog && recorTog.checked) {
+      const pattern = document.getElementById('ag-recor-pattern').value;
+      const until = document.getElementById('ag-recor-until').value;
+      if (!until) {
+        erroEl.textContent = 'Informe a data final da recorrência';
+        erroEl.style.display = 'block';
+        return;
+      }
+      body.recurrence_pattern = pattern;
+      body.recurrence_until = until;
+    }
+  }
 
   const btn = document.getElementById('ag-modal-salvar');
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Salvando…';
