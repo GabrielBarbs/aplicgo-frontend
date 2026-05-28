@@ -5960,7 +5960,10 @@ function agResetForm() {
   const tog = document.getElementById('ag-recorrente-toggle');
   if (tog) tog.checked = false;
   const box = document.getElementById('ag-recorrencia-box');
-  if (box) box.classList.remove('aberto');
+  if (box) {
+    box.classList.remove('aberto');
+    box.style.display = '';   // restaura caso edição anterior tenha escondido
+  }
   const pat = document.getElementById('ag-recor-pattern');
   if (pat) pat.value = 'WEEKLY';
   const until = document.getElementById('ag-recor-until');
