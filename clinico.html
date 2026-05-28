@@ -331,12 +331,9 @@
       max-width: 1280px;
       margin: 0 auto;
     }
-    /* Cada view ganha um pouco de respiro interno, exceto agenda que cola */
-    #view-painel, #view-pacientes, #view-prontuario, #view-aplicacoes,
-    #view-estoque, #view-auditoria, #view-comunicacao, #view-financeiro {
-      padding-top: 12px;
-    }
-    #view-agenda { padding-top: 0; }
+    /* Todas as views colam direto na topbar (sem padding-top) */
+    .view { padding-top: 0 !important; margin-top: 0 !important; }
+    .view > *:first-child { margin-top: 0 !important; }
     .container { width: 100%; }
 
     .view { display: none; }
