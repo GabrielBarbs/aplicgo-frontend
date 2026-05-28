@@ -600,9 +600,13 @@
       display: inline-block;
     }
     .pac-tag.INCOMPLETO { background: rgba(239,159,39,0.15); color: #EF9F27; }
+    .pac-tag.PRE_PROGRAMA { background: rgba(74,144,226,0.15); color: #4A90E2; }
     .pac-tag.ATIVO { background: rgba(29,158,117,0.15); color: #1D9E75; }
     .pac-tag.PAUSADO { background: rgba(239,159,39,0.15); color: #EF9F27; }
     .pac-tag.FINALIZADO { background: rgba(123,104,238,0.15); color: #7B68EE; }
+    .pac-tag.CONCLUIDO { background: rgba(123,104,238,0.15); color: #7B68EE; }
+    .pac-tag.INATIVO { background: rgba(125,133,144,0.15); color: #7d8590; }
+    .pac-tag.REATIVAVEL { background: rgba(232,148,90,0.15); color: #E8945A; }
     .pac-tag.CANCELADO { background: rgba(125,133,144,0.15); color: #7d8590; }
     .pac-tag-lead { background: rgba(74,144,226,0.15); color: #4A90E2; }
 
@@ -1656,10 +1660,53 @@
       font-weight: 500;
     }
     .pr-header-card .pr-h-id .badges .b.status-INCOMPLETO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
+    .pr-header-card .pr-h-id .badges .b.status-PRE_PROGRAMA { background: rgba(74,144,226,0.10); color: #4A90E2; border-color: rgba(74,144,226,0.30); }
     .pr-header-card .pr-h-id .badges .b.status-ATIVO { background: rgba(29,158,117,0.10); color: #1D9E75; border-color: rgba(29,158,117,0.30); }
     .pr-header-card .pr-h-id .badges .b.status-PAUSADO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
     .pr-header-card .pr-h-id .badges .b.status-FINALIZADO { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
+    .pr-header-card .pr-h-id .badges .b.status-CONCLUIDO { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
+    .pr-header-card .pr-h-id .badges .b.status-INATIVO { background: rgba(125,133,144,0.10); color: #7d8590; border-color: rgba(125,133,144,0.30); }
+    .pr-header-card .pr-h-id .badges .b.status-REATIVAVEL { background: rgba(232,148,90,0.10); color: #E8945A; border-color: rgba(232,148,90,0.30); }
     .pr-header-card .pr-h-id .badges .b.status-CANCELADO { background: rgba(125,133,144,0.10); color: #7d8590; border-color: rgba(125,133,144,0.30); }
+    /* Badges semânticos extras */
+    .pr-header-card .pr-h-id .badges .b.programa { background: rgba(232,148,90,0.10); color: #E8945A; border-color: rgba(232,148,90,0.30); }
+    .pr-header-card .pr-h-id .badges .b.fase { background: rgba(74,144,226,0.10); color: #4A90E2; border-color: rgba(74,144,226,0.30); }
+    .pr-header-card .pr-h-id .badges .b.semana { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
+    .pr-header-card .pr-h-id .badges .b.persona { background: rgba(111,216,154,0.10); color: #6FD89A; border-color: rgba(111,216,154,0.30); }
+    .pr-header-card .pr-h-id .badges .b.clinico-ESTAVEL { background: rgba(29,158,117,0.10); color: #1D9E75; border-color: rgba(29,158,117,0.30); }
+    .pr-header-card .pr-h-id .badges .b.clinico-ATENCAO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
+    .pr-header-card .pr-h-id .badges .b.clinico-URGENCIA { background: rgba(248,81,73,0.15); color: #f85149; border-color: rgba(248,81,73,0.40); animation: pulse 2s infinite; }
+    .pr-header-card .pr-h-id .badges .b.momento { background: rgba(125,133,144,0.10); color: #c9d1d9; border-color: rgba(125,133,144,0.30); }
+
+    /* Bloco de observações imutáveis */
+    .pr-h-obs-imutaveis {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(232,148,90,0.06), rgba(197,104,71,0.03));
+      border: 1px solid rgba(232,148,90,0.25);
+      border-left: 3px solid #E8945A;
+      font-size: 12px; color: #c9d1d9;
+      font-style: italic;
+      line-height: 1.5;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .pr-h-obs-imutaveis i {
+      color: #E8945A;
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .pr-h-obs-imutaveis .lbl {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #E8945A;
+      font-style: normal;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 3px;
+    }
 
     .pr-header-card .pr-h-actions {
       display: flex; gap: 6px;
@@ -2747,9 +2794,13 @@
         <select class="pac-select" id="pac-filter-status">
           <option value="">Todos status</option>
           <option value="INCOMPLETO">Incompleto (pendente)</option>
+          <option value="PRE_PROGRAMA">Pré-programa</option>
           <option value="ATIVO">Ativo</option>
           <option value="PAUSADO">Pausado</option>
-          <option value="FINALIZADO">Finalizado</option>
+          <option value="CONCLUIDO">Concluído</option>
+          <option value="FINALIZADO">Finalizado (legado)</option>
+          <option value="INATIVO">Inativo</option>
+          <option value="REATIVAVEL">Reativável</option>
           <option value="CANCELADO">Cancelado</option>
         </select>
         <button class="pac-btn-secondary" onclick="pacCarregarLista()" title="Atualizar">
@@ -3294,6 +3345,73 @@
           </div>
         </div>
 
+        <!-- Programa e jornada (PRD §3) -->
+        <div class="pac-form-section">
+          <div class="pac-form-section-title"><i class="ti ti-rocket"></i> Programa e jornada</div>
+          <div class="pac-form-grid col-3">
+            <div class="pac-field">
+              <label>Programa</label>
+              <input list="pac-programa-sug" type="text" id="pac-programa" placeholder="B&B / Lipedema / P&L / Club Aplic">
+              <datalist id="pac-programa-sug">
+                <option value="B&B">
+                <option value="Lipedema">
+                <option value="P&L">
+                <option value="Club Aplic">
+              </datalist>
+            </div>
+            <div class="pac-field">
+              <label>Fase atual</label>
+              <select id="pac-fase-atual">
+                <option value="">--</option>
+                <option value="BURN_1">Burn 1</option>
+                <option value="BURN_2">Burn 2</option>
+                <option value="BURN_3">Burn 3</option>
+                <option value="BUILD_4">Build 4</option>
+                <option value="BUILD_5">Build 5</option>
+                <option value="CLUB">Club</option>
+              </select>
+            </div>
+            <div class="pac-field">
+              <label>Persona atribuída</label>
+              <input list="pac-persona-sug" type="text" id="pac-persona" placeholder="Consultora Executiva">
+              <datalist id="pac-persona-sug">
+                <option value="Cris-Giovanni">
+                <option value="Juliana">
+                <option value="Camila">
+                <option value="Adriana">
+              </datalist>
+            </div>
+            <div class="pac-field">
+              <label>Início do programa</label>
+              <input type="date" id="pac-programa-inicio">
+            </div>
+            <div class="pac-field">
+              <label>Duração (semanas)</label>
+              <input type="number" id="pac-programa-duracao" min="1" max="104" step="1" placeholder="ex: 12">
+            </div>
+            <div class="pac-field">
+              <label>Momento de vida</label>
+              <select id="pac-momento-vida">
+                <option value="">--</option>
+                <option value="ALTA_VOLTAGEM">Alta voltagem</option>
+                <option value="FRAGILIDADE">Fragilidade</option>
+              </select>
+            </div>
+            <div class="pac-field">
+              <label>Status clínico</label>
+              <select id="pac-status-clinico">
+                <option value="ESTAVEL">Estável</option>
+                <option value="ATENCAO">Atenção</option>
+                <option value="URGENCIA">Urgência</option>
+              </select>
+            </div>
+          </div>
+          <div class="pac-field" style="margin-top:10px;">
+            <label><i class="ti ti-lock" style="color:#E8945A; font-size:11px;"></i> Observações imutáveis do médico</label>
+            <textarea id="pac-obs-imutaveis" placeholder="Apenas o médico edita. Notas que não devem ser alteradas no acompanhamento."></textarea>
+          </div>
+        </div>
+
         <!-- Antropometria + Objetivo -->
         <div class="pac-form-section">
           <div class="pac-form-section-title"><i class="ti ti-scale"></i> Antropometria e objetivo</div>
@@ -3352,6 +3470,32 @@
             <div class="pac-field">
               <label>Medicações em uso</label>
               <textarea id="pac-medicacoes" placeholder="Lista de medicações de uso contínuo"></textarea>
+            </div>
+          </div>
+          <!-- Atividade física estruturada (PRD §3) -->
+          <div class="pac-form-grid col-3" style="margin-top:10px;">
+            <div class="pac-field">
+              <label>Modalidade da atividade</label>
+              <input list="pac-ativ-sug" type="text" id="pac-ativ-modalidade" placeholder="Musculação, corrida...">
+              <datalist id="pac-ativ-sug">
+                <option value="Musculação">
+                <option value="Corrida">
+                <option value="Caminhada">
+                <option value="Pilates">
+                <option value="Funcional">
+                <option value="Crossfit">
+                <option value="Natação">
+                <option value="Yoga">
+                <option value="Bike">
+              </datalist>
+            </div>
+            <div class="pac-field">
+              <label>Frequência (x/semana)</label>
+              <input type="number" id="pac-ativ-freq" min="0" max="14" step="1" placeholder="ex: 3">
+            </div>
+            <div class="pac-field">
+              <label>Duração (min/sessão)</label>
+              <input type="number" id="pac-ativ-duracao" min="0" max="240" step="5" placeholder="ex: 60">
             </div>
           </div>
           <div class="pac-form-grid col-2" style="margin-top:10px;">
@@ -4867,8 +5011,21 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-nutri').value = p.nutri_id || '';
   document.getElementById('pac-observacoes').value = p.observacoes || '';
   // Saúde
+  // Programa e jornada
+  document.getElementById('pac-programa').value = p.programa || '';
+  document.getElementById('pac-fase-atual').value = p.fase_atual || '';
+  document.getElementById('pac-persona').value = p.persona_atribuida || '';
+  document.getElementById('pac-programa-inicio').value = p.programa_inicio_em || '';
+  document.getElementById('pac-programa-duracao').value = p.programa_duracao_semanas || '';
+  document.getElementById('pac-momento-vida').value = p.momento_vida_etiqueta || '';
+  document.getElementById('pac-status-clinico').value = p.status_clinico || 'ESTAVEL';
+  document.getElementById('pac-obs-imutaveis').value = p.observacoes_imutaveis_medico || '';
+  // Saúde estruturada
   document.getElementById('pac-tipo-sanguineo').value = p.health?.tipo_sanguineo || '';
   document.getElementById('pac-bariatrica').value = p.anamnesis?.cirurgia_bariatrica ? 'true' : 'false';
+  document.getElementById('pac-ativ-modalidade').value = p.health?.atividade_modalidade || '';
+  document.getElementById('pac-ativ-freq').value = p.health?.atividade_frequencia || '';
+  document.getElementById('pac-ativ-duracao').value = p.health?.atividade_duracao_min || '';
   document.getElementById('pac-alergias').value = p.health?.alergias || '';
   document.getElementById('pac-medicacoes').value = p.health?.medicacoes_em_uso || '';
   document.getElementById('pac-motivacao').value = p.anamnesis?.motivacao_atual || '';
@@ -5039,11 +5196,24 @@ async function pacSalvar() {
     peso_inicial_kg: parseFloat(document.getElementById('pac-peso').value) || null,
     observacoes: document.getElementById('pac-observacoes').value.trim() || null,
     contact_id: contactId || null,
+    // Programa e jornada
+    programa: document.getElementById('pac-programa').value.trim() || null,
+    fase_atual: document.getElementById('pac-fase-atual').value || null,
+    persona_atribuida: document.getElementById('pac-persona').value.trim() || null,
+    momento_vida_etiqueta: document.getElementById('pac-momento-vida').value || null,
+    programa_inicio_em: document.getElementById('pac-programa-inicio').value || null,
+    programa_duracao_semanas: parseInt(document.getElementById('pac-programa-duracao').value) || null,
+    status_clinico: document.getElementById('pac-status-clinico').value || 'ESTAVEL',
+    observacoes_imutaveis_medico: document.getElementById('pac-obs-imutaveis').value.trim() || null,
     health: {
       tipo_sanguineo: document.getElementById('pac-tipo-sanguineo').value || null,
       alergias: document.getElementById('pac-alergias').value.trim() || null,
       medicacoes_em_uso: document.getElementById('pac-medicacoes').value.trim() || null,
       comorbidades: pacState.comorbidades || [],
+      // Atividade física estruturada
+      atividade_modalidade: document.getElementById('pac-ativ-modalidade').value.trim() || null,
+      atividade_frequencia: parseInt(document.getElementById('pac-ativ-freq').value) || null,
+      atividade_duracao_min: parseInt(document.getElementById('pac-ativ-duracao').value) || null,
     },
     anamnesis: {
       cirurgia_bariatrica: document.getElementById('pac-bariatrica').value === 'true',
@@ -6654,6 +6824,19 @@ async function prEditarPacienteDoHeader() {
   }
 }
 
+function prFmtFase(f) {
+  const map = {
+    BURN_1: 'Burn 1', BURN_2: 'Burn 2', BURN_3: 'Burn 3',
+    BUILD_4: 'Build 4', BUILD_5: 'Build 5', CLUB: 'Club',
+  };
+  return map[f] || f;
+}
+function prFmtStatusClinico(s) {
+  if (s === 'ESTAVEL') return 'Estável';
+  if (s === 'ATENCAO') return 'Atenção';
+  if (s === 'URGENCIA') return 'Urgência';
+  return s;
+}
 function prFmtSexo(s) {
   if (!s) return null;
   if (s === 'M') return 'Masculino';
@@ -6766,11 +6949,26 @@ function prRenderHeaderRico() {
           </div>
           <div class="badges">
             <span class="b status-${h.status}">${h.status}</span>
+            ${h.programa ? `<span class="b programa"><i class="ti ti-rocket" style="font-size:9px;"></i> ${h.programa}</span>` : ''}
+            ${h.semana_atual_de ? `<span class="b semana"><i class="ti ti-calendar-stats" style="font-size:9px;"></i> Semana ${h.semana_atual_de}${h.total_semanas ? ' de ' + h.total_semanas : ''}</span>` : ''}
+            ${h.fase_atual ? `<span class="b fase">${prFmtFase(h.fase_atual)}</span>` : ''}
+            ${h.persona_atribuida ? `<span class="b persona"><i class="ti ti-user-star" style="font-size:9px;"></i> ${h.persona_atribuida}</span>` : ''}
+            ${h.status_clinico ? `<span class="b clinico-${h.status_clinico}"><i class="ti ti-activity-heartbeat" style="font-size:9px;"></i> ${prFmtStatusClinico(h.status_clinico)}</span>` : ''}
+            ${h.momento_vida_etiqueta ? `<span class="b momento">${h.momento_vida_etiqueta === 'ALTA_VOLTAGEM' ? 'Alta voltagem' : 'Fragilidade'}</span>` : ''}
             ${h.fase_programa ? `<span class="b" style="border-color:#30363d; color:#8b949e;">${h.fase_programa}</span>` : ''}
             ${h.anamnese_pendente ? `<span class="b" style="background:rgba(74,144,226,0.10); color:#4A90E2; border-color:rgba(74,144,226,0.30);">Anamnese enviada</span>` : ''}
           </div>
         </div>
       </div>
+      ${h.observacoes_imutaveis_medico ? `
+        <div class="pr-h-obs-imutaveis">
+          <i class="ti ti-lock"></i>
+          <div>
+            <span class="lbl">Observações imutáveis do médico</span>
+            ${h.observacoes_imutaveis_medico.replace(/</g, '&lt;').replace(/\n/g, '<br>')}
+          </div>
+        </div>
+      ` : ''}
       ${h.cadastro_incompleto ? `
         <div class="pr-h-banner incompleto">
           <i class="ti ti-alert-triangle"></i>
