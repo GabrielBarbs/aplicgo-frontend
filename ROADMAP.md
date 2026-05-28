@@ -23,14 +23,22 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 
 ---
 
-## Combo 2 -- Card clínico fixo (3 blocos) -- próximo
+## Combo 2 -- Card clínico fixo (3 blocos) ✅ FEITO
 
-- [ ] Nova tabela `ClinMedicacaoAtual` (paciente, tipo: injetavel/oral/suplemento, dose, frequência, desde quando, ativo)
-- [ ] **Bloco A** -- Injetável atual: molécula, dose atual, dose semana anterior, próxima dose prevista, estoque do lote em uso
-- [ ] **Bloco B** -- Medicações orais + Suplementação Take & Go (Start/Burn/Build/Slim) + Aplic PLUS semana atual + outros
-- [ ] **Bloco C** -- Idade, gênero, comorbidades, atividade física, observações imutáveis do médico
-- [ ] Modal pra adicionar/editar medicação ativa
-- [ ] Card visível abaixo do header rico do prontuário
+- [x] Nova tabela `ClinMedicacaoAtual` (paciente, tipo: injetavel/oral/suplemento, dose, frequência, desde quando, ativa)
+- [x] **Bloco A** -- Injetável atual: molécula, dose atual, dose anterior, próxima dose prevista
+- [x] **Bloco B** -- Medicações orais + Suplementação Take & Go (Start/Burn/Build/Slim) + Aplic PLUS + outros
+- [x] **Bloco C** -- Idade, gênero, comorbidades, atividade física (resumo imutável)
+- [x] Modal pra adicionar/editar medicação ativa
+- [x] Card visível abaixo do header rico do prontuário
+- [x] Soft-delete via flag `ativa` (mantém histórico)
+
+### Tarefas Combo 2 -- pra depois
+
+- [ ] Estoque do lote em uso no Bloco A (depende do Combo 4/5)
+- [ ] Dose semana anterior auto-preenchida pelo registro da enfermagem (Combo 4)
+- [ ] Auto-incluir suplementos Take & Go vinculados ao programa do paciente
+- [ ] Auto-marcar semana atual do Aplic PLUS
 
 ---
 
