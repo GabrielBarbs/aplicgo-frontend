@@ -327,10 +327,16 @@
 
     /* ===== MAIN ===== */
     .app-main {
-      padding: 8px 24px 24px;     /* topo mais apertado, lateral e base mantêm respiro */
+      padding: 0 24px 24px;       /* zero no topo: cola direto na topbar */
       max-width: 1280px;
       margin: 0 auto;
     }
+    /* Cada view ganha um pouco de respiro interno, exceto agenda que cola */
+    #view-painel, #view-pacientes, #view-prontuario, #view-aplicacoes,
+    #view-estoque, #view-auditoria, #view-comunicacao, #view-financeiro {
+      padding-top: 12px;
+    }
+    #view-agenda { padding-top: 0; }
     .container { width: 100%; }
 
     .view { display: none; }
