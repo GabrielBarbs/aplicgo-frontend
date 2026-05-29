@@ -13,10 +13,16 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 - [x] Helper backend `temPermissao(req, slug)` + middleware `requirePermissao`
 - [ ] SQL com 7 cargos + ~40 permissões granulares + migração de users existentes
 
-### Combo B · Aba ADMIN -- white label de permissões
-- [ ] Sidebar "Administração" (só pra quem tem `admin.gerenciar_permissoes`)
-- [ ] Matriz cargos × permissões editável em checkboxes
-- [ ] Tela "Usuários" com toggle de cargos por usuário
+### Combo B · Aba ADMIN -- white label de permissões ✅ FEITO
+- [x] Sidebar "Administração" (só visível pra quem tem `admin.gerenciar_permissoes` / `admin.gerenciar_usuarios` / `admin.gerenciar_cargos`)
+- [x] Matriz cargos × permissões editável em checkboxes, agrupada pelos 11 grupos
+- [x] Toggle "marcar/desmarcar todos" por grupo
+- [x] Botão "Salvar mudanças" aparece só quando há alteração não salva (estado dirty)
+- [x] Modal de criar/editar cargo (nome, slug, cor, ícone, ordem, descrição, ativo)
+- [x] Inativar cargo (soft delete, mantém histórico)
+- [x] Tela "Usuários" com lista de todos + cargos atuais como pills
+- [x] Modal de toggle de cargos por usuário (multi-cargo)
+- [x] Endpoints admin: GET/POST/PUT/DELETE cargos, GET permissoes, PUT cargos/permissoes, GET usuarios, PUT usuarios/cargos
 
 ### Combo C · Permissões aplicadas no frontend
 - [ ] Frontend lê `permissoes[]` do `/me` e esconde botões/abas

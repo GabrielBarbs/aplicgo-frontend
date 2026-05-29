@@ -1912,6 +1912,221 @@
       background: rgba(232,148,90,0.18);
     }
 
+    /* ====== ADMINISTRAÇÃO -- white label ====== */
+    .admin-tabs {
+      display: flex; gap: 4px;
+      border-bottom: 1px solid #21262d;
+      margin-bottom: 16px;
+    }
+    .admin-tab {
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: #7d8590;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      transition: all 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .admin-tab:hover { color: #f0f6fc; }
+    .admin-tab.active {
+      color: #E8945A;
+      border-bottom-color: #E8945A;
+    }
+    .admin-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; flex-wrap: wrap;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+    }
+    .admin-toolbar-info {
+      font-size: 12px; color: #8b949e;
+      flex: 1; min-width: 250px;
+    }
+    .admin-toolbar-info strong { color: #f0f6fc; }
+
+    /* Matriz cargos × permissões */
+    .admin-matriz {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .admin-matriz-row {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 14px;
+      padding: 14px 16px;
+      border-bottom: 1px solid #21262d;
+      align-items: start;
+    }
+    .admin-matriz-row:last-child { border-bottom: 0; }
+    .admin-matriz-row .cargo-card {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px 14px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      position: sticky; top: 8px;
+    }
+    .admin-matriz-row .cargo-card .head {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .admin-matriz-row .cargo-card .swatch {
+      width: 12px; height: 12px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .admin-matriz-row .cargo-card .nome {
+      font-size: 13px; font-weight: 600; color: #f0f6fc;
+      flex: 1;
+    }
+    .admin-matriz-row .cargo-card .meta {
+      font-size: 10px; color: #7d8590;
+    }
+    .admin-matriz-row .cargo-card .meta strong { color: #c9d1d9; }
+    .admin-matriz-row .cargo-card .acoes {
+      display: flex; gap: 5px; margin-top: 4px;
+    }
+    .admin-matriz-row .cargo-card .acoes button {
+      background: rgba(232,148,90,0.10);
+      border: 1px solid rgba(232,148,90,0.25);
+      color: #E8945A;
+      padding: 3px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: inherit;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .admin-matriz-row .cargo-card .acoes button.danger {
+      background: rgba(248,81,73,0.08);
+      border-color: rgba(248,81,73,0.25);
+      color: #f85149;
+    }
+    .admin-matriz-row .cargo-card.inativo {
+      opacity: 0.5;
+    }
+    .admin-matriz-row .cargo-card.inativo .nome::after {
+      content: ' (inativo)';
+      font-size: 10px; color: #7d8590; font-weight: 400;
+    }
+    .admin-matriz-row .perms {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .admin-matriz-row .perm-grupo {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .admin-matriz-row .perm-grupo .grupo-head {
+      font-size: 10px; color: #E8945A;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .admin-matriz-row .perm-grupo .grupo-head .toggle-all {
+      font-size: 9px; color: #7d8590;
+      cursor: pointer;
+      text-transform: none; letter-spacing: 0;
+      background: none; border: 0; font-family: inherit;
+    }
+    .admin-matriz-row .perm-grupo .grupo-head .toggle-all:hover { color: #E8945A; }
+    .admin-matriz-row .perm-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 6px;
+    }
+    .admin-matriz-row .perm-item {
+      display: flex; align-items: flex-start; gap: 7px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px; color: #c9d1d9;
+      transition: background 0.12s;
+    }
+    .admin-matriz-row .perm-item:hover { background: rgba(33,38,45,0.5); }
+    .admin-matriz-row .perm-item input[type="checkbox"] {
+      margin-top: 1px; accent-color: #E8945A;
+      cursor: pointer;
+    }
+    .admin-matriz-row .perm-item .label-wrap { flex: 1; }
+    .admin-matriz-row .perm-item .nome { color: #f0f6fc; }
+    .admin-matriz-row .perm-item .slug {
+      font-size: 9px; color: #6e7681; font-family: 'SF Mono', Consolas, monospace;
+    }
+
+    @media (max-width: 900px) {
+      .admin-matriz-row { grid-template-columns: 1fr; }
+      .admin-matriz-row .cargo-card { position: static; }
+    }
+
+    /* Lista de usuários */
+    .admin-user-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 16px;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    .admin-user-card .avatar {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #C56847, #E8945A);
+      color: #fff; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 500;
+      flex-shrink: 0;
+    }
+    .admin-user-card .info { flex: 1; min-width: 0; }
+    .admin-user-card .nome { font-size: 13px; font-weight: 500; color: #f0f6fc; }
+    .admin-user-card .meta { font-size: 11px; color: #7d8590; margin-top: 2px; }
+    .admin-user-card .cargos-pills {
+      display: flex; gap: 5px; flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .admin-user-card .cargo-pill {
+      font-size: 10px; padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .admin-user-card .cargo-pill i { font-size: 10px; }
+    .admin-user-card .acoes {
+      flex-shrink: 0;
+    }
+
+    /* Modal: toggle de cargos */
+    .adm-user-cargo-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: #0d1117;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .adm-user-cargo-row:hover { background: rgba(33,38,45,0.4); }
+    .adm-user-cargo-row.selected {
+      background: rgba(232,148,90,0.08);
+      border-color: rgba(232,148,90,0.30);
+    }
+    .adm-user-cargo-row input { accent-color: #E8945A; cursor: pointer; }
+    .adm-user-cargo-row .swatch {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .adm-user-cargo-row .nome { font-size: 12px; color: #f0f6fc; }
+
     /* Bloco de observações imutáveis */
     .pr-h-obs-imutaveis {
       width: 100%;
@@ -2848,6 +3063,13 @@
       </button>
     </div>
 
+    <div class="sidebar-group" id="sidebar-group-admin" style="display:none;">
+      <div class="sidebar-group-label"><i class="ti ti-shield-lock"></i> Administração</div>
+      <button class="sidebar-item" data-view="admin">
+        <i class="ti ti-settings-cog"></i> Cargos &amp; Permissões
+      </button>
+    </div>
+
     <div class="sidebar-group">
       <div class="sidebar-group-label"><i class="ti ti-settings"></i> Sistema</div>
       <button class="sidebar-item" data-view="auditoria">
@@ -3375,6 +3597,45 @@
   </div>
 
   <!-- VIEW: Comunicação Interna (esquema funcional) -->
+  <!-- VIEW: Administração (Combo B -- white label de permissões) -->
+  <div class="view" id="view-admin">
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-admin-tab="cargos" onclick="adminTrocarTab('cargos')">
+        <i class="ti ti-users-group"></i> Cargos &amp; Permissões
+      </button>
+      <button class="admin-tab" data-admin-tab="usuarios" onclick="adminTrocarTab('usuarios')">
+        <i class="ti ti-user-cog"></i> Usuários
+      </button>
+    </div>
+
+    <!-- TAB: Cargos × Permissões -->
+    <div class="admin-tab-content" id="admin-tab-cargos">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar-info">
+          <strong>White label:</strong> defina o que cada cargo pode fazer no sistema. As mudanças são aplicadas ao próximo login do usuário.
+        </div>
+        <button class="pac-btn-primary" onclick="adminNovoCargo()">
+          <i class="ti ti-plus"></i> Novo cargo
+        </button>
+      </div>
+      <div id="admin-matriz-wrap">
+        <div class="pac-empty"><i class="ti ti-loader"></i>Carregando matriz...</div>
+      </div>
+    </div>
+
+    <!-- TAB: Usuários -->
+    <div class="admin-tab-content" id="admin-tab-usuarios" style="display:none;">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar-info">
+          <strong>Cargos por usuário:</strong> cada usuário pode acumular múltiplos cargos. As permissões se somam.
+        </div>
+      </div>
+      <div id="admin-usuarios-wrap">
+        <div class="pac-empty"><i class="ti ti-loader"></i>Carregando usuários...</div>
+      </div>
+    </div>
+  </div>
+
   <div class="view" id="view-comunicacao">
     <div class="com-roadmap">
       <div class="com-roadmap-title">
@@ -3994,6 +4255,94 @@
         <button class="pac-btn-secondary" onclick="agFecharQuickPat()">Cancelar</button>
         <button class="pac-btn-primary" id="ag-quick-salvar" onclick="agSalvarQuickPat()">
           <i class="ti ti-device-floppy"></i> Criar e usar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL CARGO (criar/editar) ============== -->
+<div class="ag-modal-overlay" id="adm-cargo-modal" onclick="if(event.target.id==='adm-cargo-modal') admCargoFechar()">
+  <div class="ag-modal" style="max-width: 500px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-users-group"></i> <span id="adm-cargo-title">Novo cargo</span></div>
+      <button class="pac-modal-close" onclick="admCargoFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="adm-cargo-erro"></div>
+      <input type="hidden" id="adm-cargo-id">
+      <input type="hidden" id="adm-cargo-slug-original">
+
+      <div class="pac-form-grid col-2">
+        <div class="pac-field full">
+          <label>Nome <span class="req">*</span></label>
+          <input type="text" id="adm-cargo-nome" placeholder="Ex: Coordenador clínico">
+        </div>
+        <div class="pac-field full">
+          <label>Slug <span class="req">*</span> <span style="font-weight:400; color:#7d8590; font-size:10px;">(snake_case, único)</span></label>
+          <input type="text" id="adm-cargo-slug" placeholder="ex: coordenador_clinico">
+        </div>
+        <div class="pac-field">
+          <label>Cor</label>
+          <input type="color" id="adm-cargo-cor" value="#E8945A" style="height: 34px; padding: 2px;">
+        </div>
+        <div class="pac-field">
+          <label>Ícone (Tabler)</label>
+          <input type="text" id="adm-cargo-icone" placeholder="ti-stethoscope">
+        </div>
+        <div class="pac-field">
+          <label>Ordem</label>
+          <input type="number" id="adm-cargo-ordem" min="1" max="999" value="100">
+        </div>
+        <div class="pac-field" id="adm-cargo-ativo-wrap" style="display:none;">
+          <label>Status</label>
+          <select id="adm-cargo-ativo">
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
+        </div>
+        <div class="pac-field full">
+          <label>Descrição</label>
+          <textarea id="adm-cargo-descricao" placeholder="Para que serve este cargo"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="admCargoFechar()">Cancelar</button>
+        <button class="pac-btn-primary" id="adm-cargo-salvar" onclick="admCargoSalvar()">
+          <i class="ti ti-device-floppy"></i> Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL ATRIBUIR CARGOS A USUÁRIO ============== -->
+<div class="ag-modal-overlay" id="adm-user-modal" onclick="if(event.target.id==='adm-user-modal') admUserFechar()">
+  <div class="ag-modal" style="max-width: 540px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-user-cog"></i> <span id="adm-user-title">Cargos do usuário</span></div>
+      <button class="pac-modal-close" onclick="admUserFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="adm-user-erro"></div>
+      <input type="hidden" id="adm-user-id">
+      <div id="adm-user-info" style="margin-bottom: 12px; padding: 10px 12px; background: rgba(74,144,226,0.08); border: 1px solid rgba(74,144,226,0.20); border-radius: 8px; font-size: 12px; color: #c9d1d9;"></div>
+      <label style="font-size: 10px; color: #7d8590; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 8px;">
+        Selecione os cargos que este usuário possui
+      </label>
+      <div id="adm-user-cargos-wrap">
+        <div class="pac-empty" style="padding: 20px;"><i class="ti ti-loader"></i>Carregando cargos...</div>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="admUserFechar()">Cancelar</button>
+        <button class="pac-btn-primary" id="adm-user-salvar" onclick="admUserSalvar()">
+          <i class="ti ti-device-floppy"></i> Salvar
         </button>
       </div>
     </div>
@@ -4975,6 +5324,16 @@ const NOVIDADES_KEY = 'aplic_clinico_novidades_lida';
 let authUser = null;
 let meData = null;
 
+// Helper de permissão -- usado em todas as telas pra esconder/mostrar botões
+function temPermissao(slug) {
+  if (!meData) return false;
+  const lista = meData.permissoes || [];
+  if (lista.includes(slug)) return true;
+  // Compat: gestor/desenvolvedor técnico tem tudo
+  const role = authUser?.role;
+  return ['gestor', 'desenvolvedor', 'gerencia'].includes(role);
+}
+
 function getToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
 function setToken(t) {
   if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
@@ -5090,6 +5449,12 @@ function aplicarUI() {
   const caps = Object.keys(meData.capabilities).filter(k => meData.capabilities[k]).length;
   document.getElementById('hero-caps-txt').textContent = `${caps} capabilities`;
 
+  // Mostra sidebar Admin se tem permissão
+  const podeAdmin = temPermissao('admin.gerenciar_permissoes')
+                 || temPermissao('admin.gerenciar_usuarios')
+                 || temPermissao('admin.gerenciar_cargos');
+  document.getElementById('sidebar-group-admin').style.display = podeAdmin ? '' : 'none';
+
   // Relógio + data
   tickRelogio();
 
@@ -5162,7 +5527,8 @@ const VIEW_TITLES = {
   estoque: { titulo: 'Estoque', sub: 'Produtos, lotes e validades' },
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
-  financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' }
+  financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
+  admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' }
 };
 
 document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
@@ -5174,12 +5540,15 @@ document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
 
 function trocarView(v) {
   document.querySelectorAll('.sidebar-item').forEach(x => x.classList.remove('active'));
-  document.querySelector(`.sidebar-item[data-view="${v}"]`).classList.add('active');
+  const item = document.querySelector(`.sidebar-item[data-view="${v}"]`);
+  if (item) item.classList.add('active');
   document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
   const t = VIEW_TITLES[v] || { titulo: v, sub: '' };
   document.getElementById('topbar-page-current').textContent = t.titulo;
   document.getElementById('topbar-page-sub').textContent = t.sub;
+  // Hooks por view
+  if (v === 'admin') adminTrocarTab('cargos');
 }
 
 // ============================================================
@@ -7993,6 +8362,312 @@ function bioTooltip(e) {
 function bioTooltipHide() {
   const tt = document.getElementById('bio-tt');
   if (tt) tt.style.display = 'none';
+}
+
+// ============================================================
+// ADMINISTRAÇÃO -- white label de cargos e permissões (Combo B)
+// ============================================================
+let admState = {
+  cargos: [],            // lista de cargos
+  permissoes: [],        // lista de grupos { grupo, permissoes[] }
+  usuarios: [],
+  editandoUserId: null,
+  selecionadosUser: new Set(),
+  dirty: new Set(),      // slugs de cargos com alteração não salva
+};
+
+function adminTrocarTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.admin-tab[data-admin-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.admin-tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById('admin-tab-' + tab).style.display = '';
+  if (tab === 'cargos') admCarregarMatriz();
+  else if (tab === 'usuarios') admCarregarUsuarios();
+}
+
+async function admCarregarMatriz() {
+  const wrap = document.getElementById('admin-matriz-wrap');
+  wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando matriz...</div>';
+  const [rc, rp] = await Promise.all([
+    pacApi('/api/clinico/admin/cargos'),
+    pacApi('/api/clinico/admin/permissoes'),
+  ]);
+  if (!rc.ok) { wrap.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (rc.data.erro || '--') + '</div>'; return; }
+  if (!rp.ok) { wrap.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (rp.data.erro || '--') + '</div>'; return; }
+  admState.cargos = rc.data.cargos;
+  admState.permissoes = rp.data.grupos;
+  admState.dirty = new Set();
+  admRenderMatriz();
+}
+
+function admRenderMatriz() {
+  const wrap = document.getElementById('admin-matriz-wrap');
+  if (admState.cargos.length === 0) {
+    wrap.innerHTML = '<div class="pac-empty">Nenhum cargo cadastrado.</div>';
+    return;
+  }
+  const html = '<div class="admin-matriz">' + admState.cargos.map(c => {
+    const slugs = new Set(c.permissoes_slugs);
+    const corHex = c.cor || '#7d8590';
+    const gruposHtml = admState.permissoes.map(g => {
+      const todosMarcados = g.permissoes.every(p => slugs.has(p.slug));
+      const algumMarcado = g.permissoes.some(p => slugs.has(p.slug));
+      const itensHtml = g.permissoes.map(p => `
+        <label class="perm-item">
+          <input type="checkbox" ${slugs.has(p.slug) ? 'checked' : ''} data-cargo="${c.slug}" data-perm="${p.slug}" onchange="admTogglePerm('${c.slug}', '${p.slug}', this.checked)">
+          <div class="label-wrap">
+            <div class="nome">${p.nome}</div>
+            <div class="slug">${p.slug}</div>
+          </div>
+        </label>
+      `).join('');
+      return `
+        <div class="perm-grupo">
+          <div class="grupo-head">
+            <span>${g.grupo}</span>
+            <button class="toggle-all" onclick="admToggleGrupo('${c.slug}', '${g.grupo.replace(/'/g, "\\'")}', ${todosMarcados ? 'false' : 'true'})">
+              ${todosMarcados ? 'desmarcar todos' : (algumMarcado ? 'marcar todos' : 'marcar todos')}
+            </button>
+          </div>
+          <div class="perm-list">${itensHtml}</div>
+        </div>
+      `;
+    }).join('');
+    const dirty = admState.dirty.has(c.slug);
+    return `
+      <div class="admin-matriz-row">
+        <div class="cargo-card ${c.ativo ? '' : 'inativo'}">
+          <div class="head">
+            <span class="swatch" style="background:${corHex};"></span>
+            <span class="nome">${c.nome}</span>
+            ${c.icone ? `<i class="ti ${c.icone}" style="color:${corHex}; font-size:14px;"></i>` : ''}
+          </div>
+          <div class="meta"><strong>${c.qtd_usuarios}</strong> usuários · <strong>${c.qtd_permissoes}</strong> permissões</div>
+          ${c.descricao ? `<div class="meta">${c.descricao}</div>` : ''}
+          ${dirty ? `<button class="pac-btn-primary" style="font-size:11px; padding:5px 10px; margin-top:6px;" onclick="admSalvarPermissoes('${c.slug}')"><i class="ti ti-device-floppy"></i> Salvar mudanças</button>` : ''}
+          <div class="acoes">
+            <button onclick="admEditarCargo('${c.slug}')"><i class="ti ti-edit"></i> Editar</button>
+            ${c.ativo ? `<button class="danger" onclick="admInativarCargo('${c.slug}')"><i class="ti ti-trash"></i> Inativar</button>` : ''}
+          </div>
+        </div>
+        <div class="perms">${gruposHtml}</div>
+      </div>
+    `;
+  }).join('') + '</div>';
+  wrap.innerHTML = html;
+}
+
+function admTogglePerm(cargoSlug, permSlug, marcar) {
+  const cargo = admState.cargos.find(c => c.slug === cargoSlug);
+  if (!cargo) return;
+  const set = new Set(cargo.permissoes_slugs);
+  if (marcar) set.add(permSlug); else set.delete(permSlug);
+  cargo.permissoes_slugs = Array.from(set);
+  cargo.qtd_permissoes = set.size;
+  admState.dirty.add(cargoSlug);
+  admRenderMatriz();
+}
+
+function admToggleGrupo(cargoSlug, grupoNome, marcar) {
+  const cargo = admState.cargos.find(c => c.slug === cargoSlug);
+  const grupo = admState.permissoes.find(g => g.grupo === grupoNome);
+  if (!cargo || !grupo) return;
+  const set = new Set(cargo.permissoes_slugs);
+  grupo.permissoes.forEach(p => marcar ? set.add(p.slug) : set.delete(p.slug));
+  cargo.permissoes_slugs = Array.from(set);
+  cargo.qtd_permissoes = set.size;
+  admState.dirty.add(cargoSlug);
+  admRenderMatriz();
+}
+
+async function admSalvarPermissoes(cargoSlug) {
+  const cargo = admState.cargos.find(c => c.slug === cargoSlug);
+  if (!cargo) return;
+  const r = await pacApi('/api/clinico/admin/cargos/' + cargoSlug + '/permissoes', {
+    method: 'PUT',
+    body: JSON.stringify({ permissoes: cargo.permissoes_slugs }),
+  });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  admState.dirty.delete(cargoSlug);
+  admRenderMatriz();
+}
+
+// ===== Modal de cargo (criar / editar) =====
+function adminNovoCargo() {
+  document.getElementById('adm-cargo-title').textContent = 'Novo cargo';
+  document.getElementById('adm-cargo-id').value = '';
+  document.getElementById('adm-cargo-slug-original').value = '';
+  document.getElementById('adm-cargo-nome').value = '';
+  document.getElementById('adm-cargo-slug').value = '';
+  document.getElementById('adm-cargo-slug').disabled = false;
+  document.getElementById('adm-cargo-cor').value = '#E8945A';
+  document.getElementById('adm-cargo-icone').value = '';
+  document.getElementById('adm-cargo-ordem').value = '100';
+  document.getElementById('adm-cargo-descricao').value = '';
+  document.getElementById('adm-cargo-ativo-wrap').style.display = 'none';
+  document.getElementById('adm-cargo-erro').style.display = 'none';
+  document.getElementById('adm-cargo-modal').classList.add('aberto');
+  setTimeout(() => document.getElementById('adm-cargo-nome').focus(), 80);
+}
+
+function admEditarCargo(slug) {
+  const c = admState.cargos.find(x => x.slug === slug);
+  if (!c) return;
+  document.getElementById('adm-cargo-title').textContent = 'Editar cargo';
+  document.getElementById('adm-cargo-id').value = c.id;
+  document.getElementById('adm-cargo-slug-original').value = c.slug;
+  document.getElementById('adm-cargo-nome').value = c.nome;
+  document.getElementById('adm-cargo-slug').value = c.slug;
+  document.getElementById('adm-cargo-slug').disabled = true;
+  document.getElementById('adm-cargo-cor').value = c.cor || '#E8945A';
+  document.getElementById('adm-cargo-icone').value = c.icone || '';
+  document.getElementById('adm-cargo-ordem').value = c.ordem;
+  document.getElementById('adm-cargo-descricao').value = c.descricao || '';
+  document.getElementById('adm-cargo-ativo-wrap').style.display = '';
+  document.getElementById('adm-cargo-ativo').value = c.ativo ? 'true' : 'false';
+  document.getElementById('adm-cargo-erro').style.display = 'none';
+  document.getElementById('adm-cargo-modal').classList.add('aberto');
+}
+
+function admCargoFechar() {
+  document.getElementById('adm-cargo-modal').classList.remove('aberto');
+}
+
+async function admCargoSalvar() {
+  const erroEl = document.getElementById('adm-cargo-erro');
+  erroEl.style.display = 'none';
+  const slugOriginal = document.getElementById('adm-cargo-slug-original').value;
+  const isEdit = !!slugOriginal;
+  const body = {
+    nome: document.getElementById('adm-cargo-nome').value.trim(),
+    cor: document.getElementById('adm-cargo-cor').value || null,
+    icone: document.getElementById('adm-cargo-icone').value.trim() || null,
+    descricao: document.getElementById('adm-cargo-descricao').value.trim() || null,
+    ordem: parseInt(document.getElementById('adm-cargo-ordem').value) || 100,
+  };
+  if (!isEdit) {
+    body.slug = document.getElementById('adm-cargo-slug').value.trim();
+    if (!body.slug) { erroEl.textContent = 'Slug obrigatório'; erroEl.style.display = 'block'; return; }
+  } else {
+    body.ativo = document.getElementById('adm-cargo-ativo').value === 'true';
+  }
+  if (!body.nome) { erroEl.textContent = 'Nome obrigatório'; erroEl.style.display = 'block'; return; }
+
+  const path = isEdit
+    ? '/api/clinico/admin/cargos/' + slugOriginal
+    : '/api/clinico/admin/cargos';
+  const r = await pacApi(path, { method: isEdit ? 'PUT' : 'POST', body: JSON.stringify(body) });
+  if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
+  admCargoFechar();
+  admCarregarMatriz();
+}
+
+async function admInativarCargo(slug) {
+  if (!confirm(`Inativar o cargo "${slug}"? Os usuários com esse cargo perdem as permissões dele.`)) return;
+  const r = await pacApi('/api/clinico/admin/cargos/' + slug, { method: 'DELETE' });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  admCarregarMatriz();
+}
+
+// ===== USUÁRIOS =====
+async function admCarregarUsuarios() {
+  const wrap = document.getElementById('admin-usuarios-wrap');
+  wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando usuários...</div>';
+  const r = await pacApi('/api/clinico/admin/usuarios');
+  if (!r.ok) { wrap.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (r.data.erro || '--') + '</div>'; return; }
+  admState.usuarios = r.data.usuarios;
+  if (admState.usuarios.length === 0) {
+    wrap.innerHTML = '<div class="pac-empty">Nenhum usuário cadastrado.</div>';
+    return;
+  }
+  wrap.innerHTML = admState.usuarios.map(u => {
+    const inicial = (u.nome || u.email || '?').charAt(0).toUpperCase();
+    const cargosHtml = u.cargos.length === 0
+      ? '<span style="font-size:10px; color:#6e7681; font-style:italic;">Sem cargos clínicos</span>'
+      : u.cargos.map(c => {
+          const cor = c.cor || '#7d8590';
+          return `<span class="cargo-pill" style="color:${cor}; border-color:${cor}40; background:${cor}10;">${c.icone ? `<i class="ti ${c.icone}"></i>` : ''}${c.nome}</span>`;
+        }).join('');
+    return `
+      <div class="admin-user-card">
+        <div class="avatar">${inicial}</div>
+        <div class="info">
+          <div class="nome">${u.nome || u.email}</div>
+          <div class="meta">${u.email} · role técnico: <strong>${u.role_tecnico}</strong> · ${u.status}</div>
+          <div class="cargos-pills">${cargosHtml}</div>
+        </div>
+        <div class="acoes">
+          <button class="pac-btn-secondary" onclick="admEditarCargosUser('${u.id}')"><i class="ti ti-edit"></i> Cargos</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function admEditarCargosUser(userId) {
+  const u = admState.usuarios.find(x => x.id === userId);
+  if (!u) return;
+  admState.editandoUserId = userId;
+  admState.selecionadosUser = new Set(u.cargos.map(c => c.slug));
+  document.getElementById('adm-user-id').value = userId;
+  document.getElementById('adm-user-title').textContent = 'Cargos de ' + (u.nome || u.email);
+  document.getElementById('adm-user-info').innerHTML = `<i class="ti ti-mail" style="color:#4A90E2; font-size:13px;"></i> ${u.email}<br><span style="color:#7d8590; font-size:11px;">Role técnico (sistema antigo): <strong>${u.role_tecnico}</strong></span>`;
+  document.getElementById('adm-user-erro').style.display = 'none';
+
+  // Carrega cargos ativos pra escolher
+  if (admState.cargos.length === 0) {
+    const rc = await pacApi('/api/clinico/admin/cargos');
+    if (rc.ok) admState.cargos = rc.data.cargos;
+  }
+  admRenderUserCargos();
+  document.getElementById('adm-user-modal').classList.add('aberto');
+}
+
+function admRenderUserCargos() {
+  const wrap = document.getElementById('adm-user-cargos-wrap');
+  const ativos = admState.cargos.filter(c => c.ativo);
+  if (ativos.length === 0) {
+    wrap.innerHTML = '<div style="color:#7d8590; font-size:11px; padding:10px;">Nenhum cargo ativo no sistema.</div>';
+    return;
+  }
+  wrap.innerHTML = ativos.map(c => {
+    const selecionado = admState.selecionadosUser.has(c.slug);
+    const cor = c.cor || '#7d8590';
+    return `
+      <label class="adm-user-cargo-row ${selecionado ? 'selected' : ''}">
+        <input type="checkbox" ${selecionado ? 'checked' : ''} onchange="admToggleUserCargo('${c.slug}', this.checked)">
+        <span class="swatch" style="background:${cor};"></span>
+        ${c.icone ? `<i class="ti ${c.icone}" style="color:${cor};"></i>` : ''}
+        <span class="nome">${c.nome}</span>
+        <span style="margin-left:auto; font-size:10px; color:#6e7681; font-family:'SF Mono',Consolas,monospace;">${c.slug}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+function admToggleUserCargo(slug, marcar) {
+  if (marcar) admState.selecionadosUser.add(slug);
+  else admState.selecionadosUser.delete(slug);
+  admRenderUserCargos();
+}
+
+function admUserFechar() {
+  document.getElementById('adm-user-modal').classList.remove('aberto');
+}
+
+async function admUserSalvar() {
+  const erroEl = document.getElementById('adm-user-erro');
+  erroEl.style.display = 'none';
+  const userId = admState.editandoUserId;
+  if (!userId) return;
+  const body = { cargos: Array.from(admState.selecionadosUser) };
+  const r = await pacApi('/api/clinico/admin/usuarios/' + userId + '/cargos', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
+  admUserFechar();
+  admCarregarUsuarios();
 }
 
 // ===== ANAMNESE -- esqueleto =====
