@@ -7337,17 +7337,30 @@ function prRenderHeaderRico() {
   };
 
   // 4 cards de stats (peso atual, peso inicial, diferença, IMC atual + objetivo)
+  // Origem do peso atual / inicial -- mostra de onde puxou
+  const origemLabel = {
+    bioimpedancia: 'bioimpedância',
+    evolucao: 'evolução',
+    cadastro: 'cadastro',
+  };
+  const labelOrigemAtual = h.peso_atual_origem
+    ? `via ${origemLabel[h.peso_atual_origem] || h.peso_atual_origem}${h.peso_atualizado_em ? ' · ' + fmtDataCurta(h.peso_atualizado_em) : ''}`
+    : 'sem registro de peso';
+  const labelOrigemInicial = h.peso_inicial_origem
+    ? (h.peso_inicial_origem === 'cadastro' ? (h.altura_cm ? 'altura ' + h.altura_cm + ' cm' : 'altura não informada') : `via ${origemLabel[h.peso_inicial_origem]}`)
+    : 'sem peso inicial';
+
   const cardsStats = `
     <div class="pr-h-stats">
       <div class="pr-h-stat">
         <div class="lbl"><i class="ti ti-scale"></i> Peso atual</div>
         <div class="val">${h.peso_atual_kg != null ? h.peso_atual_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
-        <div class="ext">${h.peso_atualizado_em ? 'em ' + fmtDataCurta(h.peso_atualizado_em) : 'sem evolução com peso'}</div>
+        <div class="ext">${labelOrigemAtual}</div>
       </div>
       <div class="pr-h-stat">
         <div class="lbl"><i class="ti ti-flag"></i> Peso inicial</div>
         <div class="val">${h.peso_inicial_kg != null ? h.peso_inicial_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
-        <div class="ext">${h.altura_cm ? 'altura ' + h.altura_cm + ' cm' : 'altura não informada'}</div>
+        <div class="ext">${labelOrigemInicial}</div>
       </div>
       <div class="pr-h-stat">
         <div class="lbl"><i class="ti ti-trending-down"></i> Diferença</div>
