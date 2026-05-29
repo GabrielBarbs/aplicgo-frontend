@@ -24,9 +24,21 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 - [x] Modal de toggle de cargos por usuário (multi-cargo)
 - [x] Endpoints admin: GET/POST/PUT/DELETE cargos, GET permissoes, PUT cargos/permissoes, GET usuarios, PUT usuarios/cargos
 
-### Combo C · Permissões aplicadas no frontend
-- [ ] Frontend lê `permissoes[]` do `/me` e esconde botões/abas
-- [ ] Cargos com chip colorido no header do user
+### Combo C · Permissões aplicadas no frontend ✅ FEITO
+- [x] Helper global `temPermissao(slug)` + `temPermissaoExpr(perm1|perm2)`
+- [x] `aplicarPermissoesNaUI()` percorre todo `[data-perm]` e esconde quem não passa
+- [x] Sidebar items com `data-perm`: Pacientes, Agenda, Prontuário, Aplicações, Estoque, Auditoria, Financeiro
+- [x] Grupos da sidebar se escondem quando todos os itens estão ocultos
+- [x] Botões "Novo paciente", "Novo agendamento", "Bloquear", "Nova evolução", "Nova prescrição", "Solicitar exames" com `data-perm`
+- [x] `trocarView` bloqueia view sem permissão -- redireciona pra Visão Geral
+
+### Tarefas Combo C -- pra depois
+- [ ] Chip colorido com os cargos do user no topbar/userpill
+- [ ] "Editar paciente" com permissão `paciente.editar`
+- [ ] "Bloquear" dentro do modal de agendamento checar permissão
+- [ ] Botão "Nova bioimpedância" com `prontuario.bioimpedancia.registrar`
+- [ ] Mensagem "Sem permissão" quando entra em URL/view bloqueada
+- [ ] Hot-reload do `/me` sem precisar logout (fetch ao trocar de aba)
 
 ### Combo D · Onboarding do paciente (Aula Cap 3)
 - [ ] Schema `ClinPatientOnboarding` (programa, médico, nutri, kit, contrato, termo, cronograma)

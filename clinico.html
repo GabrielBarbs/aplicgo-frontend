@@ -3040,25 +3040,25 @@
       </button>
     </div>
 
-    <div class="sidebar-group">
+    <div class="sidebar-group" data-grupo-operacional>
       <div class="sidebar-group-label"><i class="ti ti-users"></i> Operacional</div>
-      <button class="sidebar-item" data-view="pacientes">
+      <button class="sidebar-item" data-view="pacientes" data-perm="paciente.ver_lista">
         <i class="ti ti-user-heart"></i> Pacientes
       </button>
-      <button class="sidebar-item" data-view="agenda">
+      <button class="sidebar-item" data-view="agenda" data-perm="agenda.ver">
         <i class="ti ti-calendar"></i> Agenda
       </button>
-      <button class="sidebar-item" data-view="prontuario">
+      <button class="sidebar-item" data-view="prontuario" data-perm="prontuario.ver">
         <i class="ti ti-clipboard-text"></i> Prontuário
       </button>
     </div>
 
-    <div class="sidebar-group">
+    <div class="sidebar-group" data-grupo-clinico>
       <div class="sidebar-group-label"><i class="ti ti-syringe"></i> Clínico</div>
-      <button class="sidebar-item" data-view="aplicacoes">
+      <button class="sidebar-item" data-view="aplicacoes" data-perm="prontuario.aplicacao.registrar|prontuario.bioimpedancia.registrar">
         <i class="ti ti-vaccine"></i> Aplicações
       </button>
-      <button class="sidebar-item" data-view="estoque">
+      <button class="sidebar-item" data-view="estoque" data-perm="estoque.ver">
         <i class="ti ti-package"></i> Estoque
       </button>
     </div>
@@ -3070,16 +3070,16 @@
       </button>
     </div>
 
-    <div class="sidebar-group">
+    <div class="sidebar-group" data-grupo-sistema>
       <div class="sidebar-group-label"><i class="ti ti-settings"></i> Sistema</div>
-      <button class="sidebar-item" data-view="auditoria">
+      <button class="sidebar-item" data-view="auditoria" data-perm="admin.ver_auditoria">
         <i class="ti ti-shield-check"></i> Auditoria
       </button>
       <button class="sidebar-item" data-view="comunicacao">
         <i class="ti ti-messages"></i> Comunicação Interna
         <span class="badge-mini esquema">esquema</span>
       </button>
-      <button class="sidebar-item" data-view="financeiro">
+      <button class="sidebar-item" data-view="financeiro" data-perm="financeiro.ver">
         <i class="ti ti-coin"></i> Financeiro
         <span class="badge-mini esquema">esquema</span>
       </button>
@@ -3324,7 +3324,7 @@
         <button class="pac-btn-secondary" onclick="pacCarregarLista()" title="Atualizar">
           <i class="ti ti-refresh"></i>
         </button>
-        <button class="pac-btn-primary" onclick="pacAbrirNovoModal()">
+        <button class="pac-btn-primary" data-perm="paciente.cadastrar" onclick="pacAbrirNovoModal()">
           <i class="ti ti-user-plus"></i> Novo paciente
         </button>
       </div>
@@ -3432,10 +3432,10 @@
             <button class="ag-mode-pill" data-mode="mes" onclick="agMudarMode('mes')">Mês</button>
             <button class="ag-mode-pill" data-mode="lista" onclick="agMudarMode('lista')">Lista</button>
           </div>
-          <button class="pac-btn-block" onclick="agAbrirBlockModal()" title="Bloquear horário (compromisso)">
+          <button class="pac-btn-block" data-perm="agenda.bloquear_horario" onclick="agAbrirBlockModal()" title="Bloquear horário (compromisso)">
             <i class="ti ti-lock"></i> Bloquear
           </button>
-          <button class="pac-btn-primary" onclick="agAbrirNovoModal()">
+          <button class="pac-btn-primary" data-perm="agenda.criar" onclick="agAbrirNovoModal()">
             <i class="ti ti-calendar-plus"></i> Novo
           </button>
         </div>
@@ -5334,6 +5334,30 @@ function temPermissao(slug) {
   return ['gestor', 'desenvolvedor', 'gerencia'].includes(role);
 }
 
+// Aceita "perm1|perm2" (qualquer uma) ou "perm1" (única) em data-perm
+function temPermissaoExpr(expr) {
+  if (!expr) return true;
+  const alts = expr.split('|').map(s => s.trim()).filter(Boolean);
+  return alts.some(a => temPermissao(a));
+}
+
+// Esconde elementos [data-perm] que o usuário não tem.
+// Esconde também grupos da sidebar onde todos os itens estão ocultos.
+function aplicarPermissoesNaUI() {
+  document.querySelectorAll('[data-perm]').forEach(el => {
+    const ok = temPermissaoExpr(el.dataset.perm);
+    el.style.display = ok ? '' : 'none';
+  });
+  // Sidebar groups -- esconde se nenhum item visível
+  document.querySelectorAll('.sidebar-group').forEach(g => {
+    if (g.id === 'sidebar-group-admin') return; // já tratado
+    const items = g.querySelectorAll('.sidebar-item');
+    if (items.length === 0) return;
+    const algumVisivel = Array.from(items).some(i => i.style.display !== 'none');
+    g.style.display = algumVisivel ? '' : 'none';
+  });
+}
+
 function getToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
 function setToken(t) {
   if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
@@ -5455,6 +5479,9 @@ function aplicarUI() {
                  || temPermissao('admin.gerenciar_cargos');
   document.getElementById('sidebar-group-admin').style.display = podeAdmin ? '' : 'none';
 
+  // Aplica permissões em todo elemento [data-perm]
+  aplicarPermissoesNaUI();
+
   // Relógio + data
   tickRelogio();
 
@@ -5539,6 +5566,11 @@ document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
 });
 
 function trocarView(v) {
+  // Bloqueio: se o item da sidebar dessa view está escondido por permissão, volta pra Visão Geral
+  const sidebarItem = document.querySelector(`.sidebar-item[data-view="${v}"]`);
+  if (sidebarItem && sidebarItem.dataset.perm && !temPermissaoExpr(sidebarItem.dataset.perm)) {
+    v = 'painel';
+  }
   document.querySelectorAll('.sidebar-item').forEach(x => x.classList.remove('active'));
   const item = document.querySelector(`.sidebar-item[data-view="${v}"]`);
   if (item) item.classList.add('active');
@@ -6282,17 +6314,20 @@ async function pacToggleProntuario(patientId) {
 
   // Renderiza dentro do container inline
   const headerHtml = prRenderHeaderRico();
+  const podeEvol = temPermissao('prontuario.evolucao_medica.criar') || temPermissao('prontuario.evolucao_enfermagem.criar') || temPermissao('prontuario.evolucao_nutri.criar');
+  const podePresc = temPermissao('prontuario.prescrever');
+  const podeExam = temPermissao('prontuario.solicitar_exames');
   const actionsBar = `
     <div class="pr-actions-bar">
-      <button class="pac-btn-primary" onclick="prAbrirNovaEvol()">
+      ${podeEvol ? `<button class="pac-btn-primary" onclick="prAbrirNovaEvol()">
         <i class="ti ti-clipboard-plus"></i> Nova evolução
-      </button>
-      <button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
+      </button>` : ''}
+      ${podePresc ? `<button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
         <i class="ti ti-pill"></i> Nova prescrição
-      </button>
-      <button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
+      </button>` : ''}
+      ${podeExam ? `<button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
         <i class="ti ti-flask"></i> Solicitar exames
-      </button>
+      </button>` : ''}
     </div>
   `;
   const items = prState.timeline;
@@ -8737,17 +8772,20 @@ function prRenderTimeline() {
 
   const headerHtml = prRenderHeaderRico();
 
+  const _podeEvol = temPermissao('prontuario.evolucao_medica.criar') || temPermissao('prontuario.evolucao_enfermagem.criar') || temPermissao('prontuario.evolucao_nutri.criar');
+  const _podePresc = temPermissao('prontuario.prescrever');
+  const _podeExam = temPermissao('prontuario.solicitar_exames');
   const actionsBar = `
     <div class="pr-actions-bar">
-      <button class="pac-btn-primary" onclick="prAbrirNovaEvol()">
+      ${_podeEvol ? `<button class="pac-btn-primary" onclick="prAbrirNovaEvol()">
         <i class="ti ti-clipboard-plus"></i> Nova evolução SOAP
-      </button>
-      <button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
+      </button>` : ''}
+      ${_podePresc ? `<button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
         <i class="ti ti-pill"></i> Nova prescrição
-      </button>
-      <button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
+      </button>` : ''}
+      ${_podeExam ? `<button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
         <i class="ti ti-flask"></i> Solicitar exames
-      </button>
+      </button>` : ''}
     </div>
   `;
 
