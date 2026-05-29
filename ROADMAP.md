@@ -1,7 +1,43 @@
 # Roadmap -- Sistema Clínico Aplic & Go
 
-Tarefas mapeadas a partir do PRD §3, §4, §5, §6, §7 que ainda não foram implementadas.
+Tarefas mapeadas a partir do PRD §3-§7 e da Aula 05/29 (Jornada do Paciente).
 Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor sozinho.
+
+---
+
+## Combos da Jornada do Paciente (05/29) -- iniciando
+
+### Combo A · Multi-cargo + estrutura de permissões (fundação) -- EM PROGRESSO
+- [x] Schema: `ClinCargo`, `ClinPermissao`, `ClinCargoPermissao`, `UserClinCargo` (N:N)
+- [x] /api/clinico/me devolve `cargos[]` e `permissoes[]`
+- [x] Helper backend `temPermissao(req, slug)` + middleware `requirePermissao`
+- [ ] SQL com 7 cargos + ~40 permissões granulares + migração de users existentes
+
+### Combo B · Aba ADMIN -- white label de permissões
+- [ ] Sidebar "Administração" (só pra quem tem `admin.gerenciar_permissoes`)
+- [ ] Matriz cargos × permissões editável em checkboxes
+- [ ] Tela "Usuários" com toggle de cargos por usuário
+
+### Combo C · Permissões aplicadas no frontend
+- [ ] Frontend lê `permissoes[]` do `/me` e esconde botões/abas
+- [ ] Cargos com chip colorido no header do user
+
+### Combo D · Onboarding do paciente (Aula Cap 3)
+- [ ] Schema `ClinPatientOnboarding` (programa, médico, nutri, kit, contrato, termo, cronograma)
+- [ ] Botão "Onboarding" no cadastro
+- [ ] Checklist: boas-vindas, kit entregue, contrato emitido/assinado, termo, cronograma
+- [ ] Ao completar tudo → status vira ATIVO
+
+### Combo E · Cards por profissional no prontuário (Aula Cap 5)
+- [ ] 3 cards recolhíveis no topo: médico / nutri / enfermagem
+- [ ] Cada um mostra última evolução; só quem tem permissão vê o "+ Nova"
+- [ ] Histórico completo recolhível embaixo
+
+### Combo F · Painel de pendências da Recepção (Aula Cap 6)
+- [ ] Aba "Pendências" (visível com `recepcao.painel_pendencias`)
+- [ ] Cards: contratos não assinados, kits não entregues, termos pendentes, cronogramas
+- [ ] Indicador de dias parados (vermelho > 7 dias)
+- [ ] Click vai direto pro Onboarding do paciente
 
 ---
 
