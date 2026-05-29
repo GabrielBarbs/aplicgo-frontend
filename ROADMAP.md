@@ -40,11 +40,24 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 - [ ] Mensagem "Sem permissão" quando entra em URL/view bloqueada
 - [ ] Hot-reload do `/me` sem precisar logout (fetch ao trocar de aba)
 
-### Combo D · Onboarding do paciente (Aula Cap 3)
-- [ ] Schema `ClinPatientOnboarding` (programa, médico, nutri, kit, contrato, termo, cronograma)
-- [ ] Botão "Onboarding" no cadastro
-- [ ] Checklist: boas-vindas, kit entregue, contrato emitido/assinado, termo, cronograma
-- [ ] Ao completar tudo → status vira ATIVO
+### Combo D · Onboarding do paciente (Aula Cap 3) ✅ FEITO
+- [x] Schema `ClinPatientOnboarding` 1:1 com paciente, com timestamps + "por quem" pra cada check
+- [x] Botão "Onboarding" no detalhe do paciente (ao lado de Editar/Abrir prontuário)
+- [x] Modal com 6 checks (3 essenciais: kit, contrato_assinado, termo_assinado)
+- [x] Cada item tem botão "Marcar"/"Desfazer" com timestamp automático
+- [x] Barra de progresso visual com % e contagem
+- [x] Datas opcionais: cronograma (consulta médica, nutri, 1ª aplicação)
+- [x] Campos opcionais: número do contrato, programa fechado em, observações
+- [x] Botão "Finalizar onboarding" só habilita quando os 3 essenciais estão marcados
+- [x] Auto-promoção: ao finalizar, paciente INCOMPLETO/PRE_PROGRAMA vira ATIVO automático
+- [x] Endpoints: GET /:id/onboarding, PUT /:id/onboarding, GET /onboarding/pendencias
+- [x] Audit log em cada finalização
+
+### Tarefas Combo D -- pra depois
+- [ ] Atribuir médico/nutri direto pelo modal (hoje precisa abrir Editar)
+- [ ] Vincular agendamentos: criar realmente o evento de agenda ao preencher datas
+- [ ] Upload do PDF do contrato e termo (anexar no documento do paciente)
+- [ ] Notificação WhatsApp pro paciente em cada milestone
 
 ### Combo E · Cards por profissional no prontuário (Aula Cap 5)
 - [ ] 3 cards recolhíveis no topo: médico / nutri / enfermagem
