@@ -7757,9 +7757,32 @@ async function bioSalvar() {
 }
 
 async function bioCarregarSerie(patientId) {
-  const r = await pacApi('/api/clinico/aplicacoes/bio/patient/' + patientId + '/serie');
+  // Usa o endpoint principal /bio/patient/:id (existe ha tempos) em vez do /serie
+  // novo -- mais robusto contra cache/deploy. Vem ordem desc, precisa asc pro grafico.
+  const r = await pacApi('/api/clinico/aplicacoes/bio/patient/' + patientId);
   if (!r.ok) { bioState.serie = []; return; }
-  bioState.serie = r.data.serie || [];
+  const lista = (r.data.bioimpedancias || []).slice().reverse();
+  // Calcula fallbacks pros campos que talvez nao existam (backend pre-Combo 3)
+  bioState.serie = lista.map(b => {
+    let massaGordura = b.massa_gordura_kg;
+    if (massaGordura == null && b.peso_kg != null && b.gordura_pct != null) {
+      massaGordura = Math.round(b.peso_kg * b.gordura_pct) / 100;
+    }
+    let massaMuscular = b.massa_muscular_kg;
+    if (massaMuscular == null && b.massa_magra_kg != null) {
+      // Aproximacao: massa muscular ~= massa magra (mais comum em InBody)
+      massaMuscular = b.massa_magra_kg;
+    }
+    return {
+      id: b.id,
+      data: b.data,
+      peso_kg: b.peso_kg,
+      gordura_pct: b.gordura_pct,
+      massa_gordura_kg: massaGordura,
+      massa_magra_kg: b.massa_magra_kg,
+      massa_muscular_kg: massaMuscular,
+    };
+  });
 }
 
 function bioToggleSerie(metrica) {
