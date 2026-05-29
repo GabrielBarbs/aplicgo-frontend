@@ -2131,6 +2131,68 @@
     .pr-editor ul, .pr-editor ol { padding-left: 22px; margin: 0 0 8px; }
     .pr-editor li { margin: 2px 0; }
 
+    /* Formulário estruturado de evolução */
+    .pr-evol-form {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 14px 16px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .pr-evol-form .secao {
+      font-size: 11px; color: #E8945A;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      font-weight: 600;
+      margin: 14px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(232,148,90,0.20);
+    }
+    .pr-evol-form .secao:first-child { margin-top: 0; }
+    .pr-evol-form .campo {
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: minmax(180px, 30%) 1fr;
+      gap: 10px; align-items: start;
+    }
+    @media (max-width: 600px) {
+      .pr-evol-form .campo { grid-template-columns: 1fr; }
+    }
+    .pr-evol-form .campo .label {
+      font-size: 12px; color: #c9d1d9;
+      font-weight: 500;
+      padding-top: 7px;
+      line-height: 1.4;
+    }
+    .pr-evol-form .campo .label .origem {
+      display: block;
+      font-size: 9px; color: #6e7681;
+      font-weight: 400;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      margin-top: 2px;
+    }
+    .pr-evol-form .campo .label .origem.anterior { color: #6FD89A; }
+    .pr-evol-form .campo .label .origem.fonte { color: #4A90E2; }
+    .pr-evol-form .campo input[type="text"],
+    .pr-evol-form .campo input[type="number"],
+    .pr-evol-form .campo textarea {
+      width: 100%;
+      background: #161b22;
+      border: 1px solid #21262d;
+      color: #f0f6fc;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px; font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .pr-evol-form .campo input:focus,
+    .pr-evol-form .campo textarea:focus {
+      outline: none; border-color: #E8945A;
+    }
+    .pr-evol-form .campo textarea {
+      min-height: 50px; resize: vertical;
+    }
+
     /* Barra de progresso do objetivo */
     .pr-h-progress {
       height: 6px; background: #21262d; border-radius: 4px;
@@ -4299,8 +4361,8 @@
         Descreva a evolução <span style="color:#E8945A;">*</span>
       </label>
 
-      <!-- Editor com toolbar -->
-      <div class="pr-editor-wrap">
+      <!-- Editor com toolbar (modo TEXTO) -->
+      <div class="pr-editor-wrap" id="pr-evol-editor-wrap">
         <div class="pr-editor-toolbar">
           <button type="button" onclick="prFmt('bold')" title="Negrito"><b>B</b></button>
           <button type="button" onclick="prFmt('italic')" title="Itálico"><i>I</i></button>
@@ -4314,6 +4376,9 @@
         </div>
         <div class="pr-editor" id="pr-evol-conteudo" contenteditable="true" data-placeholder="Detalhe aqui a evolução do paciente..."></div>
       </div>
+
+      <!-- Formulário estruturado (modo FORMULÁRIO) -->
+      <div class="pr-evol-form" id="pr-evol-form" style="display:none;"></div>
 
       <div style="margin-top: 12px; display:flex; align-items:center; gap: 8px;">
         <input type="checkbox" id="pr-evol-salvar-tpl" style="cursor: pointer; accent-color: #E8945A;">
@@ -8150,6 +8215,10 @@ function prAbrirNovaEvol() {
   document.getElementById('pr-evol-salvar-tpl').checked = false;
   document.getElementById('pr-evol-salvar-tpl-nome').style.display = 'none';
   document.getElementById('pr-evol-salvar-tpl-nome').value = '';
+  // Reset modo formulário
+  prEvolFormState = { campos: [], respostas: {}, origens: {} };
+  document.getElementById('pr-evol-form').style.display = 'none';
+  document.getElementById('pr-evol-editor-wrap').style.display = '';
   // Data default = agora
   const agora = new Date();
   const pad = x => String(x).padStart(2, '0');
@@ -8168,20 +8237,46 @@ async function prEditarEvol(id) {
   document.getElementById('pr-evol-template-slug').value = d.template_slug || '';
   document.getElementById('pr-evol-tipo').value = d.tipo_evolucao || 'MEDICA';
   document.getElementById('pr-evol-peso').value = d.peso_atual_kg || '';
-  // Conteúdo: se houver conteudo rico, usa; senão monta a partir do SOAP legado
-  let html = d.conteudo || '';
-  if (!html) {
-    const partes = [];
-    if (d.subjetivo) partes.push('<p><strong>S -- Subjetivo:</strong> ' + d.subjetivo + '</p>');
-    if (d.objetivo) partes.push('<p><strong>O -- Objetivo:</strong> ' + d.objetivo + '</p>');
-    if (d.avaliacao) partes.push('<p><strong>A -- Avaliação:</strong> ' + d.avaliacao + '</p>');
-    if (d.plano) partes.push('<p><strong>P -- Plano:</strong> ' + d.plano + '</p>');
-    html = partes.join('');
+
+  // Detecta se é formulário estruturado: tem template_slug + respostas
+  if (d.template_slug && d.respostas && Object.keys(d.respostas).length > 0) {
+    // Busca os campos do template
+    const r = await pacApi(`/api/clinico/prontuario/evolution-templates/${d.template_slug}/render?patient_id=${prState.pacienteAtual.id}`);
+    if (r.ok && r.data.modo === 'formulario') {
+      prEvolFormState.campos = r.data.campos || [];
+      prEvolFormState.respostas = { ...d.respostas };  // usa as respostas salvas
+      prEvolFormState.origens = {};
+      prEvolRenderForm();
+      document.getElementById('pr-evol-editor-wrap').style.display = 'none';
+      document.getElementById('pr-evol-form').style.display = 'block';
+      document.getElementById('pr-evol-conteudo').innerHTML = '';
+      document.getElementById('pr-evol-tpl-info').innerHTML =
+        `<i class="ti ti-template"></i> Editando formulário "${d.template_slug}"`;
+    } else {
+      // Fallback: editor de texto
+      document.getElementById('pr-evol-conteudo').innerHTML = d.conteudo || '';
+      document.getElementById('pr-evol-form').style.display = 'none';
+      document.getElementById('pr-evol-editor-wrap').style.display = '';
+    }
+  } else {
+    // Modo texto livre
+    let html = d.conteudo || '';
+    if (!html) {
+      const partes = [];
+      if (d.subjetivo) partes.push('<p><strong>S -- Subjetivo:</strong> ' + d.subjetivo + '</p>');
+      if (d.objetivo) partes.push('<p><strong>O -- Objetivo:</strong> ' + d.objetivo + '</p>');
+      if (d.avaliacao) partes.push('<p><strong>A -- Avaliação:</strong> ' + d.avaliacao + '</p>');
+      if (d.plano) partes.push('<p><strong>P -- Plano:</strong> ' + d.plano + '</p>');
+      html = partes.join('');
+    }
+    document.getElementById('pr-evol-conteudo').innerHTML = html;
+    document.getElementById('pr-evol-form').style.display = 'none';
+    document.getElementById('pr-evol-editor-wrap').style.display = '';
+    prEvolFormState = { campos: [], respostas: {}, origens: {} };
+    document.getElementById('pr-evol-tpl-info').innerHTML = d.template_slug
+      ? `<i class="ti ti-template"></i> Editando evolução criada pelo template "${d.template_slug}"`
+      : '';
   }
-  document.getElementById('pr-evol-conteudo').innerHTML = html;
-  document.getElementById('pr-evol-tpl-info').innerHTML = d.template_slug
-    ? `<i class="ti ti-template"></i> Editando evolução criada pelo template "${d.template_slug}"`
-    : '';
   document.getElementById('pr-evol-salvar-tpl').checked = false;
   document.getElementById('pr-evol-salvar-tpl-nome').style.display = 'none';
   const dt = new Date(item.data);
@@ -8240,20 +8335,80 @@ async function prAplicarTemplate(slug, nome) {
   if (!prState.pacienteAtual) return;
   const r = await pacApi(`/api/clinico/prontuario/evolution-templates/${slug}/render?patient_id=${prState.pacienteAtual.id}`);
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
-  // Confirma se já tem texto no editor
-  const editor = document.getElementById('pr-evol-conteudo');
-  const hasContent = editor.textContent.trim().length > 0;
-  if (hasContent && !confirm('Já existe texto no editor. Substituir pelo template?')) return;
-  editor.innerHTML = r.data.conteudo || '';
-  document.getElementById('pr-evol-template-slug').value = slug;
-  // Info de origem
+
   const infoEl = document.getElementById('pr-evol-tpl-info');
+  document.getElementById('pr-evol-template-slug').value = slug;
+
+  if (r.data.modo === 'formulario') {
+    // ===== FORMULÁRIO ESTRUTURADO =====
+    prEvolFormState.campos = r.data.campos || [];
+    prEvolFormState.respostas = r.data.respostas || {};
+    prEvolFormState.origens = r.data.origens || {};
+    prEvolRenderForm();
+    document.getElementById('pr-evol-editor-wrap').style.display = 'none';
+    document.getElementById('pr-evol-form').style.display = 'block';
+    document.getElementById('pr-evol-conteudo').innerHTML = '';
+  } else {
+    // ===== TEXTO LIVRE (legado) =====
+    const editor = document.getElementById('pr-evol-conteudo');
+    const hasContent = editor.textContent.trim().length > 0;
+    if (hasContent && !confirm('Já existe texto no editor. Substituir pelo template?')) return;
+    editor.innerHTML = r.data.conteudo || '';
+    document.getElementById('pr-evol-editor-wrap').style.display = '';
+    document.getElementById('pr-evol-form').style.display = 'none';
+    prEvolFormState.campos = [];
+    prEvolFormState.respostas = {};
+  }
+
   if (r.data.veio_de === 'evolucao_anterior') {
     const data = new Date(r.data.anterior.data).toLocaleDateString('pt-BR');
     infoEl.innerHTML = `<i class="ti ti-history"></i> Pré-preenchido com evolução anterior (${data} -- ${r.data.anterior.autor}). Ajuste o que mudou.`;
   } else {
     infoEl.innerHTML = `<i class="ti ti-template"></i> Template "${nome}" aplicado com dados do paciente.`;
   }
+}
+
+// ===== FORMULÁRIO ESTRUTURADO -- estado + render =====
+let prEvolFormState = { campos: [], respostas: {}, origens: {} };
+
+function prEvolRenderForm() {
+  const wrap = document.getElementById('pr-evol-form');
+  const campos = prEvolFormState.campos;
+  const respostas = prEvolFormState.respostas;
+  const origens = prEvolFormState.origens;
+  let html = '';
+  let secaoAtual = null;
+  campos.forEach((c, i) => {
+    if (c.secao && c.secao !== secaoAtual) {
+      html += `<div class="secao">${c.secao}</div>`;
+      secaoAtual = c.secao;
+    }
+    const valor = (respostas[c.slug] || '').replace(/"/g, '&quot;');
+    const origem = origens[c.slug];
+    const origemHtml = origem === 'evolucao_anterior'
+      ? '<span class="origem anterior"><i class="ti ti-history" style="font-size:9px;"></i> da evolução anterior</span>'
+      : (origem && origem !== '' ? '<span class="origem fonte"><i class="ti ti-database" style="font-size:9px;"></i> do cadastro</span>' : '');
+    const inputId = 'pr-evol-campo-' + c.slug;
+    let inputHtml;
+    if (c.tipo === 'texto_longo') {
+      inputHtml = `<textarea id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)">${valor.replace(/&quot;/g, '"').replace(/</g, '&lt;')}</textarea>`;
+    } else if (c.tipo === 'numero') {
+      inputHtml = `<input type="number" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)">`;
+    } else {
+      inputHtml = `<input type="text" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)">`;
+    }
+    html += `
+      <div class="campo">
+        <div class="label">${c.label}${origemHtml}</div>
+        <div>${inputHtml}</div>
+      </div>
+    `;
+  });
+  wrap.innerHTML = html;
+}
+
+function prEvolSetResposta(slug, valor) {
+  prEvolFormState.respostas[slug] = valor;
 }
 
 // Checkbox "salvar este texto" mostra input de nome
@@ -8271,11 +8426,34 @@ async function prSalvarEvol() {
   erroEl.style.display = 'none';
   const id = document.getElementById('pr-evol-id').value;
   const tipo = document.getElementById('pr-evol-tipo').value;
-  const conteudo = document.getElementById('pr-evol-conteudo').innerHTML.trim();
-  const conteudoTexto = document.getElementById('pr-evol-conteudo').textContent.trim();
 
   if (!tipo) { erroEl.textContent = 'Selecione o tipo de evolução'; erroEl.style.display = 'block'; return; }
-  if (!conteudoTexto) { erroEl.textContent = 'Escreva a evolução'; erroEl.style.display = 'block'; return; }
+
+  // Detecta modo formulário vs texto livre
+  const modoForm = document.getElementById('pr-evol-form').style.display !== 'none' &&
+                   prEvolFormState.campos.length > 0;
+
+  let conteudo = null;
+  let respostas = null;
+  if (modoForm) {
+    // Sincroniza valores dos inputs (pode haver mudança não salva via change)
+    prEvolFormState.campos.forEach(c => {
+      const el = document.getElementById('pr-evol-campo-' + c.slug);
+      if (el) prEvolFormState.respostas[c.slug] = el.value;
+    });
+    respostas = prEvolFormState.respostas;
+    // Verifica se preencheu algo
+    const algumPreenchido = Object.values(respostas).some(v => v && String(v).trim());
+    if (!algumPreenchido) {
+      erroEl.textContent = 'Preencha pelo menos um campo do formulário';
+      erroEl.style.display = 'block';
+      return;
+    }
+  } else {
+    conteudo = document.getElementById('pr-evol-conteudo').innerHTML.trim();
+    const conteudoTexto = document.getElementById('pr-evol-conteudo').textContent.trim();
+    if (!conteudoTexto) { erroEl.textContent = 'Escreva a evolução'; erroEl.style.display = 'block'; return; }
+  }
 
   const salvarTpl = document.getElementById('pr-evol-salvar-tpl').checked;
   const salvarTplNome = document.getElementById('pr-evol-salvar-tpl-nome').value.trim();
@@ -8284,11 +8462,12 @@ async function prSalvarEvol() {
     patient_id: prState.pacienteAtual.id,
     tipo,
     conteudo,
+    respostas,
     template_slug: document.getElementById('pr-evol-template-slug').value || null,
     peso_atual_kg: parseFloat(document.getElementById('pr-evol-peso').value) || null,
     data: document.getElementById('pr-evol-data').value ? new Date(document.getElementById('pr-evol-data').value).toISOString() : null,
-    salvar_template: salvarTpl,
-    salvar_template_nome: salvarTpl ? (salvarTplNome || 'Texto personalizado') : null,
+    salvar_template: salvarTpl && !modoForm,    // salvar como template só faz sentido em modo texto
+    salvar_template_nome: salvarTpl && !modoForm ? (salvarTplNome || 'Texto personalizado') : null,
   };
 
   const btn = document.getElementById('pr-evol-salvar');
