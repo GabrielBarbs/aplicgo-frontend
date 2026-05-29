@@ -42,13 +42,26 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 
 ---
 
-## Combo 3 -- Bioimpedância manual + gráfico de evolução
+## Combo 3 -- Bioimpedância manual + gráfico de evolução ✅ FEITO
 
-- [ ] Modal rápido pra enfermagem digitar (peso, massa muscular kg, massa gordura kg, % gordura, TMB)
-- [ ] Já temos `ClinBioimpedance` no schema
-- [ ] Gráfico de evolução corporal com Chart.js leve (peso + massa muscular + gordura + % com marcadores de transição de fase)
-- [ ] Botão "Nova bioimpedância" na aba Aplicações
-- [ ] 5 circunferências antropométricas adicionadas
+- [x] Modal rápido pra enfermagem digitar (peso, % gordura, massa gordura, massa magra, massa muscular, TMB, gordura visceral)
+- [x] Schema `ClinBioimpedance` expandido com `massaGorduraKg`, `massaMuscularKg`
+- [x] 5 circunferências antropométricas adicionadas (cintura, quadril, abdômen, braço D, coxa D)
+- [x] Gráfico de evolução corporal com SVG nativo (sem dependência)
+- [x] 4 séries plotáveis com toggle on/off: peso, massa muscular, massa gordura, % gordura
+- [x] Tooltip ao passar mouse nos pontos
+- [x] Botão "Nova bioimpedância" no header do gráfico
+- [x] IMC calculado automaticamente quando altura preenchida
+- [x] Hidratação opcional (total/intracelular/extracelular)
+- [x] Novo endpoint GET /aplicacoes/bio/patient/:id/serie -- timeseries enxuto pro gráfico
+
+### Tarefas Combo 3 -- pra depois
+
+- [ ] Marcadores de transição de fase no gráfico (BURN_1 → BURN_2 etc)
+- [ ] Marcadores de aplicação no gráfico (cada bioimpedância pode ser em dia de aplicação)
+- [ ] Comparação entre 2 datas (delta percentual de cada métrica)
+- [ ] Gráfico de circunferências (linha por circunferência)
+- [ ] Sync InBody automático (Onda 2)
 
 ---
 
