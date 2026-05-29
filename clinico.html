@@ -8376,7 +8376,12 @@ function prEvolRenderForm() {
   const campos = prEvolFormState.campos;
   const respostas = prEvolFormState.respostas;
   const origens = prEvolFormState.origens;
-  let html = '';
+  let html = `
+    <div style="background:rgba(74,144,226,0.06); border:1px solid rgba(74,144,226,0.20); border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:11px; color:#8b949e;">
+      <i class="ti ti-info-circle" style="color:#4A90E2; margin-right:4px;"></i>
+      Campos com origem (cadastro / evolução anterior) atualizam automaticamente o perfil do paciente ao salvar.
+    </div>
+  `;
   let secaoAtual = null;
   campos.forEach((c, i) => {
     if (c.secao && c.secao !== secaoAtual) {
