@@ -1449,6 +1449,26 @@
       display: inline-flex; align-items: center; gap: 6px;
     }
     .ag-status-edit-link:hover { background: rgba(232,148,90,0.10); }
+    .ag-status-quick-btn {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px; font-weight: 500;
+      font-family: inherit;
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      transition: all 0.12s;
+      min-width: 90px;
+    }
+    .ag-status-quick-btn:hover {
+      border-color: #E8945A;
+      color: #E8945A;
+      background: rgba(232,148,90,0.06);
+    }
+    .ag-status-quick-btn i { font-size: 13px; }
 
     .ag-legenda {
       display: flex; flex-wrap: wrap; gap: 8px;
@@ -5331,7 +5351,18 @@
         <span class="lbl">Cancelada pelo paciente</span>
       </button>
     </div>
-    <div class="ag-status-modal-footer">
+    <div class="ag-status-modal-footer" style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button class="ag-status-quick-btn" data-perm="onboarding.executar" onclick="agOnboardingDoStatus()">
+          <i class="ti ti-rocket"></i> Onboarding
+        </button>
+        <button class="ag-status-quick-btn" data-perm="prontuario.ver" onclick="agProntuarioDoStatus()">
+          <i class="ti ti-clipboard-text"></i> Prontuário
+        </button>
+        <button class="ag-status-quick-btn" data-perm="paciente.ver_detalhe" onclick="agPacienteDoStatus()">
+          <i class="ti ti-user"></i> Ficha
+        </button>
+      </div>
       <button class="ag-status-edit-link" onclick="agAbrirEditarDoStatus()">
         <i class="ti ti-edit"></i> Editar detalhes (horário, paciente, profissional)
       </button>
@@ -7355,6 +7386,42 @@ function agAbrirEditarDoStatus() {
   if (id) agAbrirEditarModal(id);
 }
 
+// Helper: pega o paciente do agendamento atualmente aberto no modal de status
+function agPacienteAtualDoStatus() {
+  const id = agState.statusModalId;
+  if (!id) return null;
+  const ag = (agState.agendamentos || []).find(x => x.id === id);
+  return ag?.patient || null;
+}
+
+function agOnboardingDoStatus() {
+  const p = agPacienteAtualDoStatus();
+  if (!p) return alert('Paciente não encontrado para este agendamento.');
+  agFecharStatusModal();
+  onbAbrirModal(p.id);
+}
+
+function agProntuarioDoStatus() {
+  const p = agPacienteAtualDoStatus();
+  if (!p) return alert('Paciente não encontrado.');
+  agFecharStatusModal();
+  trocarView('prontuario');
+  prSelecionarPaciente({
+    id: p.id,
+    codigo: p.codigo,
+    nome: p.nomeCompleto,
+    telefone: p.telefone1,
+  });
+}
+
+function agPacienteDoStatus() {
+  const p = agPacienteAtualDoStatus();
+  if (!p) return alert('Paciente não encontrado.');
+  agFecharStatusModal();
+  trocarView('pacientes');
+  setTimeout(() => pacAbrirDetalhe(p.id), 60);
+}
+
 // ===== MODAL DE AGENDAMENTO =====
 
 function agAbrirNovoModal() {
@@ -7451,11 +7518,26 @@ function agRenderStatusActions(id, statusAtual) {
     ],
   };
   const opcoes = transicoes[statusAtual] || [];
-  wrap.innerHTML = opcoes.map(o => `
+  const transicoesHtml = opcoes.map(o => `
     <button class="pac-btn-secondary" onclick="agMudarStatus('${id}', '${o.tipo}')" style="color: ${o.cor}; border-color: ${o.cor}40;">
       <i class="ti ti-${o.icon}"></i> ${o.label}
     </button>
   `).join('');
+  // Atalho rápido pro onboarding quando atendido (típico fechamento de protocolo)
+  const podeOnb = temPermissao('onboarding.executar');
+  const patientId = document.getElementById('ag-form-patient-id').value;
+  const onbBtn = (podeOnb && patientId)
+    ? `<button class="pac-btn-secondary" onclick="agOnboardingDoEdit()" style="color:#E8945A; border-color:#E8945A40;"><i class="ti ti-rocket"></i> Onboarding</button>`
+    : '';
+  wrap.innerHTML = onbBtn + transicoesHtml;
+}
+
+// Abre o onboarding do paciente do agendamento sendo editado
+function agOnboardingDoEdit() {
+  const patientId = document.getElementById('ag-form-patient-id').value;
+  if (!patientId) return;
+  agFecharModal();
+  onbAbrirModal(patientId);
 }
 
 async function agMudarStatus(id, novoStatus) {
