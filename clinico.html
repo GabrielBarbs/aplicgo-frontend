@@ -6603,6 +6603,34 @@
   </div>
 </div>
 
+<!-- ============== MODAL: ANEXO E DOCUMENTO (agenda) ============== -->
+<div class="ag-modal-overlay" id="ag-anexo-modal" onclick="if(event.target.id==='ag-anexo-modal') agAnexoFechar()">
+  <div class="ag-modal" style="max-width: 560px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-paperclip"></i> <span id="ag-anexo-titulo">Anexo e documento</span></div>
+      <button class="pac-modal-close" onclick="agAnexoFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <label class="pr-anexos-drop">
+        <input type="file" multiple style="display:none;" onchange="agAnexoSelecionar(this.files)">
+        <i class="ti ti-cloud-upload"></i>
+        <div class="txt"><strong>Clique para anexar</strong> ou arraste arquivos</div>
+        <div class="sub">Exames (PDF), laudos, fotos de evolução, contrato, termo</div>
+      </label>
+      <div class="pr-anexos-lista" id="ag-anexo-lista"></div>
+      <div style="font-size:10px; color:#6e7681; margin-top:10px; text-align:center;">
+        <i class="ti ti-info-circle"></i> O armazenamento ainda não está ativo -- os arquivos aparecem na lista mas não são salvos no servidor por enquanto.
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="agAnexoFechar()">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============== MODAL EVOLUÇÃO (texto rico + templates) ============== -->
 <div class="ag-modal-overlay" id="pr-evol-modal" onclick="if(event.target.id==='pr-evol-modal') prFecharEvol()">
   <div class="ag-modal" style="max-width: 820px;">
@@ -7113,6 +7141,10 @@
       <button class="ag-acao-btn" onclick="agAcaoSolicitarAnamnese()" data-perm="anamnese.enviar_link">
         <i class="ti ti-clipboard-list"></i>
         <span>Solicitar anamnese</span>
+      </button>
+      <button class="ag-acao-btn" onclick="agAcaoAnexo()" data-perm="prontuario.ver">
+        <i class="ti ti-paperclip"></i>
+        <span>Anexo e documento</span>
       </button>
       <button class="ag-acao-btn" onclick="agAcaoEntrarContato()">
         <i class="ti ti-brand-whatsapp"></i>
@@ -9192,6 +9224,64 @@ async function agAcaoSolicitarAnamnese() {
   agFecharAcoesModal();
   // Reaproveita a função do prontuário
   await prEnviarAnamnese(p.id);
+}
+
+// ===== ANEXO E DOCUMENTO (a partir do menu da agenda) =====
+function agAcaoAnexo() {
+  const p = _agAcaoPaciente();
+  if (!p) return alert('Paciente não encontrado.');
+  agFecharAcoesModal();
+  agState.anexoPaciente = p;
+  agState.anexoTemp = [];
+  document.getElementById('ag-anexo-titulo').textContent =
+    'Anexo e documento — ' + (p.nomeCompleto || p.nome || '');
+  agAnexoRenderLista();
+  document.getElementById('ag-anexo-modal').classList.add('aberto');
+}
+
+function agAnexoRenderLista() {
+  const wrap = document.getElementById('ag-anexo-lista');
+  const arquivos = agState.anexoTemp || [];
+  if (arquivos.length === 0) {
+    wrap.innerHTML = '<div class="pr-anexos-vazio"><i class="ti ti-folder-open"></i> Nenhum anexo ainda. Exames, laudos, fotos, contrato e documentos entram aqui.</div>';
+    return;
+  }
+  wrap.innerHTML = arquivos.map((a, i) => `
+    <div class="pr-anexo-item">
+      <i class="ti ti-${a.icone}"></i>
+      <div class="info">
+        <div class="nome">${a.nome}</div>
+        <div class="meta">${a.tipo} · ${a.tamanho}</div>
+      </div>
+      <button class="rm" onclick="agAnexoRemover(${i})" title="Remover"><i class="ti ti-x"></i></button>
+    </div>
+  `).join('');
+}
+
+function agAnexoSelecionar(files) {
+  if (!agState.anexoTemp) agState.anexoTemp = [];
+  Array.from(files).forEach(f => {
+    agState.anexoTemp.push({
+      nome: f.name,
+      tipo: f.type || 'arquivo',
+      tamanho: prFmtTamanho(f.size),
+      icone: prIconePorTipo(f.type),
+    });
+  });
+  agAnexoRenderLista();
+  if (!agState._avisouAnexo) {
+    agState._avisouAnexo = true;
+    setTimeout(() => alert('Os anexos aparecem na lista, mas o armazenamento ainda não está ativo -- nada é salvo no servidor por enquanto. Isso entra na próxima etapa.'), 100);
+  }
+}
+
+function agAnexoRemover(i) {
+  if (agState.anexoTemp) agState.anexoTemp.splice(i, 1);
+  agAnexoRenderLista();
+}
+
+function agAnexoFechar() {
+  document.getElementById('ag-anexo-modal').classList.remove('aberto');
 }
 
 function agAcaoEntrarContato() {
