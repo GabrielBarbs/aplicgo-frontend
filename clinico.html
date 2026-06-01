@@ -1346,6 +1346,94 @@
       display: flex; justify-content: flex-end;
     }
 
+    /* ==== Modal de AÇÕES do agendamento (click no paciente) ==== */
+    .ag-acoes-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      z-index: 9200; display: none;
+      align-items: center; justify-content: center;
+      padding: 40px 20px; overflow-y: auto;
+    }
+    .ag-acoes-modal-overlay.aberto { display: flex; }
+    .ag-acoes-modal {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 14px;
+      width: 100%; max-width: 440px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .ag-acoes-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid #21262d;
+      background: linear-gradient(135deg, rgba(197,104,71,0.10), rgba(232,148,90,0.04));
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ag-acoes-head .ttl {
+      font-size: 14px; font-weight: 500; color: #f0f6fc;
+    }
+    .ag-acoes-head .close {
+      background: transparent; border: 0;
+      color: #7d8590; cursor: pointer;
+      width: 28px; height: 28px; border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .ag-acoes-head .close:hover { background: rgba(33,38,45,0.6); color: #f0f6fc; }
+    .ag-acoes-info {
+      padding: 10px 18px;
+      font-size: 11px; color: #8b949e;
+      border-bottom: 1px solid #21262d;
+      background: rgba(33,38,45,0.3);
+    }
+    .ag-acoes-info:empty { display: none; }
+    .ag-acoes-info strong { color: #f0f6fc; }
+    .ag-acoes-list {
+      display: flex; flex-direction: column; gap: 5px;
+      padding: 14px;
+    }
+    .ag-acao-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px;
+      background: #161b22;
+      border: 1px solid #21262d;
+      color: #c9d1d9;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px; font-weight: 500;
+      font-family: inherit;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      transition: all 0.12s;
+      text-align: left;
+    }
+    .ag-acao-btn i { font-size: 16px; color: #E8945A; flex-shrink: 0; }
+    .ag-acao-btn:hover {
+      background: rgba(232,148,90,0.06);
+      border-color: rgba(232,148,90,0.30);
+      color: #f0f6fc;
+    }
+    .ag-acao-btn.ag-acao-primary {
+      background: rgba(29,158,117,0.08);
+      border-color: rgba(29,158,117,0.30);
+      color: #1D9E75;
+    }
+    .ag-acao-btn.ag-acao-primary i { color: #1D9E75; }
+    .ag-acao-btn.ag-acao-primary:hover { background: rgba(29,158,117,0.15); color: #1D9E75; }
+    .ag-acao-btn.ag-acao-warn {
+      background: rgba(239,159,39,0.08);
+      border-color: rgba(239,159,39,0.30);
+      color: #EF9F27;
+    }
+    .ag-acao-btn.ag-acao-warn i { color: #EF9F27; }
+    .ag-acao-btn.ag-acao-warn:hover { background: rgba(239,159,39,0.15); }
+    .ag-acao-btn.ag-acao-danger {
+      background: rgba(248,81,73,0.08);
+      border-color: rgba(248,81,73,0.30);
+      color: #f85149;
+    }
+    .ag-acao-btn.ag-acao-danger i { color: #f85149; }
+    .ag-acao-btn.ag-acao-danger:hover { background: rgba(248,81,73,0.15); }
+
     /* ==== Modal de mudança de status (estilo dark Aplic) ==== */
     .ag-status-modal-overlay {
       position: fixed; inset: 0;
@@ -5627,6 +5715,51 @@
 </div>
 
 <!-- ============== MODAL DE MUDANÇA DE STATUS (estilo dark Aplic) ============== -->
+<!-- ============== MODAL DE AÇÕES DO AGENDAMENTO (click no paciente) ============== -->
+<div class="ag-acoes-modal-overlay" id="ag-acoes-modal" onclick="if(event.target.id==='ag-acoes-modal') agFecharAcoesModal()">
+  <div class="ag-acoes-modal">
+    <div class="ag-acoes-head">
+      <div class="ttl">O que deseja fazer?</div>
+      <button class="close" onclick="agFecharAcoesModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-acoes-info" id="ag-acoes-info"></div>
+    <div class="ag-acoes-list">
+      <button class="ag-acao-btn ag-acao-primary" onclick="agAcaoAlterarAgendamento()" data-perm="agenda.editar">
+        <i class="ti ti-edit"></i>
+        <span>Alterar o agendamento</span>
+      </button>
+      <button class="ag-acao-btn ag-acao-warn" onclick="agAcaoAlterarSituacao()">
+        <i class="ti ti-calendar-event"></i>
+        <span>Alterar a situação</span>
+      </button>
+      <button class="ag-acao-btn ag-acao-danger" onclick="agAcaoExcluir()" data-perm="agenda.cancelar">
+        <i class="ti ti-circle-x"></i>
+        <span>Excluir o agendamento</span>
+      </button>
+      <button class="ag-acao-btn" onclick="agAcaoProntuario()" data-perm="prontuario.ver">
+        <i class="ti ti-clipboard-text"></i>
+        <span>Abrir o prontuário</span>
+      </button>
+      <button class="ag-acao-btn" onclick="agAcaoCadastroPaciente()" data-perm="paciente.ver_detalhe">
+        <i class="ti ti-user-edit"></i>
+        <span>Cadastro do paciente</span>
+      </button>
+      <button class="ag-acao-btn" onclick="agAcaoSolicitarAnamnese()" data-perm="anamnese.enviar_link">
+        <i class="ti ti-clipboard-list"></i>
+        <span>Solicitar anamnese</span>
+      </button>
+      <button class="ag-acao-btn" onclick="agAcaoEntrarContato()">
+        <i class="ti ti-brand-whatsapp"></i>
+        <span>Entrar em contato</span>
+      </button>
+      <button class="ag-acao-btn" onclick="agAcaoOnboarding()" data-perm="onboarding.executar">
+        <i class="ti ti-rocket"></i>
+        <span>Onboarding</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="ag-status-modal-overlay" id="ag-status-modal" onclick="if(event.target.id==='ag-status-modal') agFecharStatusModal()">
   <div class="ag-status-modal">
     <div class="ag-status-modal-head">
@@ -7329,7 +7462,7 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
   ev.setAttribute('draggable', 'true');
   ev.addEventListener('click', (e) => {
     e.stopPropagation();
-    agAbrirStatusModal(a.id);
+    agAbrirAcoesModal(a.id);
   });
   ev.addEventListener('dragstart', (e) => {
     agState.draggingId = a.id;
@@ -7464,6 +7597,113 @@ function agAbrirStatusModal(id) {
 function agFecharStatusModal() {
   agState.statusModalId = null;
   document.getElementById('ag-status-modal').classList.remove('aberto');
+}
+
+// ===== MODAL DE AÇÕES (click no paciente da agenda) =====
+function agAbrirAcoesModal(id) {
+  agState.statusModalId = id;  // reaproveita o state pra todas as ações
+  const ag = (agState.agendamentos || []).find(x => x.id === id);
+  const info = document.getElementById('ag-acoes-info');
+  if (ag) {
+    const dt = new Date(ag.start_at);
+    const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${ag.patient.nomeCompleto}</strong> · ${ag.type.nome} · ${dataFmt} · ${ag.professional.name || ag.professional.email}`;
+  } else {
+    info.innerHTML = '';
+  }
+  // Reaplica permissões dentro do modal (esconde botoes que o user nao tem)
+  document.querySelectorAll('#ag-acoes-modal [data-perm]').forEach(el => {
+    el.style.display = temPermissaoExpr(el.dataset.perm) ? '' : 'none';
+  });
+  document.getElementById('ag-acoes-modal').classList.add('aberto');
+}
+function agFecharAcoesModal() {
+  document.getElementById('ag-acoes-modal').classList.remove('aberto');
+}
+
+function _agAcaoPaciente() {
+  const id = agState.statusModalId;
+  if (!id) return null;
+  const ag = (agState.agendamentos || []).find(x => x.id === id);
+  return ag?.patient || null;
+}
+
+function agAcaoAlterarAgendamento() {
+  const id = agState.statusModalId;
+  agFecharAcoesModal();
+  if (id) agAbrirEditarModal(id);
+}
+
+function agAcaoAlterarSituacao() {
+  const id = agState.statusModalId;
+  agFecharAcoesModal();
+  if (id) agAbrirStatusModal(id);
+}
+
+async function agAcaoExcluir() {
+  const id = agState.statusModalId;
+  if (!id) return;
+  const ag = (agState.agendamentos || []).find(x => x.id === id);
+  const isRec = !!ag?.recurrence_id;
+  if (isRec) {
+    // Reaproveita o fluxo de cancelamento recorrente
+    agFecharAcoesModal();
+    agState.recurCancelTarget = { id, statusAlvo: 'CANCELADO', motivo: null, origem: null };
+    document.getElementById('ag-recur-cancel-modal').classList.add('aberto');
+    return;
+  }
+  if (!confirm('Excluir este agendamento? Ele será marcado como CANCELADO (histórico mantido).')) return;
+  const r = await pacApi('/api/clinico/appointments/' + id, { method: 'DELETE' });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  agFecharAcoesModal();
+  agCarregar();
+  agCarregarMiniCal();
+}
+
+function agAcaoProntuario() {
+  const p = _agAcaoPaciente();
+  if (!p) return alert('Paciente não encontrado.');
+  agFecharAcoesModal();
+  trocarView('prontuario');
+  prSelecionarPaciente({
+    id: p.id, codigo: p.codigo,
+    nome: p.nomeCompleto, telefone: p.telefone1,
+  });
+}
+
+function agAcaoCadastroPaciente() {
+  const p = _agAcaoPaciente();
+  if (!p) return alert('Paciente não encontrado.');
+  agFecharAcoesModal();
+  trocarView('pacientes');
+  setTimeout(() => pacAbrirDetalhe(p.id), 60);
+}
+
+async function agAcaoSolicitarAnamnese() {
+  const p = _agAcaoPaciente();
+  if (!p) return alert('Paciente não encontrado.');
+  agFecharAcoesModal();
+  // Reaproveita a função do prontuário
+  await prEnviarAnamnese(p.id);
+}
+
+function agAcaoEntrarContato() {
+  const p = _agAcaoPaciente();
+  if (!p) return alert('Paciente não encontrado.');
+  const tel = String(p.telefone1 || '').replace(/\D/g, '');
+  if (!tel) return alert('Paciente sem telefone cadastrado.');
+  // wa.me/55... com mensagem opcional
+  const numWa = tel.length === 10 || tel.length === 11 ? '55' + tel : tel;
+  const msg = encodeURIComponent(`Olá ${p.nomeCompleto.split(' ')[0]}, falamos da clínica Aplic & Go.`);
+  window.open(`https://wa.me/${numWa}?text=${msg}`, '_blank');
+  agFecharAcoesModal();
+}
+
+function agAcaoOnboarding() {
+  const p = _agAcaoPaciente();
+  if (!p) return alert('Paciente não encontrado.');
+  agFecharAcoesModal();
+  onbAbrirModal(p.id);
 }
 async function agMudarStatusModal(novoStatus, origem) {
   if (!agState.statusModalId) return;
