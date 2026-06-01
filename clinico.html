@@ -3405,9 +3405,21 @@
     }
     .pr-evol-tpl-info {
       font-size: 11px; color: #6FD89A;
-      display: flex; align-items: center; gap: 5px;
+      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
     }
     .pr-evol-tpl-info:empty { display: none; }
+    .pr-evol-teste-aviso {
+      width: 100%;
+      background: rgba(239,159,39,0.12);
+      border: 1px solid rgba(239,159,39,0.35);
+      color: #EF9F27;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 4px;
+    }
+    .pr-evol-teste-aviso strong { letter-spacing: 0.5px; }
 
     .pr-editor-wrap {
       margin-top: 4px;
@@ -11559,11 +11571,17 @@ async function prAplicarTemplate(slug, nome) {
     prEvolFormState.respostas = {};
   }
 
+  // Aviso de template em teste (slug começa com "teste-")
+  const ehTeste = (slug || '').toLowerCase().startsWith('teste-');
+  const avisoTeste = ehTeste
+    ? `<div class="pr-evol-teste-aviso"><i class="ti ti-flask"></i> <strong>TESTE</strong> — estrutura provisória deste setor. Vamos refinar os campos depois.</div>`
+    : '';
+
   if (r.data.veio_de === 'evolucao_anterior') {
     const data = new Date(r.data.anterior.data).toLocaleDateString('pt-BR');
-    infoEl.innerHTML = `<i class="ti ti-history"></i> Pré-preenchido com evolução anterior (${data} -- ${r.data.anterior.autor}). Ajuste o que mudou.`;
+    infoEl.innerHTML = avisoTeste + `<i class="ti ti-history"></i> Pré-preenchido com evolução anterior (${data} -- ${r.data.anterior.autor}). Ajuste o que mudou.`;
   } else {
-    infoEl.innerHTML = `<i class="ti ti-template"></i> Template "${nome}" aplicado com dados do paciente.`;
+    infoEl.innerHTML = avisoTeste + `<i class="ti ti-template"></i> Template "${nome}" aplicado com dados do paciente.`;
   }
 }
 
