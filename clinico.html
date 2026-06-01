@@ -1358,6 +1358,27 @@
     }
 
     /* Seção de recorrência no modal */
+    /* Toggle de teleconsulta */
+    .ag-tele-box {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(111,216,154,0.05);
+      border: 1px solid rgba(111,216,154,0.20);
+      transition: all 0.15s;
+    }
+    .ag-tele-box.ativo {
+      background: rgba(111,216,154,0.12);
+      border-color: rgba(111,216,154,0.45);
+    }
+    .ag-tele-row {
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; margin: 0;
+    }
+    .ag-tele-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #6FD89A; flex-shrink: 0; }
+    .ag-tele-row > i { font-size: 18px; color: #6FD89A; flex-shrink: 0; }
+    .ag-tele-titulo { font-size: 12px; color: #f0f6fc; font-weight: 500; }
+    .ag-tele-sub { font-size: 10px; color: #7d8590; margin-top: 1px; }
+
     .ag-recorrencia-box {
       margin-top: 10px;
       padding: 10px 12px;
@@ -5724,6 +5745,20 @@
       </div>
 
       <!-- Recorrência -->
+      <!-- Toggle teleconsulta (online) -->
+      <div class="pac-form-section">
+        <div class="ag-tele-box ${''}" id="ag-tele-box">
+          <label class="ag-tele-row">
+            <input type="checkbox" id="ag-tele-toggle" onchange="agToggleTele()">
+            <i class="ti ti-video"></i>
+            <div>
+              <div class="ag-tele-titulo">Teleconsulta (atendimento online)</div>
+              <div class="ag-tele-sub">Marque se este atendimento será por vídeo, não presencial.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
       <div class="pac-form-section" id="ag-recorrencia-section">
         <div class="ag-recorrencia-box" id="ag-recorrencia-box">
           <div class="toggle-row">
@@ -5817,6 +5852,32 @@
           <div class="pac-field">
             <label>Motivo (opcional)</label>
             <textarea id="ag-bloq-motivo" placeholder="Detalhes do compromisso"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="pac-form-section">
+        <div class="ag-recorrencia-box" id="ag-bloq-recor-box">
+          <div class="toggle-row">
+            <label>
+              <input type="checkbox" id="ag-bloq-recor-toggle" onchange="agToggleBloqRecorrencia()">
+              <i class="ti ti-repeat"></i> Repetir bloqueio?
+            </label>
+          </div>
+          <div class="opts">
+            <div class="pac-field">
+              <label>Quando</label>
+              <select id="ag-bloq-recor-pattern">
+                <option value="DAILY">Diariamente</option>
+                <option value="WEEKLY">Semanalmente</option>
+                <option value="BIWEEKLY">Quinzenalmente</option>
+                <option value="MONTHLY">Mensalmente</option>
+              </select>
+            </div>
+            <div class="pac-field">
+              <label>Termina em</label>
+              <input type="date" id="ag-bloq-recor-until">
+            </div>
           </div>
         </div>
       </div>
@@ -6384,6 +6445,43 @@
     </div>
     <div class="foot">
       <button class="pac-btn-secondary" onclick="agFecharRecurCancel()">Voltar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL ESCOLHA: remover bloqueio recorrente ============== -->
+<div class="ag-recur-cancel-overlay" id="ag-block-recur-del-modal" onclick="if(event.target.id==='ag-block-recur-del-modal') agFecharBlockRecurDel()">
+  <div class="ag-recur-cancel-modal">
+    <div class="head">
+      <i class="ti ti-lock-off"></i>
+      <div class="ttl">Remover bloqueio recorrente</div>
+    </div>
+    <div class="body">
+      <div class="desc">Este bloqueio faz parte de uma série recorrente. O que deseja remover?</div>
+      <div class="opt" onclick="agConfirmarBlockRecurDel('this')">
+        <div class="ico"><i class="ti ti-calendar-x"></i></div>
+        <div>
+          <div class="ttl">Somente este</div>
+          <div class="sub">Remove apenas o bloqueio selecionado.</div>
+        </div>
+      </div>
+      <div class="opt" onclick="agConfirmarBlockRecurDel('future')">
+        <div class="ico"><i class="ti ti-repeat-off"></i></div>
+        <div>
+          <div class="ttl">Este e os próximos</div>
+          <div class="sub">Remove este e todos os futuros da mesma série.</div>
+        </div>
+      </div>
+      <div class="opt" onclick="agConfirmarBlockRecurDel('all')">
+        <div class="ico"><i class="ti ti-trash"></i></div>
+        <div>
+          <div class="ttl">Toda a série</div>
+          <div class="sub">Remove todos os bloqueios desta recorrência.</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="pac-btn-secondary" onclick="agFecharBlockRecurDel()">Voltar</button>
     </div>
   </div>
 </div>
@@ -8733,7 +8831,7 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
     document.querySelectorAll('.ag-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
   });
   const ehRecorrente = !!a.recurrence_id;
-  const ehTele = (a.type?.slug || '').toLowerCase().includes('tele');
+  const ehTele = !!a.online;
   const iconsHtml = (ehRecorrente || ehTele) ? `
     <div class="ev-icons">
       ${ehRecorrente ? '<span class="ev-ico recorrencia" title="Agendamento recorrente"><i class="ti ti-repeat"></i></span>' : ''}
@@ -8788,7 +8886,11 @@ function agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex) {
   ev.dataset.blockId = b.id;
   ev.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (confirm('Remover bloqueio "' + b.titulo + '"?')) {
+    if (b.recurrence_id) {
+      // Série recorrente: pede o escopo
+      agState.blockRecurDelTarget = { id: b.id, titulo: b.titulo };
+      document.getElementById('ag-block-recur-del-modal').classList.add('aberto');
+    } else if (confirm('Remover bloqueio "' + b.titulo + '"?')) {
       agRemoverBloqueio(b.id);
     }
   });
@@ -8800,10 +8902,22 @@ function agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex) {
   slot.appendChild(ev);
 }
 
-async function agRemoverBloqueio(id) {
-  const r = await pacApi('/api/clinico/appointments/blocks/' + id, { method: 'DELETE' });
+async function agRemoverBloqueio(id, scope) {
+  const url = '/api/clinico/appointments/blocks/' + id + (scope ? '?scope=' + scope : '');
+  const r = await pacApi(url, { method: 'DELETE' });
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
   agCarregar();
+}
+
+function agFecharBlockRecurDel() {
+  agState.blockRecurDelTarget = null;
+  document.getElementById('ag-block-recur-del-modal').classList.remove('aberto');
+}
+async function agConfirmarBlockRecurDel(scope) {
+  const target = agState.blockRecurDelTarget;
+  if (!target) return;
+  await agRemoverBloqueio(target.id, scope);
+  agFecharBlockRecurDel();
 }
 
 // ========== DRAG AND DROP HANDLERS ==========
@@ -9640,6 +9754,13 @@ async function agSalvarBloqueioTab() {
     end_at: endAt.toISOString(),
     titulo, motivo,
   };
+  // Recorrência do bloqueio
+  if (document.getElementById('ag-bloq-recor-toggle').checked) {
+    body.recurrence_pattern = document.getElementById('ag-bloq-recor-pattern').value;
+    const untilVal = document.getElementById('ag-bloq-recor-until').value;
+    if (!untilVal) { erroEl.textContent = 'Defina até quando o bloqueio se repete'; erroEl.style.display = 'block'; return; }
+    body.recurrence_until = untilVal;
+  }
   const r = await pacApi('/api/clinico/appointments/blocks/create', {
     method: 'POST', body: JSON.stringify(body),
   });
@@ -9688,6 +9809,9 @@ async function agAbrirEditarModal(id) {
   document.getElementById('ag-hora').value = agIsoLocal(start).split('T')[1];
   document.getElementById('ag-duracao').value = Math.round((end.getTime() - start.getTime()) / 60000);
   document.getElementById('ag-observacoes').value = a.observacoes || '';
+  // Teleconsulta
+  const teleEd = document.getElementById('ag-tele-toggle');
+  if (teleEd) { teleEd.checked = !!a.online; agToggleTele(); }
 
   // Mostra status atual + ações
   document.getElementById('ag-status-wrap').style.display = 'block';
@@ -9794,6 +9918,15 @@ function agResetForm() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  // Recorrência do bloqueio reset
+  const blRecorTog = document.getElementById('ag-bloq-recor-toggle');
+  if (blRecorTog) blRecorTog.checked = false;
+  const blRecorBox = document.getElementById('ag-bloq-recor-box');
+  if (blRecorBox) blRecorBox.classList.remove('aberto');
+  const blRecorUntil = document.getElementById('ag-bloq-recor-until');
+  if (blRecorUntil) blRecorUntil.value = '';
+  const blRecorPat = document.getElementById('ag-bloq-recor-pattern');
+  if (blRecorPat) blRecorPat.value = 'WEEKLY';
   document.getElementById('ag-observacoes').value = '';
   document.getElementById('ag-modal-erro').style.display = 'none';
   document.getElementById('ag-pat-search').value = '';
@@ -9801,6 +9934,11 @@ function agResetForm() {
   document.getElementById('ag-pat-results').classList.remove('aberto');
   document.getElementById('ag-status-wrap').style.display = 'none';
   document.getElementById('ag-modal-actions-status').innerHTML = '';
+  // Teleconsulta reset
+  const tele = document.getElementById('ag-tele-toggle');
+  if (tele) tele.checked = false;
+  const teleBox = document.getElementById('ag-tele-box');
+  if (teleBox) teleBox.classList.remove('ativo');
   // Recorrência reset
   const tog = document.getElementById('ag-recorrente-toggle');
   if (tog) tog.checked = false;
@@ -9820,6 +9958,27 @@ function agResetForm() {
   // Pré-seleciona unidade primária
   const primaria = pacState.unidades.find(u => u.primaria);
   if (primaria) document.getElementById('ag-unit').value = primaria.id;
+}
+
+function agToggleTele() {
+  const tog = document.getElementById('ag-tele-toggle');
+  document.getElementById('ag-tele-box').classList.toggle('ativo', tog.checked);
+}
+
+function agToggleBloqRecorrencia() {
+  const tog = document.getElementById('ag-bloq-recor-toggle');
+  const box = document.getElementById('ag-bloq-recor-box');
+  if (tog.checked) {
+    box.classList.add('aberto');
+    const until = document.getElementById('ag-bloq-recor-until');
+    if (!until.value) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + 1);
+      until.value = d.toISOString().slice(0, 10);
+    }
+  } else {
+    box.classList.remove('aberto');
+  }
 }
 
 function agToggleRecorrencia() {
@@ -10036,6 +10195,7 @@ async function agSalvar() {
     type_id: typeId,
     start_at: startAt.toISOString(),
     end_at: endAt.toISOString(),
+    online: document.getElementById('ag-tele-toggle').checked,
     observacoes: document.getElementById('ag-observacoes').value.trim() || null,
   };
 
