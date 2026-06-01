@@ -11179,6 +11179,8 @@ async function prAbrirSetor(tipo, categoria) {
   if (!prState.pacienteAtual) return;
   const r = await pacApi(`/api/clinico/prontuario/evolution-templates?tipo=${tipo}&categoria=${categoria}`);
   const templates = (r.ok && r.data.templates) ? r.data.templates : [];
+  const ehOnboarding = categoria === 'ONBOARDING';
+
   if (templates.length === 0) {
     // Setor sem template configurado ainda -- abre evolução em branco
     prAbrirNovaEvol();
@@ -11186,7 +11188,7 @@ async function prAbrirSetor(tipo, categoria) {
       const sel = document.getElementById('pr-evol-tipo');
       if (sel) sel.value = tipo;
       const info = document.getElementById('pr-evol-tpl-info');
-      if (info) info.innerHTML = `<i class="ti ti-info-circle" style="color:#7d8590;"></i> ${categoria === 'ONBOARDING' ? 'Onboarding' : 'Acompanhamento'} ${prTipoLabel(tipo)} -- template ainda não configurado. Use texto livre por enquanto.`;
+      if (info) info.innerHTML = `<i class="ti ti-info-circle" style="color:#7d8590;"></i> ${ehOnboarding ? 'Onboarding' : 'Acompanhamento'} ${prTipoLabel(tipo)} -- template ainda não configurado. Use texto livre por enquanto.`;
     }, 60);
     return;
   }
@@ -11195,6 +11197,14 @@ async function prAbrirSetor(tipo, categoria) {
   setTimeout(() => {
     const sel = document.getElementById('pr-evol-tipo');
     if (sel) sel.value = tipo;
+    // Onboarding: trava no template padrão (esconde o seletor "USAR TEXTO PADRÃO")
+    // Acompanhamento: mantém o seletor pra poder trocar
+    const tplBar = document.getElementById('pr-evol-tpl-bar');
+    const tplBtn = tplBar ? tplBar.querySelector('.pr-evol-tpl-btn') : null;
+    if (tplBtn) tplBtn.style.display = ehOnboarding ? 'none' : '';
+    // Título do modal reflete o modo
+    const titulo = document.getElementById('pr-evol-title');
+    if (titulo) titulo.textContent = (ehOnboarding ? 'Onboarding' : 'Acompanhamento') + ' · ' + prTipoLabel(tipo);
     prAplicarTemplate(templates[0].slug, templates[0].nome);
   }, 80);
 }
@@ -11430,6 +11440,10 @@ function prAbrirNovaEvol() {
   prEvolFormState = { campos: [], respostas: {}, origens: {} };
   document.getElementById('pr-evol-form').style.display = 'none';
   document.getElementById('pr-evol-editor-wrap').style.display = '';
+  // Restaura o seletor "USAR TEXTO PADRÃO" (pode ter sido escondido num onboarding)
+  const tplBar = document.getElementById('pr-evol-tpl-bar');
+  const tplBtn = tplBar ? tplBar.querySelector('.pr-evol-tpl-btn') : null;
+  if (tplBtn) tplBtn.style.display = '';
   // Data default = agora
   const agora = new Date();
   const pad = x => String(x).padStart(2, '0');
