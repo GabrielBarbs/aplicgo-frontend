@@ -5569,13 +5569,14 @@
           <div class="pac-form-grid col-3">
             <div class="pac-field">
               <label>Programa</label>
-              <input list="pac-programa-sug" type="text" id="pac-programa" placeholder="B&B / Lipedema / P&L / Club Aplic">
-              <datalist id="pac-programa-sug">
-                <option value="B&B">
-                <option value="Lipedema">
-                <option value="P&L">
-                <option value="Club Aplic">
-              </datalist>
+              <select id="pac-programa">
+                <option value="">Selecione o plano…</option>
+                <option value="Consulta avulsa">Consulta avulsa</option>
+                <option value="Burn&amp;Build">Burn&amp;Build</option>
+                <option value="Lipedema">Lipedema</option>
+                <option value="P&amp;L">P&amp;L</option>
+                <option value="Club Aplic">Club Aplic</option>
+              </select>
             </div>
             <div class="pac-field">
               <label>Fase atual</label>
@@ -8061,8 +8062,13 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-nutri').value = p.nutri_id || '';
   document.getElementById('pac-observacoes').value = p.observacoes || '';
   // Saúde
-  // Programa e jornada
-  document.getElementById('pac-programa').value = p.programa || '';
+  // Programa e jornada (dropdown -- preserva valor antigo que não esteja na lista)
+  const _selProg = document.getElementById('pac-programa');
+  const _progVal = p.programa || '';
+  if (_progVal && ![..._selProg.options].some(o => o.value === _progVal)) {
+    const _o = document.createElement('option'); _o.value = _progVal; _o.textContent = _progVal; _selProg.appendChild(_o);
+  }
+  _selProg.value = _progVal;
   document.getElementById('pac-fase-atual').value = p.fase_atual || '';
   document.getElementById('pac-programa-inicio').value = p.programa_inicio_em || '';
   document.getElementById('pac-programa-duracao').value = p.programa_duracao_semanas || '';
