@@ -2067,6 +2067,149 @@
       margin-top: 10px;
     }
 
+    /* ====== PENDÊNCIAS DA RECEPÇÃO (Aula Cap 6) ====== */
+    .pend-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .pend-stat-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border-left: 3px solid #7d8590;
+    }
+    .pend-stat-card.alerta { border-left-color: #EF9F27; }
+    .pend-stat-card.critico { border-left-color: #f85149; }
+    .pend-stat-card.ok { border-left-color: #1D9E75; }
+    .pend-stat-card .lbl {
+      font-size: 10px; color: #7d8590;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      font-weight: 600;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .pend-stat-card .lbl i { font-size: 12px; }
+    .pend-stat-card .val {
+      font-size: 22px; color: #f0f6fc; font-weight: 600;
+      margin-top: 4px;
+    }
+    .pend-stat-card .ext {
+      font-size: 10px; color: #6e7681; margin-top: 2px;
+    }
+
+    .pend-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+    }
+    .pend-info {
+      font-size: 12px; color: #8b949e;
+      flex: 1; min-width: 240px;
+    }
+    .pend-info strong { color: #f0f6fc; }
+    .pend-filtros {
+      display: flex; gap: 6px; align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pend-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 200px auto;
+      gap: 14px;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .pend-card:hover {
+      border-color: #E8945A;
+      background: rgba(232,148,90,0.04);
+    }
+    @media (max-width: 800px) {
+      .pend-card { grid-template-columns: 1fr; }
+    }
+    .pend-card.dias-7 { border-left: 3px solid #EF9F27; }
+    .pend-card.dias-15 { border-left: 3px solid #f85149; }
+
+    .pend-card .info .nome {
+      font-size: 13px; color: #f0f6fc; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pend-card .info .cod {
+      font-family: 'SF Mono', Consolas, monospace;
+      color: #E8945A; font-size: 11px;
+    }
+    .pend-card .info .meta {
+      font-size: 11px; color: #7d8590; margin-top: 3px;
+    }
+    .pend-card .info .checks {
+      display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap;
+    }
+    .pend-card .info .check-pill {
+      font-size: 9px; padding: 2px 7px;
+      border-radius: 10px;
+      border: 1px solid;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      font-weight: 600;
+    }
+    .pend-card .info .check-pill.feito {
+      background: rgba(29,158,117,0.10); color: #1D9E75; border-color: rgba(29,158,117,0.30);
+    }
+    .pend-card .info .check-pill.faltando {
+      background: rgba(125,133,144,0.06); color: #6e7681; border-color: #30363d;
+    }
+    .pend-card .info .check-pill.essencial-faltando {
+      background: rgba(239,159,39,0.08); color: #EF9F27; border-color: rgba(239,159,39,0.30);
+    }
+
+    .pend-card .progresso {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .pend-card .progresso .pct {
+      font-size: 11px; color: #7d8590;
+      display: flex; justify-content: space-between;
+    }
+    .pend-card .progresso .pct strong { color: #f0f6fc; }
+    .pend-card .progresso .bar {
+      height: 6px; background: #21262d; border-radius: 4px;
+      overflow: hidden;
+    }
+    .pend-card .progresso .bar > span {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, #C56847, #E8945A);
+    }
+    .pend-card .progresso .dias {
+      font-size: 10px; color: #7d8590;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .pend-card .progresso .dias.alerta { color: #EF9F27; }
+    .pend-card .progresso .dias.critico { color: #f85149; font-weight: 600; }
+
+    .pend-card .acao .btn {
+      background: rgba(232,148,90,0.10);
+      border: 1px solid rgba(232,148,90,0.30);
+      color: #E8945A;
+      padding: 8px 14px;
+      border-radius: 7px;
+      font-size: 12px; font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .pend-card .acao .btn:hover {
+      background: rgba(232,148,90,0.20);
+    }
+
     /* ====== ONBOARDING -- checklist do paciente ====== */
     .onb-checklist {
       display: flex; flex-direction: column; gap: 8px;
@@ -3278,6 +3421,9 @@
       <button class="sidebar-item" data-view="prontuario" data-perm="prontuario.ver">
         <i class="ti ti-clipboard-text"></i> Prontuário
       </button>
+      <button class="sidebar-item" data-view="pendencias" data-perm="onboarding.ver_pendencias">
+        <i class="ti ti-alert-square"></i> Pendências
+      </button>
     </div>
 
     <div class="sidebar-group" data-grupo-clinico>
@@ -3820,6 +3966,37 @@
           <button id="au-next" onclick="auMudarPagina(1)">próxima ›</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- VIEW: Pendências da Recepção (Combo F -- Aula Cap 6) -->
+  <div class="view" id="view-pendencias">
+    <div class="pend-stats" id="pend-stats">
+      <div class="pend-stat-card"><div class="lbl"><i class="ti ti-loader"></i> Carregando...</div></div>
+    </div>
+    <div class="pend-toolbar">
+      <div class="pend-info">
+        <strong>Pendências administrativas:</strong> pacientes com itens de onboarding em aberto. Click pra abrir o checklist direto.
+      </div>
+      <div class="pend-filtros">
+        <select class="pac-select" id="pend-filtro-tipo">
+          <option value="">Todas pendências</option>
+          <option value="kit">Sem kit entregue</option>
+          <option value="contrato">Sem contrato assinado</option>
+          <option value="termo">Sem termo assinado</option>
+          <option value="cronograma">Sem cronograma</option>
+        </select>
+        <select class="pac-select" id="pend-filtro-dias">
+          <option value="">Todos</option>
+          <option value="7">Parado há 7+ dias</option>
+          <option value="15">Parado há 15+ dias</option>
+          <option value="30">Parado há 30+ dias</option>
+        </select>
+        <button class="pac-btn-secondary" onclick="pendCarregar()" title="Atualizar"><i class="ti ti-refresh"></i></button>
+      </div>
+    </div>
+    <div id="pend-lista">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando pendências...</div>
     </div>
   </div>
 
@@ -5876,7 +6053,8 @@ const VIEW_TITLES = {
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
   financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
-  admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' }
+  admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' },
+  pendencias: { titulo: 'Pendências', sub: 'Onboarding administrativo em aberto' }
 };
 
 document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
@@ -5902,6 +6080,7 @@ function trocarView(v) {
   document.getElementById('topbar-page-sub').textContent = t.sub;
   // Hooks por view
   if (v === 'admin') adminTrocarTab('cargos');
+  else if (v === 'pendencias') pendCarregar();
 }
 
 // ============================================================
@@ -8775,6 +8954,144 @@ function bioTooltipHide() {
 }
 
 // ============================================================
+// PENDÊNCIAS DA RECEPÇÃO (Aula Cap 6, Combo F)
+// ============================================================
+let pendState = { lista: [], filtroTipo: '', filtroDias: '' };
+
+async function pendCarregar() {
+  document.getElementById('pend-lista').innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando pendências...</div>';
+  const r = await pacApi('/api/clinico/patients/onboarding/pendencias');
+  if (!r.ok) {
+    document.getElementById('pend-lista').innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (r.data.erro || '--') + '</div>';
+    return;
+  }
+  pendState.lista = r.data.pendencias || [];
+  pendRender();
+}
+
+function pendRender() {
+  // Stats agregadas
+  const lista = pendState.lista;
+  const semKit = lista.filter(p => !p.checks.kit_entregue).length;
+  const semContrato = lista.filter(p => !p.checks.contrato_assinado).length;
+  const semTermo = lista.filter(p => !p.checks.termo_assinado).length;
+  const semCron = lista.filter(p => !p.checks.cronograma_montado).length;
+  const parados7 = lista.filter(p => p.dias_parado >= 7).length;
+
+  const statsHtml = `
+    <div class="pend-stat-card alerta">
+      <div class="lbl"><i class="ti ti-package-off"></i> Kits pendentes</div>
+      <div class="val">${semKit}</div>
+      <div class="ext">paciente${semKit === 1 ? '' : 's'} sem kit entregue</div>
+    </div>
+    <div class="pend-stat-card alerta">
+      <div class="lbl"><i class="ti ti-file-x"></i> Contratos não assinados</div>
+      <div class="val">${semContrato}</div>
+      <div class="ext">aguardando assinatura</div>
+    </div>
+    <div class="pend-stat-card alerta">
+      <div class="lbl"><i class="ti ti-clipboard-x"></i> Termos pendentes</div>
+      <div class="val">${semTermo}</div>
+      <div class="ext">TCLE não assinado</div>
+    </div>
+    <div class="pend-stat-card">
+      <div class="lbl"><i class="ti ti-calendar-off"></i> Sem cronograma</div>
+      <div class="val">${semCron}</div>
+      <div class="ext">próximas consultas não agendadas</div>
+    </div>
+    <div class="pend-stat-card ${parados7 > 0 ? 'critico' : 'ok'}">
+      <div class="lbl"><i class="ti ti-clock-exclamation"></i> Parados 7+ dias</div>
+      <div class="val">${parados7}</div>
+      <div class="ext">${parados7 > 0 ? 'precisam de atenção' : 'tudo no prazo'}</div>
+    </div>
+  `;
+  document.getElementById('pend-stats').innerHTML = statsHtml;
+
+  // Filtros
+  const filtroTipo = document.getElementById('pend-filtro-tipo').value;
+  const filtroDias = parseInt(document.getElementById('pend-filtro-dias').value) || 0;
+  pendState.filtroTipo = filtroTipo;
+  pendState.filtroDias = filtroDias;
+
+  let filtrados = lista;
+  if (filtroTipo === 'kit') filtrados = filtrados.filter(p => !p.checks.kit_entregue);
+  else if (filtroTipo === 'contrato') filtrados = filtrados.filter(p => !p.checks.contrato_assinado);
+  else if (filtroTipo === 'termo') filtrados = filtrados.filter(p => !p.checks.termo_assinado);
+  else if (filtroTipo === 'cronograma') filtrados = filtrados.filter(p => !p.checks.cronograma_montado);
+  if (filtroDias > 0) filtrados = filtrados.filter(p => p.dias_parado >= filtroDias);
+
+  // Ordena por dias parado desc
+  filtrados.sort((a, b) => b.dias_parado - a.dias_parado);
+
+  const wrap = document.getElementById('pend-lista');
+  if (filtrados.length === 0) {
+    wrap.innerHTML = `
+      <div class="pac-empty">
+        <i class="ti ti-mood-happy"></i>
+        ${pendState.lista.length === 0 ? 'Nenhuma pendência aberta. Tudo em dia!' : 'Nenhum paciente bate com os filtros aplicados.'}
+      </div>
+    `;
+    return;
+  }
+
+  const checkLabels = [
+    { key: 'boas_vindas', label: 'B-Vindas' },
+    { key: 'kit_entregue', label: 'Kit', essencial: true },
+    { key: 'contrato_emitido', label: 'Contr. Emit.' },
+    { key: 'contrato_assinado', label: 'Contr. Ass.', essencial: true },
+    { key: 'termo_assinado', label: 'Termo', essencial: true },
+    { key: 'cronograma_montado', label: 'Cronog.' },
+  ];
+
+  wrap.innerHTML = filtrados.map(p => {
+    const diasClasse = p.dias_parado >= 15 ? 'critico' : (p.dias_parado >= 7 ? 'alerta' : '');
+    const cardClasse = p.dias_parado >= 15 ? 'dias-15' : (p.dias_parado >= 7 ? 'dias-7' : '');
+    const pillsHtml = checkLabels.map(c => {
+      const feito = p.checks[c.key];
+      const classe = feito ? 'feito' : (c.essencial ? 'essencial-faltando' : 'faltando');
+      return `<span class="check-pill ${classe}">${feito ? '✓' : '○'} ${c.label}</span>`;
+    }).join('');
+    return `
+      <div class="pend-card ${cardClasse}" onclick="pendAbrirOnboarding('${p.id}')">
+        <div class="info">
+          <div class="nome">${p.nome} <span class="cod">${p.codigo}</span> <span style="font-size:10px; color:#6e7681;">· ${p.status}</span></div>
+          <div class="meta">${p.unidade || 'sem unidade'} · ${fmtTel(p.telefone)}</div>
+          <div class="checks">${pillsHtml}</div>
+        </div>
+        <div class="progresso">
+          <div class="pct"><span>Progresso</span><strong>${p.pct}%</strong></div>
+          <div class="bar"><span style="width:${p.pct}%;"></span></div>
+          <div class="dias ${diasClasse}">
+            <i class="ti ti-clock"></i>
+            ${p.dias_parado === 0 ? 'atualizado hoje' : `${p.dias_parado} dia${p.dias_parado === 1 ? '' : 's'} parado`}
+          </div>
+        </div>
+        <div class="acao">
+          <button class="btn" onclick="event.stopPropagation(); pendAbrirOnboarding('${p.id}')">
+            <i class="ti ti-rocket"></i> Onboarding
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function pendAbrirOnboarding(patientId) {
+  onbAbrirModal(patientId);
+}
+
+// Eventos dos filtros
+document.addEventListener('DOMContentLoaded', () => {
+  const t = document.getElementById('pend-filtro-tipo');
+  const d = document.getElementById('pend-filtro-dias');
+  if (t) t.addEventListener('change', pendRender);
+  if (d) d.addEventListener('change', pendRender);
+});
+
+// Recarrega a lista após salvar/finalizar onboarding (hook)
+const _onbSalvarOriginal = typeof onbSalvar === 'function' ? onbSalvar : null;
+
+// ============================================================
 // ONBOARDING DO PACIENTE (Aula 05/29 Cap 3, Combo D)
 // ============================================================
 let onbState = { patientId: null, data: null, checks: {}, dirty: false };
@@ -8949,6 +9266,11 @@ async function onbSalvar(finalizar) {
   // Recarrega detalhe do paciente
   if (pacState.detalheAtual?.id === onbState.patientId) {
     pacAbrirDetalhe(onbState.patientId);
+  }
+  // Se está na view de pendências, recarrega a lista
+  const viewAtiva = document.querySelector('.view.active');
+  if (viewAtiva && viewAtiva.id === 'view-pendencias') {
+    pendCarregar();
   }
 }
 

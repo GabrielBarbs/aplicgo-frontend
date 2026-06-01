@@ -70,11 +70,18 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 - [x] Botão "Abrir / Editar" em cada card vai direto na evolução
 - [x] Bonus extra: ação de Onboarding atalho no modal de status da agenda
 
-### Combo F · Painel de pendências da Recepção (Aula Cap 6)
-- [ ] Aba "Pendências" (visível com `recepcao.painel_pendencias`)
-- [ ] Cards: contratos não assinados, kits não entregues, termos pendentes, cronogramas
-- [ ] Indicador de dias parados (vermelho > 7 dias)
-- [ ] Click vai direto pro Onboarding do paciente
+### Combo F · Painel de pendências da Recepção (Aula Cap 6) ✅ FEITO
+- [x] Aba "Pendências" no sidebar (visível com `onboarding.ver_pendencias`)
+- [x] 5 cards de stats: kits pendentes, contratos não assinados, termos, cronogramas, parados 7+ dias
+- [x] Lista de pacientes com:
+  * Nome, código, status, telefone, unidade
+  * Pills coloridas de cada check (verde = feito, laranja = essencial faltando, cinza = faltando)
+  * Barra de progresso visual com %
+  * Indicador de dias parados (amarelo > 7 dias, vermelho > 15 dias) com borda lateral colorida no card
+- [x] Filtros: por tipo de pendência (kit/contrato/termo/cronograma) e por dias parados (7+/15+/30+)
+- [x] Ordenação automática pelos mais parados primeiro
+- [x] Botão "Onboarding" em cada card abre o checklist direto
+- [x] Auto-recarrega após finalizar onboarding pra remover paciente da lista
 
 ---
 
