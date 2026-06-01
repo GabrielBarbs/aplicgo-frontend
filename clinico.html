@@ -2431,6 +2431,172 @@
       background: rgba(232,148,90,0.20);
     }
 
+    /* ====== PAINEL DESENVOLVEDOR ====== */
+    .dev-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap;
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+    }
+    .dev-info { font-size: 12px; color: #8b949e; flex: 1; min-width: 240px; }
+    .dev-info strong { color: #f0f6fc; }
+    .dev-acoes { display: flex; gap: 8px; align-items: center; }
+    .dev-ts {
+      font-size: 11px; color: #6e7681;
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+
+    .dev-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .dev-stat-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border-left: 3px solid #7B68EE;
+    }
+    .dev-stat-card .titulo {
+      font-size: 10px; color: #7d8590;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .dev-stat-card .titulo i { color: #7B68EE; font-size: 13px; }
+    .dev-stat-card .lista {
+      display: flex; flex-direction: column; gap: 5px;
+      font-size: 11px;
+    }
+    .dev-stat-card .lista .row {
+      display: flex; justify-content: space-between; gap: 6px;
+      padding: 3px 0;
+      border-bottom: 1px dashed rgba(33,38,45,0.5);
+    }
+    .dev-stat-card .lista .row:last-child { border-bottom: 0; }
+    .dev-stat-card .lista .row .k {
+      color: #8b949e;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 10px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      max-width: 60%;
+    }
+    .dev-stat-card .lista .row .v {
+      color: #f0f6fc; font-weight: 500;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+    .dev-stat-card .lista .row .v.dim { color: #6e7681; }
+    .dev-stat-card .big {
+      font-size: 22px; font-weight: 600; color: #f0f6fc;
+      margin-top: 4px;
+    }
+    .dev-stat-card .small {
+      font-size: 10px; color: #6e7681; margin-top: 2px;
+    }
+
+    .dev-table-wrap {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .dev-table-head {
+      padding: 10px 14px;
+      border-bottom: 1px solid #21262d;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(123,104,238,0.05);
+    }
+    .dev-table-head .ttl {
+      font-size: 11px; color: #f0f6fc;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .dev-table-head .ttl i { color: #7B68EE; }
+    .dev-table-head .count { font-size: 10px; color: #7d8590; font-family: 'SF Mono', Consolas, monospace; }
+
+    .dev-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 11px;
+    }
+    .dev-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: #7d8590; font-weight: 600;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px;
+      background: rgba(13,17,23,0.4);
+      border-bottom: 1px solid #21262d;
+    }
+    .dev-table td {
+      padding: 7px 12px;
+      color: #c9d1d9;
+      border-bottom: 1px solid rgba(33,38,45,0.4);
+      font-family: 'SF Mono', Consolas, monospace;
+    }
+    .dev-table tbody tr:last-child td { border-bottom: 0; }
+    .dev-table tbody tr:hover td { background: rgba(33,38,45,0.4); }
+    .dev-table .num { text-align: right; color: #f0f6fc; }
+    .dev-table .ator { color: #6FD89A; }
+    .dev-table .entity { color: #4A90E2; }
+
+    .dev-action-pill {
+      display: inline-block;
+      padding: 1px 8px;
+      background: rgba(232,148,90,0.10);
+      color: #E8945A;
+      border-radius: 10px;
+      font-size: 10px;
+      border: 1px solid rgba(232,148,90,0.25);
+    }
+    .dev-action-pill.delete { background: rgba(248,81,73,0.08); color: #f85149; border-color: rgba(248,81,73,0.25); }
+    .dev-action-pill.create { background: rgba(29,158,117,0.08); color: #1D9E75; border-color: rgba(29,158,117,0.25); }
+    .dev-action-pill.update { background: rgba(74,144,226,0.08); color: #4A90E2; border-color: rgba(74,144,226,0.25); }
+
+    /* Bar chart simples pra DB stats */
+    .dev-bar-row {
+      display: grid;
+      grid-template-columns: 240px 1fr 80px 100px;
+      gap: 10px; align-items: center;
+      padding: 6px 12px;
+      font-size: 11px;
+      border-bottom: 1px solid rgba(33,38,45,0.4);
+    }
+    .dev-bar-row:last-child { border-bottom: 0; }
+    .dev-bar-row .tab {
+      color: #c9d1d9;
+      font-family: 'SF Mono', Consolas, monospace;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dev-bar-row .bar-track {
+      height: 6px;
+      background: #21262d;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .dev-bar-row .bar-track > span {
+      display: block; height: 100%;
+      background: linear-gradient(90deg, #7B68EE, #4A90E2);
+    }
+    .dev-bar-row .num {
+      text-align: right; color: #f0f6fc;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 11px;
+    }
+    .dev-bar-row .size {
+      text-align: right; color: #8b949e;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 10px;
+    }
+
     /* ====== CHAT FLUTUANTE (canto inferior direito) ====== */
     .chat-floating {
       position: fixed;
@@ -3818,6 +3984,9 @@
       <button class="sidebar-item" data-view="admin">
         <i class="ti ti-settings-cog"></i> Cargos &amp; Permissões
       </button>
+      <button class="sidebar-item" data-view="dev" data-perm="dev.acesso">
+        <i class="ti ti-code"></i> Desenvolvedor
+      </button>
     </div>
 
     <div class="sidebar-group" data-grupo-sistema>
@@ -4374,6 +4543,24 @@
     </div>
     <div id="pend-lista">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando pendências...</div>
+    </div>
+  </div>
+
+  <!-- VIEW: Desenvolvedor (painel técnico) -->
+  <div class="view" id="view-dev">
+    <div class="dev-toolbar">
+      <div class="dev-info">
+        <strong>Painel do Desenvolvedor:</strong> snapshot técnico do sistema. Atualiza a cada minuto ou quando você clicar em "Atualizar".
+      </div>
+      <div class="dev-acoes">
+        <span class="dev-ts" id="dev-ts">--</span>
+        <button class="pac-btn-secondary" onclick="devCarregar()" title="Atualizar">
+          <i class="ti ti-refresh"></i>
+        </button>
+      </div>
+    </div>
+    <div id="dev-conteudo">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
     </div>
   </div>
 
@@ -6399,10 +6586,11 @@ function aplicarUI() {
   const caps = Object.keys(meData.capabilities).filter(k => meData.capabilities[k]).length;
   document.getElementById('hero-caps-txt').textContent = `${caps} capabilities`;
 
-  // Mostra sidebar Admin se tem permissão
+  // Mostra sidebar Admin se tem permissão de admin ou dev
   const podeAdmin = temPermissao('admin.gerenciar_permissoes')
                  || temPermissao('admin.gerenciar_usuarios')
-                 || temPermissao('admin.gerenciar_cargos');
+                 || temPermissao('admin.gerenciar_cargos')
+                 || temPermissao('dev.acesso');
   document.getElementById('sidebar-group-admin').style.display = podeAdmin ? '' : 'none';
 
   // Aplica permissões em todo elemento [data-perm]
@@ -6482,7 +6670,8 @@ const VIEW_TITLES = {
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
   financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
   admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' },
-  pendencias: { titulo: 'Pendências', sub: 'Onboarding administrativo em aberto' }
+  pendencias: { titulo: 'Pendências', sub: 'Onboarding administrativo em aberto' },
+  dev: { titulo: 'Desenvolvedor', sub: 'Painel técnico: DB, audit, env, métricas' }
 };
 
 document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
@@ -6509,6 +6698,7 @@ function trocarView(v) {
   // Hooks por view
   if (v === 'admin') adminTrocarTab('cargos');
   else if (v === 'pendencias') pendCarregar();
+  else if (v === 'dev') devCarregar();
 }
 
 // ============================================================
@@ -9593,6 +9783,190 @@ function bioTooltipHide() {
   const tt = document.getElementById('bio-tt');
   if (tt) tt.style.display = 'none';
 }
+
+// ============================================================
+// PAINEL DESENVOLVEDOR (Combo extra)
+// ============================================================
+async function devCarregar() {
+  const wrap = document.getElementById('dev-conteudo');
+  wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando snapshot técnico...</div>';
+  const r = await pacApi('/api/clinico/dev/overview');
+  if (!r.ok) {
+    wrap.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (r.data.erro || '--') + '</div>';
+    return;
+  }
+  devRender(r.data);
+  document.getElementById('dev-ts').textContent = 'Atualizado em ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+function devFmtUptime(seg) {
+  if (seg < 60) return seg + 's';
+  if (seg < 3600) return Math.floor(seg/60) + 'm ' + (seg%60) + 's';
+  if (seg < 86400) return Math.floor(seg/3600) + 'h ' + Math.floor((seg%3600)/60) + 'm';
+  return Math.floor(seg/86400) + 'd ' + Math.floor((seg%86400)/3600) + 'h';
+}
+
+function devActionPillClass(action) {
+  const a = (action || '').toLowerCase();
+  if (a.includes('delete') || a.includes('cancel') || a.includes('inativar')) return 'delete';
+  if (a.includes('create') || a.includes('finalizar')) return 'create';
+  if (a.includes('update') || a.includes('change')) return 'update';
+  return '';
+}
+
+function devRender(d) {
+  const s = d.sistema;
+  const db = d.db;
+  const u = d.usuarios;
+  const audit = d.audit;
+
+  // Calcula max size pras barras
+  const maxSize = Math.max(...db.tabelas.map(t => t.size_bytes || 0), 1);
+
+  // Cards de stats
+  const cards = `
+    <div class="dev-grid">
+      <div class="dev-stat-card">
+        <div class="titulo"><i class="ti ti-server-cog"></i> Sistema</div>
+        <div class="lista">
+          <div class="row"><span class="k">Node</span><span class="v">${s.node_version}</span></div>
+          <div class="row"><span class="k">Plataforma</span><span class="v">${s.plataforma}</span></div>
+          <div class="row"><span class="k">PID</span><span class="v">${s.pid}</span></div>
+          <div class="row"><span class="k">Uptime</span><span class="v">${devFmtUptime(s.uptime_seg)}</span></div>
+          <div class="row"><span class="k">Ambiente</span><span class="v">${s.env}</span></div>
+        </div>
+      </div>
+
+      <div class="dev-stat-card">
+        <div class="titulo"><i class="ti ti-cpu"></i> Memória (heap node)</div>
+        <div class="big">${s.memoria.heap_used_mb} MB</div>
+        <div class="small">de ${s.memoria.heap_total_mb} MB heap total · ${s.memoria.rss_mb} MB RSS</div>
+        <div class="lista" style="margin-top:8px;">
+          <div class="row"><span class="k">External</span><span class="v">${s.memoria.external_mb} MB</span></div>
+        </div>
+      </div>
+
+      <div class="dev-stat-card">
+        <div class="titulo"><i class="ti ti-database"></i> Banco</div>
+        <div class="big">${db.size_total}</div>
+        <div class="small">${db.total_tabelas} tabelas · ${db.nome}</div>
+        <div class="lista" style="margin-top:8px;">
+          <div class="row"><span class="k">Versão</span><span class="v" style="font-size:9px;">${(db.versao || '').slice(0, 30)}</span></div>
+        </div>
+      </div>
+
+      <div class="dev-stat-card">
+        <div class="titulo"><i class="ti ti-users"></i> Usuários</div>
+        <div class="big">${u.total}</div>
+        <div class="small">total no sistema</div>
+        <div class="lista" style="margin-top:8px;">
+          ${u.por_status.map(s => `<div class="row"><span class="k">${s.status}</span><span class="v">${s.count}</span></div>`).join('')}
+        </div>
+      </div>
+
+      <div class="dev-stat-card">
+        <div class="titulo"><i class="ti ti-history"></i> Audit log</div>
+        <div class="big">${audit.ultimas_24h}</div>
+        <div class="small">ações nas últimas 24h · ${audit.total} total</div>
+        <div class="lista" style="margin-top:8px;">
+          ${(audit.por_acao_24h || []).slice(0, 5).map(a => `<div class="row"><span class="k">${a.action}</span><span class="v">${a.count}</span></div>`).join('')}
+        </div>
+      </div>
+
+      <div class="dev-stat-card">
+        <div class="titulo"><i class="ti ti-key"></i> Variáveis de ambiente</div>
+        <div class="lista">
+          ${Object.entries(d.env).map(([k, v]) => `<div class="row"><span class="k">${k}</span><span class="v ${!v || v === '(vazio)' ? 'dim' : ''}" style="font-size:10px;">${v}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Tabela de DB stats (com barras visuais)
+  const dbStatsHtml = `
+    <div class="dev-table-wrap">
+      <div class="dev-table-head">
+        <div class="ttl"><i class="ti ti-database"></i> Tamanho por tabela (${db.tabelas.length})</div>
+        <div class="count">total ${db.size_total}</div>
+      </div>
+      <div>
+        ${db.tabelas.map(t => {
+          const pct = maxSize > 0 ? (t.size_bytes / maxSize) * 100 : 0;
+          return `
+            <div class="dev-bar-row">
+              <div class="tab">${t.tabela}</div>
+              <div class="bar-track"><span style="width: ${pct}%;"></span></div>
+              <div class="num">${t.count.toLocaleString('pt-BR')}</div>
+              <div class="size">${t.size}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  // Tabela de cargos
+  const cargosHtml = `
+    <div class="dev-table-wrap">
+      <div class="dev-table-head">
+        <div class="ttl"><i class="ti ti-shield-check"></i> Cargos clínicos</div>
+        <div class="count">${d.cargos.length}</div>
+      </div>
+      <table class="dev-table">
+        <thead><tr><th>Slug</th><th>Nome</th><th class="num">Usuários</th><th class="num">Permissões</th><th>Status</th></tr></thead>
+        <tbody>
+          ${d.cargos.map(c => `
+            <tr>
+              <td>${c.slug}</td>
+              <td style="color:${c.cor || '#f0f6fc'};">${c.nome}</td>
+              <td class="num">${c.usuarios}</td>
+              <td class="num">${c.permissoes}</td>
+              <td>${c.ativo ? '<span style="color:#1D9E75;">● ativo</span>' : '<span style="color:#7d8590;">○ inativo</span>'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  // Tabela de audit recente
+  const auditHtml = `
+    <div class="dev-table-wrap">
+      <div class="dev-table-head">
+        <div class="ttl"><i class="ti ti-clock-pin"></i> Últimas 50 ações</div>
+        <div class="count">tempo real</div>
+      </div>
+      <div style="max-height: 500px; overflow-y: auto;">
+        <table class="dev-table">
+          <thead><tr><th>Quando</th><th>Ator</th><th>Ação</th><th>Entidade</th><th>ID</th></tr></thead>
+          <tbody>
+            ${audit.recente.map(a => {
+              const dt = new Date(a.criado_em);
+              const dtFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+              return `
+                <tr>
+                  <td>${dtFmt}</td>
+                  <td class="ator">${a.ator || '<span style="color:#6e7681;">sistema</span>'}</td>
+                  <td><span class="dev-action-pill ${devActionPillClass(a.action)}">${a.action}</span></td>
+                  <td class="entity">${a.entity || '--'}</td>
+                  <td style="color:#6e7681; font-size:10px;">${a.entity_id ? a.entity_id.slice(0, 8) + '...' : '--'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('dev-conteudo').innerHTML = cards + dbStatsHtml + cargosHtml + auditHtml;
+}
+
+// Auto-refresh a cada 60s quando estiver na view dev
+setInterval(() => {
+  const v = document.querySelector('.view.active');
+  if (v && v.id === 'view-dev') devCarregar();
+}, 60000);
 
 // ============================================================
 // PENDÊNCIAS DA RECEPÇÃO (Aula Cap 6, Combo F)

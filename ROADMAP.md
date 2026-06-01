@@ -70,6 +70,18 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 - [x] Botão "Abrir / Editar" em cada card vai direto na evolução
 - [x] Bonus extra: ação de Onboarding atalho no modal de status da agenda
 
+### Combo Dev · Painel do Desenvolvedor ✅ FEITO
+- [x] Novo cargo `desenvolvedor` + permissão `dev.acesso`
+- [x] Backend `/api/clinico/dev/overview` retorna snapshot completo (sistema, memória, DB, audit, env, cargos)
+- [x] Endpoint extra `/dev/audit` paginado + `/dev/ping` healthcheck
+- [x] Frontend nova view com 6 cards de stats: Sistema, Memória, Banco, Usuários, Audit 24h, Env vars (mascarado)
+- [x] Tabela com tamanho por tabela + barras visuais
+- [x] Tabela de cargos clínicos com contadores
+- [x] Tabela de últimas 50 ações do audit log (pílulas coloridas por ação)
+- [x] Auto-refresh a cada 60s
+- [x] Mascaramento de senhas em DATABASE_URL e JWT_SECRET
+- [x] Sidebar item "Desenvolvedor" visível com data-perm
+
 ### Combo F · Painel de pendências da Recepção (Aula Cap 6) ✅ FEITO
 - [x] Aba "Pendências" no sidebar (visível com `onboarding.ver_pendencias`)
 - [x] 5 cards de stats: kits pendentes, contratos não assinados, termos, cronogramas, parados 7+ dias
