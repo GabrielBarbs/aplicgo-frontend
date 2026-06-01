@@ -2923,6 +2923,140 @@
       font-size: 10px;
     }
 
+    /* ====== MENÇÕES (@) ====== */
+    .badge-marcacoes {
+      position: absolute; top: -3px; right: -3px;
+      background: #f85149; color: #fff;
+      font-size: 9px; font-weight: 700;
+      min-width: 16px; height: 16px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px;
+      border: 2px solid #0d1117;
+    }
+    .mention-dd {
+      position: fixed;
+      z-index: 10000;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      max-height: 240px; overflow-y: auto;
+      width: 260px;
+    }
+    .mention-dd .item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(33,38,45,0.5);
+    }
+    .mention-dd .item:last-child { border-bottom: 0; }
+    .mention-dd .item:hover, .mention-dd .item.ativo { background: rgba(232,148,90,0.10); }
+    .mention-dd .item .av {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, #C56847, #E8945A);
+      color: #fff; font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .mention-dd .item .nome { font-size: 12px; color: #f0f6fc; }
+    .mention-dd .item .cargo { font-size: 10px; color: #7d8590; }
+    .mention-dd .vazio { padding: 12px; font-size: 11px; color: #7d8590; text-align: center; }
+
+    /* Menção destacada no texto renderizado */
+    .mention-chip {
+      color: #4A90E2; font-weight: 600;
+      background: rgba(74,144,226,0.10);
+      padding: 0 3px; border-radius: 3px;
+    }
+
+    /* Caixa de marcações */
+    .marc-tabs {
+      display: flex; gap: 4px;
+      padding: 0 18px;
+      border-bottom: 1px solid #21262d;
+    }
+    .marc-tab {
+      background: transparent; border: 0;
+      border-bottom: 2px solid transparent;
+      color: #7d8590; padding: 10px 14px;
+      cursor: pointer; font-size: 12px; font-weight: 500;
+      font-family: inherit;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .marc-tab:hover { color: #f0f6fc; }
+    .marc-tab.active { color: #E8945A; border-bottom-color: #E8945A; }
+    .marc-badge {
+      background: #f85149; color: #fff;
+      font-size: 9px; font-weight: 700;
+      min-width: 15px; height: 15px; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center; padding: 0 4px;
+    }
+    .marc-item {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .marc-item.nao-lida { border-left: 3px solid #f85149; }
+    .marc-item .topo {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; font-size: 11px; color: #7d8590; flex-wrap: wrap;
+    }
+    .marc-item .topo .quem { color: #6FD89A; font-weight: 500; }
+    .marc-item .ctx {
+      font-size: 10px; color: #E8945A; margin-top: 4px;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .marc-item .trecho {
+      font-size: 12px; color: #c9d1d9; line-height: 1.5;
+      margin: 8px 0;
+      padding: 8px 10px;
+      background: #161b22;
+      border-left: 2px solid #4A90E2;
+      border-radius: 4px;
+    }
+    .marc-item .acoes {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;
+    }
+    .marc-item .acoes button {
+      background: transparent; border: 1px solid #30363d;
+      color: #8b949e; padding: 4px 10px; border-radius: 6px;
+      cursor: pointer; font-size: 11px; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .marc-item .acoes button:hover { border-color: #E8945A; color: #E8945A; }
+    .marc-item .acoes button.ir:hover { border-color: #4A90E2; color: #4A90E2; }
+    .marc-item .comentarios {
+      margin-top: 8px; padding-top: 8px;
+      border-top: 1px dashed rgba(33,38,45,0.8);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .marc-item .coment {
+      font-size: 11px; color: #c9d1d9;
+      padding: 5px 8px; background: rgba(33,38,45,0.4); border-radius: 6px;
+    }
+    .marc-item .coment .aut { color: #6FD89A; font-weight: 500; }
+    .marc-item .coment-input {
+      display: flex; gap: 6px; margin-top: 6px;
+    }
+    .marc-item .coment-input input {
+      flex: 1; background: #161b22; border: 1px solid #21262d;
+      color: #f0f6fc; padding: 6px 10px; border-radius: 6px; font-size: 11px;
+    }
+    .marc-item .coment-input button {
+      background: #1D9E75; border: 0; color: #fff;
+      padding: 0 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    }
+    .marc-status-pill {
+      font-size: 9px; padding: 1px 7px; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;
+    }
+    .marc-status-pill.NAO_LIDA { background: rgba(248,81,73,0.12); color: #f85149; }
+    .marc-status-pill.LIDA { background: rgba(74,144,226,0.12); color: #4A90E2; }
+    .marc-status-pill.RESOLVIDA { background: rgba(29,158,117,0.12); color: #1D9E75; }
+
     /* ====== CHAT FLUTUANTE (canto inferior direito) ====== */
     .chat-floating {
       position: fixed;
@@ -4386,6 +4520,10 @@
     <a class="topbar-icon-btn topbar-sistemas-btn has-label" href="/" title="Voltar pra escolha de sistemas">
       <i class="ti ti-apps"></i> Sistemas
     </a>
+    <button class="topbar-icon-btn" id="btn-marcacoes" onclick="marcAbrir()" title="Caixa de marcações">
+      <i class="ti ti-at"></i>
+      <span class="badge-marcacoes" id="badge-marcacoes" style="display:none;">0</span>
+    </button>
     <button class="topbar-icon-btn" id="btn-novidades" onclick="abrirNovidades()" title="Novidades">
       <i class="ti ti-sparkles"></i>
       <span class="badge-novidades">•</span>
@@ -6114,7 +6252,9 @@
 
       <label style="font-size: 10px; color: #7d8590; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 6px; display: block;">
         Descreva a evolução <span style="color:#E8945A;">*</span>
+        <span style="text-transform:none; letter-spacing:0; color:#6e7681;">— digite @ para marcar um colega</span>
       </label>
+      <div id="pr-evol-mencoes-chips" style="margin: 4px 0; display:flex; gap:4px; flex-wrap:wrap; align-items:center;"></div>
 
       <!-- Editor com toolbar (modo TEXTO) -->
       <div class="pr-editor-wrap" id="pr-evol-editor-wrap">
@@ -6934,6 +7074,9 @@ function aplicarUI() {
 
   // Aplica permissões em todo elemento [data-perm]
   aplicarPermissoesNaUI();
+
+  // Badge de marcações não-lidas
+  marcAtualizarBadge();
 
   // Relógio + data
   tickRelogio();
@@ -8529,6 +8672,246 @@ function agAcaoEntrarContato() {
   if (!p) return alert('Paciente não encontrado.');
   agFecharAcoesModal();
   chatAbrir({ nome: p.nomeCompleto, telefone: p.telefone1 });
+}
+
+// ============================================================
+// MENÇÕES (@fulano) -- autocomplete + caixa de marcações
+// ============================================================
+let mentionState = { el: null, atStart: -1, query: '', ativo: -1, lista: [] };
+let mentionUsuariosCache = null;
+
+// Lista de menções feitas na evolução atual: [{user_id, nome, trecho}]
+let prEvolMencoes = [];
+
+async function mentionCarregarUsuarios(q) {
+  const r = await pacApi('/api/clinico/mentions/usuarios?q=' + encodeURIComponent(q || ''));
+  return (r.ok && r.data.usuarios) ? r.data.usuarios : [];
+}
+
+// Detecta @ digitado num input/textarea/contenteditable
+async function mentionDetectar(el) {
+  let textoAntes, query;
+  if (el.isContentEditable) {
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return mentionFechar();
+    const node = sel.anchorNode;
+    const offset = sel.anchorOffset;
+    const txt = (node.textContent || '').slice(0, offset);
+    const m = txt.match(/@(\S{0,30})$/);
+    if (!m) return mentionFechar();
+    query = m[1];
+  } else {
+    const pos = el.selectionStart;
+    textoAntes = el.value.slice(0, pos);
+    const m = textoAntes.match(/@(\S{0,30})$/);
+    if (!m) return mentionFechar();
+    query = m[1];
+  }
+  mentionState.el = el;
+  mentionState.query = query;
+  mentionState.ativo = 0;
+  const usuarios = await mentionCarregarUsuarios(query);
+  mentionState.lista = usuarios;
+  mentionRenderDropdown(el);
+}
+
+function mentionRenderDropdown(el) {
+  const dd = document.getElementById('mention-dd');
+  if (!mentionState.lista.length) {
+    dd.innerHTML = '<div class="vazio">Nenhum usuário</div>';
+  } else {
+    dd.innerHTML = mentionState.lista.map((u, i) => `
+      <div class="item ${i === mentionState.ativo ? 'ativo' : ''}" onmousedown="event.preventDefault(); mentionEscolher(${i})">
+        <div class="av">${(u.nome || '?').charAt(0).toUpperCase()}</div>
+        <div>
+          <div class="nome">${u.nome}</div>
+          ${u.cargo ? `<div class="cargo">${u.cargo}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+  // Posiciona perto do campo
+  const rect = el.getBoundingClientRect();
+  dd.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
+  dd.style.top = (rect.bottom + 4) + 'px';
+  dd.style.display = 'block';
+}
+
+function mentionFechar() {
+  document.getElementById('mention-dd').style.display = 'none';
+  mentionState.el = null;
+}
+
+function mentionEscolher(i) {
+  const u = mentionState.lista[i];
+  const el = mentionState.el;
+  if (!u || !el) return;
+  const nomeCurto = (u.nome || '').split(' ')[0];
+  if (el.isContentEditable) {
+    // Remove o @query e insere @Nome
+    const sel = window.getSelection();
+    if (sel.rangeCount) {
+      const node = sel.anchorNode;
+      const offset = sel.anchorOffset;
+      const txt = node.textContent || '';
+      const antes = txt.slice(0, offset).replace(/@(\S{0,30})$/, '');
+      const depois = txt.slice(offset);
+      node.textContent = antes + '@' + nomeCurto + ' ' + depois;
+      // reposiciona cursor
+      const range = document.createRange();
+      const novoPos = (antes + '@' + nomeCurto + ' ').length;
+      range.setStart(node, Math.min(novoPos, node.textContent.length));
+      range.collapse(true);
+      sel.removeAllRanges(); sel.addRange(range);
+    }
+    prEvolRegistrarMencao(u, el.textContent || '');
+  } else {
+    const pos = el.selectionStart;
+    const antes = el.value.slice(0, pos).replace(/@(\S{0,30})$/, '');
+    const depois = el.value.slice(pos);
+    el.value = antes + '@' + nomeCurto + ' ' + depois;
+    const novoPos = (antes + '@' + nomeCurto + ' ').length;
+    el.setSelectionRange(novoPos, novoPos);
+    el.focus();
+    prEvolRegistrarMencao(u, el.value);
+  }
+  mentionFechar();
+}
+
+function prEvolRegistrarMencao(u, trecho) {
+  // Evita duplicar o mesmo user no mesmo trecho
+  prEvolMencoes.push({ user_id: u.id, nome: u.nome, trecho: (trecho || '').trim().slice(0, 500) });
+  // Mostra chip de quem foi marcado
+  prEvolAtualizarChips();
+}
+
+function prEvolAtualizarChips() {
+  const wrap = document.getElementById('pr-evol-mencoes-chips');
+  if (!wrap) return;
+  const unicos = [...new Map(prEvolMencoes.map(m => [m.user_id, m])).values()];
+  if (unicos.length === 0) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<span style="font-size:10px; color:#7d8590;">Marcados:</span> ' +
+    unicos.map(m => `<span class="mention-chip">@${(m.nome||'').split(' ')[0]}</span>`).join(' ');
+}
+
+// Listener global de input pra detectar @ nos campos do modal de evolução
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  const modal = document.getElementById('pr-evol-modal');
+  if (!modal || !modal.classList.contains('aberto')) return;
+  if (!modal.contains(el)) return;
+  if (el.id === 'pr-evol-peso' || el.id === 'pr-evol-data' || el.id === 'pr-evol-tipo') return;
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
+    mentionDetectar(el);
+  }
+});
+document.addEventListener('keydown', (e) => {
+  const dd = document.getElementById('mention-dd');
+  if (dd.style.display === 'none') return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); mentionState.ativo = Math.min(mentionState.lista.length-1, mentionState.ativo+1); mentionRenderDropdown(mentionState.el); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); mentionState.ativo = Math.max(0, mentionState.ativo-1); mentionRenderDropdown(mentionState.el); }
+  else if (e.key === 'Enter' && mentionState.lista.length) { e.preventDefault(); mentionEscolher(mentionState.ativo); }
+  else if (e.key === 'Escape') { mentionFechar(); }
+});
+
+// ============================================================
+// CAIXA DE MARCAÇÕES
+// ============================================================
+let marcState = { tab: 'recebidas' };
+
+async function marcAtualizarBadge() {
+  const r = await pacApi('/api/clinico/mentions/contador');
+  if (!r.ok) return;
+  const n = r.data.nao_lidas || 0;
+  const badge = document.getElementById('badge-marcacoes');
+  if (badge) {
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'flex' : 'none';
+  }
+}
+
+function marcAbrir() {
+  document.getElementById('marc-modal').classList.add('aberto');
+  marcTrocarTab('recebidas');
+}
+function marcFechar() {
+  document.getElementById('marc-modal').classList.remove('aberto');
+}
+function marcTrocarTab(tab) {
+  marcState.tab = tab;
+  document.querySelectorAll('.marc-tab').forEach(t => t.classList.toggle('active', t.dataset.marcTab === tab));
+  marcCarregar();
+}
+
+async function marcCarregar() {
+  const body = document.getElementById('marc-body');
+  body.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>';
+  const r = await pacApi('/api/clinico/mentions/' + marcState.tab);
+  if (!r.ok) { body.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (r.data.erro || '--') + '</div>'; return; }
+  const mencoes = r.data.mencoes || [];
+  // Atualiza badge de recebidas
+  if (marcState.tab === 'recebidas') {
+    const badge = document.getElementById('marc-badge-receb');
+    const n = r.data.nao_lidas || 0;
+    if (badge) { badge.textContent = n; badge.style.display = n > 0 ? 'inline-flex' : 'none'; }
+  }
+  if (mencoes.length === 0) {
+    body.innerHTML = `<div class="pac-empty"><i class="ti ti-at"></i>${marcState.tab === 'recebidas' ? 'Nenhuma marcação recebida.' : 'Você ainda não marcou ninguém.'}</div>`;
+    return;
+  }
+  const ehRecebida = marcState.tab === 'recebidas';
+  body.innerHTML = mencoes.map(m => {
+    const dt = new Date(m.criado_em);
+    const dataFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    const pessoa = ehRecebida ? ('de ' + m.autor) : ('para ' + m.mencionado);
+    const comentariosHtml = (m.comentarios || []).map(c =>
+      `<div class="coment"><span class="aut">${c.autor}:</span> ${c.texto.replace(/</g,'&lt;')}</div>`
+    ).join('');
+    return `
+      <div class="marc-item ${ehRecebida && m.status === 'NAO_LIDA' ? 'nao-lida' : ''}">
+        <div class="topo">
+          <span><span class="quem">${pessoa}</span> · ${dataFmt}</span>
+          <span class="marc-status-pill ${m.status}">${m.status === 'NAO_LIDA' ? 'não lida' : m.status.toLowerCase()}</span>
+        </div>
+        ${m.contexto ? `<div class="ctx"><i class="ti ti-link"></i> ${m.contexto}${m.paciente ? ' · ' + m.paciente.nome : ''}</div>` : ''}
+        <div class="trecho">${(m.trecho || '').replace(/</g,'&lt;')}</div>
+        <div class="acoes">
+          ${m.paciente ? `<button class="ir" onclick="marcIrParaOrigem('${m.id}', '${m.paciente.id}', '${(m.paciente.nome||'').replace(/'/g,"&apos;")}', '${m.paciente.codigo}')"><i class="ti ti-arrow-right"></i> Ir para origem</button>` : ''}
+          ${ehRecebida && m.status === 'NAO_LIDA' ? `<button onclick="marcMarcarLida('${m.id}')"><i class="ti ti-eye"></i> Marcar lida</button>` : ''}
+          ${m.status !== 'RESOLVIDA' ? `<button onclick="marcResolver('${m.id}')"><i class="ti ti-check"></i> Resolver</button>` : ''}
+        </div>
+        ${comentariosHtml ? `<div class="comentarios">${comentariosHtml}</div>` : ''}
+        <div class="coment-input">
+          <input type="text" id="marc-coment-${m.id}" placeholder="Comentar..." onkeydown="if(event.key==='Enter') marcComentar('${m.id}')">
+          <button onclick="marcComentar('${m.id}')"><i class="ti ti-send"></i></button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function marcMarcarLida(id) {
+  await pacApi('/api/clinico/mentions/' + id + '/ler', { method: 'PUT' });
+  marcCarregar(); marcAtualizarBadge();
+}
+async function marcResolver(id) {
+  await pacApi('/api/clinico/mentions/' + id + '/resolver', { method: 'PUT' });
+  marcCarregar(); marcAtualizarBadge();
+}
+async function marcComentar(id) {
+  const inp = document.getElementById('marc-coment-' + id);
+  const texto = inp.value.trim();
+  if (!texto) return;
+  const r = await pacApi('/api/clinico/mentions/' + id + '/comentar', { method: 'POST', body: JSON.stringify({ texto }) });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  marcCarregar(); marcAtualizarBadge();
+}
+function marcIrParaOrigem(mentionId, patientId, nome, codigo) {
+  // Marca como lida ao navegar
+  pacApi('/api/clinico/mentions/' + mentionId + '/ler', { method: 'PUT' }).then(() => marcAtualizarBadge());
+  marcFechar();
+  trocarView('prontuario');
+  prSelecionarPaciente({ id: patientId, nome: nome.replace(/&apos;/g, "'"), codigo, telefone: '' });
 }
 
 // ============================================================
@@ -11668,6 +12051,8 @@ function prAbrirNovaEvol() {
   document.getElementById('pr-evol-peso').value = '';
   document.getElementById('pr-evol-conteudo').innerHTML = '';
   document.getElementById('pr-evol-tpl-info').innerHTML = '';
+  prEvolMencoes = [];
+  prEvolAtualizarChips();
   document.getElementById('pr-evol-salvar-tpl').checked = false;
   document.getElementById('pr-evol-salvar-tpl-nome').style.display = 'none';
   document.getElementById('pr-evol-salvar-tpl-nome').value = '';
@@ -11939,6 +12324,7 @@ async function prSalvarEvol() {
     data: document.getElementById('pr-evol-data').value ? new Date(document.getElementById('pr-evol-data').value).toISOString() : null,
     salvar_template: salvarTpl && !modoForm,    // salvar como template só faz sentido em modo texto
     salvar_template_nome: salvarTpl && !modoForm ? (salvarTplNome || 'Texto personalizado') : null,
+    mencoes_marcacao: [...new Map(prEvolMencoes.map(m => [m.user_id, m])).values()],
   };
 
   const btn = document.getElementById('pr-evol-salvar');
@@ -12988,6 +13374,30 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarMe();
 });
 </script>
+
+<!-- ============== DROPDOWN DE MENÇÃO (@) ============== -->
+<div class="mention-dd" id="mention-dd" style="display:none;"></div>
+
+<!-- ============== MODAL CAIXA DE MARCAÇÕES ============== -->
+<div class="ag-modal-overlay" id="marc-modal" onclick="if(event.target.id==='marc-modal') marcFechar()">
+  <div class="ag-modal" style="max-width: 620px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-at"></i> <span>Marcações</span></div>
+      <button class="pac-modal-close" onclick="marcFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="marc-tabs">
+      <button class="marc-tab active" data-marc-tab="recebidas" onclick="marcTrocarTab('recebidas')">
+        <i class="ti ti-inbox"></i> Recebidas <span class="marc-badge" id="marc-badge-receb" style="display:none;">0</span>
+      </button>
+      <button class="marc-tab" data-marc-tab="enviadas" onclick="marcTrocarTab('enviadas')">
+        <i class="ti ti-send"></i> Enviadas
+      </button>
+    </div>
+    <div class="ag-modal-body" id="marc-body" style="max-height: 60vh; overflow-y: auto;">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
+    </div>
+  </div>
+</div>
 
 <!-- ============== JANELA DE CHAT FLUTUANTE (canto inferior direito) ============== -->
 <div class="chat-floating" id="chat-floating" style="display:none;">
