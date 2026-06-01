@@ -2923,6 +2923,65 @@
       font-size: 10px;
     }
 
+    /* Reports no painel dev */
+    .dev-report-item {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .dev-report-item .topo {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; flex-wrap: wrap;
+      font-size: 11px; color: #7d8590;
+    }
+    .dev-report-item .tipo-sev {
+      display: inline-flex; align-items: center; gap: 6px;
+      text-transform: uppercase; letter-spacing: 0.4px; font-size: 10px;
+    }
+    .dev-report-item .tipo-sev strong { color: #c9d1d9; }
+    .dev-report-item .sev-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dev-report-item .rep-status { font-weight: 700; }
+    .dev-report-item .titulo { font-size: 13px; color: #f0f6fc; font-weight: 600; margin-top: 6px; }
+    .dev-report-item .desc { font-size: 12px; color: #c9d1d9; margin-top: 3px; line-height: 1.4; white-space: pre-wrap; }
+    .dev-report-item .resp {
+      font-size: 11px; color: #6FD89A; margin-top: 6px;
+      padding: 5px 8px; background: rgba(29,158,117,0.08); border-radius: 6px;
+    }
+    .dev-report-item .acoes { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .dev-report-item .acoes button {
+      background: transparent; border: 1px solid #30363d; color: #8b949e;
+      padding: 3px 9px; border-radius: 5px; cursor: pointer; font-size: 10px; font-family: inherit;
+    }
+    .dev-report-item .acoes button:hover { border-color: #E8945A; color: #E8945A; }
+
+    /* ====== BOTÃO FLUTUANTE DE REPORT ====== */
+    .bug-fab {
+      position: fixed;
+      bottom: 20px; left: 20px;
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      z-index: 9400;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      transition: all 0.15s;
+    }
+    .bug-fab:hover {
+      background: rgba(248,81,73,0.15);
+      border-color: rgba(248,81,73,0.4);
+      color: #f85149;
+      transform: scale(1.08);
+    }
+    @media (max-width: 600px) {
+      .bug-fab { bottom: 14px; left: 14px; width: 42px; height: 42px; }
+    }
+
     /* ====== MENÇÕES (@) ====== */
     .badge-marcacoes {
       position: absolute; top: -3px; right: -3px;
@@ -8890,6 +8949,47 @@ function marcIrParaOrigem(mentionId, patientId, nome, codigo, origemId) {
 }
 
 // ============================================================
+// REPORTAR BUG / ERRO
+// ============================================================
+function bugAbrir() {
+  document.getElementById('bug-tipo').value = 'BUG';
+  document.getElementById('bug-severidade').value = 'MEDIA';
+  document.getElementById('bug-titulo').value = '';
+  document.getElementById('bug-descricao').value = '';
+  document.getElementById('bug-erro').style.display = 'none';
+  document.getElementById('bug-modal').classList.add('aberto');
+  setTimeout(() => document.getElementById('bug-titulo').focus(), 80);
+}
+function bugFechar() {
+  document.getElementById('bug-modal').classList.remove('aberto');
+}
+async function bugEnviar() {
+  const erroEl = document.getElementById('bug-erro');
+  erroEl.style.display = 'none';
+  const titulo = document.getElementById('bug-titulo').value.trim();
+  const descricao = document.getElementById('bug-descricao').value.trim();
+  if (!titulo) { erroEl.textContent = 'Informe um título'; erroEl.style.display = 'block'; return; }
+  if (!descricao) { erroEl.textContent = 'Descreva o problema'; erroEl.style.display = 'block'; return; }
+
+  // Tela atual = view ativa
+  const viewAtiva = document.querySelector('.view.active');
+  const rota = viewAtiva ? viewAtiva.id.replace('view-', '') : '';
+
+  const body = {
+    tipo: document.getElementById('bug-tipo').value,
+    severidade: document.getElementById('bug-severidade').value,
+    titulo, descricao, rota,
+  };
+  const btn = document.getElementById('bug-enviar-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Enviando...';
+  const r = await pacApi('/api/clinico/report', { method: 'POST', body: JSON.stringify(body) });
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Enviar';
+  if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro ao enviar'; erroEl.style.display = 'block'; return; }
+  bugFechar();
+  alert('Report enviado ao desenvolvedor. Obrigado!');
+}
+
+// ============================================================
 // CHAT FLUTUANTE (canto inferior direito)
 // Por enquanto so estrutura visual; integracao real virá depois.
 // ============================================================
@@ -10768,7 +10868,54 @@ function devRender(d) {
     </div>
   `;
 
-  document.getElementById('dev-conteudo').innerHTML = cards + dbStatsHtml + sessoesHtml + errosHtml + cargosHtml + auditHtml;
+  // Reports de bug dos usuários
+  const reps = d.reports || { abertos: 0, total: 0, recentes: [] };
+  const sevCor = { BAIXA: '#7d8590', MEDIA: '#4A90E2', ALTA: '#EF9F27', CRITICA: '#f85149' };
+  const statusReportCor = { ABERTO: '#f85149', EM_ANALISE: '#EF9F27', RESOLVIDO: '#1D9E75', DESCARTADO: '#7d8590' };
+  const reportsHtml = `
+    <div class="dev-table-wrap">
+      <div class="dev-table-head">
+        <div class="ttl"><i class="ti ti-message-report"></i> Reports dos usuários</div>
+        <div class="count">${reps.abertos} aberto(s) · ${reps.total} total</div>
+      </div>
+      ${reps.recentes.length === 0
+        ? '<div style="padding: 20px; text-align:center; color:#6e7681; font-size:11px;">Nenhum report enviado.</div>'
+        : `<div style="padding: 8px;">
+            ${reps.recentes.map(r => {
+              const dt = new Date(r.criado_em);
+              const dtFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+              return `
+                <div class="dev-report-item">
+                  <div class="topo">
+                    <span class="tipo-sev">
+                      <span class="sev-dot" style="background:${sevCor[r.severidade]||'#7d8590'};"></span>
+                      <strong>${r.tipo}</strong> · ${r.severidade}
+                      <span class="rep-status" style="color:${statusReportCor[r.status]||'#7d8590'};">${r.status}</span>
+                    </span>
+                    <span class="meta">${r.reporter || 'anônimo'} · ${dtFmt}${r.rota ? ' · ' + r.rota : ''}</span>
+                  </div>
+                  <div class="titulo">${(r.titulo||'').replace(/</g,'&lt;')}</div>
+                  <div class="desc">${(r.descricao||'').replace(/</g,'&lt;')}</div>
+                  ${r.resposta ? `<div class="resp"><i class="ti ti-corner-down-right"></i> ${r.resposta.replace(/</g,'&lt;')}</div>` : ''}
+                  <div class="acoes">
+                    ${r.status !== 'EM_ANALISE' ? `<button onclick="devReportStatus('${r.id}','EM_ANALISE')">Em análise</button>` : ''}
+                    ${r.status !== 'RESOLVIDO' ? `<button onclick="devReportStatus('${r.id}','RESOLVIDO')">Resolver</button>` : ''}
+                    ${r.status !== 'DESCARTADO' ? `<button onclick="devReportStatus('${r.id}','DESCARTADO')">Descartar</button>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>`}
+    </div>
+  `;
+
+  document.getElementById('dev-conteudo').innerHTML = cards + reportsHtml + dbStatsHtml + sessoesHtml + errosHtml + cargosHtml + auditHtml;
+}
+
+async function devReportStatus(id, status) {
+  const r = await pacApi('/api/clinico/dev/reports/' + id, { method: 'PUT', body: JSON.stringify({ status }) });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  devCarregar();
 }
 
 async function devRevogarSessao(id) {
@@ -13367,6 +13514,67 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarMe();
 });
 </script>
+
+<!-- ============== BOTÃO FLUTUANTE + MODAL REPORTAR BUG ============== -->
+<button class="bug-fab" id="bug-fab" onclick="bugAbrir()" title="Reportar bug ou erro">
+  <i class="ti ti-bug"></i>
+</button>
+
+<div class="ag-modal-overlay" id="bug-modal" onclick="if(event.target.id==='bug-modal') bugFechar()">
+  <div class="ag-modal" style="max-width: 480px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-bug"></i> <span>Reportar bug ou erro</span></div>
+      <button class="pac-modal-close" onclick="bugFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="bug-erro"></div>
+      <div style="font-size:11px; color:#8b949e; margin-bottom:12px;">
+        <i class="ti ti-info-circle" style="color:#4A90E2;"></i>
+        Vai direto pro desenvolvedor. Quanto mais detalhe, mais rápido a correção.
+      </div>
+      <div class="pac-form-grid col-2">
+        <div class="pac-field">
+          <label>Tipo</label>
+          <select id="bug-tipo">
+            <option value="BUG">Bug (algo quebrado)</option>
+            <option value="ERRO">Erro / mensagem estranha</option>
+            <option value="SUGESTAO">Sugestão</option>
+            <option value="DUVIDA">Dúvida</option>
+          </select>
+        </div>
+        <div class="pac-field">
+          <label>Gravidade</label>
+          <select id="bug-severidade">
+            <option value="BAIXA">Baixa</option>
+            <option value="MEDIA" selected>Média</option>
+            <option value="ALTA">Alta</option>
+            <option value="CRITICA">Crítica (trava o uso)</option>
+          </select>
+        </div>
+      </div>
+      <div class="pac-field" style="margin-top:10px;">
+        <label>Título <span class="req">*</span></label>
+        <input type="text" id="bug-titulo" placeholder="Resumo curto do problema">
+      </div>
+      <div class="pac-field" style="margin-top:10px;">
+        <label>Descrição <span class="req">*</span></label>
+        <textarea id="bug-descricao" placeholder="O que você estava fazendo? O que aconteceu? O que esperava que acontecesse?" style="min-height:90px;"></textarea>
+      </div>
+      <div style="font-size:10px; color:#6e7681; margin-top:8px;">
+        <i class="ti ti-map-pin" style="font-size:10px;"></i> Tela atual e seu navegador são enviados automaticamente.
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="bugFechar()">Cancelar</button>
+        <button class="pac-btn-primary" id="bug-enviar-btn" onclick="bugEnviar()">
+          <i class="ti ti-send"></i> Enviar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============== DROPDOWN DE MENÇÃO (@) ============== -->
 <div class="mention-dd" id="mention-dd" style="display:none;"></div>
