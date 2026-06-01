@@ -1793,6 +1793,43 @@
       font-weight: 400;
     }
     /* Blocos de destaque grandes (status, programa, semana, fase) */
+    /* Faixa de alerta de segurança (alergias / comorbidades) */
+    .pr-h2-alerta {
+      margin-top: 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(125,133,144,0.08);
+      border: 1px solid #30363d;
+    }
+    .pr-h2-alerta.critico {
+      background: rgba(248,81,73,0.08);
+      border-color: rgba(248,81,73,0.35);
+    }
+    .pr-h2-alerta .al-item {
+      display: flex; align-items: flex-start; gap: 7px;
+      font-size: 12px; color: #c9d1d9; line-height: 1.4;
+    }
+    .pr-h2-alerta .al-item i { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+    .pr-h2-alerta .al-item.alergia i { color: #f85149; }
+    .pr-h2-alerta .al-item.alergia strong { color: #f85149; }
+    .pr-h2-alerta .al-item.comorb i { color: #E8945A; }
+    .pr-h2-alerta .al-item.comorb strong { color: #E8945A; }
+
+    /* Linha de contexto (próximo retorno, última visita, equipe) */
+    .pr-h2-contexto {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      font-size: 11px; color: #8b949e;
+    }
+    .pr-h2-contexto span { display: inline-flex; align-items: center; gap: 5px; }
+    .pr-h2-contexto i { color: #E8945A; font-size: 12px; }
+    .pr-h2-contexto strong { color: #f0f6fc; font-weight: 500; }
+
     .pr-h2-blocos {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -9424,6 +9461,37 @@ function prRenderHeaderRico() {
 
   const fmtKg = (v) => v != null ? v.toString().replace('.', ',') + ' kg' : '--';
   const fmtDataCurta = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '--';
+  const fmtDataHora = (iso) => {
+    if (!iso) return '--';
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' · ' +
+      d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Faixa de ALERTA de segurança (alergias + comorbidades) -- sempre visível
+  const temAlergia = h.alergias && String(h.alergias).trim();
+  const comorb = h.comorbidades || [];
+  let alertaHtml = '';
+  if (temAlergia || comorb.length) {
+    alertaHtml = `
+      <div class="pr-h2-alerta ${temAlergia ? 'critico' : ''}">
+        ${temAlergia ? `<div class="al-item alergia"><i class="ti ti-alert-triangle"></i> <span><strong>Alergias:</strong> ${String(h.alergias).replace(/</g,'&lt;')}</span></div>` : ''}
+        ${comorb.length ? `<div class="al-item comorb"><i class="ti ti-heartbeat"></i> <span><strong>Comorbidades:</strong> ${comorb.join(', ')}</span></div>` : ''}
+      </div>
+    `;
+  }
+
+  // Linha de CONTEXTO (próximo retorno + última visita + médico/nutri)
+  const ctxLinhas = [];
+  if (h.proximo_agendamento) {
+    ctxLinhas.push(`<span><i class="ti ti-calendar-event"></i> Próx. retorno: <strong>${fmtDataHora(h.proximo_agendamento.start_at)}</strong> · ${h.proximo_agendamento.tipo}</span>`);
+  }
+  if (h.ultima_evolucao) {
+    ctxLinhas.push(`<span><i class="ti ti-history"></i> Última evolução: <strong>${fmtDataHora(h.ultima_evolucao.data)}</strong> (${h.ultima_evolucao.profissional})</span>`);
+  }
+  if (h.medico) ctxLinhas.push(`<span><i class="ti ti-stethoscope"></i> Médico: <strong>${h.medico.name || h.medico.email}</strong></span>`);
+  if (h.nutri) ctxLinhas.push(`<span><i class="ti ti-apple"></i> Nutri: <strong>${h.nutri.name || h.nutri.email}</strong></span>`);
+  const ctxHtml = ctxLinhas.length ? `<div class="pr-h2-contexto">${ctxLinhas.join('')}</div>` : '';
 
   // Taxa de variação por semana (% / semana)
   let taxaSemHtml = '';
@@ -9523,8 +9591,12 @@ function prRenderHeaderRico() {
         </button>
       </div>
 
+      ${alertaHtml}
+
       <!-- Blocos de destaque grandes -->
       <div class="pr-h2-blocos">${blocosHtml}</div>
+
+      ${ctxHtml}
 
       ${bannersHtml}
 
@@ -11374,6 +11446,7 @@ function prRenderItem(it) {
         </div>
       `).join('') + '</div>';
       if (d.observacoes) body += `<div style="font-size:11px; color:#7d8590; margin-top:8px; padding-top:8px; border-top:1px solid rgba(33,38,45,0.6);">${d.observacoes}</div>`;
+      body += `<div style="margin-top:10px;"><button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prImprimirPrescricao(${JSON.stringify(d).replace(/'/g, "&apos;")})'><i class="ti ti-printer"></i> Imprimir receita</button></div>`;
       break;
     }
     case 'exame_pedido': {
@@ -11756,6 +11829,78 @@ async function prDeletarEvol(id) {
 }
 
 // ===== PRESCRIÇÃO =====
+
+// ===== IMPRESSÃO DE RECEITA =====
+function prImprimirPrescricao(d) {
+  if (typeof d === 'string') { try { d = JSON.parse(d.replace(/&apos;/g, "'")); } catch { return; } }
+  const h = prState.headerData || {};
+  const tipoMap = { BRANCA_COMUM: 'Receituário', BRANCA_CONTROLADA: 'Receituário de Controle Especial', AZUL_CONTROLADA: 'Receituário Azul (B)', ATESTADO: 'Atestado' };
+  const dataFmt = d.data ? new Date(d.data).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+  const unidade = h.unidade?.nome || 'Aplic & Go';
+  const medico = (h.medico && (h.medico.name || h.medico.email)) || d.profissional || '________________';
+
+  const itensHtml = (d.itens || []).map((i, n) => `
+    <div class="rx-item">
+      <div class="rx-med">${n + 1}. ${i.medicamento || ''}${i.dose ? ' — ' + i.dose : ''}</div>
+      ${(i.frequencia || i.duracao) ? `<div class="rx-uso">${[i.frequencia, i.duracao].filter(Boolean).join(' · ')}</div>` : ''}
+      ${i.observacoes ? `<div class="rx-obs">${i.observacoes}</div>` : ''}
+    </div>
+  `).join('');
+
+  const win = window.open('', '_blank', 'width=800,height=900');
+  if (!win) { alert('Permita pop-ups para imprimir a receita.'); return; }
+  win.document.write(`
+    <!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+    <title>Receita -- ${h.nome_completo || 'Paciente'}</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; max-width: 720px; margin: 0 auto; padding: 40px 48px; }
+      .rx-cab { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #1D9E75; padding-bottom: 14px; margin-bottom: 8px; }
+      .rx-cab .clinica { font-size: 20px; font-weight: 700; color: #0F6E56; }
+      .rx-cab .unidade { font-size: 12px; color: #555; margin-top: 2px; }
+      .rx-cab .tipo { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; text-align: right; }
+      .rx-pac { font-size: 13px; color: #333; margin: 16px 0; padding: 10px 14px; background: #f5f7f6; border-radius: 6px; }
+      .rx-pac strong { color: #0F6E56; }
+      .rx-titulo { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #0F6E56; font-weight: 700; margin: 26px 0 14px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+      .rx-item { margin-bottom: 16px; }
+      .rx-med { font-size: 15px; font-weight: 600; }
+      .rx-uso { font-size: 13px; color: #444; margin-top: 3px; padding-left: 16px; }
+      .rx-obs { font-size: 12px; color: #666; font-style: italic; margin-top: 3px; padding-left: 16px; }
+      .rx-extra { margin-top: 24px; font-size: 12px; color: #555; white-space: pre-wrap; }
+      .rx-assina { margin-top: 70px; text-align: center; }
+      .rx-assina .linha { border-top: 1px solid #333; width: 280px; margin: 0 auto 4px; }
+      .rx-assina .nome { font-size: 13px; font-weight: 600; }
+      .rx-assina .crm { font-size: 11px; color: #777; }
+      .rx-rodape { margin-top: 40px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
+      @media print { body { padding: 24px; } button { display: none; } }
+    </style></head><body>
+      <div class="rx-cab">
+        <div>
+          <div class="clinica">Aplic &amp; Go</div>
+          <div class="unidade">${unidade}</div>
+        </div>
+        <div class="tipo">${tipoMap[d.tipo_receita] || 'Receituário'}<br>${dataFmt}</div>
+      </div>
+      <div class="rx-pac">
+        <strong>Paciente:</strong> ${h.nome_completo || '--'}${h.codigo ? ' (' + h.codigo + ')' : ''}
+        ${h.idade != null ? ' · ' + h.idade + ' anos' : ''}
+      </div>
+      <div class="rx-titulo">${d.tipo_receita === 'ATESTADO' ? 'Atestado' : 'Prescrição'}</div>
+      ${itensHtml || '<div style="color:#999;">Sem itens.</div>'}
+      ${d.observacoes ? `<div class="rx-extra"><strong>Observações:</strong> ${d.observacoes}</div>` : ''}
+      <div class="rx-assina">
+        <div class="linha"></div>
+        <div class="nome">${medico}</div>
+        <div class="crm">CRM / responsável técnico</div>
+      </div>
+      <div class="rx-rodape">Documento gerado pelo Sistema Clínico Aplic &amp; Go em ${new Date().toLocaleString('pt-BR')}</div>
+      <div style="text-align:center; margin-top:20px;">
+        <button onclick="window.print()" style="padding:10px 24px; background:#1D9E75; color:#fff; border:0; border-radius:6px; font-size:14px; cursor:pointer;">Imprimir / Salvar PDF</button>
+      </div>
+    </body></html>
+  `);
+  win.document.close();
+}
 
 function prAbrirNovaPresc() {
   if (!prState.pacienteAtual) return;

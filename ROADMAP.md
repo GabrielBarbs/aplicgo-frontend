@@ -1,5 +1,15 @@
 # Roadmap -- Sistema Clínico Aplic & Go
 
+## Prontuário -- completude essencial ✅ (parcial)
+- [x] Faixa de alerta de segurança (alergias em vermelho + comorbidades) sempre visível no header
+- [x] Contexto no header: próximo retorno, última evolução, médico, nutri
+- [x] Prescrição imprimível (janela de impressão / salvar PDF com cabeçalho da clínica, paciente, itens, assinatura)
+- [ ] Anexos de exames/documentos/fotos (precisa storage -- S3/R2 ou disco VPS) -- PENDENTE decisão do Matheus
+- [ ] Assinatura/travamento de evolução (compliance CFM) -- Onda 2
+- [ ] Resultado de exame estruturado + análise -- Onda 2
+- [ ] Impressão do prontuário completo -- Onda 2
+
+
 Tarefas mapeadas a partir do PRD §3-§7 e da Aula 05/29 (Jornada do Paciente).
 Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor sozinho.
 
