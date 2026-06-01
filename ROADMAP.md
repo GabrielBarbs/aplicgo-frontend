@@ -4,7 +4,7 @@
 - [x] Faixa de alerta de segurança (alergias em vermelho + comorbidades) sempre visível no header
 - [x] Contexto no header: próximo retorno, última evolução, médico, nutri
 - [x] Prescrição imprimível (janela de impressão / salvar PDF com cabeçalho da clínica, paciente, itens, assinatura)
-- [ ] Anexos de exames/documentos/fotos (precisa storage -- S3/R2 ou disco VPS) -- PENDENTE decisão do Matheus
+- [x] Anexos -- FRONT pronto (área de upload + lista + remover), sem persistência ainda. Avisa "armazenamento entra depois". Falta: decidir storage (S3/R2/disco) + endpoint de upload + tabela ClinPatientDocument já existe no schema
 - [ ] Assinatura/travamento de evolução (compliance CFM) -- Onda 2
 - [ ] Resultado de exame estruturado + análise -- Onda 2
 - [ ] Impressão do prontuário completo -- Onda 2

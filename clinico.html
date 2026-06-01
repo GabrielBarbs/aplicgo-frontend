@@ -2519,6 +2519,75 @@
       color: var(--cor-prof, #E8945A);
     }
 
+    /* ===== ANEXOS ===== */
+    .pr-anexos-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 14px;
+    }
+    .pr-anexos-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .pr-anexos-head .ttl {
+      font-size: 12px; color: #f0f6fc;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pr-anexos-head .ttl i { color: #E8945A; }
+    .pr-anexos-head .aviso-soft {
+      font-size: 10px; color: #EF9F27;
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(239,159,39,0.08);
+      border: 1px solid rgba(239,159,39,0.25);
+      padding: 2px 8px; border-radius: 10px;
+    }
+    .pr-anexos-drop {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px;
+      padding: 22px;
+      border: 2px dashed #30363d;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .pr-anexos-drop:hover { border-color: #E8945A; background: rgba(232,148,90,0.04); }
+    .pr-anexos-drop i { font-size: 28px; color: #7d8590; }
+    .pr-anexos-drop .txt { font-size: 13px; color: #c9d1d9; }
+    .pr-anexos-drop .txt strong { color: #E8945A; }
+    .pr-anexos-drop .sub { font-size: 11px; color: #6e7681; }
+    .pr-anexos-lista {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 10px;
+    }
+    .pr-anexos-vazio {
+      font-size: 11px; color: #6e7681; font-style: italic;
+      text-align: center; padding: 10px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .pr-anexo-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+    }
+    .pr-anexo-item > i { font-size: 18px; color: #4A90E2; flex-shrink: 0; }
+    .pr-anexo-item .info { flex: 1; min-width: 0; }
+    .pr-anexo-item .nome { font-size: 12px; color: #f0f6fc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pr-anexo-item .meta { font-size: 10px; color: #7d8590; margin-top: 1px; }
+    .pr-anexo-item .rm {
+      background: transparent; border: 0; color: #7d8590;
+      cursor: pointer; width: 26px; height: 26px; border-radius: 6px;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .pr-anexo-item .rm:hover { background: rgba(248,81,73,0.12); color: #f85149; }
+
     /* Histórico recolhível */
     .pr-hist-section {
       margin-top: 14px;
@@ -9358,6 +9427,7 @@ async function prBuscarPaciente() {
 
 async function prSelecionarPaciente(p) {
   prState.pacienteAtual = p;
+  prState.anexosTemp = [];   // reseta anexos temporários ao trocar de paciente
   // Esconde input, mostra placeholder enquanto carrega o header
   const sel = document.getElementById('pr-pat-selector');
   sel.innerHTML = `
@@ -11067,6 +11137,9 @@ function prRenderTimeline() {
   // Cards por profissional (Aula Cap 5)
   const cardsHtml = prRenderCardsPorProfissional();
 
+  // Anexos (UI pronta, sem persistência ainda)
+  const anexosHtml = prRenderAnexos();
+
   // Histórico completo (recolhível, default fechado se já tem cards)
   const histAberto = prState.histAberto || items.length === 0;
   const histToggleLabel = histAberto ? 'Recolher histórico completo' : `Ver histórico completo (${items.length} registros)`;
@@ -11084,7 +11157,73 @@ function prRenderTimeline() {
     </div>
   `;
 
-  conteudo.innerHTML = headerHtml + cardsHtml + actionsBar + histHtml;
+  conteudo.innerHTML = headerHtml + cardsHtml + actionsBar + anexosHtml + histHtml;
+}
+
+// ===== ANEXOS (front pronto, sem persistência ainda) =====
+function prRenderAnexos() {
+  const arquivos = prState.anexosTemp || [];
+  const listaHtml = arquivos.length === 0
+    ? '<div class="pr-anexos-vazio"><i class="ti ti-folder-open"></i> Nenhum anexo ainda. Exames, laudos, fotos de evolução e documentos entram aqui.</div>'
+    : arquivos.map((a, i) => `
+        <div class="pr-anexo-item">
+          <i class="ti ti-${a.icone}"></i>
+          <div class="info">
+            <div class="nome">${a.nome}</div>
+            <div class="meta">${a.tipo} · ${a.tamanho}</div>
+          </div>
+          <button class="rm" onclick="prRemoverAnexoTemp(${i})" title="Remover"><i class="ti ti-x"></i></button>
+        </div>
+      `).join('');
+  return `
+    <div class="pr-anexos-card">
+      <div class="pr-anexos-head">
+        <div class="ttl"><i class="ti ti-paperclip"></i> Anexos &amp; Documentos</div>
+        <span class="aviso-soft"><i class="ti ti-info-circle"></i> Armazenamento entra na próxima etapa</span>
+      </div>
+      <label class="pr-anexos-drop">
+        <input type="file" multiple style="display:none;" onchange="prSelecionarAnexos(this.files)">
+        <i class="ti ti-cloud-upload"></i>
+        <div class="txt"><strong>Clique para anexar</strong> ou arraste arquivos</div>
+        <div class="sub">Exames (PDF), laudos, fotos de evolução, contrato, termo</div>
+      </label>
+      <div class="pr-anexos-lista">${listaHtml}</div>
+    </div>
+  `;
+}
+
+function prFmtTamanho(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+function prIconePorTipo(mime) {
+  if (!mime) return 'file';
+  if (mime.startsWith('image/')) return 'photo';
+  if (mime === 'application/pdf') return 'file-type-pdf';
+  if (mime.includes('word')) return 'file-type-doc';
+  return 'file';
+}
+function prSelecionarAnexos(files) {
+  if (!prState.anexosTemp) prState.anexosTemp = [];
+  Array.from(files).forEach(f => {
+    prState.anexosTemp.push({
+      nome: f.name,
+      tipo: f.type || 'arquivo',
+      tamanho: prFmtTamanho(f.size),
+      icone: prIconePorTipo(f.type),
+    });
+  });
+  prRenderTimeline();
+  // Aviso uma vez de que ainda não salva
+  if (!prState._avisouAnexo) {
+    prState._avisouAnexo = true;
+    setTimeout(() => alert('Os anexos aparecem na lista, mas o armazenamento ainda não está ativo -- nada é salvo no servidor por enquanto. Isso entra na próxima etapa.'), 100);
+  }
+}
+function prRemoverAnexoTemp(i) {
+  if (prState.anexosTemp) prState.anexosTemp.splice(i, 1);
+  prRenderTimeline();
 }
 
 function prToggleHistorico() {
