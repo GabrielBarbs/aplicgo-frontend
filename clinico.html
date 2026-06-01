@@ -2229,6 +2229,38 @@
     }
 
     /* Abas Anterior | Atual | + dentro do card */
+    /* Botões Onboarding / Acompanhamento do setor */
+    .pr-card-setor-acoes {
+      display: flex; gap: 6px;
+      padding: 10px;
+      border-bottom: 1px solid #21262d;
+    }
+    .pr-card-setor-acoes .setor-btn {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 9px 10px;
+      border-radius: 7px;
+      border: 1px solid;
+      cursor: pointer;
+      font-size: 11px; font-weight: 600;
+      font-family: inherit;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      transition: all 0.12s;
+    }
+    .pr-card-setor-acoes .setor-btn i { font-size: 14px; }
+    .pr-card-setor-acoes .setor-btn.onboarding {
+      background: rgba(111,216,154,0.10);
+      border-color: rgba(111,216,154,0.30);
+      color: #6FD89A;
+    }
+    .pr-card-setor-acoes .setor-btn.onboarding:hover { background: rgba(111,216,154,0.20); }
+    .pr-card-setor-acoes .setor-btn.acomp {
+      background: rgba(232,148,90,0.10);
+      border-color: rgba(232,148,90,0.30);
+      color: #E8945A;
+    }
+    .pr-card-setor-acoes .setor-btn.acomp:hover { background: rgba(232,148,90,0.20); }
+
     .pr-card-abas {
       display: flex; gap: 4px;
       padding: 4px;
@@ -11029,15 +11061,54 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
         </div>
       </div>
       <div class="pr-card-prof-body" style="display:${recolhido ? 'none' : 'block'};">
+        ${podeCriar ? `
+          <div class="pr-card-setor-acoes" onclick="event.stopPropagation()">
+            <button class="setor-btn onboarding" onclick="prAbrirSetor('${prof.tipo}', 'ONBOARDING')">
+              <i class="ti ti-clipboard-plus"></i> Onboarding
+            </button>
+            <button class="setor-btn acomp" onclick="prAbrirSetor('${prof.tipo}', 'ACOMPANHAMENTO')">
+              <i class="ti ti-progress-check"></i> Acompanhamento
+            </button>
+          </div>
+        ` : ''}
         <div class="pr-card-abas" onclick="event.stopPropagation()">
           <button class="aba ${aba === 'anterior' ? 'ativa' : ''}" ${podeAnterior ? '' : 'disabled'} onclick="prCardTrocarAba('${prof.tipo}', 'anterior')">Anterior</button>
           <button class="aba ${aba === 'atual' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'atual')">Atual</button>
-          ${podeCriar ? `<button class="aba aba-plus" onclick="event.stopPropagation(); prAbrirNovaEvolTipo('${prof.tipo}')" title="Nova evolução"><i class="ti ti-plus"></i></button>` : ''}
         </div>
         ${conteudoHtml}
       </div>
     </div>
   `;
+}
+
+// Abre o modal de evolução pré-carregando o template do setor + categoria.
+// Se não existir template configurado, abre evolução em branco do tipo.
+async function prAbrirSetor(tipo, categoria) {
+  if (!prState.pacienteAtual) return;
+  const r = await pacApi(`/api/clinico/prontuario/evolution-templates?tipo=${tipo}&categoria=${categoria}`);
+  const templates = (r.ok && r.data.templates) ? r.data.templates : [];
+  if (templates.length === 0) {
+    // Setor sem template configurado ainda -- abre evolução em branco
+    prAbrirNovaEvol();
+    setTimeout(() => {
+      const sel = document.getElementById('pr-evol-tipo');
+      if (sel) sel.value = tipo;
+      const info = document.getElementById('pr-evol-tpl-info');
+      if (info) info.innerHTML = `<i class="ti ti-info-circle" style="color:#7d8590;"></i> ${categoria === 'ONBOARDING' ? 'Onboarding' : 'Acompanhamento'} ${prTipoLabel(tipo)} -- template ainda não configurado. Use texto livre por enquanto.`;
+    }, 60);
+    return;
+  }
+  // Tem template: abre e aplica o primeiro
+  prAbrirNovaEvol();
+  setTimeout(() => {
+    const sel = document.getElementById('pr-evol-tipo');
+    if (sel) sel.value = tipo;
+    prAplicarTemplate(templates[0].slug, templates[0].nome);
+  }, 80);
+}
+
+function prTipoLabel(tipo) {
+  return ({ MEDICA: 'médico', NUTRICIONAL: 'nutricional', ENFERMAGEM: 'de enfermagem', GERAL: 'geral' })[tipo] || tipo.toLowerCase();
 }
 
 function prCardTrocarAba(tipo, aba) {
