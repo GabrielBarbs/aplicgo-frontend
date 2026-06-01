@@ -1775,30 +1775,47 @@
       font-family: 'SF Mono', Consolas, monospace;
       font-weight: 400;
     }
-    .pr-h2-id .badges {
-      display: flex; gap: 6px; flex-wrap: wrap;
-      margin-top: 6px;
+    /* Blocos de destaque grandes (status, programa, semana, fase) */
+    .pr-h2-blocos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
     }
-    .pr-h2-id .badges .b {
-      font-size: 10px; padding: 2px 8px;
-      border-radius: 10px; border: 1px solid;
-      text-transform: uppercase; letter-spacing: 0.4px;
-      font-weight: 500;
-      display: inline-flex; align-items: center; gap: 4px;
+    .pr-h2-bloco {
+      border-radius: 10px;
+      padding: 12px 16px;
+      border: 1px solid;
+      border-left-width: 4px;
     }
-    .pr-h2-id .badges .b.status-ATIVO { background: rgba(29,158,117,0.10); color: #1D9E75; border-color: rgba(29,158,117,0.30); }
-    .pr-h2-id .badges .b.status-INATIVO { background: rgba(125,133,144,0.10); color: #7d8590; border-color: rgba(125,133,144,0.30); }
-    .pr-h2-id .badges .b.status-INCOMPLETO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
-    .pr-h2-id .badges .b.status-PRE_PROGRAMA { background: rgba(74,144,226,0.10); color: #4A90E2; border-color: rgba(74,144,226,0.30); }
-    .pr-h2-id .badges .b.status-PAUSADO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
-    .pr-h2-id .badges .b.status-CONCLUIDO, .pr-h2-id .badges .b.status-FINALIZADO { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
-    .pr-h2-id .badges .b.status-REATIVAVEL { background: rgba(232,148,90,0.10); color: #E8945A; border-color: rgba(232,148,90,0.30); }
-    .pr-h2-id .badges .b.status-CANCELADO { background: rgba(125,133,144,0.10); color: #7d8590; border-color: rgba(125,133,144,0.30); }
-    .pr-h2-id .badges .b.programa { background: rgba(232,148,90,0.10); color: #E8945A; border-color: rgba(232,148,90,0.30); }
-    .pr-h2-id .badges .b.semana { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
-    .pr-h2-id .badges .b.fase { background: rgba(74,144,226,0.10); color: #4A90E2; border-color: rgba(74,144,226,0.30); }
-    .pr-h2-id .badges .b.clinico-ATENCAO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
-    .pr-h2-id .badges .b.clinico-URGENCIA { background: rgba(248,81,73,0.15); color: #f85149; border-color: rgba(248,81,73,0.40); }
+    .pr-h2-bloco .bl-label {
+      font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.6px;
+      font-weight: 600;
+      opacity: 0.85;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .pr-h2-bloco .bl-label i { font-size: 12px; }
+    .pr-h2-bloco .bl-valor {
+      font-size: 22px; font-weight: 700;
+      margin-top: 4px;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+    }
+    /* Cores por tipo */
+    .pr-h2-bloco.status-ATIVO { background: rgba(29,158,117,0.10); border-color: rgba(29,158,117,0.35); color: #1D9E75; }
+    .pr-h2-bloco.status-INATIVO { background: rgba(125,133,144,0.10); border-color: rgba(125,133,144,0.35); color: #7d8590; }
+    .pr-h2-bloco.status-INCOMPLETO { background: rgba(239,159,39,0.10); border-color: rgba(239,159,39,0.35); color: #EF9F27; }
+    .pr-h2-bloco.status-PRE_PROGRAMA { background: rgba(74,144,226,0.10); border-color: rgba(74,144,226,0.35); color: #4A90E2; }
+    .pr-h2-bloco.status-PAUSADO { background: rgba(239,159,39,0.10); border-color: rgba(239,159,39,0.35); color: #EF9F27; }
+    .pr-h2-bloco.status-CONCLUIDO, .pr-h2-bloco.status-FINALIZADO { background: rgba(123,104,238,0.10); border-color: rgba(123,104,238,0.35); color: #7B68EE; }
+    .pr-h2-bloco.status-REATIVAVEL { background: rgba(232,148,90,0.10); border-color: rgba(232,148,90,0.35); color: #E8945A; }
+    .pr-h2-bloco.status-CANCELADO { background: rgba(125,133,144,0.10); border-color: rgba(125,133,144,0.35); color: #7d8590; }
+    .pr-h2-bloco.programa { background: rgba(232,148,90,0.10); border-color: rgba(232,148,90,0.35); color: #E8945A; }
+    .pr-h2-bloco.semana { background: rgba(123,104,238,0.10); border-color: rgba(123,104,238,0.35); color: #7B68EE; }
+    .pr-h2-bloco.fase { background: rgba(74,144,226,0.10); border-color: rgba(74,144,226,0.35); color: #4A90E2; }
+    .pr-h2-bloco.clinico-ATENCAO { background: rgba(239,159,39,0.12); border-color: rgba(239,159,39,0.40); color: #EF9F27; }
+    .pr-h2-bloco.clinico-URGENCIA { background: rgba(248,81,73,0.15); border-color: rgba(248,81,73,0.45); color: #f85149; }
     .pr-h2-editar {
       background: transparent; border: 1px solid #30363d;
       color: #8b949e; width: 34px; height: 34px;
@@ -9354,14 +9371,22 @@ function prRenderHeaderRico() {
     : '--';
   medLinhas.push(`<div class="med-linha"><i class="ti ti-run" style="color:#7B68EE;"></i> <span class="med-tipo">Atividade:</span> <span class="med-val">${ativ}</span></div>`);
 
-  // Badges do topo
-  const badges = `
-    <span class="b status-${h.status}">${h.status === 'ATIVO' ? 'ativo' : h.status === 'INATIVO' ? 'inativo' : h.status.toLowerCase()}</span>
-    ${h.programa ? `<span class="b programa"><i class="ti ti-rocket" style="font-size:9px;"></i> ${h.programa}</span>` : ''}
-    ${h.semana_atual_de ? `<span class="b semana"><i class="ti ti-calendar-stats" style="font-size:9px;"></i> Semana ${h.semana_atual_de}${h.total_semanas ? '/' + h.total_semanas : ''}</span>` : ''}
-    ${h.fase_atual ? `<span class="b fase">${prFmtFase(h.fase_atual)}</span>` : ''}
-    ${h.status_clinico && h.status_clinico !== 'ESTAVEL' ? `<span class="b clinico-${h.status_clinico}"><i class="ti ti-activity-heartbeat" style="font-size:9px;"></i> ${prFmtStatusClinico(h.status_clinico)}</span>` : ''}
-  `;
+  // Blocos de destaque (status, programa, semana, fase) -- grandes, não tags
+  const statusLabel = h.status === 'ATIVO' ? 'Ativo' : h.status === 'INATIVO' ? 'Inativo'
+    : h.status.charAt(0) + h.status.slice(1).toLowerCase().replace(/_/g, ' ');
+  const infoBlocos = [
+    { label: 'Status', valor: statusLabel, classe: 'status-' + h.status, icone: 'circle-dot' },
+    ...(h.programa ? [{ label: 'Programa', valor: h.programa, classe: 'programa', icone: 'rocket' }] : []),
+    ...(h.semana_atual_de ? [{ label: 'Semana', valor: `${h.semana_atual_de}${h.total_semanas ? ' / ' + h.total_semanas : ''}`, classe: 'semana', icone: 'calendar-stats' }] : []),
+    ...(h.fase_atual ? [{ label: 'Fase atual', valor: prFmtFase(h.fase_atual), classe: 'fase', icone: 'flame' }] : []),
+    ...(h.status_clinico && h.status_clinico !== 'ESTAVEL' ? [{ label: 'Status clínico', valor: prFmtStatusClinico(h.status_clinico), classe: 'clinico-' + h.status_clinico, icone: 'activity-heartbeat' }] : []),
+  ];
+  const blocosHtml = infoBlocos.map(b => `
+    <div class="pr-h2-bloco ${b.classe}">
+      <div class="bl-label"><i class="ti ti-${b.icone}"></i> ${b.label}</div>
+      <div class="bl-valor">${b.valor}</div>
+    </div>
+  `).join('');
 
   // Banners (mantidos: cadastro incompleto / anamnese)
   let bannersHtml = '';
@@ -9381,17 +9406,19 @@ function prRenderHeaderRico() {
 
   return `
     <div class="pr-header-card pr-header-v2">
-      <!-- Topo: nome, status, programa, semanas -->
+      <!-- Topo: nome + codigo -->
       <div class="pr-h2-topo">
         <div class="pr-h2-avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
         <div class="pr-h2-id">
           <div class="nome">${h.nome_completo} <span class="cod">${h.codigo}</span></div>
-          <div class="badges">${badges}</div>
         </div>
         <button class="pr-h2-editar" onclick="prEditarPacienteDoHeader()" title="Editar cadastro">
           <i class="ti ti-edit"></i>
         </button>
       </div>
+
+      <!-- Blocos de destaque grandes -->
+      <div class="pr-h2-blocos">${blocosHtml}</div>
 
       ${bannersHtml}
 
