@@ -2298,6 +2298,34 @@
       color: var(--cor-prof, #E8945A);
     }
     .pr-card-abas .aba-plus:hover { background: rgba(232,148,90,0.25); }
+    .pr-card-abas .aba-todas {
+      margin-left: auto;
+      display: inline-flex; align-items: center; gap: 4px;
+      color: #8b949e;
+    }
+    .pr-card-abas .aba-todas:hover { color: var(--cor-prof, #E8945A); background: rgba(33,38,45,0.6); }
+    .pr-card-abas .aba-todas i { font-size: 12px; }
+
+    /* Modal de logs do setor */
+    .pr-setor-log-item {
+      padding: 10px 12px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    .pr-setor-log-item:hover { border-color: #E8945A; background: rgba(232,148,90,0.04); }
+    .pr-setor-log-item .topo {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; color: #7d8590;
+    }
+    .pr-setor-log-item .topo .prof { color: #6FD89A; }
+    .pr-setor-log-item .tpl { font-size: 10px; color: #E8945A; margin-top: 4px; }
+    .pr-setor-log-item .resumo {
+      font-size: 12px; color: #c9d1d9; margin-top: 6px; line-height: 1.4;
+    }
 
     /* Campos chave estruturados (vindos do formulário) */
     .pr-card-prof-ultima .campos-chave {
@@ -5578,6 +5606,17 @@
         </button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============== MODAL: LOGS DE EVOLUÇÕES DO SETOR ============== -->
+<div class="ag-modal-overlay" id="pr-setor-log-modal" onclick="if(event.target.id==='pr-setor-log-modal') prFecharSetorLog()">
+  <div class="ag-modal" style="max-width: 600px;">
+    <div class="ag-modal-header">
+      <div class="ttl" id="pr-setor-log-title">Evoluções do setor</div>
+      <button class="pac-modal-close" onclick="prFecharSetorLog()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body" id="pr-setor-log-body" style="max-height: 60vh; overflow-y: auto;"></div>
   </div>
 </div>
 
@@ -11074,11 +11113,52 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
         <div class="pr-card-abas" onclick="event.stopPropagation()">
           <button class="aba ${aba === 'anterior' ? 'ativa' : ''}" ${podeAnterior ? '' : 'disabled'} onclick="prCardTrocarAba('${prof.tipo}', 'anterior')">Anterior</button>
           <button class="aba ${aba === 'atual' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'atual')">Atual</button>
+          ${totalEvs > 0 ? `<button class="aba aba-todas" onclick="event.stopPropagation(); prVerTodasSetor('${prof.tipo}')" title="Ver todas as evoluções deste setor"><i class="ti ti-history"></i> Todas</button>` : ''}
         </div>
         ${conteudoHtml}
       </div>
     </div>
   `;
+}
+
+// Abre modal listando TODAS as evoluções de um setor (logs do setor)
+function prVerTodasSetor(tipo) {
+  const evs = (prState.timeline || []).filter(t => t.tipo === 'evolucao' && t.dados.tipo_evolucao === tipo);
+  const prof = PROF_TIPOS.find(p => p.tipo === tipo) || { label: tipo, cor: '#E8945A', icone: 'clipboard' };
+  const titulo = document.getElementById('pr-setor-log-title');
+  titulo.innerHTML = `<i class="ti ti-${prof.icone}" style="color:${prof.cor};"></i> Evoluções de ${prof.label} (${evs.length})`;
+  const wrap = document.getElementById('pr-setor-log-body');
+  if (evs.length === 0) {
+    wrap.innerHTML = '<div class="pr-empty">Nenhuma evolução deste setor.</div>';
+  } else {
+    wrap.innerHTML = evs.map(ev => {
+      const dt = new Date(ev.data);
+      const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+      const d = ev.dados;
+      let resumo = '';
+      if (d.conteudo) {
+        const div = document.createElement('div'); div.innerHTML = d.conteudo;
+        resumo = (div.textContent || '').slice(0, 160);
+      } else {
+        resumo = [d.subjetivo, d.objetivo, d.avaliacao, d.plano].filter(Boolean).join(' ').slice(0, 160);
+      }
+      return `
+        <div class="pr-setor-log-item" onclick="prFecharSetorLog(); prEditarEvol('${d.id}')">
+          <div class="topo">
+            <span class="data"><i class="ti ti-clock"></i> ${dataFmt}</span>
+            <span class="prof">${d.profissional || '--'}</span>
+          </div>
+          ${d.template_slug ? `<div class="tpl"><i class="ti ti-template"></i> ${d.template_slug}</div>` : ''}
+          ${resumo ? `<div class="resumo">${resumo.replace(/</g,'&lt;')}${resumo.length === 160 ? '...' : ''}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+  document.getElementById('pr-setor-log-modal').classList.add('aberto');
+}
+
+function prFecharSetorLog() {
+  document.getElementById('pr-setor-log-modal').classList.remove('aberto');
 }
 
 // Abre o modal de evolução pré-carregando o template do setor + categoria.
