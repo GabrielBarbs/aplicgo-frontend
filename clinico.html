@@ -1745,6 +1745,132 @@
       display: flex; gap: 16px;
       flex-wrap: wrap;
     }
+
+    /* ===== HEADER V2 (nova estrutura da folha) ===== */
+    .pr-header-card.pr-header-v2 {
+      display: block;
+    }
+    .pr-h2-topo {
+      display: flex; align-items: center; gap: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #21262d;
+    }
+    .pr-h2-avatar {
+      width: 52px; height: 52px;
+      background: linear-gradient(135deg, #C56847, #E8945A);
+      color: #fff; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 600;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(197,104,71,0.30);
+    }
+    .pr-h2-id { flex: 1; min-width: 0; }
+    .pr-h2-id .nome {
+      font-size: 18px; font-weight: 600; color: #f0f6fc;
+      line-height: 1.2;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .pr-h2-id .nome .cod {
+      font-size: 11px; color: #E8945A;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-weight: 400;
+    }
+    .pr-h2-id .badges {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .pr-h2-id .badges .b {
+      font-size: 10px; padding: 2px 8px;
+      border-radius: 10px; border: 1px solid;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      font-weight: 500;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .pr-h2-id .badges .b.status-ATIVO { background: rgba(29,158,117,0.10); color: #1D9E75; border-color: rgba(29,158,117,0.30); }
+    .pr-h2-id .badges .b.status-INATIVO { background: rgba(125,133,144,0.10); color: #7d8590; border-color: rgba(125,133,144,0.30); }
+    .pr-h2-id .badges .b.status-INCOMPLETO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
+    .pr-h2-id .badges .b.status-PRE_PROGRAMA { background: rgba(74,144,226,0.10); color: #4A90E2; border-color: rgba(74,144,226,0.30); }
+    .pr-h2-id .badges .b.status-PAUSADO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
+    .pr-h2-id .badges .b.status-CONCLUIDO, .pr-h2-id .badges .b.status-FINALIZADO { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
+    .pr-h2-id .badges .b.status-REATIVAVEL { background: rgba(232,148,90,0.10); color: #E8945A; border-color: rgba(232,148,90,0.30); }
+    .pr-h2-id .badges .b.status-CANCELADO { background: rgba(125,133,144,0.10); color: #7d8590; border-color: rgba(125,133,144,0.30); }
+    .pr-h2-id .badges .b.programa { background: rgba(232,148,90,0.10); color: #E8945A; border-color: rgba(232,148,90,0.30); }
+    .pr-h2-id .badges .b.semana { background: rgba(123,104,238,0.10); color: #7B68EE; border-color: rgba(123,104,238,0.30); }
+    .pr-h2-id .badges .b.fase { background: rgba(74,144,226,0.10); color: #4A90E2; border-color: rgba(74,144,226,0.30); }
+    .pr-h2-id .badges .b.clinico-ATENCAO { background: rgba(239,159,39,0.10); color: #EF9F27; border-color: rgba(239,159,39,0.30); }
+    .pr-h2-id .badges .b.clinico-URGENCIA { background: rgba(248,81,73,0.15); color: #f85149; border-color: rgba(248,81,73,0.40); }
+    .pr-h2-editar {
+      background: transparent; border: 1px solid #30363d;
+      color: #8b949e; width: 34px; height: 34px;
+      border-radius: 8px; cursor: pointer; flex-shrink: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 15px; transition: all 0.12s;
+    }
+    .pr-h2-editar:hover { border-color: #E8945A; color: #E8945A; }
+
+    .pr-h2-cols {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 16px;
+      margin-top: 14px;
+    }
+    @media (max-width: 1000px) {
+      .pr-h2-cols { grid-template-columns: 1fr; }
+    }
+
+    /* Bloco de peso */
+    .pr-h2-peso {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+    }
+    .pr-h2-peso .linha {
+      display: flex; align-items: center; gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px dashed rgba(33,38,45,0.6);
+    }
+    .pr-h2-peso .linha:last-child { border-bottom: 0; }
+    .pr-h2-peso .linha .lbl {
+      font-size: 11px; color: #7d8590;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      min-width: 110px;
+    }
+    .pr-h2-peso .linha .val {
+      font-size: 15px; color: #f0f6fc; font-weight: 600;
+    }
+    .pr-h2-peso .linha.destaque .val { font-size: 18px; color: #E8945A; }
+    .pr-h2-peso .linha.sub .val { font-size: 13px; }
+    .pr-h2-peso .linha .taxa {
+      font-size: 11px; font-weight: 600;
+      margin-left: auto;
+    }
+
+    /* Bloco de medicações */
+    .pr-h2-meds {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .pr-h2-meds .med-linha {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 12px; color: #c9d1d9;
+      padding: 6px 10px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      line-height: 1.4;
+    }
+    .pr-h2-meds .med-linha i { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+    .pr-h2-meds .med-linha .med-tipo {
+      color: #7d8590; font-weight: 500;
+      flex-shrink: 0;
+    }
+    .pr-h2-meds .med-linha .med-val { color: #f0f6fc; flex: 1; }
+    .pr-h2-meds .med-linha.vazio .med-val { color: #6e7681; }
+
+    .pr-h2-dir { min-width: 0; }
+    /* O gráfico dentro da coluna direita não precisa de margem extra */
+    .pr-h2-dir .pr-grafico-card { margin-bottom: 0; height: 100%; }
     .pr-header-card .pr-h-left {
       display: flex; gap: 14px; align-items: center;
       min-width: 280px; flex: 1;
@@ -9172,166 +9298,130 @@ function prFmtIMC(imc) {
 function prRenderHeaderRico() {
   const h = prState.headerData;
   if (!h) return '';
-  const imcAtual = prFmtIMC(h.imc_atual);
-  const imcInicial = prFmtIMC(h.imc_inicial);
-  const dif = h.diferenca_kg;
-  let extDif = null, classeDif = '';
-  if (dif != null) {
-    if (dif < 0) { extDif = `${dif.toFixed(1).replace('.', ',')} kg perdidos`; classeDif = 'positivo'; }
-    else if (dif > 0) { extDif = `+${dif.toFixed(1).replace('.', ',')} kg`; classeDif = 'negativo'; }
-    else { extDif = 'mantido'; }
+
+  const fmtKg = (v) => v != null ? v.toString().replace('.', ',') + ' kg' : '--';
+  const fmtDataCurta = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '--';
+
+  // Taxa de variação por semana (% / semana)
+  let taxaSemHtml = '';
+  if (h.diferenca_pct != null && h.semana_atual_de && h.semana_atual_de > 0) {
+    const taxa = h.diferenca_pct / h.semana_atual_de;
+    const cor = taxa < 0 ? '#1D9E75' : taxa > 0 ? '#f85149' : '#7d8590';
+    taxaSemHtml = `<span class="taxa" style="color:${cor};">${taxa > 0 ? '+' : ''}${taxa.toFixed(1).replace('.', ',')}%/sem</span>`;
+  } else if (h.diferenca_pct != null) {
+    const cor = h.diferenca_pct < 0 ? '#1D9E75' : h.diferenca_pct > 0 ? '#f85149' : '#7d8590';
+    taxaSemHtml = `<span class="taxa" style="color:${cor};">${h.diferenca_pct > 0 ? '+' : ''}${h.diferenca_pct.toFixed(1).replace('.', ',')}% total</span>`;
   }
 
-  const fmtData = (iso) => {
-    if (!iso) return '--';
-    const d = new Date(iso);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) + ' às ' +
-      d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  };
-  const fmtDataCurta = (iso) => {
-    if (!iso) return '--';
-    return new Date(iso).toLocaleDateString('pt-BR');
-  };
+  // ===== Medicações (do card clínico) =====
+  const meds = h.medicacoes || { injetaveis: [], orais: [], suplementos: [] };
+  const medLinhas = [];
 
-  // 4 cards de stats (peso atual, peso inicial, diferença, IMC atual + objetivo)
-  // Origem do peso atual / inicial -- mostra de onde puxou
-  const origemLabel = {
-    bioimpedancia: 'bioimpedância',
-    evolucao: 'evolução',
-    cadastro: 'cadastro',
-  };
-  const labelOrigemAtual = h.peso_atual_origem
-    ? `via ${origemLabel[h.peso_atual_origem] || h.peso_atual_origem}${h.peso_atualizado_em ? ' · ' + fmtDataCurta(h.peso_atualizado_em) : ''}`
-    : 'sem registro de peso';
-  const labelOrigemInicial = h.peso_inicial_origem
-    ? (h.peso_inicial_origem === 'cadastro' ? (h.altura_cm ? 'altura ' + h.altura_cm + ' cm' : 'altura não informada') : `via ${origemLabel[h.peso_inicial_origem]}`)
-    : 'sem peso inicial';
+  // Injetável + dose atual
+  if (meds.injetaveis && meds.injetaveis.length) {
+    meds.injetaveis.forEach(m => {
+      const partes = [m.nome];
+      if (m.dose) partes.push(m.dose);
+      const freq = m.frequencia ? ` · ${m.frequencia}` : '';
+      medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${partes.join(' ')}${freq}</span></div>`);
+    });
+  } else {
+    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-vaccine"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">--</span></div>`);
+  }
 
-  const cardsStats = `
-    <div class="pr-h-stats">
-      <div class="pr-h-stat">
-        <div class="lbl"><i class="ti ti-scale"></i> Peso atual</div>
-        <div class="val">${h.peso_atual_kg != null ? h.peso_atual_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
-        <div class="ext">${labelOrigemAtual}</div>
-      </div>
-      <div class="pr-h-stat">
-        <div class="lbl"><i class="ti ti-flag"></i> Peso inicial</div>
-        <div class="val">${h.peso_inicial_kg != null ? h.peso_inicial_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
-        <div class="ext">${labelOrigemInicial}</div>
-      </div>
-      <div class="pr-h-stat">
-        <div class="lbl"><i class="ti ti-trending-down"></i> Diferença</div>
-        <div class="val">${dif != null ? (dif > 0 ? '+' : '') + dif.toFixed(1).replace('.', ',') + ' kg' : '--'}</div>
-        <div class="ext ${classeDif}">${extDif || 'sem comparação'}${h.diferenca_pct != null ? ' · ' + h.diferenca_pct.toFixed(1).replace('.', ',') + '%' : ''}</div>
-      </div>
-      <div class="pr-h-stat">
-        <div class="lbl"><i class="ti ti-calculator"></i> IMC atual</div>
-        <div class="val">${imcAtual ? imcAtual.val : '--'}</div>
-        <div class="ext">${imcAtual ? imcAtual.classe : (imcInicial ? 'inicial ' + imcInicial.val : 'sem IMC')}</div>
-      </div>
-      <div class="pr-h-stat">
-        <div class="lbl"><i class="ti ti-target"></i> Objetivo</div>
-        <div class="val">${h.peso_objetivo_kg != null ? h.peso_objetivo_kg.toString().replace('.', ',') + ' kg' : '--'}</div>
-        ${h.progresso_objetivo_pct != null ? `
-          <div class="ext">${h.progresso_objetivo_pct.toFixed(0)}% do caminho</div>
-          <div class="pr-h-progress"><span style="width:${h.progresso_objetivo_pct}%;"></span></div>
-        ` : `<div class="ext">${h.peso_objetivo_kg == null ? 'sem meta definida' : 'sem progresso ainda'}</div>`}
-      </div>
-    </div>
+  // Orais
+  if (meds.orais && meds.orais.length) {
+    const nomesOrais = meds.orais.map(m => m.dose ? `${m.nome} ${m.dose}` : m.nome).join(', ');
+    medLinhas.push(`<div class="med-linha"><i class="ti ti-pill" style="color:#4A90E2;"></i> <span class="med-tipo">Oral:</span> <span class="med-val">${nomesOrais}</span></div>`);
+  } else {
+    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-pill"></i> <span class="med-tipo">Oral:</span> <span class="med-val">--</span></div>`);
+  }
+
+  // Suplementos + última reposição
+  if (meds.suplementos && meds.suplementos.length) {
+    meds.suplementos.forEach(m => {
+      const cat = m.categoria ? ` (${m.categoria === 'APLIC_PLUS' ? 'Aplic PLUS' : m.categoria})` : '';
+      const repo = m.desde_quando ? ` · últ. ${fmtDataCurta(m.desde_quando)}` : '';
+      medLinhas.push(`<div class="med-linha"><i class="ti ti-capsule" style="color:#E8945A;"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">${m.nome}${cat}${repo}</span></div>`);
+    });
+  } else {
+    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-capsule"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">--</span></div>`);
+  }
+
+  // Atividade física
+  const ativ = h.atividade_modalidade
+    ? `${h.atividade_modalidade}${h.atividade_frequencia ? ' · ' + h.atividade_frequencia + 'x/sem' : ''}${h.atividade_duracao_min ? ' · ' + h.atividade_duracao_min + 'min' : ''}`
+    : '--';
+  medLinhas.push(`<div class="med-linha"><i class="ti ti-run" style="color:#7B68EE;"></i> <span class="med-tipo">Atividade:</span> <span class="med-val">${ativ}</span></div>`);
+
+  // Badges do topo
+  const badges = `
+    <span class="b status-${h.status}">${h.status === 'ATIVO' ? 'ativo' : h.status === 'INATIVO' ? 'inativo' : h.status.toLowerCase()}</span>
+    ${h.programa ? `<span class="b programa"><i class="ti ti-rocket" style="font-size:9px;"></i> ${h.programa}</span>` : ''}
+    ${h.semana_atual_de ? `<span class="b semana"><i class="ti ti-calendar-stats" style="font-size:9px;"></i> Semana ${h.semana_atual_de}${h.total_semanas ? '/' + h.total_semanas : ''}</span>` : ''}
+    ${h.fase_atual ? `<span class="b fase">${prFmtFase(h.fase_atual)}</span>` : ''}
+    ${h.status_clinico && h.status_clinico !== 'ESTAVEL' ? `<span class="b clinico-${h.status_clinico}"><i class="ti ti-activity-heartbeat" style="font-size:9px;"></i> ${prFmtStatusClinico(h.status_clinico)}</span>` : ''}
   `;
 
-  // Sub do paciente: idade · sexo · telefone
-  const partesSub = [];
-  if (h.idade != null) partesSub.push(h.idade + ' anos');
-  if (h.sexo) partesSub.push(prFmtSexo(h.sexo));
-  if (h.telefone1) partesSub.push(fmtTel(h.telefone1));
-
-  // Comorbidades
-  const comorbHtml = (h.comorbidades && h.comorbidades.length > 0)
-    ? h.comorbidades.map(c => `<span class="c">${c}</span>`).join('')
-    : `<span class="vazio">Nenhuma comorbidade registrada.</span>`;
-
-  // Bloco de contexto clínico
-  const linhas = [];
-  if (h.alergias) linhas.push(`<div class="row alerta"><span class="l">Alergias:</span> <span class="v">${h.alergias}</span></div>`);
-  if (h.medicacoes_em_uso) linhas.push(`<div class="row"><span class="l">Medicações:</span> <span class="v">${h.medicacoes_em_uso}</span></div>`);
-  if (h.cirurgia_bariatrica) linhas.push(`<div class="row"><span class="l">Bariátrica:</span> <span class="v">sim${h.bariatrica_quando ? ' (' + fmtDataCurta(h.bariatrica_quando) + ')' : ''}</span></div>`);
-  if (h.motivacao_atual) linhas.push(`<div class="row"><span class="l">Motivação:</span> <span class="v">${h.motivacao_atual}</span></div>`);
-  if (h.medico) linhas.push(`<div class="row"><span class="l">Médico:</span> <span class="v">${h.medico.name || h.medico.email}</span></div>`);
-  if (h.nutri) linhas.push(`<div class="row"><span class="l">Nutri:</span> <span class="v">${h.nutri.name || h.nutri.email}</span></div>`);
-  if (h.unidade) linhas.push(`<div class="row"><span class="l">Unidade:</span> <span class="v">${h.unidade.nome}</span></div>`);
-  if (h.proximo_agendamento) linhas.push(`<div class="row"><span class="l">Próx. retorno:</span> <span class="v">${fmtData(h.proximo_agendamento.start_at)} · ${h.proximo_agendamento.tipo}</span></div>`);
-  if (h.ultima_evolucao) linhas.push(`<div class="row"><span class="l">Última evolução:</span> <span class="v">${fmtData(h.ultima_evolucao.data)} (${h.ultima_evolucao.profissional})</span></div>`);
+  // Banners (mantidos: cadastro incompleto / anamnese)
+  let bannersHtml = '';
+  if (h.cadastro_incompleto) {
+    bannersHtml = `
+      <div class="pr-h-banner incompleto">
+        <i class="ti ti-alert-triangle"></i>
+        <div class="msg">
+          <strong>Cadastro incompleto</strong> -- agendado com dados mínimos.
+          ${h.falta_endereco ? 'Falta endereço pra ativar.' : 'Quase tudo preenchido.'}
+        </div>
+        <button class="pac-btn-primary" onclick="prEditarPacienteDoHeader()"><i class="ti ti-edit"></i> Completar</button>
+        <button class="pac-btn-secondary" onclick="prEnviarAnamnese('${h.id}')"><i class="ti ti-send"></i> Anamnese</button>
+      </div>
+    `;
+  }
 
   return `
-    <div class="pr-header-card">
-      <div class="pr-h-left">
-        <div class="pr-h-avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
-        <div class="pr-h-id">
-          <div class="nome">${h.nome_completo}</div>
-          <div class="sub">
-            <span class="cod">${h.codigo}</span>
-            ${partesSub.length ? '<span class="dot"></span>' + partesSub.join('<span class="dot"></span>') : ''}
-          </div>
-          <div class="badges">
-            <span class="b status-${h.status}">${h.status}</span>
-            ${h.programa ? `<span class="b programa"><i class="ti ti-rocket" style="font-size:9px;"></i> ${h.programa}</span>` : ''}
-            ${h.semana_atual_de ? `<span class="b semana"><i class="ti ti-calendar-stats" style="font-size:9px;"></i> Semana ${h.semana_atual_de}${h.total_semanas ? ' de ' + h.total_semanas : ''}</span>` : ''}
-            ${h.fase_atual ? `<span class="b fase">${prFmtFase(h.fase_atual)}</span>` : ''}
-            ${h.status_clinico ? `<span class="b clinico-${h.status_clinico}"><i class="ti ti-activity-heartbeat" style="font-size:9px;"></i> ${prFmtStatusClinico(h.status_clinico)}</span>` : ''}
-            ${h.fase_programa ? `<span class="b" style="border-color:#30363d; color:#8b949e;">${h.fase_programa}</span>` : ''}
-            ${h.anamnese_pendente ? `<span class="b" style="background:rgba(74,144,226,0.10); color:#4A90E2; border-color:rgba(74,144,226,0.30);">Anamnese enviada</span>` : ''}
-          </div>
+    <div class="pr-header-card pr-header-v2">
+      <!-- Topo: nome, status, programa, semanas -->
+      <div class="pr-h2-topo">
+        <div class="pr-h2-avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
+        <div class="pr-h2-id">
+          <div class="nome">${h.nome_completo} <span class="cod">${h.codigo}</span></div>
+          <div class="badges">${badges}</div>
         </div>
+        <button class="pr-h2-editar" onclick="prEditarPacienteDoHeader()" title="Editar cadastro">
+          <i class="ti ti-edit"></i>
+        </button>
       </div>
+
+      ${bannersHtml}
+
       ${h.observacoes_imutaveis_medico ? `
         <div class="pr-h-obs-imutaveis">
           <i class="ti ti-lock"></i>
-          <div>
-            <span class="lbl">Observações imutáveis do médico</span>
-            ${h.observacoes_imutaveis_medico.replace(/</g, '&lt;').replace(/\n/g, '<br>')}
-          </div>
+          <div><span class="lbl">Observações imutáveis do médico</span>${h.observacoes_imutaveis_medico.replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
         </div>
       ` : ''}
-      ${h.cadastro_incompleto ? `
-        <div class="pr-h-banner incompleto">
-          <i class="ti ti-alert-triangle"></i>
-          <div class="msg">
-            <strong>Cadastro incompleto</strong> -- agendado pela agenda com dados mínimos.
-            ${h.falta_endereco ? 'Falta endereço pra ativar.' : 'Quase tudo preenchido.'}
+
+      <!-- 2 colunas: esquerda (dados) | direita (gráfico) -->
+      <div class="pr-h2-cols">
+        <div class="pr-h2-esq">
+          <!-- Peso -->
+          <div class="pr-h2-peso">
+            <div class="linha"><span class="lbl">Peso inicial</span><span class="val">${fmtKg(h.peso_inicial_kg)}</span></div>
+            <div class="linha destaque"><span class="lbl">Peso atual</span><span class="val">${fmtKg(h.peso_atual_kg)}</span>${taxaSemHtml}</div>
+            <div class="linha"><span class="lbl">Meta de peso</span><span class="val">${fmtKg(h.peso_objetivo_kg)}</span></div>
+            ${h.imc_atual != null ? `<div class="linha sub"><span class="lbl">IMC atual</span><span class="val">${prFmtIMC(h.imc_atual)?.val || '--'} <span style="color:#7d8590; font-weight:400;">${prFmtIMC(h.imc_atual)?.classe || ''}</span></span></div>` : ''}
           </div>
-          <button class="pac-btn-primary" onclick="prEditarPacienteDoHeader()">
-            <i class="ti ti-edit"></i> Completar cadastro
-          </button>
-          <button class="pac-btn-secondary" onclick="prEnviarAnamnese('${h.id}')">
-            <i class="ti ti-send"></i> Enviar anamnese
-          </button>
-        </div>
-      ` : (!h.anamnese_pendente ? `
-        <div class="pr-h-banner sugestao">
-          <i class="ti ti-clipboard-list"></i>
-          <div class="msg">
-            Quer que o paciente preencha a anamnese sozinho? Gere um link de auto-preenchimento.
+          <!-- Medicações + atividade -->
+          <div class="pr-h2-meds">
+            ${medLinhas.join('')}
           </div>
-          <button class="pac-btn-secondary" onclick="prEnviarAnamnese('${h.id}')">
-            <i class="ti ti-send"></i> Enviar anamnese
-          </button>
         </div>
-      ` : '')}
-      ${cardsStats}
-      <div class="pr-h-section">
-        <div class="ttl"><i class="ti ti-list-check"></i> Comorbidades</div>
-        <div class="pr-h-comorb">${comorbHtml}</div>
+        <div class="pr-h2-dir">
+          <div id="pr-grafico-card-render">${bioRenderGrafico()}</div>
+        </div>
       </div>
-      ${linhas.length > 0 ? `
-        <div class="pr-h-section">
-          <div class="ttl"><i class="ti ti-info-circle"></i> Contexto clínico</div>
-          <div class="pr-h-clinical">${linhas.join('')}</div>
-        </div>
-      ` : ''}
     </div>
-    ${prRenderCardClinico(h)}
-    <div id="pr-grafico-card-render">${bioRenderGrafico()}</div>
   `;
 }
 
