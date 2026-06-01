@@ -9923,8 +9923,9 @@ async function agAbrirEditarModal(id) {
   document.getElementById('ag-type').value = a.type.id;
   document.getElementById('ag-unit').value = a.unit.id;
   document.getElementById('ag-prof').value = a.professional.id;
-  const start = new Date(a.start_at);
-  const end = new Date(a.end_at);
+  // GET /:id devolve o objeto cru do Prisma (camelCase): startAt/endAt
+  const start = new Date(a.startAt);
+  const end = new Date(a.endAt);
   document.getElementById('ag-data').value = agIsoLocal(start).split('T')[0];
   document.getElementById('ag-hora').value = agIsoLocal(start).split('T')[1];
   document.getElementById('ag-duracao').value = Math.round((end.getTime() - start.getTime()) / 60000);
@@ -12296,20 +12297,26 @@ async function aceitarConvite() {
 
 // ===== ANAMNESE -- esqueleto =====
 async function prEnviarAnamnese(patientId) {
-  if (!confirm('Gerar link de anamnese para este paciente?\n\nO envio automático (WhatsApp/email) ainda não está ativo -- por enquanto você copia o link e envia manualmente.')) return;
+  if (!confirm('Gerar o token de anamnese para este paciente?')) return;
   const r = await pacApi('/api/clinico/prontuario/patient/' + patientId + '/anamnesis/send', {
     method: 'POST',
     body: JSON.stringify({ canal: 'manual' }),
   });
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
-  // Mostra link num modal simples
   const linkAbs = window.location.origin + r.data.link_publico;
-  const opcao = prompt(
-    'Link de anamnese gerado!\n\n' +
-    'Cole no WhatsApp do paciente (envio automático em breve).\n\n' +
-    'Link:',
-    linkAbs
-  );
+  // A página pública do paciente (/anamnese/<token>) ainda não está no ar.
+  // Sendo honesto: NÃO instruir a enviar pro paciente enquanto ainda_funcional !== true.
+  if (r.data.ainda_funcional === true) {
+    prompt('Link de anamnese gerado! Envie ao paciente:', linkAbs);
+  } else {
+    prompt(
+      'Token de anamnese registrado.\n\n' +
+      'ATENÇÃO: a página de preenchimento do paciente ainda NÃO está no ar -- ' +
+      'não envie este link ao paciente ainda. Ele entra numa próxima etapa.\n\n' +
+      'Link (referência interna):',
+      linkAbs
+    );
+  }
   // Recarrega header pra mostrar badge "Anamnese enviada"
   await prCarregarHeader();
   prRenderTimeline();
