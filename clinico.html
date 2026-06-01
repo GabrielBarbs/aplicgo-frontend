@@ -2051,6 +2051,120 @@
       font-weight: 600;
     }
     .pr-card-prof-head .titulo i { font-size: 15px; }
+    .pr-card-prof-head .titulo .num {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      background: var(--cor-prof, #E8945A);
+      color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .pr-card-prof-head .titulo .qtd-evs {
+      color: #7d8590; font-weight: 400;
+      font-size: 10px;
+      text-transform: none; letter-spacing: 0;
+    }
+
+    /* Abas Anterior | Atual | + dentro do card */
+    .pr-card-abas {
+      display: flex; gap: 4px;
+      padding: 4px;
+      background: #0d1117;
+      border-bottom: 1px solid #21262d;
+    }
+    .pr-card-abas .aba {
+      background: transparent;
+      border: 0;
+      color: #7d8590;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 10px; font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      transition: all 0.12s;
+    }
+    .pr-card-abas .aba:hover:not(:disabled) {
+      color: #f0f6fc; background: rgba(33,38,45,0.6);
+    }
+    .pr-card-abas .aba:disabled {
+      opacity: 0.35; cursor: not-allowed;
+    }
+    .pr-card-abas .aba.ativa {
+      background: var(--cor-prof, #E8945A);
+      color: #fff;
+    }
+    .pr-card-abas .aba-plus {
+      margin-left: auto;
+      width: 26px; height: 26px;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0;
+      background: rgba(232,148,90,0.10);
+      color: var(--cor-prof, #E8945A);
+    }
+    .pr-card-abas .aba-plus:hover { background: rgba(232,148,90,0.25); }
+
+    /* Campos chave estruturados (vindos do formulário) */
+    .pr-card-prof-ultima .campos-chave {
+      display: flex; flex-direction: column; gap: 4px;
+      margin: 8px 0;
+      padding: 8px 10px;
+      background: #0d1117;
+      border-left: 2px solid var(--cor-prof, #E8945A);
+      border-radius: 4px;
+    }
+    .pr-card-prof-ultima .campos-chave .kv {
+      font-size: 11px; color: #c9d1d9;
+      display: flex; gap: 6px;
+      line-height: 1.4;
+    }
+    .pr-card-prof-ultima .campos-chave .k {
+      color: #7d8590; font-weight: 500;
+      min-width: 90px; flex-shrink: 0;
+      text-transform: uppercase; letter-spacing: 0.4px;
+      font-size: 9px;
+      padding-top: 1px;
+    }
+    .pr-card-prof-ultima .campos-chave .v { color: #f0f6fc; flex: 1; }
+
+    /* Card Pilares */
+    .pr-card-pilares { grid-column: span 1; }
+    @media (min-width: 1200px) {
+      .pr-card-pilares { grid-column: 1 / -1; }
+    }
+    .pr-pilares-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .pr-pilares-grid .pilar {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .pr-pilares-grid .pilar-head {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .pr-pilares-grid .pilar-head i { font-size: 13px; }
+    .pr-pilares-grid .pilar-val {
+      margin-top: 6px;
+      font-size: 12px; color: #f0f6fc;
+      line-height: 1.4;
+    }
+    .pr-pilares-rodape {
+      margin-top: 10px;
+      padding: 8px 10px;
+      font-size: 10px; color: #7d8590;
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(33,38,45,0.4);
+      border-radius: 6px;
+    }
+    .pr-pilares-rodape i { color: #4A90E2; font-size: 12px; }
     .pr-card-prof-head .head-acoes {
       display: flex; align-items: center; gap: 6px;
     }
@@ -9869,51 +9983,83 @@ function prToggleHistorico() {
   prRenderTimeline();
 }
 
-// ===== CARDS POR PROFISSIONAL (Aula Cap 5) =====
+// ===== CARDS POR PROFISSIONAL (Aula Cap 5 + folha de proposta) =====
 const PROF_TIPOS = [
-  { tipo: 'MEDICA',      label: 'Médica',      icone: 'stethoscope', cor: '#4A90E2', permCriar: 'prontuario.evolucao_medica.criar' },
-  { tipo: 'NUTRICIONAL', label: 'Nutricional', icone: 'apple',       cor: '#6FD89A', permCriar: 'prontuario.evolucao_nutri.criar' },
-  { tipo: 'ENFERMAGEM',  label: 'Enfermagem',  icone: 'vaccine',     cor: '#E8945A', permCriar: 'prontuario.evolucao_enfermagem.criar' },
+  { tipo: 'MEDICA',      num: '1', label: 'Médica',      icone: 'stethoscope', cor: '#4A90E2', permCriar: 'prontuario.evolucao_medica.criar' },
+  { tipo: 'NUTRICIONAL', num: '2', label: 'Nutricional', icone: 'apple',       cor: '#6FD89A', permCriar: 'prontuario.evolucao_nutri.criar' },
+  { tipo: 'ENFERMAGEM',  num: '3', label: 'Enfermagem',  icone: 'vaccine',     cor: '#E8945A', permCriar: 'prontuario.evolucao_enfermagem.criar' },
 ];
 
 function prRenderCardsPorProfissional() {
   const items = prState.timeline.filter(t => t.tipo === 'evolucao');
-  return `
-    <div class="pr-cards-profissionais">
-      ${PROF_TIPOS.map(p => {
-        const ultima = items.find(it => it.dados.tipo_evolucao === p.tipo);
-        const podeCriar = temPermissao(p.permCriar);
-        const recolhido = prState.cardsRecolhidos?.[p.tipo] || false;
-        return prRenderCardProfissional(p, ultima, podeCriar, recolhido);
-      }).join('')}
-    </div>
-  `;
+  const cardsProf = PROF_TIPOS.map(p => {
+    const evs = items.filter(it => it.dados.tipo_evolucao === p.tipo);
+    const atual = evs[0] || null;
+    const anterior = evs[1] || null;
+    const podeCriar = temPermissao(p.permCriar);
+    const recolhido = prState.cardsRecolhidos?.[p.tipo] || false;
+    return prRenderCardProfissional(p, atual, anterior, podeCriar, recolhido);
+  }).join('');
+  const cardPilares = prRenderCardPilares();
+  return `<div class="pr-cards-profissionais">${cardsProf}${cardPilares}</div>`;
 }
 
-function prRenderCardProfissional(prof, ultima, podeCriar, recolhido) {
+function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
   const cor = prof.cor;
+  const aba = (prState.cardAba?.[prof.tipo]) || 'atual';
+  const evMostrar = aba === 'anterior' ? anterior : atual;
+  const totalEvs = (atual ? 1 : 0) + (anterior ? 1 : 0);
+
   let conteudoHtml;
-  if (!ultima) {
+  if (!evMostrar) {
     conteudoHtml = `
       <div class="pr-card-prof-vazio">
         <i class="ti ti-file-off"></i>
-        Sem evoluções ${prof.label.toLowerCase()} registradas.
+        ${aba === 'anterior' ? 'Sem evolução anterior registrada.' : `Sem evoluções ${prof.label.toLowerCase()} registradas.`}
       </div>
     `;
   } else {
-    const dt = new Date(ultima.data);
+    const dt = new Date(evMostrar.data);
     const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const d = ultima.dados;
-    // Resumo: primeiros 200 chars do conteudo ou SOAP
+    const d = evMostrar.dados;
+
+    // Campos chave estruturados (do formulário) -- prioriza pra enfermagem (PRD §7)
+    let chaveHtml = '';
+    if (d.respostas && typeof d.respostas === 'object') {
+      const r = d.respostas;
+      const chaves = [];
+      if (prof.tipo === 'ENFERMAGEM') {
+        // PRD §7
+        if (r.medicacao_uso_continuo) chaves.push(['Med', r.medicacao_uso_continuo]);
+        if (r.medicamento_injetavel) chaves.push(['Injetável', r.medicamento_injetavel]);
+        if (r.controle_fome) chaves.push(['Fome', r.controle_fome]);
+        if (r.atividade_fisica) chaves.push(['Atividade', r.atividade_fisica]);
+        if (r.colaterais || r.efeitos_colaterais) chaves.push(['Colaterais', r.colaterais || r.efeitos_colaterais]);
+      } else if (prof.tipo === 'NUTRICIONAL') {
+        if (r.recordatorio_alimentar) chaves.push(['Recordatório', r.recordatorio_alimentar.slice(0, 80) + (r.recordatorio_alimentar.length > 80 ? '...' : '')]);
+        if (r.erros_alimentacao) chaves.push(['Erros', r.erros_alimentacao]);
+        if (r.consumo_agua) chaves.push(['Água', r.consumo_agua]);
+      } else if (prof.tipo === 'MEDICA') {
+        if (r.peso_atual) chaves.push(['Peso', r.peso_atual]);
+        if (r.maior_desafio) chaves.push(['Desafio', r.maior_desafio.slice(0, 80) + (r.maior_desafio.length > 80 ? '...' : '')]);
+        if (r.comprometimento) chaves.push(['Comprometimento', r.comprometimento + '/10']);
+      }
+      if (chaves.length) {
+        chaveHtml = `<div class="campos-chave">${chaves.map(([k, v]) => `<div class="kv"><span class="k">${k}:</span> <span class="v">${String(v).replace(/</g, '&lt;')}</span></div>`).join('')}</div>`;
+      }
+    }
+
+    // Resumo do conteúdo (fallback se não tem campos chave)
     let resumo = '';
     if (d.conteudo) {
       const div = document.createElement('div');
       div.innerHTML = d.conteudo;
-      resumo = (div.textContent || '').slice(0, 280);
+      resumo = (div.textContent || '').slice(0, 200);
     } else {
-      resumo = [d.subjetivo, d.objetivo, d.avaliacao, d.plano].filter(Boolean).join(' ').slice(0, 280);
+      resumo = [d.subjetivo, d.objetivo, d.avaliacao, d.plano].filter(Boolean).join(' ').slice(0, 200);
     }
-    if (resumo.length === 280) resumo += '...';
+    if (resumo.length === 200) resumo += '...';
+    const resumoHtml = !chaveHtml && resumo ? `<div class="resumo">${resumo.replace(/</g, '&lt;')}</div>` : '';
 
     const vitais = [];
     if (d.peso_atual_kg) vitais.push(`<span><strong>${d.peso_atual_kg} kg</strong></span>`);
@@ -9928,7 +10074,8 @@ function prRenderCardProfissional(prof, ultima, podeCriar, recolhido) {
         </div>
         ${d.template_slug ? `<div class="tpl-badge"><i class="ti ti-template"></i> ${d.template_slug}</div>` : ''}
         ${vitais.length ? `<div class="vitais">${vitais.join('')}</div>` : ''}
-        <div class="resumo">${resumo.replace(/</g, '&lt;')}</div>
+        ${chaveHtml}
+        ${resumoHtml}
         <div class="acoes">
           <button onclick="prEditarEvol('${d.id}')"><i class="ti ti-edit"></i> Abrir / Editar</button>
         </div>
@@ -9936,22 +10083,109 @@ function prRenderCardProfissional(prof, ultima, podeCriar, recolhido) {
     `;
   }
 
+  const podeAnterior = !!anterior;
   return `
     <div class="pr-card-prof ${recolhido ? 'recolhido' : ''}" style="--cor-prof: ${cor};">
       <div class="pr-card-prof-head" onclick="prToggleCardProf('${prof.tipo}')">
         <div class="titulo">
+          <span class="num">${prof.num}</span>
           <i class="ti ti-${prof.icone}" style="color: ${cor};"></i>
           <span>${prof.label}</span>
+          <span class="qtd-evs">${totalEvs ? `(${totalEvs})` : ''}</span>
         </div>
         <div class="head-acoes">
-          ${podeCriar ? `<button class="btn-novo" onclick="event.stopPropagation(); prAbrirNovaEvolTipo('${prof.tipo}')">
-            <i class="ti ti-plus"></i> Nova
-          </button>` : ''}
           <i class="ti ti-chevron-${recolhido ? 'right' : 'down'}" style="color: #7d8590; font-size: 14px;"></i>
         </div>
       </div>
       <div class="pr-card-prof-body" style="display:${recolhido ? 'none' : 'block'};">
+        <div class="pr-card-abas" onclick="event.stopPropagation()">
+          <button class="aba ${aba === 'anterior' ? 'ativa' : ''}" ${podeAnterior ? '' : 'disabled'} onclick="prCardTrocarAba('${prof.tipo}', 'anterior')">Anterior</button>
+          <button class="aba ${aba === 'atual' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'atual')">Atual</button>
+          ${podeCriar ? `<button class="aba aba-plus" onclick="event.stopPropagation(); prAbrirNovaEvolTipo('${prof.tipo}')" title="Nova evolução"><i class="ti ti-plus"></i></button>` : ''}
+        </div>
         ${conteudoHtml}
+      </div>
+    </div>
+  `;
+}
+
+function prCardTrocarAba(tipo, aba) {
+  if (!prState.cardAba) prState.cardAba = {};
+  prState.cardAba[tipo] = aba;
+  prRenderTimeline();
+}
+
+// ===== CARD PILARES (agregação holística dos 4 pilares) =====
+function prRenderCardPilares() {
+  const h = prState.headerData || {};
+  // Calcula cada pilar a partir dos dados que já temos
+  const ativ = h.atividade_modalidade
+    ? `${h.atividade_modalidade}${h.atividade_frequencia ? ' · ' + h.atividade_frequencia + 'x/sem' : ''}${h.atividade_duracao_min ? ' · ' + h.atividade_duracao_min + 'min' : ''}`
+    : 'Não informada';
+
+  // Alimentação: pega da última evolução nutri com respostas (recordatório/erros) ou anamnese
+  const evs = (prState.timeline || []).filter(t => t.tipo === 'evolucao');
+  const ultNutri = evs.find(e => e.dados.tipo_evolucao === 'NUTRICIONAL');
+  let alimSnippet = 'Sem evolução nutri';
+  if (ultNutri?.dados.respostas) {
+    const r = ultNutri.dados.respostas;
+    if (r.recordatorio_alimentar) alimSnippet = r.recordatorio_alimentar.slice(0, 60) + '...';
+    else if (r.erros_alimentacao) alimSnippet = 'Pontos: ' + r.erros_alimentacao.slice(0, 50);
+  } else if (ultNutri) {
+    alimSnippet = 'Última: ' + new Date(ultNutri.data).toLocaleDateString('pt-BR');
+  }
+
+  // Sono e Mental: da última evolução qualquer ou anamnese
+  let sonoSnippet = 'Não informado';
+  let mentalSnippet = 'Não informado';
+  for (const ev of evs) {
+    const r = ev.dados.respostas;
+    if (!r) continue;
+    if (sonoSnippet === 'Não informado' && (r.qualidade_sono || r.hora_dormir)) {
+      sonoSnippet = r.qualidade_sono || `Dorme ${r.hora_dormir}`;
+    }
+    if (mentalSnippet === 'Não informado' && (r.humor_ansiedade || r.energia_disposicao)) {
+      mentalSnippet = r.humor_ansiedade || r.energia_disposicao;
+    }
+    if (sonoSnippet !== 'Não informado' && mentalSnippet !== 'Não informado') break;
+  }
+
+  const recolhido = prState.cardsRecolhidos?.['PILARES'] || false;
+  const pilares = [
+    { ico: 'apple',         label: 'Alimentação', val: alimSnippet,   cor: '#6FD89A' },
+    { ico: 'barbell',       label: 'Exercício',   val: ativ,          cor: '#E8945A' },
+    { ico: 'moon',          label: 'Sono',        val: sonoSnippet,   cor: '#4A90E2' },
+    { ico: 'brain',         label: 'Mental',      val: mentalSnippet, cor: '#7B68EE' },
+  ];
+
+  return `
+    <div class="pr-card-prof pr-card-pilares ${recolhido ? 'recolhido' : ''}" style="--cor-prof: #C56847;">
+      <div class="pr-card-prof-head" onclick="prToggleCardProf('PILARES')">
+        <div class="titulo">
+          <span class="num">4</span>
+          <i class="ti ti-target-arrow" style="color: #C56847;"></i>
+          <span>Pilares do tratamento</span>
+        </div>
+        <div class="head-acoes">
+          <i class="ti ti-chevron-${recolhido ? 'right' : 'down'}" style="color: #7d8590; font-size: 14px;"></i>
+        </div>
+      </div>
+      <div class="pr-card-prof-body" style="display:${recolhido ? 'none' : 'block'};">
+        <div class="pr-pilares-grid">
+          ${pilares.map(p => `
+            <div class="pilar">
+              <div class="pilar-head" style="color: ${p.cor};">
+                <i class="ti ti-${p.ico}"></i>
+                <span>${p.label}</span>
+              </div>
+              <div class="pilar-val">${String(p.val).replace(/</g, '&lt;')}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="pr-pilares-rodape">
+          <i class="ti ti-info-circle"></i>
+          Resumo agregado a partir do cadastro de saúde, anamnese e últimas evoluções.
+        </div>
       </div>
     </div>
   `;
