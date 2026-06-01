@@ -9819,6 +9819,8 @@ function devRender(d) {
   const db = d.db;
   const u = d.usuarios;
   const audit = d.audit;
+  const sess = d.sessoes || { ativas: 0, total: 0, recentes: [] };
+  const errs = d.erros || { total: 0, ultimas_24h: 0, por_level_24h: [], recentes: [] };
 
   // Calcula max size pras barras
   const maxSize = Math.max(...db.tabelas.map(t => t.size_bytes || 0), 1);
@@ -9877,6 +9879,21 @@ function devRender(d) {
         <div class="titulo"><i class="ti ti-key"></i> Variáveis de ambiente</div>
         <div class="lista">
           ${Object.entries(d.env).map(([k, v]) => `<div class="row"><span class="k">${k}</span><span class="v ${!v || v === '(vazio)' ? 'dim' : ''}" style="font-size:10px;">${v}</span></div>`).join('')}
+        </div>
+      </div>
+
+      <div class="dev-stat-card" style="border-left-color: #6FD89A;">
+        <div class="titulo"><i class="ti ti-plug-connected"></i> Sessões ativas</div>
+        <div class="big" style="color:#6FD89A;">${sess.ativas}</div>
+        <div class="small">ativas agora · ${sess.total} sessões no histórico</div>
+      </div>
+
+      <div class="dev-stat-card" style="border-left-color:${errs.ultimas_24h > 0 ? '#f85149' : '#1D9E75'};">
+        <div class="titulo"><i class="ti ti-bug"></i> Erros 24h</div>
+        <div class="big" style="color:${errs.ultimas_24h > 0 ? '#f85149' : '#1D9E75'};">${errs.ultimas_24h}</div>
+        <div class="small">${errs.ultimas_24h === 0 ? 'sem erros' : 'precisam atenção'} · ${errs.total} total</div>
+        <div class="lista" style="margin-top:8px;">
+          ${(errs.por_level_24h || []).map(l => `<div class="row"><span class="k">${l.level}</span><span class="v">${l.count}</span></div>`).join('')}
         </div>
       </div>
     </div>
@@ -9959,7 +9976,83 @@ function devRender(d) {
     </div>
   `;
 
-  document.getElementById('dev-conteudo').innerHTML = cards + dbStatsHtml + cargosHtml + auditHtml;
+  // Tabela de sessões ativas
+  const sessoesHtml = `
+    <div class="dev-table-wrap">
+      <div class="dev-table-head">
+        <div class="ttl"><i class="ti ti-plug-connected"></i> Sessões ativas (top 20 por atividade)</div>
+        <div class="count">${sess.recentes.length}</div>
+      </div>
+      ${sess.recentes.length === 0
+        ? '<div style="padding: 20px; text-align:center; color:#6e7681; font-size:11px;">Nenhuma sessão ativa registrada.</div>'
+        : `
+          <table class="dev-table">
+            <thead><tr><th>Usuário</th><th>IP</th><th>Device</th><th>Última atividade</th><th>Expira</th><th></th></tr></thead>
+            <tbody>
+              ${sess.recentes.map(s => {
+                const ultDt = new Date(s.ultima_atividade);
+                const minAtras = Math.floor((Date.now() - ultDt.getTime()) / 60000);
+                const corMin = minAtras < 5 ? '#1D9E75' : minAtras < 30 ? '#EF9F27' : '#7d8590';
+                const expDt = new Date(s.expira_em);
+                return `
+                  <tr>
+                    <td class="ator">${s.usuario}</td>
+                    <td>${s.ip || '<span style="color:#6e7681;">--</span>'}</td>
+                    <td>${s.device || '<span style="color:#6e7681;">--</span>'}</td>
+                    <td style="color:${corMin};">${minAtras < 1 ? 'agora' : minAtras + 'min atrás'}</td>
+                    <td style="color:#7d8590; font-size:10px;">${expDt.toLocaleString('pt-BR', {dateStyle:'short',timeStyle:'short'})}</td>
+                    <td><button class="pac-btn-mini" style="font-size:9px; padding:2px 6px;" onclick="devRevogarSessao('${s.id}')"><i class="ti ti-x"></i> Revogar</button></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `}
+    </div>
+  `;
+
+  // Tabela de erros recentes
+  const errosHtml = `
+    <div class="dev-table-wrap">
+      <div class="dev-table-head">
+        <div class="ttl"><i class="ti ti-bug"></i> Últimos 20 erros</div>
+        <div class="count">${errs.total} no total</div>
+      </div>
+      ${errs.recentes.length === 0
+        ? '<div style="padding: 20px; text-align:center; color:#6FD89A; font-size:11px;"><i class="ti ti-circle-check"></i> Sem erros registrados.</div>'
+        : `
+          <table class="dev-table">
+            <thead><tr><th>Quando</th><th>Nível</th><th>Rota</th><th>Status</th><th>Mensagem</th></tr></thead>
+            <tbody>
+              ${errs.recentes.map(e => {
+                const dt = new Date(e.criado_em);
+                const dtFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+                const levelCor = e.level === 'FATAL' ? '#f85149' : e.level === 'ERROR' ? '#EF9F27' : '#4A90E2';
+                const statusCor = (e.status || 0) >= 500 ? '#f85149' : (e.status || 0) >= 400 ? '#EF9F27' : '#6e7681';
+                return `
+                  <tr>
+                    <td>${dtFmt}</td>
+                    <td><span style="color:${levelCor}; font-weight:600;">${e.level}</span></td>
+                    <td class="entity">${e.method || ''} ${e.route || '--'}</td>
+                    <td style="color:${statusCor};">${e.status || '--'}</td>
+                    <td style="color:#c9d1d9; max-width: 400px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(e.message || '').replace(/"/g, '&quot;')}">${e.message}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `}
+    </div>
+  `;
+
+  document.getElementById('dev-conteudo').innerHTML = cards + dbStatsHtml + sessoesHtml + errosHtml + cargosHtml + auditHtml;
+}
+
+async function devRevogarSessao(id) {
+  if (!confirm('Revogar essa sessão? O usuário fica deslogado no próximo request.')) return;
+  const r = await pacApi('/api/clinico/dev/sessions/' + id + '/revogar', { method: 'POST' });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  devCarregar();
 }
 
 // Auto-refresh a cada 60s quando estiver na view dev
