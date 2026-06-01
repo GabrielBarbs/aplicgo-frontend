@@ -3830,6 +3830,16 @@
       padding: 14px 16px;
       position: relative;
       border-left: 3px solid #E8945A;
+      transition: box-shadow 0.3s, border-color 0.3s;
+    }
+    .pr-item.pr-item-destaque {
+      border-color: #4A90E2;
+      box-shadow: 0 0 0 2px rgba(74,144,226,0.4), 0 0 20px rgba(74,144,226,0.25);
+      animation: prItemPulse 1s ease-in-out 2;
+    }
+    @keyframes prItemPulse {
+      0%, 100% { box-shadow: 0 0 0 2px rgba(74,144,226,0.4), 0 0 20px rgba(74,144,226,0.25); }
+      50% { box-shadow: 0 0 0 3px rgba(74,144,226,0.7), 0 0 28px rgba(74,144,226,0.45); }
     }
     .pr-item-head {
       display: flex; justify-content: space-between; align-items: center;
@@ -8876,7 +8886,7 @@ async function marcCarregar() {
         ${m.contexto ? `<div class="ctx"><i class="ti ti-link"></i> ${m.contexto}${m.paciente ? ' · ' + m.paciente.nome : ''}</div>` : ''}
         <div class="trecho">${(m.trecho || '').replace(/</g,'&lt;')}</div>
         <div class="acoes">
-          ${m.paciente ? `<button class="ir" onclick="marcIrParaOrigem('${m.id}', '${m.paciente.id}', '${(m.paciente.nome||'').replace(/'/g,"&apos;")}', '${m.paciente.codigo}')"><i class="ti ti-arrow-right"></i> Ir para origem</button>` : ''}
+          ${m.paciente ? `<button class="ir" onclick="marcIrParaOrigem('${m.id}', '${m.paciente.id}', '${(m.paciente.nome||'').replace(/'/g,"&apos;")}', '${m.paciente.codigo}', '${m.origem_id || ''}')"><i class="ti ti-arrow-right"></i> Ir para a marcação</button>` : ''}
           ${ehRecebida && m.status === 'NAO_LIDA' ? `<button onclick="marcMarcarLida('${m.id}')"><i class="ti ti-eye"></i> Marcar lida</button>` : ''}
           ${m.status !== 'RESOLVIDA' ? `<button onclick="marcResolver('${m.id}')"><i class="ti ti-check"></i> Resolver</button>` : ''}
         </div>
@@ -8906,10 +8916,12 @@ async function marcComentar(id) {
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
   marcCarregar(); marcAtualizarBadge();
 }
-function marcIrParaOrigem(mentionId, patientId, nome, codigo) {
+function marcIrParaOrigem(mentionId, patientId, nome, codigo, origemId) {
   // Marca como lida ao navegar
   pacApi('/api/clinico/mentions/' + mentionId + '/ler', { method: 'PUT' }).then(() => marcAtualizarBadge());
   marcFechar();
+  // Define a evolução-alvo pra destacar quando a timeline carregar
+  prState.evolucaoAlvo = origemId || null;
   trocarView('prontuario');
   prSelecionarPaciente({ id: patientId, nome: nome.replace(/&apos;/g, "'"), codigo, telefone: '' });
 }
@@ -11501,6 +11513,9 @@ function prRenderTimeline() {
   const conteudo = document.getElementById('pr-conteudo');
   const items = prState.timeline;
 
+  // Se veio de uma marcação, abre o histórico pra mostrar a evolução-alvo
+  if (prState.evolucaoAlvo) prState.histAberto = true;
+
   const headerHtml = prRenderHeaderRico();
 
   const _podePresc = temPermissao('prontuario.prescrever');
@@ -11541,6 +11556,20 @@ function prRenderTimeline() {
   `;
 
   conteudo.innerHTML = headerHtml + cardsHtml + actionsBar + anexosHtml + histHtml;
+
+  // Se veio de uma marcação, rola até a evolução-alvo e destaca
+  if (prState.evolucaoAlvo) {
+    const alvo = prState.evolucaoAlvo;
+    prState.evolucaoAlvo = null;
+    setTimeout(() => {
+      const el = document.querySelector(`.pr-item[data-item-id="${alvo}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('pr-item-destaque');
+        setTimeout(() => el.classList.remove('pr-item-destaque'), 3000);
+      }
+    }, 150);
+  }
 }
 
 // ===== ANEXOS (front pronto, sem persistência ainda) =====
@@ -12026,7 +12055,8 @@ function prRenderItem(it) {
     </button>
   ` : '';
 
-  return `<div class="pr-item tipo-${it.tipo}">
+  const dataId = it.dados && it.dados.id ? ` data-item-id="${it.dados.id}"` : '';
+  return `<div class="pr-item tipo-${it.tipo}"${dataId}>
     <div class="pr-item-head">
       <div class="pr-item-titulo"><i class="ti ti-${it.icone}"></i> ${it.titulo}</div>
       <div style="display:flex; align-items:center; gap:8px;">
