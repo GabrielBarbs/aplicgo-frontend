@@ -1932,6 +1932,141 @@
       background: rgba(232,148,90,0.18);
     }
 
+    /* ====== CARDS POR PROFISSIONAL NO PRONTUARIO (Aula Cap 5) ====== */
+    .pr-cards-profissionais {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .pr-card-prof {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      border-top: 3px solid var(--cor-prof, #E8945A);
+      overflow: hidden;
+      transition: all 0.15s;
+    }
+    .pr-card-prof:hover { border-color: #30363d; }
+    .pr-card-prof-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: rgba(13,17,23,0.4);
+      transition: background 0.12s;
+    }
+    .pr-card-prof-head:hover { background: rgba(13,17,23,0.7); }
+    .pr-card-prof-head .titulo {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: #f0f6fc;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .pr-card-prof-head .titulo i { font-size: 15px; }
+    .pr-card-prof-head .head-acoes {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pr-card-prof-head .btn-novo {
+      background: rgba(232,148,90,0.10);
+      border: 1px solid rgba(232,148,90,0.25);
+      color: var(--cor-prof, #E8945A);
+      padding: 4px 9px;
+      border-radius: 5px;
+      font-size: 10px; font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .pr-card-prof-head .btn-novo:hover {
+      background: rgba(232,148,90,0.20);
+    }
+    .pr-card-prof-body { padding: 12px 14px; }
+    .pr-card-prof-vazio {
+      text-align: center; padding: 24px 12px;
+      color: #6e7681; font-size: 11px; font-style: italic;
+    }
+    .pr-card-prof-vazio i { display: block; font-size: 20px; margin-bottom: 6px; color: #30363d; }
+
+    .pr-card-prof-ultima .meta-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; color: #7d8590; gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pr-card-prof-ultima .meta-row i { font-size: 11px; margin-right: 3px; }
+    .pr-card-prof-ultima .tpl-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; color: #E8945A;
+      margin: 6px 0;
+      padding: 2px 7px;
+      background: rgba(232,148,90,0.08);
+      border: 1px solid rgba(232,148,90,0.20);
+      border-radius: 10px;
+    }
+    .pr-card-prof-ultima .vitais {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      padding: 6px 10px;
+      background: rgba(33,38,45,0.4);
+      border-radius: 6px;
+      margin: 8px 0;
+      font-size: 11px; color: #c9d1d9;
+    }
+    .pr-card-prof-ultima .resumo {
+      font-size: 12px; color: #c9d1d9;
+      line-height: 1.5;
+      margin: 8px 0;
+      padding: 8px 10px;
+      background: #0d1117;
+      border-left: 2px solid var(--cor-prof, #E8945A);
+      border-radius: 4px;
+      white-space: pre-wrap;
+    }
+    .pr-card-prof-ultima .acoes {
+      display: flex; gap: 5px;
+      margin-top: 8px;
+    }
+    .pr-card-prof-ultima .acoes button {
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      padding: 4px 9px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .pr-card-prof-ultima .acoes button:hover {
+      border-color: var(--cor-prof, #E8945A);
+      color: var(--cor-prof, #E8945A);
+    }
+
+    /* Histórico recolhível */
+    .pr-hist-section {
+      margin-top: 14px;
+    }
+    .pr-hist-toggle {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      color: #c9d1d9;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      display: flex; align-items: center; gap: 8px;
+      transition: all 0.12s;
+    }
+    .pr-hist-toggle:hover {
+      border-color: #E8945A;
+      color: #E8945A;
+    }
+    .pr-hist-toggle i { font-size: 14px; }
+    .pr-hist-conteudo {
+      margin-top: 10px;
+    }
+
     /* ====== ONBOARDING -- checklist do paciente ====== */
     .onb-checklist {
       display: flex; flex-direction: column; gap: 8px;
@@ -9190,14 +9325,11 @@ function prRenderTimeline() {
 
   const headerHtml = prRenderHeaderRico();
 
-  const _podeEvol = temPermissao('prontuario.evolucao_medica.criar') || temPermissao('prontuario.evolucao_enfermagem.criar') || temPermissao('prontuario.evolucao_nutri.criar');
   const _podePresc = temPermissao('prontuario.prescrever');
   const _podeExam = temPermissao('prontuario.solicitar_exames');
-  const actionsBar = `
+  // Apenas botões "secundários" (prescrição, exames). Nova evolução fica nos cards.
+  const actionsBar = (_podePresc || _podeExam) ? `
     <div class="pr-actions-bar">
-      ${_podeEvol ? `<button class="pac-btn-primary" onclick="prAbrirNovaEvol()">
-        <i class="ti ti-clipboard-plus"></i> Nova evolução SOAP
-      </button>` : ''}
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
         <i class="ti ti-pill"></i> Nova prescrição
       </button>` : ''}
@@ -9205,19 +9337,137 @@ function prRenderTimeline() {
         <i class="ti ti-flask"></i> Solicitar exames
       </button>` : ''}
     </div>
+  ` : '';
+
+  // Cards por profissional (Aula Cap 5)
+  const cardsHtml = prRenderCardsPorProfissional();
+
+  // Histórico completo (recolhível, default fechado se já tem cards)
+  const histAberto = prState.histAberto || items.length === 0;
+  const histToggleLabel = histAberto ? 'Recolher histórico completo' : `Ver histórico completo (${items.length} registros)`;
+  const histHtml = `
+    <div class="pr-hist-section">
+      <button class="pr-hist-toggle" onclick="prToggleHistorico()">
+        <i class="ti ti-${histAberto ? 'chevron-down' : 'chevron-right'}"></i>
+        ${histToggleLabel}
+      </button>
+      <div class="pr-hist-conteudo" style="display:${histAberto ? 'block' : 'none'};">
+        ${items.length === 0
+          ? '<div class="pr-empty"><i class="ti ti-history"></i>Sem registros no prontuário ainda.</div>'
+          : '<div class="pr-timeline">' + items.map(prRenderItem).join('') + '</div>'}
+      </div>
+    </div>
   `;
 
-  if (items.length === 0) {
-    conteudo.innerHTML = headerHtml + actionsBar + `
-      <div class="pr-empty">
-        <i class="ti ti-history"></i>
-        Sem registros no prontuário ainda. Cria a primeira evolução pra começar.
+  conteudo.innerHTML = headerHtml + cardsHtml + actionsBar + histHtml;
+}
+
+function prToggleHistorico() {
+  prState.histAberto = !prState.histAberto;
+  prRenderTimeline();
+}
+
+// ===== CARDS POR PROFISSIONAL (Aula Cap 5) =====
+const PROF_TIPOS = [
+  { tipo: 'MEDICA',      label: 'Médica',      icone: 'stethoscope', cor: '#4A90E2', permCriar: 'prontuario.evolucao_medica.criar' },
+  { tipo: 'NUTRICIONAL', label: 'Nutricional', icone: 'apple',       cor: '#6FD89A', permCriar: 'prontuario.evolucao_nutri.criar' },
+  { tipo: 'ENFERMAGEM',  label: 'Enfermagem',  icone: 'vaccine',     cor: '#E8945A', permCriar: 'prontuario.evolucao_enfermagem.criar' },
+];
+
+function prRenderCardsPorProfissional() {
+  const items = prState.timeline.filter(t => t.tipo === 'evolucao');
+  return `
+    <div class="pr-cards-profissionais">
+      ${PROF_TIPOS.map(p => {
+        const ultima = items.find(it => it.dados.tipo_evolucao === p.tipo);
+        const podeCriar = temPermissao(p.permCriar);
+        const recolhido = prState.cardsRecolhidos?.[p.tipo] || false;
+        return prRenderCardProfissional(p, ultima, podeCriar, recolhido);
+      }).join('')}
+    </div>
+  `;
+}
+
+function prRenderCardProfissional(prof, ultima, podeCriar, recolhido) {
+  const cor = prof.cor;
+  let conteudoHtml;
+  if (!ultima) {
+    conteudoHtml = `
+      <div class="pr-card-prof-vazio">
+        <i class="ti ti-file-off"></i>
+        Sem evoluções ${prof.label.toLowerCase()} registradas.
       </div>
     `;
-    return;
+  } else {
+    const dt = new Date(ultima.data);
+    const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const d = ultima.dados;
+    // Resumo: primeiros 200 chars do conteudo ou SOAP
+    let resumo = '';
+    if (d.conteudo) {
+      const div = document.createElement('div');
+      div.innerHTML = d.conteudo;
+      resumo = (div.textContent || '').slice(0, 280);
+    } else {
+      resumo = [d.subjetivo, d.objetivo, d.avaliacao, d.plano].filter(Boolean).join(' ').slice(0, 280);
+    }
+    if (resumo.length === 280) resumo += '...';
+
+    const vitais = [];
+    if (d.peso_atual_kg) vitais.push(`<span><strong>${d.peso_atual_kg} kg</strong></span>`);
+    if (d.pa_sistolica && d.pa_diastolica) vitais.push(`<span>PA <strong>${d.pa_sistolica}/${d.pa_diastolica}</strong></span>`);
+    if (d.fc_bpm) vitais.push(`<span>FC <strong>${d.fc_bpm}</strong></span>`);
+
+    conteudoHtml = `
+      <div class="pr-card-prof-ultima">
+        <div class="meta-row">
+          <span class="prof"><i class="ti ti-user"></i> ${d.profissional || '--'}</span>
+          <span class="data"><i class="ti ti-clock"></i> ${dataFmt}</span>
+        </div>
+        ${d.template_slug ? `<div class="tpl-badge"><i class="ti ti-template"></i> ${d.template_slug}</div>` : ''}
+        ${vitais.length ? `<div class="vitais">${vitais.join('')}</div>` : ''}
+        <div class="resumo">${resumo.replace(/</g, '&lt;')}</div>
+        <div class="acoes">
+          <button onclick="prEditarEvol('${d.id}')"><i class="ti ti-edit"></i> Abrir / Editar</button>
+        </div>
+      </div>
+    `;
   }
 
-  conteudo.innerHTML = headerHtml + actionsBar + '<div class="pr-timeline">' + items.map(prRenderItem).join('') + '</div>';
+  return `
+    <div class="pr-card-prof ${recolhido ? 'recolhido' : ''}" style="--cor-prof: ${cor};">
+      <div class="pr-card-prof-head" onclick="prToggleCardProf('${prof.tipo}')">
+        <div class="titulo">
+          <i class="ti ti-${prof.icone}" style="color: ${cor};"></i>
+          <span>${prof.label}</span>
+        </div>
+        <div class="head-acoes">
+          ${podeCriar ? `<button class="btn-novo" onclick="event.stopPropagation(); prAbrirNovaEvolTipo('${prof.tipo}')">
+            <i class="ti ti-plus"></i> Nova
+          </button>` : ''}
+          <i class="ti ti-chevron-${recolhido ? 'right' : 'down'}" style="color: #7d8590; font-size: 14px;"></i>
+        </div>
+      </div>
+      <div class="pr-card-prof-body" style="display:${recolhido ? 'none' : 'block'};">
+        ${conteudoHtml}
+      </div>
+    </div>
+  `;
+}
+
+function prToggleCardProf(tipo) {
+  if (!prState.cardsRecolhidos) prState.cardsRecolhidos = {};
+  prState.cardsRecolhidos[tipo] = !prState.cardsRecolhidos[tipo];
+  prRenderTimeline();
+}
+
+// Abre o modal de nova evolução já pré-selecionando o tipo
+function prAbrirNovaEvolTipo(tipo) {
+  prAbrirNovaEvol();
+  setTimeout(() => {
+    const sel = document.getElementById('pr-evol-tipo');
+    if (sel) sel.value = tipo;
+  }, 50);
 }
 
 function prRenderItem(it) {

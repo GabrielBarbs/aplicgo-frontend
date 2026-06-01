@@ -59,10 +59,16 @@ Ordem dos combos: do mais simples ao mais complexo. Cada combo entrega valor soz
 - [ ] Upload do PDF do contrato e termo (anexar no documento do paciente)
 - [ ] Notificação WhatsApp pro paciente em cada milestone
 
-### Combo E · Cards por profissional no prontuário (Aula Cap 5)
-- [ ] 3 cards recolhíveis no topo: médico / nutri / enfermagem
-- [ ] Cada um mostra última evolução; só quem tem permissão vê o "+ Nova"
-- [ ] Histórico completo recolhível embaixo
+### Combo E · Cards por profissional no prontuário (Aula Cap 5) ✅ FEITO
+- [x] 3 cards no topo do prontuário: Médica (azul), Nutricional (verde), Enfermagem (laranja)
+- [x] Cada card mostra a **última evolução** do profissional do tipo correspondente
+- [x] Resumo com profissional, data/hora, badge do template, sinais vitais (peso/PA/FC) e primeiros 280 chars do conteúdo
+- [x] Botão "+ Nova" dentro do card só aparece pra quem tem `prontuario.evolucao_*.criar`
+- [x] Cards recolhíveis (estado individual por tipo)
+- [x] Histórico completo agora em seção recolhível abaixo dos cards
+- [x] Atalho `prAbrirNovaEvolTipo()` pré-seleciona o tipo no modal de evolução
+- [x] Botão "Abrir / Editar" em cada card vai direto na evolução
+- [x] Bonus extra: ação de Onboarding atalho no modal de status da agenda
 
 ### Combo F · Painel de pendências da Recepção (Aula Cap 6)
 - [ ] Aba "Pendências" (visível com `recepcao.painel_pendencias`)
