@@ -4387,16 +4387,8 @@
               <input type="text" id="pac-nome-completo" required>
             </div>
             <div class="pac-field">
-              <label>Nome social</label>
-              <input type="text" id="pac-nome-social">
-            </div>
-            <div class="pac-field">
               <label>CPF</label>
               <input type="text" id="pac-cpf" placeholder="000.000.000-00">
-            </div>
-            <div class="pac-field">
-              <label>RG</label>
-              <input type="text" id="pac-rg">
             </div>
             <div class="pac-field">
               <label>Data nascimento</label>
@@ -4410,21 +4402,6 @@
                 <option value="M">Masculino</option>
                 <option value="O">Outro</option>
               </select>
-            </div>
-            <div class="pac-field">
-              <label>Estado civil</label>
-              <select id="pac-estado-civil">
-                <option value="">—</option>
-                <option value="solteiro">Solteiro(a)</option>
-                <option value="casado">Casado(a)</option>
-                <option value="divorciado">Divorciado(a)</option>
-                <option value="viuvo">Viúvo(a)</option>
-                <option value="uniao_estavel">União estável</option>
-              </select>
-            </div>
-            <div class="pac-field">
-              <label>Profissão</label>
-              <input type="text" id="pac-profissao">
             </div>
           </div>
         </div>
@@ -4535,30 +4512,12 @@
               </select>
             </div>
             <div class="pac-field">
-              <label>Persona atribuída</label>
-              <input list="pac-persona-sug" type="text" id="pac-persona" placeholder="Consultora Executiva">
-              <datalist id="pac-persona-sug">
-                <option value="Cris-Giovanni">
-                <option value="Juliana">
-                <option value="Camila">
-                <option value="Adriana">
-              </datalist>
-            </div>
-            <div class="pac-field">
               <label>Início do programa</label>
               <input type="date" id="pac-programa-inicio">
             </div>
             <div class="pac-field">
               <label>Duração (semanas)</label>
               <input type="number" id="pac-programa-duracao" min="1" max="104" step="1" placeholder="ex: 12">
-            </div>
-            <div class="pac-field">
-              <label>Momento de vida</label>
-              <select id="pac-momento-vida">
-                <option value="">--</option>
-                <option value="ALTA_VOLTAGEM">Alta voltagem</option>
-                <option value="FRAGILIDADE">Fragilidade</option>
-              </select>
             </div>
             <div class="pac-field">
               <label>Status clínico</label>
@@ -4597,17 +4556,7 @@
         <!-- Saúde / Histórico -->
         <div class="pac-form-section">
           <div class="pac-form-section-title"><i class="ti ti-heartbeat"></i> Saúde e histórico</div>
-          <div class="pac-form-grid col-2">
-            <div class="pac-field">
-              <label>Tipo sanguíneo</label>
-              <select id="pac-tipo-sanguineo">
-                <option value="">--</option>
-                <option>A+</option><option>A-</option>
-                <option>B+</option><option>B-</option>
-                <option>AB+</option><option>AB-</option>
-                <option>O+</option><option>O-</option>
-              </select>
-            </div>
+          <div class="pac-form-grid">
             <div class="pac-field">
               <label>Bariátrica prévia?</label>
               <select id="pac-bariatrica">
@@ -6592,7 +6541,7 @@ function renderListaPacientes() {
         ${pacState.pacientes.map(p => `
           <tr onclick="pacAbrirDetalhe('${p.id}')">
             <td class="pac-codigo">${p.codigo}</td>
-            <td class="pac-nome">${p.nome_completo}${p.nome_social ? ' <span style="color:#7d8590; font-size:11px;">(' + p.nome_social + ')</span>' : ''}</td>
+            <td class="pac-nome">${p.nome_completo}</td>
             <td>${fmtTel(p.telefone1)}</td>
             <td>${p.unidade ? p.unidade.nome : '—'}</td>
             <td><span class="pac-tag ${p.status}">${p.status}</span></td>
@@ -6653,13 +6602,9 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-form-id').value = p.id;
   document.getElementById('pac-form-contact-id').value = p.contact_id || '';
   document.getElementById('pac-nome-completo').value = p.nome_completo || '';
-  document.getElementById('pac-nome-social').value = p.nome_social || '';
   document.getElementById('pac-cpf').value = p.cpf || '';
-  document.getElementById('pac-rg').value = p.rg || '';
   document.getElementById('pac-data-nasc').value = p.data_nascimento || '';
   document.getElementById('pac-sexo').value = p.sexo || '';
-  document.getElementById('pac-estado-civil').value = p.estado_civil || '';
-  document.getElementById('pac-profissao').value = p.profissao || '';
   document.getElementById('pac-telefone1').value = fmtTel(p.telefone1);
   document.getElementById('pac-telefone2').value = p.telefone2 ? fmtTel(p.telefone2) : '';
   document.getElementById('pac-email').value = p.email || '';
@@ -6681,14 +6626,11 @@ async function pacAbrirEditarModal(id) {
   // Programa e jornada
   document.getElementById('pac-programa').value = p.programa || '';
   document.getElementById('pac-fase-atual').value = p.fase_atual || '';
-  document.getElementById('pac-persona').value = p.persona_atribuida || '';
   document.getElementById('pac-programa-inicio').value = p.programa_inicio_em || '';
   document.getElementById('pac-programa-duracao').value = p.programa_duracao_semanas || '';
-  document.getElementById('pac-momento-vida').value = p.momento_vida_etiqueta || '';
   document.getElementById('pac-status-clinico').value = p.status_clinico || 'ESTAVEL';
   document.getElementById('pac-obs-imutaveis').value = p.observacoes_imutaveis_medico || '';
   // Saúde estruturada
-  document.getElementById('pac-tipo-sanguineo').value = p.health?.tipo_sanguineo || '';
   document.getElementById('pac-bariatrica').value = p.anamnesis?.cirurgia_bariatrica ? 'true' : 'false';
   document.getElementById('pac-ativ-modalidade').value = p.health?.atividade_modalidade || '';
   document.getElementById('pac-ativ-freq').value = p.health?.atividade_frequencia || '';
@@ -6839,13 +6781,9 @@ async function pacSalvar() {
 
   const body = {
     nome_completo: document.getElementById('pac-nome-completo').value.trim(),
-    nome_social: document.getElementById('pac-nome-social').value.trim() || null,
     cpf: document.getElementById('pac-cpf').value.trim() || null,
-    rg: document.getElementById('pac-rg').value.trim() || null,
     data_nascimento: document.getElementById('pac-data-nasc').value || null,
     sexo: document.getElementById('pac-sexo').value || null,
-    estado_civil: document.getElementById('pac-estado-civil').value || null,
-    profissao: document.getElementById('pac-profissao').value.trim() || null,
     telefone1: document.getElementById('pac-telefone1').value.trim(),
     telefone2: document.getElementById('pac-telefone2').value.trim() || null,
     email: document.getElementById('pac-email').value.trim() || null,
@@ -6866,14 +6804,11 @@ async function pacSalvar() {
     // Programa e jornada
     programa: document.getElementById('pac-programa').value.trim() || null,
     fase_atual: document.getElementById('pac-fase-atual').value || null,
-    persona_atribuida: document.getElementById('pac-persona').value.trim() || null,
-    momento_vida_etiqueta: document.getElementById('pac-momento-vida').value || null,
     programa_inicio_em: document.getElementById('pac-programa-inicio').value || null,
     programa_duracao_semanas: parseInt(document.getElementById('pac-programa-duracao').value) || null,
     status_clinico: document.getElementById('pac-status-clinico').value || 'ESTAVEL',
     observacoes_imutaveis_medico: document.getElementById('pac-obs-imutaveis').value.trim() || null,
     health: {
-      tipo_sanguineo: document.getElementById('pac-tipo-sanguineo').value || null,
       alergias: document.getElementById('pac-alergias').value.trim() || null,
       medicacoes_em_uso: document.getElementById('pac-medicacoes').value.trim() || null,
       comorbidades: pacState.comorbidades || [],
@@ -6946,7 +6881,7 @@ function renderDetalhePaciente(p) {
       <div class="pac-detail-avatar">${inicial}</div>
       <div class="pac-detail-info">
         <div class="codigo">${p.codigo}</div>
-        <h2 class="nome">${p.nome_completo}${p.nome_social ? ' <span style="color:#7d8590; font-size:14px; font-weight:400;">(' + p.nome_social + ')</span>' : ''}</h2>
+        <h2 class="nome">${p.nome_completo}</h2>
         <div class="meta">
           <span><i class="ti ti-phone"></i> ${fmtTel(p.telefone1)}</span>
           ${idade ? '<span><i class="ti ti-cake"></i> ' + idade + ' anos</span>' : ''}
@@ -6972,11 +6907,8 @@ function renderDetalhePaciente(p) {
       <div class="pac-info-card">
         <div class="pac-info-card-title"><i class="ti ti-id"></i> Identificação</div>
         ${row('CPF', p.cpf ? fmtCpf(p.cpf) : null)}
-        ${row('RG', p.rg)}
         ${row('Nascimento', p.data_nascimento ? fmtData(p.data_nascimento) : null)}
         ${row('Sexo', p.sexo ? ({F:'Feminino', M:'Masculino', O:'Outro'}[p.sexo]) : null)}
-        ${row('Estado civil', p.estado_civil)}
-        ${row('Profissão', p.profissao)}
       </div>
 
       <div class="pac-info-card">
@@ -8715,7 +8647,6 @@ function prRenderHeaderRico() {
   const linhas = [];
   if (h.alergias) linhas.push(`<div class="row alerta"><span class="l">Alergias:</span> <span class="v">${h.alergias}</span></div>`);
   if (h.medicacoes_em_uso) linhas.push(`<div class="row"><span class="l">Medicações:</span> <span class="v">${h.medicacoes_em_uso}</span></div>`);
-  if (h.tipo_sanguineo) linhas.push(`<div class="row"><span class="l">Tipo sanguíneo:</span> <span class="v">${h.tipo_sanguineo}</span></div>`);
   if (h.cirurgia_bariatrica) linhas.push(`<div class="row"><span class="l">Bariátrica:</span> <span class="v">sim${h.bariatrica_quando ? ' (' + fmtDataCurta(h.bariatrica_quando) + ')' : ''}</span></div>`);
   if (h.motivacao_atual) linhas.push(`<div class="row"><span class="l">Motivação:</span> <span class="v">${h.motivacao_atual}</span></div>`);
   if (h.medico) linhas.push(`<div class="row"><span class="l">Médico:</span> <span class="v">${h.medico.name || h.medico.email}</span></div>`);
@@ -8739,9 +8670,7 @@ function prRenderHeaderRico() {
             ${h.programa ? `<span class="b programa"><i class="ti ti-rocket" style="font-size:9px;"></i> ${h.programa}</span>` : ''}
             ${h.semana_atual_de ? `<span class="b semana"><i class="ti ti-calendar-stats" style="font-size:9px;"></i> Semana ${h.semana_atual_de}${h.total_semanas ? ' de ' + h.total_semanas : ''}</span>` : ''}
             ${h.fase_atual ? `<span class="b fase">${prFmtFase(h.fase_atual)}</span>` : ''}
-            ${h.persona_atribuida ? `<span class="b persona"><i class="ti ti-user-star" style="font-size:9px;"></i> ${h.persona_atribuida}</span>` : ''}
             ${h.status_clinico ? `<span class="b clinico-${h.status_clinico}"><i class="ti ti-activity-heartbeat" style="font-size:9px;"></i> ${prFmtStatusClinico(h.status_clinico)}</span>` : ''}
-            ${h.momento_vida_etiqueta ? `<span class="b momento">${h.momento_vida_etiqueta === 'ALTA_VOLTAGEM' ? 'Alta voltagem' : 'Fragilidade'}</span>` : ''}
             ${h.fase_programa ? `<span class="b" style="border-color:#30363d; color:#8b949e;">${h.fase_programa}</span>` : ''}
             ${h.anamnese_pendente ? `<span class="b" style="background:rgba(74,144,226,0.10); color:#4A90E2; border-color:rgba(74,144,226,0.30);">Anamnese enviada</span>` : ''}
           </div>
