@@ -446,6 +446,113 @@
       gap: 12px;
       margin-bottom: 18px;
     }
+
+    /* ===== DASHBOARD OPERACIONAL ===== */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+    .dash-card {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .dash-card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .dash-card-head .ttl {
+      font-size: 12px; color: #f0f6fc;
+      text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .dash-card-head .ttl i { color: #E8945A; }
+    .dash-count {
+      font-size: 11px; color: #7d8590;
+      background: #0d1117; border: 1px solid #21262d;
+      padding: 2px 10px; border-radius: 12px;
+    }
+    .dash-cfg-btn {
+      background: transparent; border: 1px solid #30363d; color: #8b949e;
+      width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    .dash-cfg-btn:hover { border-color: #E8945A; color: #E8945A; }
+    .dash-side { display: flex; flex-direction: column; gap: 14px; }
+    .dash-vazio { font-size: 12px; color: #6e7681; font-style: italic; padding: 14px 0; text-align: center; }
+
+    /* Agenda de hoje */
+    .dash-ag-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border-left: 3px solid #4A90E2;
+      background: #0d1117;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .dash-ag-item:hover { background: rgba(232,148,90,0.05); }
+    .dash-ag-item .hora { font-size: 14px; font-weight: 700; color: #f0f6fc; min-width: 48px; }
+    .dash-ag-item .info { flex: 1; min-width: 0; }
+    .dash-ag-item .pac { font-size: 13px; color: #f0f6fc; font-weight: 500; }
+    .dash-ag-item .det { font-size: 11px; color: #7d8590; margin-top: 1px; }
+    .dash-ag-item .st {
+      font-size: 9px; padding: 2px 8px; border-radius: 8px;
+      text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;
+    }
+    .dash-ag-item .st.AGENDADO { background: rgba(74,144,226,0.12); color: #4A90E2; }
+    .dash-ag-item .st.CONFIRMADO { background: rgba(241,198,72,0.12); color: #F1C648; }
+    .dash-ag-item .st.AGUARDANDO { background: rgba(111,216,154,0.12); color: #6FD89A; }
+    .dash-ag-item .st.ATENDIDO { background: rgba(29,158,117,0.12); color: #1D9E75; }
+    .dash-ag-item .st.EM_ATENDIMENTO { background: rgba(239,159,39,0.12); color: #EF9F27; }
+
+    /* Mini pendências */
+    .dash-mini {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 4px;
+      font-size: 12px; color: #c9d1d9;
+      border-bottom: 1px dashed rgba(33,38,45,0.6);
+    }
+    .dash-mini:last-child { border-bottom: 0; }
+    .dash-mini span { display: inline-flex; align-items: center; gap: 6px; }
+    .dash-mini strong { font-size: 16px; color: #f0f6fc; }
+    .dash-mini:hover strong { color: #E8945A; }
+
+    /* Aniversariantes */
+    .dash-aniv-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(33,38,45,0.5);
+    }
+    .dash-aniv-item:last-child { border-bottom: 0; }
+    .dash-aniv-item .bolo {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: rgba(232,148,90,0.12); color: #E8945A;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+      flex-shrink: 0;
+    }
+    .dash-aniv-item.hoje .bolo { background: rgba(232,148,90,0.25); }
+    .dash-aniv-item .info { flex: 1; min-width: 0; }
+    .dash-aniv-item .nome { font-size: 12px; color: #f0f6fc; }
+    .dash-aniv-item .quando { font-size: 10px; color: #7d8590; }
+    .dash-aniv-item .quando.hoje { color: #E8945A; font-weight: 600; }
+    .dash-aniv-item .enviar {
+      background: rgba(29,158,117,0.12); border: 1px solid rgba(29,158,117,0.3);
+      color: #1D9E75; padding: 4px 9px; border-radius: 6px; cursor: pointer;
+      font-size: 10px; font-family: inherit; display: inline-flex; align-items: center; gap: 4px;
+      flex-shrink: 0;
+    }
+    .dash-aniv-item .enviar:hover { background: rgba(29,158,117,0.22); }
+    .dash-aniv-item .enviar.enviado { background: rgba(125,133,144,0.1); border-color: #30363d; color: #7d8590; }
+    .aniv-var {
+      background: rgba(232,148,90,0.12); color: #E8945A;
+      padding: 1px 5px; border-radius: 4px; font-size: 11px;
+    }
     .stat-card {
       background: #161b22;
       border: 1px solid #21262d;
@@ -4718,6 +4825,47 @@
       </div>
     </div>
 
+    <!-- Painel operacional do dia -->
+    <div class="dash-grid">
+      <!-- Agenda de hoje -->
+      <div class="dash-card dash-agenda">
+        <div class="dash-card-head">
+          <div class="ttl"><i class="ti ti-calendar-event"></i> Agenda de hoje</div>
+          <span class="dash-count" id="dash-ag-count">—</span>
+        </div>
+        <div id="dash-agenda-lista">
+          <div class="dash-vazio">Carregando…</div>
+        </div>
+      </div>
+
+      <!-- Coluna lateral: pendências + aniversariantes -->
+      <div class="dash-side">
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <div class="ttl"><i class="ti ti-alert-square"></i> Pendências</div>
+          </div>
+          <div class="dash-mini" onclick="trocarView('pendencias')" style="cursor:pointer;">
+            <span><i class="ti ti-rocket" style="color:#EF9F27;"></i> Onboarding em aberto</span>
+            <strong id="dash-pend-onb">—</strong>
+          </div>
+          <div class="dash-mini" onclick="marcAbrir()" style="cursor:pointer;">
+            <span><i class="ti ti-at" style="color:#4A90E2;"></i> Minhas marcações</span>
+            <strong id="dash-marcacoes">—</strong>
+          </div>
+        </div>
+
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <div class="ttl"><i class="ti ti-cake"></i> Aniversariantes</div>
+            <button class="dash-cfg-btn" onclick="anivAbrirConfig()" title="Configurar mensagem"><i class="ti ti-settings"></i></button>
+          </div>
+          <div id="dash-aniversariantes">
+            <div class="dash-vazio">Carregando…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="section-card">
       <div class="section-card-title"><i class="ti ti-building-hospital"></i> Suas unidades</div>
       <div class="unit-list" id="unit-list">
@@ -7168,7 +7316,120 @@ async function carregarStatus() {
       document.getElementById('stat-apps').textContent = data.counts.applications;
     }
   } catch (e) { /* silencioso */ }
+  dashCarregar();
 }
+
+// ============================================================
+// DASHBOARD OPERACIONAL (Visão Geral)
+// ============================================================
+async function dashCarregar() {
+  const r = await pacApi('/api/clinico/dashboard/resumo');
+  if (!r.ok) return;
+  const d = r.data;
+
+  // Agenda de hoje
+  const agWrap = document.getElementById('dash-agenda-lista');
+  document.getElementById('dash-ag-count').textContent = d.hoje.total + (d.hoje.total === 1 ? ' hoje' : ' hoje');
+  if (d.hoje.agendamentos.length === 0) {
+    agWrap.innerHTML = '<div class="dash-vazio"><i class="ti ti-calendar-off"></i> Nenhum agendamento hoje.</div>';
+  } else {
+    agWrap.innerHTML = d.hoje.agendamentos.map(a => {
+      const hora = new Date(a.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      return `
+        <div class="dash-ag-item" style="border-left-color:${a.cor || '#4A90E2'};" onclick="dashAbrirPaciente('${a.paciente_id}', '${(a.paciente||'').replace(/'/g,'&apos;')}')">
+          <div class="hora">${hora}</div>
+          <div class="info">
+            <div class="pac">${a.paciente}</div>
+            <div class="det">${a.tipo} · ${a.profissional}${a.unidade ? ' · ' + a.unidade : ''}</div>
+          </div>
+          <span class="st ${a.status}">${a.status}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Pendências
+  document.getElementById('dash-pend-onb').textContent = d.pendencias_onboarding;
+  document.getElementById('dash-marcacoes').textContent = d.minhas_marcacoes;
+
+  // Aniversariantes
+  dashState.aniversariantes = d.aniversariantes || [];
+  dashRenderAniversariantes();
+}
+
+let dashState = { aniversariantes: [] };
+
+function dashRenderAniversariantes() {
+  const wrap = document.getElementById('dash-aniversariantes');
+  const lista = dashState.aniversariantes;
+  if (lista.length === 0) {
+    wrap.innerHTML = '<div class="dash-vazio"><i class="ti ti-cake-off"></i> Ninguém faz aniversário nos próximos 7 dias.</div>';
+    return;
+  }
+  wrap.innerHTML = lista.map(a => `
+    <div class="dash-aniv-item ${a.eh_hoje ? 'hoje' : ''}">
+      <div class="bolo"><i class="ti ti-cake"></i></div>
+      <div class="info">
+        <div class="nome">${a.nome}</div>
+        <div class="quando ${a.eh_hoje ? 'hoje' : ''}">${a.eh_hoje ? 'Hoje! ' + a.faz_anos + ' anos' : `${String(a.dia).padStart(2,'0')}/${String(a.mes).padStart(2,'0')} · ${a.faz_anos} anos`}</div>
+      </div>
+      <button class="enviar ${a.ja_enviado ? 'enviado' : ''}" onclick="dashEnviarAniversario('${a.id}')">
+        <i class="ti ti-brand-whatsapp"></i> ${a.ja_enviado ? 'Enviado' : 'Enviar'}
+      </button>
+    </div>
+  `).join('');
+}
+
+function dashAbrirPaciente(id, nome) {
+  trocarView('prontuario');
+  prSelecionarPaciente({ id, nome: nome.replace(/&apos;/g, "'"), codigo: '', telefone: '' });
+}
+
+async function dashEnviarAniversario(patientId) {
+  const r = await pacApi('/api/clinico/dashboard/aniversario/' + patientId + '/enviar', { method: 'POST' });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  if (r.data.link_whatsapp) {
+    window.open(r.data.link_whatsapp, '_blank');
+  } else {
+    alert('Mensagem registrada, mas o paciente não tem telefone cadastrado.\n\n' + r.data.mensagem);
+  }
+  // Marca como enviado na UI
+  const a = dashState.aniversariantes.find(x => x.id === patientId);
+  if (a) { a.ja_enviado = true; dashRenderAniversariantes(); }
+}
+
+// ===== Configurar mensagem de aniversário =====
+async function anivAbrirConfig() {
+  const r = await pacApi('/api/clinico/dashboard/aniversario/config');
+  const txt = (r.ok && r.data.mensagem) ? r.data.mensagem : '';
+  document.getElementById('aniv-cfg-texto').value = txt;
+  document.getElementById('aniv-cfg-erro').style.display = 'none';
+  anivAtualizarPreview();
+  document.getElementById('aniv-cfg-modal').classList.add('aberto');
+}
+function anivFecharConfig() {
+  document.getElementById('aniv-cfg-modal').classList.remove('aberto');
+}
+function anivAtualizarPreview() {
+  const txt = document.getElementById('aniv-cfg-texto').value;
+  const preview = txt
+    .replace(/\{primeiro_nome\}/g, 'Maria')
+    .replace(/\{nome\}/g, 'Maria Silva')
+    .replace(/\{idade\}/g, '34');
+  document.getElementById('aniv-cfg-preview').textContent = preview || '(vazio)';
+}
+async function anivSalvarConfig() {
+  const erroEl = document.getElementById('aniv-cfg-erro');
+  const texto = document.getElementById('aniv-cfg-texto').value.trim();
+  if (texto.length < 2) { erroEl.textContent = 'Escreva a mensagem'; erroEl.style.display = 'block'; return; }
+  const r = await pacApi('/api/clinico/dashboard/aniversario/config', { method: 'PUT', body: JSON.stringify({ mensagem: texto }) });
+  if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
+  anivFecharConfig();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const t = document.getElementById('aniv-cfg-texto');
+  if (t) t.addEventListener('input', anivAtualizarPreview);
+});
 
 // ============================================================
 // NAVEGAÇÃO ENTRE VIEWS
@@ -13514,6 +13775,39 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarMe();
 });
 </script>
+
+<!-- ============== MODAL CONFIGURAR MENSAGEM DE ANIVERSÁRIO ============== -->
+<div class="ag-modal-overlay" id="aniv-cfg-modal" onclick="if(event.target.id==='aniv-cfg-modal') anivFecharConfig()">
+  <div class="ag-modal" style="max-width: 480px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-cake"></i> <span>Mensagem de aniversário</span></div>
+      <button class="pac-modal-close" onclick="anivFecharConfig()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="aniv-cfg-erro"></div>
+      <div style="font-size:11px; color:#8b949e; margin-bottom:10px;">
+        Use as variáveis: <code class="aniv-var">{primeiro_nome}</code> <code class="aniv-var">{nome}</code> <code class="aniv-var">{idade}</code>
+      </div>
+      <div class="pac-field">
+        <label>Texto da mensagem</label>
+        <textarea id="aniv-cfg-texto" style="min-height:120px;" placeholder="Olá {primeiro_nome}! Feliz aniversário..."></textarea>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="font-size:10px; color:#7d8590; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:4px;">Prévia</div>
+        <div id="aniv-cfg-preview" style="font-size:12px; color:#c9d1d9; background:#0d1117; border:1px solid #21262d; border-radius:8px; padding:10px; white-space:pre-wrap;"></div>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="anivFecharConfig()">Cancelar</button>
+        <button class="pac-btn-primary" id="aniv-cfg-salvar" onclick="anivSalvarConfig()">
+          <i class="ti ti-device-floppy"></i> Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============== BOTÃO FLUTUANTE + MODAL REPORTAR BUG ============== -->
 <button class="bug-fab" id="bug-fab" onclick="bugAbrir()" title="Reportar bug ou erro">
