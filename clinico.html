@@ -5470,7 +5470,7 @@
             </div>
             <div class="pac-field">
               <label>Data nascimento</label>
-              <input type="date" id="pac-data-nasc">
+              <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="pac-data-nasc" oninput="mascararData(this, event)"><input type="hidden" id="pac-data-nasc">
             </div>
             <div class="pac-field">
               <label>Sexo</label>
@@ -5591,7 +5591,7 @@
             </div>
             <div class="pac-field">
               <label>Início do programa</label>
-              <input type="date" id="pac-programa-inicio">
+              <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="pac-programa-inicio" oninput="mascararData(this, event)"><input type="hidden" id="pac-programa-inicio">
             </div>
             <div class="pac-field">
               <label>Duração (semanas)</label>
@@ -5612,24 +5612,7 @@
           </div>
         </div>
 
-        <!-- Antropometria + Objetivo -->
-        <div class="pac-form-section">
-          <div class="pac-form-section-title"><i class="ti ti-scale"></i> Antropometria e objetivo</div>
-          <div class="pac-form-grid col-3">
-            <div class="pac-field">
-              <label>Altura (cm)</label>
-              <input type="number" id="pac-altura" min="0" max="250" step="1">
-            </div>
-            <div class="pac-field">
-              <label>Peso inicial (kg)</label>
-              <input type="number" id="pac-peso" min="0" max="500" step="0.1">
-            </div>
-            <div class="pac-field">
-              <label>Peso objetivo (kg)</label>
-              <input type="number" id="pac-peso-objetivo" min="0" max="500" step="0.1">
-            </div>
-          </div>
-        </div>
+        <!-- Antropometria removida do cadastro: altura/peso/objetivo vêm da anamnese do paciente -->
 
         <!-- Saúde / Histórico -->
         <div class="pac-form-section">
@@ -5770,11 +5753,11 @@
         <div class="pac-form-grid col-3">
           <div class="pac-field">
             <label>Data <span class="req">*</span></label>
-            <input type="date" id="ag-data" required>
+            <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-data" oninput="mascararData(this, event)"><input type="hidden" id="ag-data">
           </div>
           <div class="pac-field">
             <label>Hora início <span class="req">*</span></label>
-            <input type="time" id="ag-hora" required>
+            <input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" id="ag-hora" oninput="mascararHora(this, event)">
           </div>
           <div class="pac-field">
             <label>Duração (min)</label>
@@ -5817,7 +5800,7 @@
             </div>
             <div class="pac-field">
               <label>Termina em</label>
-              <input type="date" id="ag-recor-until">
+              <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-recor-until" oninput="mascararData(this, event)"><input type="hidden" id="ag-recor-until">
             </div>
           </div>
         </div>
@@ -5872,11 +5855,11 @@
         <div class="pac-form-grid col-2">
           <div class="pac-field">
             <label>Início <span class="req">*</span></label>
-            <input type="datetime-local" id="ag-bloq-start" required>
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="ag-bloq-start" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="ag-bloq-start">
           </div>
           <div class="pac-field">
             <label>Fim <span class="req">*</span></label>
-            <input type="datetime-local" id="ag-bloq-end" required>
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="ag-bloq-end" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="ag-bloq-end">
           </div>
         </div>
       </div>
@@ -5915,7 +5898,7 @@
             </div>
             <div class="pac-field">
               <label>Termina em</label>
-              <input type="date" id="ag-bloq-recor-until">
+              <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-bloq-recor-until" oninput="mascararData(this, event)"><input type="hidden" id="ag-bloq-recor-until">
             </div>
           </div>
         </div>
@@ -5958,7 +5941,7 @@
           </div>
           <div class="pac-field">
             <label>Data de nascimento</label>
-            <input type="date" id="ag-quick-nasc">
+            <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-quick-nasc" oninput="mascararData(this, event)"><input type="hidden" id="ag-quick-nasc">
           </div>
           <div class="pac-field">
             <label>Telefone <span class="req">*</span></label>
@@ -6025,15 +6008,15 @@
         <div class="pac-form-grid col-3">
           <div class="pac-field">
             <label>Consulta médica</label>
-            <input type="datetime-local" id="onb-consulta-med">
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="onb-consulta-med" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="onb-consulta-med">
           </div>
           <div class="pac-field">
             <label>Consulta nutri</label>
-            <input type="datetime-local" id="onb-consulta-nutri">
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="onb-consulta-nutri" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="onb-consulta-nutri">
           </div>
           <div class="pac-field">
             <label>1ª aplicação</label>
-            <input type="datetime-local" id="onb-primeira-app">
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="onb-primeira-app" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="onb-primeira-app">
           </div>
         </div>
       </div>
@@ -6048,7 +6031,7 @@
           </div>
           <div class="pac-field">
             <label>Programa fechado em</label>
-            <input type="date" id="onb-programa-fechado">
+            <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="onb-programa-fechado" oninput="mascararData(this, event)"><input type="hidden" id="onb-programa-fechado">
           </div>
         </div>
       </div>
@@ -6265,7 +6248,7 @@
       <div class="pac-form-grid col-3">
         <div class="pac-field">
           <label>Data da medição</label>
-          <input type="datetime-local" id="bio-data">
+          <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="bio-data" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="bio-data">
         </div>
         <div class="pac-field">
           <label>Peso (kg) <span class="req">*</span></label>
@@ -6441,11 +6424,11 @@
         </div>
         <div class="pac-field">
           <label>Desde quando</label>
-          <input type="date" id="med-desde">
+          <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="med-desde" oninput="mascararData(this, event)"><input type="hidden" id="med-desde">
         </div>
         <div class="pac-field">
           <label>Próxima dose prevista</label>
-          <input type="datetime-local" id="med-prox">
+          <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="med-prox" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="med-prox">
         </div>
         <div class="pac-field" style="grid-column: span 2;">
           <label>Observações</label>
@@ -6501,11 +6484,11 @@
         <div class="pac-form-grid col-2">
           <div class="pac-field">
             <label>Início <span class="req">*</span></label>
-            <input type="datetime-local" id="ag-block-start" required>
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="ag-block-start" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="ag-block-start">
           </div>
           <div class="pac-field">
             <label>Fim <span class="req">*</span></label>
-            <input type="datetime-local" id="ag-block-end" required>
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="ag-block-end" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="ag-block-end">
           </div>
         </div>
       </div>
@@ -6656,7 +6639,7 @@
         </div>
         <div class="pac-field">
           <label>Data</label>
-          <input type="datetime-local" id="pr-evol-data">
+          <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="pr-evol-data" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="pr-evol-data">
         </div>
         <div class="pac-field">
           <label>Peso atual (kg)</label>
@@ -6739,7 +6722,7 @@
         </div>
         <div class="pac-field">
           <label>Data</label>
-          <input type="datetime-local" id="pr-presc-data">
+          <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="pr-presc-data" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="pr-presc-data">
         </div>
       </div>
       <div class="pac-form-section" style="margin-top:14px;">
@@ -6823,7 +6806,7 @@
         </div>
         <div class="pac-field">
           <label>Data/hora</label>
-          <input type="datetime-local" id="ap-aplic-data">
+          <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="ap-aplic-data" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="ap-aplic-data">
         </div>
         <div class="pac-field">
           <label>Produto <span class="req">*</span></label>
@@ -6894,7 +6877,7 @@
         <div class="pac-form-grid">
           <div class="pac-field">
             <label>Data/hora</label>
-            <input type="datetime-local" id="ap-bio-data">
+            <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="ap-bio-data" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="ap-bio-data">
           </div>
         </div>
       </div>
@@ -7076,7 +7059,7 @@
         </div>
         <div class="pac-field">
           <label>Validade <span class="req">*</span></label>
-          <input type="date" id="es-lote-validade" required>
+          <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="es-lote-validade" oninput="mascararData(this, event)"><input type="hidden" id="es-lote-validade">
         </div>
         <div class="pac-field">
           <label>Quantidade inicial <span class="req">*</span></label>
@@ -8073,9 +8056,6 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-bairro').value = p.bairro || '';
   document.getElementById('pac-cidade').value = p.cidade || '';
   document.getElementById('pac-uf').value = p.uf || '';
-  document.getElementById('pac-altura').value = p.altura_cm || '';
-  document.getElementById('pac-peso').value = p.peso_inicial_kg || '';
-  document.getElementById('pac-peso-objetivo').value = p.anamnesis?.peso_objetivo_kg || '';
   document.getElementById('pac-unit').value = p.unit_id || '';
   document.getElementById('pac-medico').value = p.medico_id || '';
   document.getElementById('pac-nutri').value = p.nutri_id || '';
@@ -8255,8 +8235,6 @@ async function pacSalvar() {
     unit_id: document.getElementById('pac-unit').value || null,
     medico_id: document.getElementById('pac-medico').value || null,
     nutri_id: document.getElementById('pac-nutri').value || null,
-    altura_cm: parseInt(document.getElementById('pac-altura').value) || null,
-    peso_inicial_kg: parseFloat(document.getElementById('pac-peso').value) || null,
     observacoes: document.getElementById('pac-observacoes').value.trim() || null,
     contact_id: contactId || null,
     // Programa e jornada
@@ -8278,7 +8256,6 @@ async function pacSalvar() {
     anamnesis: {
       cirurgia_bariatrica: document.getElementById('pac-bariatrica').value === 'true',
       motivacao_atual: document.getElementById('pac-motivacao').value.trim() || null,
-      peso_objetivo_kg: parseFloat(document.getElementById('pac-peso-objetivo').value) || null,
     },
   };
 
@@ -8445,6 +8422,81 @@ function calcularIdade(iso) {
   if (mDiff < 0 || (mDiff === 0 && hoje.getDate() < nasc.getDate())) idade--;
   return idade;
 }
+
+// ============================================================
+// MÁSCARA DE DATA/HORA (dd/mm/aaaa e dd/mm/aaaa hh:mm)
+// Campos de texto com máscara substituem os inputs nativos: o backspace
+// cruza os separadores, cada segmento é limitado ao máximo (dia 31, mês 12,
+// hora 23, min 59) e o fluxo data->hora é contínuo. O valor ISO fica num
+// input escondido com o mesmo id, então todo o código que lê/grava .value
+// continua funcionando igual (yyyy-mm-dd / yyyy-mm-ddThh:mm).
+// ============================================================
+function mascararData(view, ev) {
+  const comHora = !!view.dataset.hora;
+  const apagando = !!(ev && typeof ev.inputType === 'string' && ev.inputType.indexOf('delete') === 0);
+  const dig = view.value.replace(/\D/g, '').slice(0, comHora ? 12 : 8);
+  let dia = dig.slice(0, 2), mes = dig.slice(2, 4), ano = dig.slice(4, 8), hh = dig.slice(8, 10), mi = dig.slice(10, 12);
+  const clamp = (s, mx, mn) => s.length === 2 ? String(Math.min(Math.max(parseInt(s, 10) || mn, mn), mx)).padStart(2, '0') : s;
+  dia = clamp(dia, 31, 1); mes = clamp(mes, 12, 1); hh = clamp(hh, 23, 0); mi = clamp(mi, 59, 0);
+  const avanca = (prox, atual, comp) => !!prox || (!apagando && atual.length === comp);
+  let out = dia;
+  if (avanca(mes, dia, 2)) out += '/' + mes;
+  if (avanca(ano, mes, 2)) out += '/' + ano;
+  if (comHora && avanca(hh, ano, 4)) out += ' ' + hh;
+  if (comHora && avanca(mi, hh, 2)) out += ':' + mi;
+  view.value = out;
+  const alvo = document.getElementById(view.dataset.alvo);
+  if (alvo) alvo._iso = mascaraParaIso(out, comHora);
+}
+
+function mascararHora(view, ev) {
+  const apagando = !!(ev && typeof ev.inputType === 'string' && ev.inputType.indexOf('delete') === 0);
+  const dig = view.value.replace(/\D/g, '').slice(0, 4);
+  let hh = dig.slice(0, 2), mi = dig.slice(2, 4);
+  if (hh.length === 2) hh = String(Math.min(parseInt(hh, 10) || 0, 23)).padStart(2, '0');
+  if (mi.length === 2) mi = String(Math.min(parseInt(mi, 10) || 0, 59)).padStart(2, '0');
+  let out = hh;
+  if (mi) out += ':' + mi;
+  else if (!apagando && hh.length === 2) out += ':';
+  view.value = out;
+}
+
+function mascaraParaIso(v, comHora) {
+  const dig = (v || '').replace(/\D/g, '');
+  if (dig.length < 8) return '';
+  const iso = dig.slice(4, 8) + '-' + dig.slice(2, 4) + '-' + dig.slice(0, 2);
+  if (!comHora) return iso;
+  const hh = dig.slice(8, 10).length === 2 ? dig.slice(8, 10) : '00';
+  const mi = dig.slice(10, 12).length === 2 ? dig.slice(10, 12) : '00';
+  return iso + 'T' + hh + ':' + mi;
+}
+
+function isoParaMascara(iso, comHora) {
+  if (!iso) return '';
+  const m = String(iso).match(/(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+  if (!m) return '';
+  let out = m[3] + '/' + m[2] + '/' + m[1];
+  if (comHora && m[4] != null) out += ' ' + m[4] + ':' + m[5];
+  return out;
+}
+
+// Configura o espelho ISO escondido pra cada campo com máscara de data.
+function configurarMascarasData() {
+  document.querySelectorAll('input.inp-data[data-alvo]').forEach((view) => {
+    const hidden = document.getElementById(view.dataset.alvo);
+    if (!hidden || hidden._mascaraOk) return;
+    hidden._mascaraOk = true;
+    hidden._iso = hidden.getAttribute('value') || '';
+    const comHora = !!view.dataset.hora;
+    if (hidden._iso) view.value = isoParaMascara(hidden._iso, comHora);
+    Object.defineProperty(hidden, 'value', {
+      configurable: true,
+      get() { return this._iso || ''; },
+      set(v) { this._iso = v || ''; view.value = v ? isoParaMascara(v, comHora) : ''; },
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', configurarMascarasData);
 
 // Inicializa pacientes quando entrar na view
 let pacJaInicializou = false;
