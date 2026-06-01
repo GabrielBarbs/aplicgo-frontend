@@ -6764,82 +6764,22 @@ function renderDetalhePaciente(p) {
       </div>
     ` : ''}
 
-    <!-- Prontuário inline (expansível) -->
-    <div id="pac-prontuario-inline" style="margin-top:14px; display:none;">
-      <div class="pac-prontuario-divider">
-        <i class="ti ti-clipboard-text"></i>
-        <span>Prontuário</span>
-      </div>
-      <div id="pac-prontuario-conteudo">
-        <div class="pac-empty"><i class="ti ti-loader"></i>Carregando prontuário...</div>
-      </div>
-    </div>
   `;
   document.getElementById('pac-detalhe-content').innerHTML = html;
 }
 
 // ===== Expandir prontuário inline na aba Pacientes =====
-async function pacToggleProntuario(patientId) {
-  const wrap = document.getElementById('pac-prontuario-inline');
-  const btn = document.getElementById('pac-btn-prontuario');
-  if (!wrap) return;
-  if (wrap.style.display !== 'none') {
-    // Fecha
-    wrap.style.display = 'none';
-    btn.innerHTML = '<i class="ti ti-clipboard-text"></i> Abrir prontuário';
-    return;
-  }
-  // Abre + carrega
-  wrap.style.display = 'block';
-  btn.innerHTML = '<i class="ti ti-x"></i> Fechar prontuário';
-  // Configura prState para que prCarregarHeader/Timeline funcionem
-  prState.pacienteAtual = {
+// Antes era inline; agora navega direto pra view Prontuário com o paciente selecionado
+function pacToggleProntuario(patientId) {
+  const p = pacState.detalheAtual;
+  if (!p || !patientId) return;
+  trocarView('prontuario');
+  prSelecionarPaciente({
     id: patientId,
-    nome: pacState.detalheAtual?.nome_completo || '',
-    codigo: pacState.detalheAtual?.codigo || '',
-    telefone: pacState.detalheAtual?.telefone1 || '',
-  };
-  // Renderiza dentro do container inline em vez do view-prontuario
-  const conteudoEl = document.getElementById('pac-prontuario-conteudo');
-  conteudoEl.innerHTML = '<div class="pr-empty"><i class="ti ti-loader"></i>Carregando prontuário...</div>';
-
-  // Busca header + timeline em paralelo
-  const [rh, rt] = await Promise.all([
-    pacApi('/api/clinico/prontuario/patient/' + patientId + '/header'),
-    pacApi('/api/clinico/prontuario/patient/' + patientId + '/timeline'),
-  ]);
-  if (rh.ok) prState.headerData = rh.data.header;
-  if (!rt.ok) {
-    conteudoEl.innerHTML = '<div class="pr-empty" style="color:#f85149;"><i class="ti ti-alert-circle"></i>Erro: ' + (rt.data.erro || '--') + '</div>';
-    return;
-  }
-  prState.timeline = rt.data.timeline;
-
-  // Renderiza dentro do container inline
-  const headerHtml = prRenderHeaderRico();
-  const podeEvol = temPermissao('prontuario.evolucao_medica.criar') || temPermissao('prontuario.evolucao_enfermagem.criar') || temPermissao('prontuario.evolucao_nutri.criar');
-  const podePresc = temPermissao('prontuario.prescrever');
-  const podeExam = temPermissao('prontuario.solicitar_exames');
-  const actionsBar = `
-    <div class="pr-actions-bar">
-      ${podeEvol ? `<button class="pac-btn-primary" onclick="prAbrirNovaEvol()">
-        <i class="ti ti-clipboard-plus"></i> Nova evolução
-      </button>` : ''}
-      ${podePresc ? `<button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
-        <i class="ti ti-pill"></i> Nova prescrição
-      </button>` : ''}
-      ${podeExam ? `<button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
-        <i class="ti ti-flask"></i> Solicitar exames
-      </button>` : ''}
-    </div>
-  `;
-  const items = prState.timeline;
-  const corpo = items.length === 0
-    ? '<div class="pr-empty"><i class="ti ti-history"></i>Sem registros no prontuário ainda.</div>'
-    : '<div class="pr-timeline">' + items.map(prRenderItem).join('') + '</div>';
-  conteudoEl.innerHTML = headerHtml + actionsBar + corpo;
-  // Scroll suave até o prontuário
-  setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    nome: p.nome_completo || '',
+    codigo: p.codigo || '',
+    telefone: p.telefone1 || '',
+  });
 }
 
 function row(lbl, val) {
