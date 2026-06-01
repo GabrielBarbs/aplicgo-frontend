@@ -1392,6 +1392,23 @@
       display: flex; flex-direction: column; gap: 5px;
       padding: 14px;
     }
+    .ag-acoes-foot {
+      padding: 0 14px 14px;
+    }
+    .ag-acao-voltar {
+      width: 100%;
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px; font-weight: 500;
+      font-family: inherit;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.12s;
+    }
+    .ag-acao-voltar:hover { border-color: #E8945A; color: #E8945A; background: rgba(232,148,90,0.06); }
     .ag-acao-btn {
       display: flex; align-items: center; gap: 10px;
       padding: 11px 14px;
@@ -6468,56 +6485,46 @@
   </div>
 </div>
 
-<div class="ag-status-modal-overlay" id="ag-status-modal" onclick="if(event.target.id==='ag-status-modal') agFecharStatusModal()">
-  <div class="ag-status-modal">
-    <div class="ag-status-modal-head">
-      <div class="ttl"><i class="ti ti-circle-dot"></i> Alterar situação</div>
+<div class="ag-acoes-modal-overlay" id="ag-status-modal" onclick="if(event.target.id==='ag-status-modal') agFecharStatusModal()">
+  <div class="ag-acoes-modal">
+    <div class="ag-acoes-head">
+      <div class="ttl"><i class="ti ti-circle-dot" style="color:#EF9F27;"></i> Alterar situação</div>
       <button class="close" onclick="agFecharStatusModal()"><i class="ti ti-x"></i></button>
     </div>
-    <div class="ag-status-modal-list">
-      <button class="ag-status-opt AGENDADO" onclick="agMudarStatusModal('AGENDADO')">
-        <i class="ti ti-calendar"></i>
-        <span class="lbl">Paciente agendado</span>
+    <div class="ag-acoes-info" id="ag-status-info"></div>
+    <div class="ag-acoes-list">
+      <button class="ag-acao-btn" onclick="agMudarStatusModal('AGENDADO')">
+        <i class="ti ti-calendar" style="color:#4A90E2;"></i>
+        <span>Paciente agendado</span>
       </button>
-      <button class="ag-status-opt CONFIRMADO" onclick="agMudarStatusModal('CONFIRMADO')">
-        <i class="ti ti-circle-check"></i>
-        <span class="lbl">Consulta confirmada</span>
+      <button class="ag-acao-btn" onclick="agMudarStatusModal('CONFIRMADO')">
+        <i class="ti ti-circle-check" style="color:#F1C648;"></i>
+        <span>Consulta confirmada</span>
       </button>
-      <button class="ag-status-opt AGUARDANDO" onclick="agMudarStatusModal('AGUARDANDO')">
-        <i class="ti ti-user-check"></i>
-        <span class="lbl">Presente e aguardando atendimento</span>
+      <button class="ag-acao-btn" onclick="agMudarStatusModal('AGUARDANDO')">
+        <i class="ti ti-user-check" style="color:#6FD89A;"></i>
+        <span>Presente e aguardando atendimento</span>
       </button>
-      <button class="ag-status-opt ATENDIDO" onclick="agMudarStatusModal('ATENDIDO')">
-        <i class="ti ti-checks"></i>
-        <span class="lbl">Atendido</span>
+      <button class="ag-acao-btn" onclick="agMudarStatusModal('ATENDIDO')">
+        <i class="ti ti-checks" style="color:#1D9E75;"></i>
+        <span>Atendido</span>
       </button>
-      <button class="ag-status-opt NO_SHOW" onclick="agMudarStatusModal('NO_SHOW')">
-        <i class="ti ti-user-off"></i>
-        <span class="lbl">Paciente faltou</span>
+      <button class="ag-acao-btn" onclick="agMudarStatusModal('NO_SHOW')">
+        <i class="ti ti-user-off" style="color:#f85149;"></i>
+        <span>Paciente faltou</span>
       </button>
-      <button class="ag-status-opt CANCELADO_CLI" onclick="agMudarStatusModal('CANCELADO', 'CLINICA')">
-        <i class="ti ti-calendar-cancel"></i>
-        <span class="lbl">Cancelada pela clínica</span>
+      <button class="ag-acao-btn" onclick="agMudarStatusModal('CANCELADO', 'CLINICA')">
+        <i class="ti ti-calendar-cancel" style="color:#EF9F27;"></i>
+        <span>Cancelada pela clínica</span>
       </button>
-      <button class="ag-status-opt CANCELADO_PAC" onclick="agMudarStatusModal('CANCELADO', 'PACIENTE')">
-        <i class="ti ti-calendar-x"></i>
-        <span class="lbl">Cancelada pelo paciente</span>
+      <button class="ag-acao-btn" onclick="agMudarStatusModal('CANCELADO', 'PACIENTE')">
+        <i class="ti ti-calendar-x" style="color:#EF9F27;"></i>
+        <span>Cancelada pelo paciente</span>
       </button>
     </div>
-    <div class="ag-status-modal-footer" style="display: flex; flex-direction: column; gap: 6px;">
-      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-        <button class="ag-status-quick-btn" data-perm="onboarding.executar" onclick="agOnboardingDoStatus()">
-          <i class="ti ti-rocket"></i> Onboarding
-        </button>
-        <button class="ag-status-quick-btn" data-perm="prontuario.ver" onclick="agProntuarioDoStatus()">
-          <i class="ti ti-clipboard-text"></i> Prontuário
-        </button>
-        <button class="ag-status-quick-btn" data-perm="paciente.ver_detalhe" onclick="agPacienteDoStatus()">
-          <i class="ti ti-user"></i> Ficha
-        </button>
-      </div>
-      <button class="ag-status-edit-link" onclick="agAbrirEditarDoStatus()">
-        <i class="ti ti-edit"></i> Editar detalhes (horário, paciente, profissional)
+    <div class="ag-acoes-foot">
+      <button class="ag-acao-voltar" onclick="agVoltarParaAcoes()">
+        <i class="ti ti-arrow-left"></i> Voltar
       </button>
     </div>
   </div>
@@ -8300,11 +8307,27 @@ async function agSlotDrop(e) {
 // ========== MODAL DE STATUS (7 botões coloridos) ==========
 function agAbrirStatusModal(id) {
   agState.statusModalId = id;
+  // Preenche info do paciente no topo (mesmo formato do modal de ações)
+  const ag = (agState.agendamentos || []).find(x => x.id === id);
+  const info = document.getElementById('ag-status-info');
+  if (info) {
+    if (ag) {
+      const dt = new Date(ag.start_at);
+      const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${ag.patient.nomeCompleto}</strong> · ${ag.type.nome} · ${dataFmt} · ${ag.professional.name || ag.professional.email}`;
+    } else { info.innerHTML = ''; }
+  }
   document.getElementById('ag-status-modal').classList.add('aberto');
 }
 function agFecharStatusModal() {
   agState.statusModalId = null;
   document.getElementById('ag-status-modal').classList.remove('aberto');
+}
+// Volta do modal de status pro modal de ações
+function agVoltarParaAcoes() {
+  const id = agState.statusModalId;
+  document.getElementById('ag-status-modal').classList.remove('aberto');
+  if (id) agAbrirAcoesModal(id);
 }
 
 // ===== MODAL DE AÇÕES (click no paciente da agenda) =====
