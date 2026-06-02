@@ -2575,6 +2575,47 @@
       border-radius: 6px;
     }
     .pr-pilares-rodape i { color: #4A90E2; font-size: 12px; }
+    /* Card 4 · Roda da Vida */
+    .pr-card-roda { grid-column: 1 / -1; }
+    .pr-roda-btn {
+      background: rgba(29,158,117,0.12); border: 1px solid rgba(29,158,117,0.4);
+      color: #1D9E75; border-radius: 6px; padding: 3px 8px; font-size: 11px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .pr-roda-btn:hover { background: rgba(29,158,117,0.2); }
+    .pr-roda-datas { display: flex; gap: 16px; font-size: 11px; color: #8b949e; margin-bottom: 10px; }
+    .pr-roda-datas .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .pr-roda-datas .dot.ini { background: #7d8590; }
+    .pr-roda-datas .dot.atu { background: #1D9E75; }
+    .pr-roda-wrap { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+    .pr-roda-grafico { flex: 0 0 280px; max-width: 300px; }
+    .pr-roda-svg { width: 100%; height: auto; display: block; }
+    .pr-roda-lado { flex: 1; min-width: 240px; }
+    .pr-roda-resumo { display: flex; gap: 10px; margin-bottom: 12px; }
+    .pr-roda-resumo .bloco { flex: 1; background: rgba(125,133,144,0.06); border: 1px solid #30363d; border-radius: 8px; padding: 8px 10px; }
+    .pr-roda-resumo .lbl { font-size: 10px; color: #7d8590; text-transform: uppercase; letter-spacing: 0.4px; }
+    .pr-roda-resumo .big { font-size: 22px; font-weight: 700; color: #f0f6fc; line-height: 1.2; }
+    .pr-roda-resumo .big.pos { color: #1D9E75; }
+    .pr-roda-resumo .big .cem { font-size: 12px; color: #7d8590; font-weight: 500; }
+    .pr-roda-resumo .sub { font-size: 11px; color: #1D9E75; }
+    .pr-roda-dims { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; }
+    .pr-roda-dim { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #c9d1d9; padding: 3px 0; border-bottom: 1px solid rgba(48,54,61,0.5); }
+    .pr-roda-dim > i { color: #7d8590; font-size: 13px; flex-shrink: 0; }
+    .pr-roda-dim .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pr-roda-dim .vals { display: flex; align-items: center; gap: 4px; }
+    .pr-roda-dim .vals .ini { color: #7d8590; }
+    .pr-roda-dim .vals .atu { color: #1D9E75; }
+    .pr-roda-dim .vals i { font-size: 10px; color: #6e7681; }
+    .pr-roda-vazio { text-align: center; padding: 24px 16px; color: #7d8590; }
+    .pr-roda-vazio > i { font-size: 34px; color: #30363d; }
+    .pr-roda-vazio .sub { font-size: 11px; color: #6e7681; margin-top: 4px; max-width: 380px; margin-left: auto; margin-right: auto; }
+    .pr-btn-roda-vazio {
+      margin-top: 12px; background: rgba(29,158,117,0.12); border: 1px solid rgba(29,158,117,0.4);
+      color: #1D9E75; border-radius: 8px; padding: 7px 14px; font-size: 12px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .pr-btn-roda-vazio:hover { background: rgba(29,158,117,0.2); }
+    @media (max-width: 680px) { .pr-roda-dims { grid-template-columns: 1fr; } }
     .pr-card-prof-head .head-acoes {
       display: flex; align-items: center; gap: 6px;
     }
@@ -12661,8 +12702,8 @@ function prRenderCardsPorProfissional() {
     const recolhido = prState.cardsRecolhidos?.[p.tipo] || false;
     return prRenderCardProfissional(p, atual, anterior, podeCriar, recolhido);
   }).join('');
-  const cardPilares = prRenderCardPilares();
-  return `<div class="pr-cards-profissionais">${cardsProf}${cardPilares}</div>`;
+  const cardRoda = prRenderRodaVida();
+  return `<div class="pr-cards-profissionais">${cardsProf}${cardRoda}</div>`;
 }
 
 function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
@@ -12866,76 +12907,150 @@ function prCardTrocarAba(tipo, aba) {
   prRenderTimeline();
 }
 
-// ===== CARD PILARES (agregação holística dos 4 pilares) =====
-function prRenderCardPilares() {
-  const h = prState.headerData || {};
-  // Calcula cada pilar a partir dos dados que já temos
-  const ativ = h.atividade_modalidade
-    ? `${h.atividade_modalidade}${h.atividade_frequencia ? ' · ' + h.atividade_frequencia + 'x/sem' : ''}${h.atividade_duracao_min ? ' · ' + h.atividade_duracao_min + 'min' : ''}`
-    : 'Não informada';
+// ===== CARD 4 · RODA DA VIDA (radar início -> atual, lê das evoluções) =====
+const RV_DIMS = [
+  { slug: 'rv_sono',         label: 'Qualidade do sono',               ico: 'moon' },
+  { slug: 'rv_vitalidade',   label: 'Vitalidade e energia',            ico: 'bolt' },
+  { slug: 'rv_clareza',      label: 'Clareza mental e foco',           ico: 'brain' },
+  { slug: 'rv_cognitiva',    label: 'Performance cognitiva',           ico: 'target-arrow' },
+  { slug: 'rv_emocional',    label: 'Equilíbrio emocional',            ico: 'heartbeat' },
+  { slug: 'rv_compulsao',    label: 'Controle da compulsão alimentar', ico: 'candy' },
+  { slug: 'rv_autocontrole', label: 'Constância e autocontrole',       ico: 'circle-check' },
+  { slug: 'rv_autoimagem',   label: 'Autoimagem e autoestima',         ico: 'mood-smile' },
+  { slug: 'rv_libido',       label: 'Libido e conexão íntima',         ico: 'heart' },
+  { slug: 'rv_intestinal',   label: 'Saúde intestinal e digestão',     ico: 'meat' },
+  { slug: 'rv_recuperacao',  label: 'Recuperação física',              ico: 'barbell' },
+];
 
-  // Alimentação: pega da última evolução nutri com respostas (recordatório/erros) ou anamnese
-  const evs = (prState.timeline || []).filter(t => t.tipo === 'evolucao');
-  const ultNutri = evs.find(e => e.dados.tipo_evolucao === 'NUTRICIONAL');
-  let alimSnippet = 'Sem evolução nutri';
-  if (ultNutri?.dados.respostas) {
-    const r = ultNutri.dados.respostas;
-    if (r.recordatorio_alimentar) alimSnippet = r.recordatorio_alimentar.slice(0, 60) + '...';
-    else if (r.erros_alimentacao) alimSnippet = 'Pontos: ' + r.erros_alimentacao.slice(0, 50);
-  } else if (ultNutri) {
-    alimSnippet = 'Última: ' + new Date(ultNutri.data).toLocaleDateString('pt-BR');
+function prAbrirRodaVida() {
+  if (!prState.pacienteAtual) return;
+  prAbrirNovaEvol();
+  setTimeout(() => {
+    const sel = document.getElementById('pr-evol-tipo');
+    if (sel) sel.value = 'GERAL';
+    const titulo = document.getElementById('pr-evol-title');
+    if (titulo) titulo.textContent = 'Roda da Vida';
+    prAplicarTemplate('roda-da-vida', 'Roda da Vida');
+  }, 80);
+}
+
+function prRenderRodaVida() {
+  const recolhido = prState.cardsRecolhidos?.['RODA'] || false;
+  const evs = (prState.timeline || [])
+    .filter(t => t.tipo === 'evolucao' && t.dados && t.dados.respostas)
+    .slice()
+    .sort((a, b) => new Date(a.data) - new Date(b.data)); // mais antiga -> mais nova
+  const num = (v) => {
+    if (v == null || v === '') return null;
+    const n = parseFloat(String(v).replace(',', '.'));
+    return isNaN(n) ? null : Math.max(0, Math.min(10, Math.round(n)));
+  };
+  let dataIni = null, dataAtu = null;
+  const dims = RV_DIMS.map(d => {
+    let inicio = null, atual = null;
+    for (const e of evs) {
+      const v = num(e.dados.respostas[d.slug]);
+      if (v != null) {
+        if (inicio == null) { inicio = v; dataIni = dataIni || e.data; }
+        atual = v; dataAtu = e.data;
+      }
+    }
+    return { ...d, inicio, atual };
+  });
+  const comDado = dims.filter(d => d.atual != null);
+
+  const btnRegistrar = temPermissao('prontuario.ver')
+    ? `<button class="pr-roda-btn" onclick="event.stopPropagation(); prAbrirRodaVida()"><i class="ti ti-plus"></i> Avaliação</button>`
+    : '';
+  const head = `
+    <div class="pr-card-prof-head" onclick="prToggleCardProf('RODA')">
+      <div class="titulo">
+        <span class="num">4</span>
+        <i class="ti ti-chart-radar" style="color:#1D9E75;"></i>
+        <span>Roda da Vida</span>
+      </div>
+      <div class="head-acoes">
+        ${btnRegistrar}
+        <i class="ti ti-chevron-${recolhido ? 'right' : 'down'}" style="color:#7d8590; font-size:14px;"></i>
+      </div>
+    </div>`;
+
+  if (comDado.length === 0) {
+    return `
+      <div class="pr-card-prof pr-card-roda ${recolhido ? 'recolhido' : ''}" style="--cor-prof:#1D9E75;">
+        ${head}
+        <div class="pr-card-prof-body" style="display:${recolhido ? 'none' : 'block'};">
+          <div class="pr-roda-vazio">
+            <i class="ti ti-chart-radar"></i>
+            <div>Ainda sem avaliação da Roda da Vida.</div>
+            <div class="sub">Preenchida no onboarding ou numa avaliação (11 dimensões, nota 0-10). A roda compara o início com o atual.</div>
+            ${btnRegistrar ? `<button class="pr-btn-roda-vazio" onclick="prAbrirRodaVida()"><i class="ti ti-plus"></i> Registrar avaliação</button>` : ''}
+          </div>
+        </div>
+      </div>`;
   }
 
-  // Sono e Mental: da última evolução qualquer ou anamnese
-  let sonoSnippet = 'Não informado';
-  let mentalSnippet = 'Não informado';
-  for (const ev of evs) {
-    const r = ev.dados.respostas;
-    if (!r) continue;
-    if (sonoSnippet === 'Não informado' && (r.qualidade_sono || r.hora_dormir)) {
-      sonoSnippet = r.qualidade_sono || `Dorme ${r.hora_dormir}`;
-    }
-    if (mentalSnippet === 'Não informado' && (r.humor_ansiedade || r.energia_disposicao)) {
-      mentalSnippet = r.humor_ansiedade || r.energia_disposicao;
-    }
-    if (sonoSnippet !== 'Não informado' && mentalSnippet !== 'Não informado') break;
-  }
+  const comAmbos = dims.filter(d => d.inicio != null && d.atual != null);
+  const media = arr => arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : 0;
+  const avgIni = media(comAmbos.map(d => d.inicio));
+  const avgAtu = media(comAmbos.map(d => d.atual));
+  const evolucaoPct = (avgIni > 0 && comAmbos.length) ? Math.round((avgAtu - avgIni) / avgIni * 100) : null;
+  const score = Math.round(media(comDado.map(d => d.atual)) * 10);
+  const scoreLabel = score >= 80 ? 'Excelente' : score >= 60 ? 'Bom' : score >= 40 ? 'Regular' : 'Inicial';
 
-  const recolhido = prState.cardsRecolhidos?.['PILARES'] || false;
-  const pilares = [
-    { ico: 'apple',         label: 'Alimentação', val: alimSnippet,   cor: '#6FD89A' },
-    { ico: 'barbell',       label: 'Exercício',   val: ativ,          cor: '#E8945A' },
-    { ico: 'moon',          label: 'Sono',        val: sonoSnippet,   cor: '#4A90E2' },
-    { ico: 'brain',         label: 'Mental',      val: mentalSnippet, cor: '#7B68EE' },
-  ];
+  const N = dims.length, cx = 150, cy = 150, R = 115;
+  const ang = i => -Math.PI / 2 + i * 2 * Math.PI / N;
+  const pt = (i, v) => [(cx + R * (v / 10) * Math.cos(ang(i))).toFixed(1), (cy + R * (v / 10) * Math.sin(ang(i))).toFixed(1)];
+  let grid = '';
+  [2, 4, 6, 8, 10].forEach(lv => {
+    const p = dims.map((_, i) => pt(i, lv).join(',')).join(' ');
+    grid += `<polygon points="${p}" fill="none" stroke="#30363d" stroke-width="1" opacity="0.55"/>`;
+  });
+  const spokes = dims.map((_, i) => { const [x, y] = pt(i, 10); return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#30363d" stroke-width="1" opacity="0.4"/>`; }).join('');
+  const ptsIni = dims.map((d, i) => pt(i, d.inicio != null ? d.inicio : 0).join(',')).join(' ');
+  const ptsAtu = dims.map((d, i) => pt(i, d.atual != null ? d.atual : 0).join(',')).join(' ');
+  const dotsAtu = dims.map((d, i) => { const [x, y] = pt(i, d.atual != null ? d.atual : 0); return `<circle cx="${x}" cy="${y}" r="3.2" fill="#1D9E75"/>`; }).join('');
+  const svg = `
+    <svg viewBox="0 0 300 300" class="pr-roda-svg" preserveAspectRatio="xMidYMid meet">
+      ${grid}${spokes}
+      <polygon points="${ptsIni}" fill="#7d8590" fill-opacity="0.10" stroke="#7d8590" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <polygon points="${ptsAtu}" fill="#1D9E75" fill-opacity="0.20" stroke="#1D9E75" stroke-width="2"/>
+      ${dotsAtu}
+    </svg>`;
+
+  const legenda = dims.map(d => `
+    <div class="pr-roda-dim">
+      <i class="ti ti-${d.ico}"></i>
+      <span class="nm">${d.label}</span>
+      <span class="vals"><b class="ini">${d.inicio != null ? d.inicio : '--'}</b> <i class="ti ti-arrow-right"></i> <b class="atu">${d.atual != null ? d.atual : '--'}</b></span>
+    </div>`).join('');
+
+  const fmtD = iso => iso ? new Date(iso).toLocaleDateString('pt-BR') : '--';
 
   return `
-    <div class="pr-card-prof pr-card-pilares ${recolhido ? 'recolhido' : ''}" style="--cor-prof: #C56847;">
-      <div class="pr-card-prof-head" onclick="prToggleCardProf('PILARES')">
-        <div class="titulo">
-          <span class="num">4</span>
-          <i class="ti ti-target-arrow" style="color: #C56847;"></i>
-          <span>Pilares do tratamento</span>
-        </div>
-        <div class="head-acoes">
-          <i class="ti ti-chevron-${recolhido ? 'right' : 'down'}" style="color: #7d8590; font-size: 14px;"></i>
-        </div>
-      </div>
+    <div class="pr-card-prof pr-card-roda ${recolhido ? 'recolhido' : ''}" style="--cor-prof:#1D9E75;">
+      ${head}
       <div class="pr-card-prof-body" style="display:${recolhido ? 'none' : 'block'};">
-        <div class="pr-pilares-grid">
-          ${pilares.map(p => `
-            <div class="pilar">
-              <div class="pilar-head" style="color: ${p.cor};">
-                <i class="ti ti-${p.ico}"></i>
-                <span>${p.label}</span>
-              </div>
-              <div class="pilar-val">${String(p.val).replace(/</g, '&lt;')}</div>
-            </div>
-          `).join('')}
+        <div class="pr-roda-datas">
+          <span><span class="dot ini"></span> Início ${fmtD(dataIni)}</span>
+          <span><span class="dot atu"></span> Atual ${fmtD(dataAtu)}</span>
         </div>
-        <div class="pr-pilares-rodape">
-          <i class="ti ti-info-circle"></i>
-          Resumo agregado a partir do cadastro de saúde, anamnese e últimas evoluções.
+        <div class="pr-roda-wrap">
+          <div class="pr-roda-grafico">${svg}</div>
+          <div class="pr-roda-lado">
+            <div class="pr-roda-resumo">
+              <div class="bloco">
+                <div class="lbl">Evolução geral</div>
+                <div class="big ${evolucaoPct != null && evolucaoPct >= 0 ? 'pos' : ''}">${evolucaoPct != null ? (evolucaoPct >= 0 ? '+' : '') + evolucaoPct + '%' : '--'}</div>
+              </div>
+              <div class="bloco">
+                <div class="lbl">Aplic Score</div>
+                <div class="big">${score}<span class="cem">/100</span></div>
+                <div class="sub">${scoreLabel}</div>
+              </div>
+            </div>
+            <div class="pr-roda-dims">${legenda}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -13281,6 +13396,10 @@ function prEvolRenderForm() {
       inputHtml = `<textarea id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)">${valor.replace(/&quot;/g, '"').replace(/</g, '&lt;')}</textarea>`;
     } else if (c.tipo === 'numero') {
       inputHtml = `<input type="number" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)">`;
+    } else if (c.tipo === 'escala') {
+      let _op = '<option value="">--</option>';
+      for (let _n = 0; _n <= 10; _n++) _op += `<option value="${_n}" ${String(valor) === String(_n) ? 'selected' : ''}>${_n}</option>`;
+      inputHtml = `<select id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:90px;">${_op}</select>`;
     } else {
       inputHtml = `<input type="text" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)">`;
     }
