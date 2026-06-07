@@ -2616,6 +2616,43 @@
     }
     .pr-btn-roda-vazio:hover { background: rgba(29,158,117,0.2); }
     @media (max-width: 680px) { .pr-roda-dims { grid-template-columns: 1fr; } }
+    /* Chat interno */
+    .ci-nav-badge { background:#1D9E75; color:#fff; font-size:10px; font-weight:600; min-width:18px; height:18px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; padding:0 5px; margin-left:auto; }
+    .chat-interno { display:flex; height: calc(100vh - 170px); min-height:420px; border:1px solid #30363d; border-radius:12px; overflow:hidden; background:#0d1117; }
+    .ci-lista { width:300px; flex-shrink:0; border-right:1px solid #30363d; display:flex; flex-direction:column; }
+    .ci-lista-topo { padding:10px; border-bottom:1px solid #30363d; display:flex; align-items:center; gap:6px; }
+    .ci-lista-topo i { color:#7d8590; }
+    .ci-lista-topo input { flex:1; background:#161b22; border:1px solid #30363d; border-radius:8px; padding:7px 10px; color:#f0f6fc; font-size:12px; }
+    .ci-conversas { flex:1; overflow-y:auto; }
+    .ci-loading { padding:18px; color:#7d8590; font-size:12px; text-align:center; }
+    .ci-conv { display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; border-bottom:1px solid rgba(48,54,61,0.5); }
+    .ci-conv:hover { background:rgba(33,38,45,0.5); }
+    .ci-conv.sel { background:rgba(29,158,117,0.10); }
+    .ci-av { width:38px; height:38px; flex-shrink:0; border-radius:50%; border:1px solid; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:15px; }
+    .ci-conv-info { flex:1; min-width:0; }
+    .ci-conv-nome { font-size:13px; color:#f0f6fc; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ci-conv-prev { font-size:11px; color:#7d8590; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ci-conv-badge { background:#1D9E75; color:#fff; font-size:10px; font-weight:600; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 5px; flex-shrink:0; }
+    .ci-thread { flex:1; display:flex; flex-direction:column; min-width:0; }
+    .ci-vazio { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#7d8590; gap:6px; text-align:center; }
+    .ci-vazio i { font-size:42px; color:#30363d; }
+    .ci-vazio .sub { font-size:11px; color:#6e7681; }
+    .ci-conversa { flex:1; display:flex; flex-direction:column; min-height:0; }
+    .ci-conversa-head { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid #30363d; }
+    .ci-conversa-head .nm { font-size:13px; color:#f0f6fc; font-weight:500; }
+    .ci-conversa-head .sub { font-size:11px; color:#7d8590; }
+    .ci-msgs { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; }
+    .ci-msg { max-width:72%; align-self:flex-start; }
+    .ci-msg.mine { align-self:flex-end; }
+    .ci-msg .bolha { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:8px 12px; font-size:13px; color:#e6edf3; line-height:1.4; word-wrap:break-word; }
+    .ci-msg.mine .bolha { background:rgba(29,158,117,0.18); border-color:rgba(29,158,117,0.4); color:#eafff5; }
+    .ci-msg .hora { font-size:9px; color:#6e7681; margin-top:2px; padding:0 4px; }
+    .ci-msg.mine .hora { text-align:right; }
+    .ci-input-bar { display:flex; gap:8px; padding:10px 12px; border-top:1px solid #30363d; align-items:flex-end; }
+    .ci-input-bar textarea { flex:1; background:#161b22; border:1px solid #30363d; border-radius:10px; padding:9px 12px; color:#f0f6fc; font-size:13px; resize:none; max-height:120px; font-family:inherit; }
+    .ci-send { background:#1D9E75; border:none; color:#fff; width:40px; height:40px; border-radius:10px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .ci-send:hover { background:#17875f; }
+    @media (max-width:760px){ .ci-lista { width:130px; } }
     .pr-card-prof-head .head-acoes {
       display: flex; align-items: center; gap: 6px;
     }
@@ -4712,7 +4749,7 @@
       </button>
       <button class="sidebar-item" data-view="comunicacao">
         <i class="ti ti-messages"></i> Comunicação Interna
-        <span class="badge-mini esquema">esquema</span>
+        <span class="ci-nav-badge" id="ci-nav-badge" style="display:none;">0</span>
       </button>
       <button class="sidebar-item" data-view="financeiro" data-perm="financeiro.ver">
         <i class="ti ti-coin"></i> Financeiro
@@ -5362,57 +5399,31 @@
   </div>
 
   <div class="view" id="view-comunicacao">
-    <div class="com-roadmap">
-      <div class="com-roadmap-title">
-        <i class="ti ti-checkup-list"></i> Comunicação interna — o que já existe e o que vem
-      </div>
-      <div class="com-feature">
-        <span class="status ok">Pronto</span>
-        <div class="info">
-          <div class="nome">Menções no prontuário (@)</div>
-          <div class="desc">A tabela <code>clin_evolution_mentions</code> já existe e endpoints estão ativos. Você pode mencionar um colega numa evolução SOAP via API; aparece como notificação não-lida pra ele. Falta o atalho visual no modal da Etapa 4 (próxima rodada).</div>
+    <div class="chat-interno">
+      <aside class="ci-lista">
+        <div class="ci-lista-topo">
+          <i class="ti ti-search"></i>
+          <input id="ci-busca" placeholder="Buscar colega..." oninput="ciRenderLista(this.value)">
         </div>
-      </div>
-      <div class="com-feature">
-        <span class="status ok">Pronto</span>
-        <div class="info">
-          <div class="nome">Audit log compartilhado</div>
-          <div class="desc">Toda ação tem ator registrado. Você consegue ver "quem fez o quê" pelo painel de Auditoria acima.</div>
+        <div class="ci-conversas" id="ci-conversas">
+          <div class="ci-loading">Carregando...</div>
         </div>
-      </div>
-      <div class="com-feature">
-        <span class="status plan">Onda 2</span>
-        <div class="info">
-          <div class="nome">Chat 1:1 entre profissionais</div>
-          <div class="desc">Conversas diretas tipo Slack/WhatsApp entre colaboradores. Requer modelo de mensagens novo (tabela <code>clin_chat_messages</code>) + WebSocket pra tempo real. Não bloqueia operação clínica.</div>
+      </aside>
+      <section class="ci-thread">
+        <div class="ci-vazio" id="ci-vazio">
+          <i class="ti ti-messages"></i>
+          <div>Selecione um colega pra conversar</div>
+          <div class="sub">Mensagens diretas entre a equipe. Atualiza sozinho.</div>
         </div>
-      </div>
-      <div class="com-feature">
-        <span class="status plan">Onda 2</span>
-        <div class="info">
-          <div class="nome">Threads por paciente</div>
-          <div class="desc">Conversa amarrada ao paciente — médico e nutri discutem condutas sem sair do contexto. Compartilha tabela com chat 1:1, filtra por <code>patient_id</code>.</div>
+        <div class="ci-conversa" id="ci-conversa" style="display:none;">
+          <div class="ci-conversa-head" id="ci-conversa-head"></div>
+          <div class="ci-msgs" id="ci-msgs"></div>
+          <div class="ci-input-bar">
+            <textarea id="ci-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" onkeydown="ciInputKey(event)"></textarea>
+            <button class="ci-send" onclick="ciEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
+          </div>
         </div>
-      </div>
-      <div class="com-feature">
-        <span class="status plan">Onda 2</span>
-        <div class="info">
-          <div class="nome">Notificações push</div>
-          <div class="desc">Push real-time pra menções e mensagens novas. Service Worker + Notifications API ou push nativo no app do paciente (M20 do PRD).</div>
-        </div>
-      </div>
-      <div class="com-feature">
-        <span class="status plan">Onda 3</span>
-        <div class="info">
-          <div class="nome">Chat multicanal com paciente</div>
-          <div class="desc">Integração WhatsApp Business + sistema — conversa unificada com paciente. Conecta com a Andreia (IA SDR) do PRD, e com lembretes automáticos de consulta/aplicação.</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="background:rgba(232,148,90,0.06); border:1px solid rgba(232,148,90,0.25); border-radius:10px; padding:14px 18px; font-size:12px; color:#c9d1d9; line-height:1.6;">
-      <i class="ti ti-bulb" style="color:#E8945A; font-size:18px;"></i>
-      <strong style="color:#f0f6fc;">Por que não implementamos chat completo agora:</strong> chat real-time exige WebSocket + cliente persistente + lógica de salas e presença. Bem mais infra que o restante e baixa prioridade operacional (a equipe já se comunica fora do sistema). Quando rolarmos a Onda 2 do PRD, entra junto com Painel da Manhã + Radar de Risco.
+      </section>
     </div>
   </div>
 
@@ -7529,6 +7540,8 @@ function aplicarUI() {
 
   // Badge de marcações não-lidas
   marcAtualizarBadge();
+  // Badge de mensagens não-lidas (chat interno)
+  ciAtualizarBadge();
 
   // Relógio + data
   tickRelogio();
@@ -14498,9 +14511,153 @@ function auMudarPagina(delta) {
 let agJaInicializou = false;
 let esJaInicializou = false;
 let auJaInicializou = false;
+// ============================================================
+// CHAT INTERNO (1:1 entre a equipe) -- atualiza por polling
+// ============================================================
+let ciState = { usuarios: [], conversas: {}, peer: null, lastTs: null, msgsCache: [], pollTimer: null };
+
+async function ciCarregar() {
+  const [ru, rc] = await Promise.all([
+    pacApi('/api/clinico/chat/usuarios'),
+    pacApi('/api/clinico/chat/conversas'),
+  ]);
+  ciState.usuarios = (ru.ok && ru.data.usuarios) ? ru.data.usuarios : [];
+  ciState.conversas = {};
+  if (rc.ok && rc.data.conversas) rc.data.conversas.forEach(c => { ciState.conversas[c.id] = c; });
+  ciRenderLista(document.getElementById('ci-busca')?.value || '');
+  ciAtualizarBadge();
+}
+
+function ciRenderLista(filtro) {
+  const wrap = document.getElementById('ci-conversas');
+  if (!wrap) return;
+  const f = (filtro || '').trim().toLowerCase();
+  const lista = ciState.usuarios.map(u => {
+    const c = ciState.conversas[u.id];
+    return { ...u, ultima: c?.ultima || null, ultima_em: c?.ultima_em || null, nao_lidas: c?.nao_lidas || 0, de_mim: c?.de_mim };
+  }).filter(u => !f || (u.nome || '').toLowerCase().includes(f) || (u.email || '').toLowerCase().includes(f));
+  lista.sort((a, b) => {
+    if (a.ultima_em && b.ultima_em) return new Date(b.ultima_em) - new Date(a.ultima_em);
+    if (a.ultima_em) return -1;
+    if (b.ultima_em) return 1;
+    return (a.nome || '').localeCompare(b.nome || '');
+  });
+  if (lista.length === 0) { wrap.innerHTML = '<div class="ci-loading">Nenhum colega encontrado.</div>'; return; }
+  wrap.innerHTML = lista.map(u => {
+    const cor = u.cor || '#7d8590';
+    const ini = (u.nome || '?').charAt(0).toUpperCase();
+    const prev = u.ultima ? ((u.de_mim ? 'Você: ' : '') + u.ultima) : (u.cargo || u.email || '');
+    const sel = ciState.peer === u.id ? 'sel' : '';
+    return `
+      <div class="ci-conv ${sel}" onclick="ciAbrir('${u.id}')">
+        <div class="ci-av" style="background:${cor}22; color:${cor}; border-color:${cor}55;">${ini}</div>
+        <div class="ci-conv-info">
+          <div class="ci-conv-nome">${(u.nome || '').replace(/</g, '&lt;')}</div>
+          <div class="ci-conv-prev">${String(prev).slice(0, 42).replace(/</g, '&lt;')}</div>
+        </div>
+        ${u.nao_lidas > 0 ? `<span class="ci-conv-badge">${u.nao_lidas}</span>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function ciAbrir(peerId) {
+  ciState.peer = peerId;
+  ciState.lastTs = null;
+  ciState.msgsCache = [];
+  document.getElementById('ci-vazio').style.display = 'none';
+  document.getElementById('ci-conversa').style.display = 'flex';
+  const u = ciState.usuarios.find(x => x.id === peerId) || {};
+  const cor = u.cor || '#1D9E75';
+  document.getElementById('ci-conversa-head').innerHTML = `
+    <div class="ci-av" style="background:${cor}22; color:${cor}; border-color:${cor}55;">${(u.nome || '?').charAt(0).toUpperCase()}</div>
+    <div><div class="nm">${(u.nome || '').replace(/</g, '&lt;')}</div><div class="sub">${(u.cargo || u.email || '').replace(/</g, '&lt;')}</div></div>`;
+  document.getElementById('ci-msgs').innerHTML = '<div class="ci-loading">Carregando...</div>';
+  ciRenderLista(document.getElementById('ci-busca')?.value || '');
+  const r = await pacApi('/api/clinico/chat/mensagens?peer=' + peerId);
+  ciState.msgsCache = (r.ok && r.data.mensagens) ? r.data.mensagens : [];
+  ciRenderMsgs(true);
+  await pacApi('/api/clinico/chat/ler', { method: 'POST', body: JSON.stringify({ peer: peerId }) });
+  if (ciState.conversas[peerId]) ciState.conversas[peerId].nao_lidas = 0;
+  ciRenderLista(document.getElementById('ci-busca')?.value || '');
+  ciAtualizarBadge();
+  ciIniciarPoll();
+}
+
+function ciRenderMsgs(scroll) {
+  const wrap = document.getElementById('ci-msgs');
+  if (!wrap) return;
+  const msgs = ciState.msgsCache || [];
+  if (msgs.length === 0) { wrap.innerHTML = '<div class="ci-loading">Sem mensagens ainda. Diga oi!</div>'; return; }
+  ciState.lastTs = msgs[msgs.length - 1].data;
+  wrap.innerHTML = msgs.map(m => `
+    <div class="ci-msg ${m.de_mim ? 'mine' : ''}">
+      <div class="bolha">${(m.texto || '').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
+      <div class="hora">${ciFmtHora(m.data)}${m.de_mim && m.lida ? ' · lida' : ''}</div>
+    </div>`).join('');
+  if (scroll) wrap.scrollTop = wrap.scrollHeight;
+}
+
+function ciFmtHora(iso) {
+  const d = new Date(iso), hoje = new Date();
+  const opt = { hour: '2-digit', minute: '2-digit' };
+  return d.toDateString() === hoje.toDateString()
+    ? d.toLocaleTimeString('pt-BR', opt)
+    : d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', opt);
+}
+
+async function ciEnviar() {
+  const inp = document.getElementById('ci-input');
+  const texto = inp.value.trim();
+  if (!texto || !ciState.peer) return;
+  inp.value = '';
+  const r = await pacApi('/api/clinico/chat/mensagens', { method: 'POST', body: JSON.stringify({ para: ciState.peer, texto }) });
+  if (!r.ok) { alert('Erro ao enviar: ' + (r.data.erro || '--')); inp.value = texto; return; }
+  ciState.msgsCache.push(r.data.mensagem);
+  ciRenderMsgs(true);
+  ciState.conversas[ciState.peer] = { ...(ciState.conversas[ciState.peer] || { id: ciState.peer }), ultima: texto, ultima_em: r.data.mensagem.data, de_mim: true, nao_lidas: 0 };
+  ciRenderLista(document.getElementById('ci-busca')?.value || '');
+}
+
+function ciInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ciEnviar(); }
+}
+
+function ciIniciarPoll() {
+  ciPararPoll();
+  ciState.pollTimer = setInterval(ciPoll, 4000);
+}
+function ciPararPoll() {
+  if (ciState.pollTimer) { clearInterval(ciState.pollTimer); ciState.pollTimer = null; }
+}
+async function ciPoll() {
+  if (!ciState.peer) return;
+  const depois = ciState.lastTs ? '&depois=' + encodeURIComponent(ciState.lastTs) : '';
+  const r = await pacApi('/api/clinico/chat/mensagens?peer=' + ciState.peer + depois);
+  if (r.ok && r.data.mensagens && r.data.mensagens.length) {
+    let novas = false;
+    r.data.mensagens.forEach(m => { ciState.msgsCache.push(m); if (!m.de_mim) novas = true; });
+    ciRenderMsgs(true);
+    if (novas) {
+      await pacApi('/api/clinico/chat/ler', { method: 'POST', body: JSON.stringify({ peer: ciState.peer }) });
+      ciAtualizarBadge();
+    }
+  }
+}
+
+async function ciAtualizarBadge() {
+  if (!getToken() || !meData) return;
+  const r = await pacApi('/api/clinico/chat/contador');
+  if (!r.ok) return;
+  const n = r.data.nao_lidas || 0;
+  const b = document.getElementById('ci-nav-badge');
+  if (b) { b.textContent = n > 99 ? '99+' : n; b.style.display = n > 0 ? '' : 'none'; }
+}
+
 const _origTrocarView = trocarView;
 trocarView = function(v) {
   _origTrocarView(v);
+  if (v === 'comunicacao') ciCarregar();
+  else ciPararPoll();
   if (v === 'pacientes') pacInit();
   if (v === 'agenda') {
     if (!agJaInicializou) { agJaInicializou = true; agInit(); }
@@ -14529,6 +14686,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   carregarMe();
+  // Badge de mensagens não lidas do chat interno (atualiza periodicamente)
+  setInterval(ciAtualizarBadge, 25000);
 });
 </script>
 
