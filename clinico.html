@@ -2648,6 +2648,7 @@
     .ci-msg.mine .bolha { background:rgba(29,158,117,0.18); border-color:rgba(29,158,117,0.4); color:#eafff5; }
     .ci-msg .hora { font-size:9px; color:#6e7681; margin-top:2px; padding:0 4px; }
     .ci-msg.mine .hora { text-align:right; }
+    .ci-msg .autor { font-size:10px; color:#7d8590; font-weight:500; margin:0 0 2px 4px; }
     .ci-input-bar { display:flex; gap:8px; padding:10px 12px; border-top:1px solid #30363d; align-items:flex-end; }
     .ci-input-bar textarea { flex:1; background:#161b22; border:1px solid #30363d; border-radius:10px; padding:9px 12px; color:#f0f6fc; font-size:13px; resize:none; max-height:120px; font-family:inherit; }
     .ci-send { background:#1D9E75; border:none; color:#fff; width:40px; height:40px; border-radius:10px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -14524,6 +14525,7 @@ async function ciCarregar() {
   ciState.usuarios = (ru.ok && ru.data.usuarios) ? ru.data.usuarios : [];
   ciState.conversas = {};
   if (rc.ok && rc.data.conversas) rc.data.conversas.forEach(c => { ciState.conversas[c.id] = c; });
+  ciState.equipe = (rc.ok && rc.data.equipe) ? rc.data.equipe : { id: 'equipe', nome: 'Equipe', grupo: true, nao_lidas: 0 };
   ciRenderLista(document.getElementById('ci-busca')?.value || '');
   ciAtualizarBadge();
 }
@@ -14542,8 +14544,20 @@ function ciRenderLista(filtro) {
     if (b.ultima_em) return 1;
     return (a.nome || '').localeCompare(b.nome || '');
   });
-  if (lista.length === 0) { wrap.innerHTML = '<div class="ci-loading">Nenhum colega encontrado.</div>'; return; }
-  wrap.innerHTML = lista.map(u => {
+  // Canal Equipe (sempre fixo no topo)
+  const eq = ciState.equipe || { nao_lidas: 0 };
+  const eqPrev = eq.ultima ? eq.ultima : 'Canal de toda a equipe';
+  const equipeHtml = `
+    <div class="ci-conv ${ciState.peer === 'equipe' ? 'sel' : ''}" onclick="ciAbrir('equipe')">
+      <div class="ci-av" style="background:#1D9E7522; color:#1D9E75; border-color:#1D9E7555;"><i class="ti ti-users-group"></i></div>
+      <div class="ci-conv-info">
+        <div class="ci-conv-nome">Equipe</div>
+        <div class="ci-conv-prev">${String(eqPrev).slice(0, 42).replace(/</g, '&lt;')}</div>
+      </div>
+      ${eq.nao_lidas > 0 ? `<span class="ci-conv-badge">${eq.nao_lidas}</span>` : ''}
+    </div>`;
+
+  const umAUm = lista.map(u => {
     const cor = u.cor || '#7d8590';
     const ini = (u.nome || '?').charAt(0).toUpperCase();
     const prev = u.ultima ? ((u.de_mim ? 'Você: ' : '') + u.ultima) : (u.cargo || u.email || '');
@@ -14558,6 +14572,7 @@ function ciRenderLista(filtro) {
         ${u.nao_lidas > 0 ? `<span class="ci-conv-badge">${u.nao_lidas}</span>` : ''}
       </div>`;
   }).join('');
+  wrap.innerHTML = equipeHtml + umAUm;
 }
 
 async function ciAbrir(peerId) {
@@ -14566,18 +14581,26 @@ async function ciAbrir(peerId) {
   ciState.msgsCache = [];
   document.getElementById('ci-vazio').style.display = 'none';
   document.getElementById('ci-conversa').style.display = 'flex';
-  const u = ciState.usuarios.find(x => x.id === peerId) || {};
-  const cor = u.cor || '#1D9E75';
-  document.getElementById('ci-conversa-head').innerHTML = `
-    <div class="ci-av" style="background:${cor}22; color:${cor}; border-color:${cor}55;">${(u.nome || '?').charAt(0).toUpperCase()}</div>
-    <div><div class="nm">${(u.nome || '').replace(/</g, '&lt;')}</div><div class="sub">${(u.cargo || u.email || '').replace(/</g, '&lt;')}</div></div>`;
+  const ehEquipe = peerId === 'equipe';
+  if (ehEquipe) {
+    document.getElementById('ci-conversa-head').innerHTML = `
+      <div class="ci-av" style="background:#1D9E7522; color:#1D9E75; border-color:#1D9E7555;"><i class="ti ti-users-group"></i></div>
+      <div><div class="nm">Equipe</div><div class="sub">Canal de toda a equipe</div></div>`;
+  } else {
+    const u = ciState.usuarios.find(x => x.id === peerId) || {};
+    const cor = u.cor || '#1D9E75';
+    document.getElementById('ci-conversa-head').innerHTML = `
+      <div class="ci-av" style="background:${cor}22; color:${cor}; border-color:${cor}55;">${(u.nome || '?').charAt(0).toUpperCase()}</div>
+      <div><div class="nm">${(u.nome || '').replace(/</g, '&lt;')}</div><div class="sub">${(u.cargo || u.email || '').replace(/</g, '&lt;')}</div></div>`;
+  }
   document.getElementById('ci-msgs').innerHTML = '<div class="ci-loading">Carregando...</div>';
   ciRenderLista(document.getElementById('ci-busca')?.value || '');
   const r = await pacApi('/api/clinico/chat/mensagens?peer=' + peerId);
   ciState.msgsCache = (r.ok && r.data.mensagens) ? r.data.mensagens : [];
   ciRenderMsgs(true);
   await pacApi('/api/clinico/chat/ler', { method: 'POST', body: JSON.stringify({ peer: peerId }) });
-  if (ciState.conversas[peerId]) ciState.conversas[peerId].nao_lidas = 0;
+  if (ehEquipe) { if (ciState.equipe) ciState.equipe.nao_lidas = 0; }
+  else if (ciState.conversas[peerId]) ciState.conversas[peerId].nao_lidas = 0;
   ciRenderLista(document.getElementById('ci-busca')?.value || '');
   ciAtualizarBadge();
   ciIniciarPoll();
@@ -14589,10 +14612,12 @@ function ciRenderMsgs(scroll) {
   const msgs = ciState.msgsCache || [];
   if (msgs.length === 0) { wrap.innerHTML = '<div class="ci-loading">Sem mensagens ainda. Diga oi!</div>'; return; }
   ciState.lastTs = msgs[msgs.length - 1].data;
+  const grupo = ciState.peer === 'equipe';
   wrap.innerHTML = msgs.map(m => `
     <div class="ci-msg ${m.de_mim ? 'mine' : ''}">
+      ${grupo && !m.de_mim ? `<div class="autor">${(m.de_nome || '').replace(/</g, '&lt;')}</div>` : ''}
       <div class="bolha">${(m.texto || '').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
-      <div class="hora">${ciFmtHora(m.data)}${m.de_mim && m.lida ? ' · lida' : ''}</div>
+      <div class="hora">${ciFmtHora(m.data)}${m.de_mim && !grupo && m.lida ? ' · lida' : ''}</div>
     </div>`).join('');
   if (scroll) wrap.scrollTop = wrap.scrollHeight;
 }
@@ -14614,7 +14639,11 @@ async function ciEnviar() {
   if (!r.ok) { alert('Erro ao enviar: ' + (r.data.erro || '--')); inp.value = texto; return; }
   ciState.msgsCache.push(r.data.mensagem);
   ciRenderMsgs(true);
-  ciState.conversas[ciState.peer] = { ...(ciState.conversas[ciState.peer] || { id: ciState.peer }), ultima: texto, ultima_em: r.data.mensagem.data, de_mim: true, nao_lidas: 0 };
+  if (ciState.peer === 'equipe') {
+    ciState.equipe = { ...(ciState.equipe || { id: 'equipe', nome: 'Equipe', grupo: true }), ultima: 'Você: ' + texto, ultima_em: r.data.mensagem.data, de_mim: true, nao_lidas: 0 };
+  } else {
+    ciState.conversas[ciState.peer] = { ...(ciState.conversas[ciState.peer] || { id: ciState.peer }), ultima: texto, ultima_em: r.data.mensagem.data, de_mim: true, nao_lidas: 0 };
+  }
   ciRenderLista(document.getElementById('ci-busca')?.value || '');
 }
 
