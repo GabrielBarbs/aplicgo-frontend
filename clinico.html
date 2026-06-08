@@ -2329,9 +2329,14 @@
       transition: stroke-width 0.12s;
     }
     .pr-grafico-svg .ponto {
-      cursor: pointer; transition: r 0.12s;
+      r: 4;                 /* base explicito em CSS: evita o colapso a r=0 no hover */
+      pointer-events: none; /* quem captura o hover e o .ponto-hit por cima */
     }
-    .pr-grafico-svg .ponto:hover { r: 6; }
+    .pr-grafico-svg .ponto-hit {
+      fill: transparent; cursor: pointer;
+      transition: fill 0.12s;
+    }
+    .pr-grafico-svg .ponto-hit:hover { fill: rgba(255,255,255,0.12); }
     .pr-grafico-tooltip {
       position: absolute;
       background: #0d1117;
@@ -11319,10 +11324,12 @@ async function bioSalvar() {
   const num = id => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? null : v; };
   const numInt = id => { const v = parseInt(document.getElementById(id).value); return isNaN(v) ? null : v; };
   const dataVal = document.getElementById('bio-data').value;
+  // Parse seguro: data invalida vira null em vez de lancar e abortar o save silenciosamente.
+  const dataIso = (() => { if (!dataVal) return null; const dt = new Date(dataVal); return isNaN(dt.getTime()) ? null : dt.toISOString(); })();
 
   const body = {
     patient_id: bioState.patientId,
-    data: dataVal ? new Date(dataVal).toISOString() : null,
+    data: dataIso,
     peso_kg: peso,
     altura_cm: numInt('bio-altura'),
     gordura_pct: num('bio-gord-pct'),
@@ -11359,9 +11366,15 @@ async function bioSalvar() {
     return;
   }
   bioFechar();
-  await bioCarregarSerie(bioState.patientId);
-  await prCarregarHeader();
-  prRenderTimeline();
+  // Recarrega tudo do servidor (timeline + header + serie de bio) e redesenha:
+  // garante que o grafico "Evolucao corporal" reflita a nova medicao na hora.
+  if (prState.pacienteAtual && prState.pacienteAtual.id === bioState.patientId) {
+    await prCarregarTimeline();
+  } else {
+    await bioCarregarSerie(bioState.patientId);
+    const card = document.getElementById('pr-grafico-card-render');
+    if (card) card.innerHTML = bioRenderGrafico();
+  }
 }
 
 async function bioCarregarSerie(patientId) {
@@ -11481,7 +11494,11 @@ function bioRenderGrafico() {
     const ptsSvg = pontos.map(p => {
       const lblBr = (BIO_LABELS[m] || '').replace(/"/g, '&quot;');
       const data = new Date(serie[p.i].data).toLocaleDateString('pt-BR');
-      return `<circle class="ponto" cx="${x(p.i)}" cy="${y(p.v)}" r="4" fill="${BIO_CORES[m]}" stroke="#0d1117" stroke-width="2" data-tooltip="${data} -- ${lblBr}: ${p.v.toString().replace('.', ',')}"/>`;
+      const tip = `${data} -- ${lblBr}: ${p.v.toString().replace('.', ',')}`;
+      const cx = x(p.i), cy = y(p.v);
+      // ponto visivel (estatico, nao muda no hover) + circulo-alvo transparente maior que captura o mouse
+      return `<circle class="ponto" cx="${cx}" cy="${cy}" r="4" fill="${BIO_CORES[m]}" stroke="#0d1117" stroke-width="2"/>`
+           + `<circle class="ponto-hit" cx="${cx}" cy="${cy}" r="9" data-tooltip="${tip}"/>`;
     }).join('');
     return `<path class="linha" d="${path}" stroke="${BIO_CORES[m]}"/>${ptsSvg}`;
   }).join('');
@@ -11514,17 +11531,25 @@ function bioRenderGrafico() {
 
 function bioTooltip(e) {
   const target = e.target;
-  if (target.tagName !== 'circle' || !target.dataset.tooltip) {
-    bioTooltipHide();
-    return;
-  }
+  const tip = (target && target.dataset) ? target.dataset.tooltip : null;
+  if (!tip) { bioTooltipHide(); return; }
   const tt = document.getElementById('bio-tt');
   if (!tt) return;
-  tt.textContent = target.dataset.tooltip;
+  tt.textContent = tip;
   tt.style.display = 'block';
   const rect = e.currentTarget.getBoundingClientRect();
-  tt.style.left = (e.clientX - rect.left + 12) + 'px';
-  tt.style.top = (e.clientY - rect.top - 28) + 'px';
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const ttW = tt.offsetWidth || 130;
+  const ttH = tt.offsetHeight || 24;
+  // posiciona o tooltip longe do ponto (acima-direita) e preso dentro do wrap -- nunca cobre o ponto
+  let left = mx + 14;
+  let top = my - ttH - 12;
+  if (left + ttW > rect.width - 4) left = mx - ttW - 14;  // estouraria a direita -> joga p/ esquerda
+  if (left < 4) left = 4;
+  if (top < 4) top = my + 18;                              // estouraria em cima -> joga p/ baixo
+  tt.style.left = left + 'px';
+  tt.style.top = top + 'px';
 }
 function bioTooltipHide() {
   const tt = document.getElementById('bio-tt');
@@ -14295,7 +14320,7 @@ async function apSalvarBio() {
 
   const body = {
     patient_id: apState.pacienteAtual.id,
-    data: document.getElementById('ap-bio-data').value ? new Date(document.getElementById('ap-bio-data').value).toISOString() : null,
+    data: (() => { const v = document.getElementById('ap-bio-data').value; if (!v) return null; const dt = new Date(v); return isNaN(dt.getTime()) ? null : dt.toISOString(); })(),
     peso_kg: num('ap-bio-peso'),
     altura_cm: numInt('ap-bio-altura'),
     imc: num('ap-bio-imc'),
