@@ -11244,19 +11244,67 @@ async function bioImportarSelecionar(files) {
   const fd = new FormData();
   fd.append('file', f);
   fd.append('tipo', 'bioimpedancia');
+  document.getElementById('bio-import-aviso').style.display = 'none';
   try {
     const resp = await fetch(API_BASE + '/api/clinico/documentos/patient/' + pid + '/upload', {
       method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }, body: fd,
     });
     const d = await resp.json().catch(() => ({}));
     if (!resp.ok) { arq.innerHTML = 'Erro ao salvar: ' + (d.erro || resp.status); return; }
-    arq.innerHTML = `<i class="ti ti-circle-check" style="color:#1D9E75;"></i> ${nome} salvo nos anexos do paciente.`;
     if (typeof prCarregarDocumentos === 'function') prCarregarDocumentos();
+    const docId = d.documento && d.documento.id;
+    arq.innerHTML = `<i class="ti ti-circle-check" style="color:#1D9E75;"></i> ${nome} salvo nos anexos.
+      <div style="margin-top:10px;"><button class="pac-btn-primary" onclick="bioLerIA('${docId}')"><i class="ti ti-robot"></i> Ler com IA e preencher</button></div>`;
   } catch (e) {
-    arq.innerHTML = 'Erro ao salvar: ' + e.message; return;
+    arq.innerHTML = 'Erro ao salvar: ' + e.message;
   }
-  // Leitura automática por IA ainda indisponível (sem crédito)
-  document.getElementById('bio-import-aviso').style.display = 'block';
+}
+
+// Lê o laudo com IA e abre a bioimpedância pré-preenchida pra conferência
+async function bioLerIA(docId) {
+  if (!docId) return;
+  const arq = document.getElementById('bio-import-arquivo');
+  arq.innerHTML = '<i class="ti ti-loader"></i> Lendo o laudo com IA... pode levar alguns segundos.';
+  const r = await pacApi('/api/clinico/documentos/' + docId + '/ler-bioimpedancia', { method: 'POST' });
+  if (!r.ok) {
+    if (r.data && r.data.sem_ia) {
+      arq.innerHTML = 'PDF salvo nos anexos. (A leitura por IA ainda não está ligada -- falta a chave no servidor.)';
+      document.getElementById('bio-import-aviso').style.display = 'block';
+    } else {
+      arq.innerHTML = 'Erro na leitura: ' + ((r.data && r.data.erro) || '--') +
+        `<div style="margin-top:8px;"><button class="pac-btn-secondary" onclick="bioLerIA('${docId}')">Tentar de novo</button></div>`;
+    }
+    return;
+  }
+  bioImportarFechar();
+  bioPreencherDeIA(r.data.extraido || {});
+}
+
+function bioPreencherDeIA(e) {
+  bioAbrirNovo();
+  setTimeout(() => {
+    const set = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; };
+    set('bio-peso', e.peso_kg); set('bio-altura', e.altura_cm); set('bio-gord-pct', e.gordura_pct);
+    set('bio-massa-gord', e.massa_gordura_kg); set('bio-massa-magra', e.massa_magra_kg); set('bio-massa-musc', e.massa_muscular_kg);
+    set('bio-gord-visc', e.gordura_visceral); set('bio-tmb', e.tmb_kcal);
+    set('bio-c-cintura', e.circ_cintura_cm); set('bio-c-quadril', e.circ_quadril_cm); set('bio-c-abdomen', e.circ_abdomen_cm);
+    set('bio-agua-total', e.agua_total_litros);
+    if (e.data) { const el = document.getElementById('bio-data'); if (el) el.value = e.data + 'T08:00'; }
+    const extras = [];
+    if (e.pontuacao_inbody != null) extras.push('Pontuação InBody: ' + e.pontuacao_inbody);
+    if (e.relacao_cintura_quadril != null) extras.push('Cintura-quadril: ' + e.relacao_cintura_quadril);
+    if (e.grau_obesidade_pct != null) extras.push('Grau de obesidade: ' + e.grau_obesidade_pct + '%');
+    if (e.resumo) extras.push(e.resumo);
+    if (extras.length) set('bio-obs', extras.join(' · '));
+    const erro = document.getElementById('bio-erro');
+    if (erro) {
+      erro.style.display = 'block';
+      erro.style.background = 'rgba(29,158,117,0.10)';
+      erro.style.border = '1px solid rgba(29,158,117,0.4)';
+      erro.style.color = '#6FD89A';
+      erro.innerHTML = '<i class="ti ti-robot"></i> Valores extraídos do PDF pela IA. CONFIRA cada um antes de salvar.';
+    }
+  }, 150);
 }
 function bioImportarFechar() {
   document.getElementById('bio-import-modal').classList.remove('aberto');
