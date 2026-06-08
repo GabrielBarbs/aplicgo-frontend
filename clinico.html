@@ -6848,7 +6848,15 @@
     <div class="ag-modal-body">
       <div class="pac-modal-erro" id="pr-exam-erro"></div>
       <div class="pac-form-section">
-        <div class="pac-form-section-title"><i class="ti ti-list-check"></i> Painel padrão Aplic — clica nos que quiser</div>
+        <div class="pac-form-section-title"><i class="ti ti-layout-grid-add"></i> Modelo pronto</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+          <button type="button" class="pac-btn-mini-acao" onclick="prExamModelo('padrao')">Painel padrão</button>
+          <button type="button" class="pac-btn-mini-acao" onclick="prExamModelo('emagrecimento')">Padrão emagrecimento</button>
+          <button type="button" class="pac-btn-mini-acao" onclick="prExamModelo('acompanhamento')">Padrão acompanhamento</button>
+        </div>
+      </div>
+      <div class="pac-form-section">
+        <div class="pac-form-section-title"><i class="ti ti-list-check"></i> Exames — clica nos que quiser</div>
         <div id="pr-exam-painel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin-bottom: 10px;"></div>
       </div>
       <div class="pac-field">
@@ -10618,6 +10626,46 @@ const PR_EXAMES_PADRAO = [
   'Cortisol matinal',
 ];
 
+// Modelos de solicitação de exames (do docx PRE CONSULTA)
+const PR_EXAMES_MODELOS = {
+  emagrecimento: {
+    nome: 'Padrão emagrecimento',
+    principais: [
+      'Hemograma com plaquetas', 'Função hepática (bilirrubinas, FA, TGO, TGP, Gama-GT)',
+      'Perfil lipídico / lipidograma', 'Creatinina', 'Sódio', 'Potássio', 'Magnésio', 'Zinco',
+      'Ferritina', 'Ferro sérico', 'Ácido fólico', 'Vitamina D (25-OH)', 'Vitamina B12', 'Cortisol',
+      'Função tireoidiana (T3, T4, TSH)', 'Rotina de urina', 'FSH', 'LH', 'SHBG', 'Estradiol',
+      'Progesterona', 'Testosterona total', 'Testosterona livre', 'Prolactina', 'Glicose',
+      'Hemoglobina glicada (A1c)', 'Insulina', 'Homocisteína', 'Apolipoproteína B (Apo B)',
+      'S-DHEA', 'Proteína C reativa', 'Ácido úrico', 'PTH', 'Cálcio', 'Selênio', 'Vitamina C',
+    ],
+    opcionais: [
+      'PSA total e livre (homem > 40 anos)', 'Sangue oculto nas fezes (> 50 anos)',
+      'Beta-HCG (mulher em período fértil)', 'Ultrassom abdominal',
+      'Densitometria óssea - coluna e fêmur (mulher menopausa)',
+      'Ultrassom transvaginal (suspeita de SOP ou início de TRH)', 'Mamografia (início de TRH)',
+      'Ultrassom de tireoide com doppler',
+    ],
+  },
+  acompanhamento: {
+    nome: 'Padrão acompanhamento',
+    principais: [
+      'Hemograma com plaquetas', 'Creatinina', 'Sódio', 'Potássio', 'Magnésio', 'Zinco',
+      'Ferritina', 'Ferro sérico', 'Ácido fólico', 'Vitamina D (25-OH)', 'Vitamina B12', 'Cortisol',
+      'Função tireoidiana (T3, T4, TSH)', 'Rotina de urina', 'Hemoglobina glicada (A1c)', 'Insulina',
+      'Homocisteína', 'Proteína C reativa', 'Selênio', 'Vitamina C',
+    ],
+    opcionais: [
+      'FSH', 'LH', 'SHBG', 'Estradiol', 'Progesterona', 'Testosterona total', 'Testosterona livre',
+      'Prolactina', 'PSA total e livre (homem > 40 anos)', 'Sangue oculto nas fezes (> 50 anos)',
+      'Beta-HCG (mulher em período fértil)', 'Ultrassom abdominal',
+      'Densitometria óssea - coluna e fêmur (mulher menopausa)',
+      'Ultrassom transvaginal (suspeita de SOP ou início de TRH)', 'Mamografia (início de TRH)',
+      'Ultrassom de tireoide com doppler',
+    ],
+  },
+};
+
 let prState = {
   pacienteAtual: null,
   headerData: null,
@@ -13759,14 +13807,32 @@ async function prSalvarPresc() {
 
 // ===== EXAMES =====
 
-function prAbrirNovoExam() {
-  if (!prState.pacienteAtual) return;
-  // Popula painel padrão como checkboxes
-  document.getElementById('pr-exam-painel').innerHTML = PR_EXAMES_PADRAO.map((e, i) => `
+function prExamRenderPainel(itens) {
+  document.getElementById('pr-exam-painel').innerHTML = itens.map((it) => `
     <label style="display:flex; align-items:center; gap:6px; font-size:11px; color:#c9d1d9; padding:6px 8px; background:rgba(33,38,45,0.4); border:1px solid #21262d; border-radius:6px; cursor:pointer;">
-      <input type="checkbox" class="pr-exam-cb" value="${e}" style="margin:0;"> ${e}
+      <input type="checkbox" class="pr-exam-cb" value="${it.nome.replace(/"/g, '&quot;')}" ${it.checked ? 'checked' : ''} style="margin:0;"> ${it.nome.replace(/</g, '&lt;')}${it.opcional ? ' <span style="color:#7d8590;">(opcional)</span>' : ''}
     </label>
   `).join('');
+}
+
+// Troca o painel pelo modelo escolhido (principais já marcados; opcionais desmarcados)
+function prExamModelo(qual) {
+  let itens;
+  if (qual === 'padrao' || !PR_EXAMES_MODELOS[qual]) {
+    itens = PR_EXAMES_PADRAO.map((n) => ({ nome: n, checked: false }));
+  } else {
+    const m = PR_EXAMES_MODELOS[qual];
+    itens = [
+      ...m.principais.map((n) => ({ nome: n, checked: true })),
+      ...m.opcionais.map((n) => ({ nome: n, checked: false, opcional: true })),
+    ];
+  }
+  prExamRenderPainel(itens);
+}
+
+function prAbrirNovoExam() {
+  if (!prState.pacienteAtual) return;
+  prExamModelo('padrao');
   document.getElementById('pr-exam-outros').value = '';
   document.getElementById('pr-exam-motivo').value = '';
   document.getElementById('pr-exam-erro').style.display = 'none';
