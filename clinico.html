@@ -10715,7 +10715,7 @@ async function prBuscarPaciente() {
 
 async function prSelecionarPaciente(p) {
   prState.pacienteAtual = p;
-  prState.anexosTemp = [];   // reseta anexos temporários ao trocar de paciente
+  prState.documentos = [];   // anexos recarregam ao abrir o paciente
   // Esconde input, mostra placeholder enquanto carrega o header
   const sel = document.getElementById('pr-pat-selector');
   sel.innerHTML = `
@@ -11231,13 +11231,31 @@ function bioImportarAbrir() {
   document.getElementById('bio-import-aviso').style.display = 'none';
   document.getElementById('bio-import-modal').classList.add('aberto');
 }
-function bioImportarSelecionar(files) {
+async function bioImportarSelecionar(files) {
   if (!files || !files.length) return;
   const f = files[0];
   const arq = document.getElementById('bio-import-arquivo');
   arq.style.display = 'block';
-  arq.innerHTML = `<i class="ti ti-file-type-pdf" style="color:#4A90E2;"></i> ${(f.name || '').replace(/</g, '&lt;')} (${prFmtTamanho(f.size)})`;
-  // IA de leitura indisponível: mostra o aviso, não processa nada
+  const nome = (f.name || '').replace(/</g, '&lt;');
+  arq.innerHTML = `<i class="ti ti-loader"></i> Enviando ${nome} (${prFmtTamanho(f.size)})...`;
+  const pid = (prState.pacienteAtual && prState.pacienteAtual.id) || (typeof bioState !== 'undefined' && bioState.patientId);
+  if (!pid) { arq.innerHTML = 'Abra um paciente primeiro.'; return; }
+  // Salva o PDF nos anexos do paciente (tipo bioimpedancia)
+  const fd = new FormData();
+  fd.append('file', f);
+  fd.append('tipo', 'bioimpedancia');
+  try {
+    const resp = await fetch(API_BASE + '/api/clinico/documentos/patient/' + pid + '/upload', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }, body: fd,
+    });
+    const d = await resp.json().catch(() => ({}));
+    if (!resp.ok) { arq.innerHTML = 'Erro ao salvar: ' + (d.erro || resp.status); return; }
+    arq.innerHTML = `<i class="ti ti-circle-check" style="color:#1D9E75;"></i> ${nome} salvo nos anexos do paciente.`;
+    if (typeof prCarregarDocumentos === 'function') prCarregarDocumentos();
+  } catch (e) {
+    arq.innerHTML = 'Erro ao salvar: ' + e.message; return;
+  }
+  // Leitura automática por IA ainda indisponível (sem crédito)
   document.getElementById('bio-import-aviso').style.display = 'block';
 }
 function bioImportarFechar() {
@@ -12677,6 +12695,7 @@ async function prCarregarTimeline() {
   }
   prState.timeline = r.data.timeline;
   prRenderTimeline();
+  prCarregarDocumentos();
 }
 
 function prRenderTimeline() {
@@ -12747,30 +12766,31 @@ function prRenderTimeline() {
 
 // ===== ANEXOS (front pronto, sem persistência ainda) =====
 function prRenderAnexos() {
-  const arquivos = prState.anexosTemp || [];
+  const arquivos = prState.documentos || [];
+  const enviando = !!prState.anexoEnviando;
   const listaHtml = arquivos.length === 0
-    ? '<div class="pr-anexos-vazio"><i class="ti ti-folder-open"></i> Nenhum anexo ainda. Exames, laudos, fotos de evolução e documentos entram aqui.</div>'
-    : arquivos.map((a, i) => `
+    ? '<div class="pr-anexos-vazio"><i class="ti ti-folder-open"></i> Nenhum anexo ainda. Exames, laudos, fotos, bioimpedância e documentos entram aqui.</div>'
+    : arquivos.map((a) => `
         <div class="pr-anexo-item">
-          <i class="ti ti-${a.icone}"></i>
+          <i class="ti ti-${prIconePorTipo(a.mime)}"></i>
           <div class="info">
-            <div class="nome">${a.nome}</div>
-            <div class="meta">${a.tipo} · ${a.tamanho}</div>
+            <div class="nome">${(a.nome || '').replace(/</g, '&lt;')}</div>
+            <div class="meta">${a.tipo}${a.tamanho ? ' · ' + prFmtTamanho(a.tamanho) : ''}${a.enviado_por ? ' · ' + a.enviado_por : ''}</div>
           </div>
-          <button class="rm" onclick="prRemoverAnexoTemp(${i})" title="Remover"><i class="ti ti-x"></i></button>
+          <button class="rm" onclick="prDocVer('${a.id}')" title="Ver / baixar"><i class="ti ti-eye"></i></button>
+          <button class="rm" onclick="prDocRemover('${a.id}')" title="Remover"><i class="ti ti-x"></i></button>
         </div>
       `).join('');
   return `
     <div class="pr-anexos-card">
       <div class="pr-anexos-head">
         <div class="ttl"><i class="ti ti-paperclip"></i> Anexos &amp; Documentos</div>
-        <span class="aviso-soft"><i class="ti ti-info-circle"></i> Armazenamento entra na próxima etapa</span>
       </div>
       <label class="pr-anexos-drop">
-        <input type="file" multiple style="display:none;" onchange="prSelecionarAnexos(this.files)">
-        <i class="ti ti-cloud-upload"></i>
-        <div class="txt"><strong>Clique para anexar</strong> ou arraste arquivos</div>
-        <div class="sub">Exames (PDF), laudos, fotos de evolução, contrato, termo</div>
+        <input type="file" multiple style="display:none;" onchange="prAnexoUpload(this.files)" ${enviando ? 'disabled' : ''}>
+        <i class="ti ti-${enviando ? 'loader' : 'cloud-upload'}"></i>
+        <div class="txt">${enviando ? 'Enviando...' : '<strong>Clique para anexar</strong> ou arraste arquivos'}</div>
+        <div class="sub">Exames (PDF), laudos, fotos, contrato, termo</div>
       </label>
       <div class="pr-anexos-lista">${listaHtml}</div>
     </div>
@@ -12789,26 +12809,41 @@ function prIconePorTipo(mime) {
   if (mime.includes('word')) return 'file-type-doc';
   return 'file';
 }
-function prSelecionarAnexos(files) {
-  if (!prState.anexosTemp) prState.anexosTemp = [];
-  Array.from(files).forEach(f => {
-    prState.anexosTemp.push({
-      nome: f.name,
-      tipo: f.type || 'arquivo',
-      tamanho: prFmtTamanho(f.size),
-      icone: prIconePorTipo(f.type),
-    });
-  });
+async function prCarregarDocumentos() {
+  if (!prState.pacienteAtual) { prState.documentos = []; return; }
+  const r = await pacApi('/api/clinico/documentos/patient/' + prState.pacienteAtual.id);
+  prState.documentos = (r.ok && r.data.documentos) ? r.data.documentos : [];
   prRenderTimeline();
-  // Aviso uma vez de que ainda não salva
-  if (!prState._avisouAnexo) {
-    prState._avisouAnexo = true;
-    setTimeout(() => alert('Os anexos aparecem na lista, mas o armazenamento ainda não está ativo -- nada é salvo no servidor por enquanto. Isso entra na próxima etapa.'), 100);
-  }
 }
-function prRemoverAnexoTemp(i) {
-  if (prState.anexosTemp) prState.anexosTemp.splice(i, 1);
-  prRenderTimeline();
+
+async function prAnexoUpload(files) {
+  if (!files || !files.length || !prState.pacienteAtual) return;
+  prState.anexoEnviando = true; prRenderTimeline();
+  const t = getToken();
+  for (const f of Array.from(files)) {
+    const fd = new FormData();
+    fd.append('file', f);
+    fd.append('tipo', 'anexo');
+    try {
+      const resp = await fetch(API_BASE + '/api/clinico/documentos/patient/' + prState.pacienteAtual.id + '/upload', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + t }, body: fd,
+      });
+      if (!resp.ok) { const d = await resp.json().catch(() => ({})); alert('Erro ao enviar ' + f.name + ': ' + (d.erro || resp.status)); }
+    } catch (e) { alert('Erro ao enviar ' + f.name + ': ' + e.message); }
+  }
+  prState.anexoEnviando = false;
+  await prCarregarDocumentos();
+}
+
+function prDocVer(id) {
+  window.open(API_BASE + '/api/clinico/documentos/' + id + '/download?token=' + encodeURIComponent(getToken()), '_blank');
+}
+
+async function prDocRemover(id) {
+  if (!confirm('Remover este anexo?')) return;
+  const r = await pacApi('/api/clinico/documentos/' + id, { method: 'DELETE' });
+  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  await prCarregarDocumentos();
 }
 
 function prToggleHistorico() {
