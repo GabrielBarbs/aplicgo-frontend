@@ -6640,6 +6640,36 @@
   </div>
 </div>
 
+<!-- ============== MODAL: IMPORTAR BIOIMPEDÂNCIA (PDF) ============== -->
+<div class="ag-modal-overlay" id="bio-import-modal" onclick="if(event.target.id==='bio-import-modal') bioImportarFechar()">
+  <div class="ag-modal" style="max-width: 520px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-file-upload"></i> <span>Importar bioimpedância (PDF)</span></div>
+      <button class="pac-modal-close" onclick="bioImportarFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <label class="pr-anexos-drop">
+        <input type="file" accept="application/pdf,image/*" style="display:none;" onchange="bioImportarSelecionar(this.files)">
+        <i class="ti ti-cloud-upload"></i>
+        <div class="txt"><strong>Clique para subir</strong> o PDF da bioimpedância (InBody)</div>
+        <div class="sub">A leitura automática extrai peso, massa muscular, gordura, visceral, segmentar, etc.</div>
+      </label>
+      <div id="bio-import-arquivo" style="display:none; margin-top:10px; font-size:12px; color:#c9d1d9;"></div>
+      <div id="bio-import-aviso" style="display:none; margin-top:12px; background:rgba(248,81,73,0.08); border:1px solid rgba(248,81,73,0.35); border-radius:8px; padding:12px 14px; color:#f0b4b0; font-size:12px; line-height:1.5;">
+        <i class="ti ti-lock" style="color:#f85149; margin-right:6px;"></i>
+        <strong style="color:#f85149;">I.A de leitura sem crédito -- serviço indisponível.</strong><br>
+        A leitura automática do PDF entra quando ativarmos o crédito da IA. Por enquanto, registre a bioimpedância manualmente em "Nova bioimpedância".
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="bioImportarFechar()">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============== MODAL: ANEXO E DOCUMENTO (agenda) ============== -->
 <div class="ag-modal-overlay" id="ag-anexo-modal" onclick="if(event.target.id==='ag-anexo-modal') agAnexoFechar()">
   <div class="ag-modal" style="max-width: 560px;">
@@ -7674,6 +7704,7 @@ function dashAbrirPaciente(id, nome) {
 async function dashEnviarAniversario(patientId) {
   const r = await pacApi('/api/clinico/dashboard/aniversario/' + patientId + '/enviar', { method: 'POST' });
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  avisoWhatsappOff();
   if (r.data.link_whatsapp) {
     window.open(r.data.link_whatsapp, '_blank');
   } else {
@@ -9693,6 +9724,11 @@ async function bugEnviar() {
 // ============================================================
 let chatState = { aberto: false, contato: null };
 
+// WhatsApp: API de envio automático ainda desativada -- avisa em todo ponto que usa WhatsApp
+function avisoWhatsappOff() {
+  alert('⚠ WhatsApp: a API de envio automático está DESATIVADA no momento.\n\nO envio automático entra quando ligarmos a integração (Evolution API). Por enquanto, dá pra abrir o WhatsApp e enviar manualmente.');
+}
+
 function chatAbrir(contato) {
   if (!contato) return;
   chatState.aberto = true;
@@ -9707,7 +9743,7 @@ function chatAbrir(contato) {
     <div class="chat-vazio">
       <i class="ti ti-message-circle"></i>
       <div class="msg">Conversa com <strong>${nome}</strong></div>
-      <div class="sub">Em breve: chat simultâneo integrado ao WhatsApp.<br>Por enquanto, esta é a estrutura visual.</div>
+      <div class="sub" style="color:#f0b4b0;"><i class="ti ti-lock"></i> API do WhatsApp <strong>desativada</strong> no momento. O chat integrado entra quando ligarmos a integração -- por enquanto, use "Ligar" ou abra o WhatsApp manualmente.</div>
     </div>
   `;
   document.getElementById('chat-floating').style.display = 'flex';
@@ -9730,6 +9766,7 @@ function chatLigar() {
 function chatAbrirWaWeb() {
   const tel = chatState.contato?.telefone;
   if (!tel) return;
+  avisoWhatsappOff();
   const limpo = String(tel).replace(/\D/g, '');
   if (!limpo) return;
   const num = limpo.length === 10 || limpo.length === 11 ? '55' + limpo : limpo;
@@ -11137,6 +11174,28 @@ function bioFechar() {
   document.getElementById('bio-modal').classList.remove('aberto');
 }
 
+// ===== Importar bioimpedância por PDF (leitura por IA -- ainda sem crédito) =====
+function bioImportarAbrir() {
+  const inp = document.querySelector('#bio-import-modal input[type=file]');
+  if (inp) inp.value = '';
+  const arq = document.getElementById('bio-import-arquivo');
+  arq.style.display = 'none'; arq.innerHTML = '';
+  document.getElementById('bio-import-aviso').style.display = 'none';
+  document.getElementById('bio-import-modal').classList.add('aberto');
+}
+function bioImportarSelecionar(files) {
+  if (!files || !files.length) return;
+  const f = files[0];
+  const arq = document.getElementById('bio-import-arquivo');
+  arq.style.display = 'block';
+  arq.innerHTML = `<i class="ti ti-file-type-pdf" style="color:#4A90E2;"></i> ${(f.name || '').replace(/</g, '&lt;')} (${prFmtTamanho(f.size)})`;
+  // IA de leitura indisponível: mostra o aviso, não processa nada
+  document.getElementById('bio-import-aviso').style.display = 'block';
+}
+function bioImportarFechar() {
+  document.getElementById('bio-import-modal').classList.remove('aberto');
+}
+
 async function bioSalvar() {
   const erroEl = document.getElementById('bio-erro');
   erroEl.style.display = 'none';
@@ -11241,6 +11300,9 @@ function bioRenderGrafico() {
         <div class="pr-grafico-card-head">
           <div class="ttl"><i class="ti ti-chart-line"></i> Evolução corporal</div>
           <div class="acoes">
+            <button class="pac-btn-mini-acao" onclick="bioImportarAbrir()">
+              <i class="ti ti-file-upload"></i> Importar PDF
+            </button>
             <button class="pac-btn-mini-acao" onclick="bioAbrirNovo()">
               <i class="ti ti-plus"></i> Nova bioimpedância
             </button>
@@ -11315,6 +11377,9 @@ function bioRenderGrafico() {
       <div class="pr-grafico-card-head">
         <div class="ttl"><i class="ti ti-chart-line"></i> Evolução corporal (${serie.length} medições)</div>
         <div class="acoes">
+          <button class="pac-btn-mini-acao" onclick="bioImportarAbrir()">
+            <i class="ti ti-file-upload"></i> Importar PDF
+          </button>
           <button class="pac-btn-mini-acao" onclick="bioAbrirNovo()">
             <i class="ti ti-plus"></i> Nova bioimpedância
           </button>
@@ -12422,6 +12487,7 @@ function admNovoUserMostrarConvite() {
   };
   // Botão WhatsApp (sem telefone -- abre o WhatsApp com a mensagem pra escolher o contato)
   document.getElementById('adm-novo-user-wa').onclick = () => {
+    avisoWhatsappOff();
     window.open(`https://wa.me/?text=${encodeURIComponent(corpo)}`, '_blank');
   };
 }
