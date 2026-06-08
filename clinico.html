@@ -12988,18 +12988,17 @@ function prCardTrocarAba(tipo, aba) {
 }
 
 // ===== CARD 4 · RODA DA VIDA (radar início -> atual, lê das evoluções) =====
+// 9 dimensões da Roda da Vida (SCORE do docx PRE CONSULTA) -- mesmas usadas no SCORE das fichas
 const RV_DIMS = [
-  { slug: 'rv_sono',         label: 'Qualidade do sono',               ico: 'moon' },
-  { slug: 'rv_vitalidade',   label: 'Vitalidade e energia',            ico: 'bolt' },
-  { slug: 'rv_clareza',      label: 'Clareza mental e foco',           ico: 'brain' },
-  { slug: 'rv_cognitiva',    label: 'Performance cognitiva',           ico: 'target-arrow' },
-  { slug: 'rv_emocional',    label: 'Equilíbrio emocional',            ico: 'heartbeat' },
-  { slug: 'rv_compulsao',    label: 'Controle da compulsão alimentar', ico: 'candy' },
-  { slug: 'rv_autocontrole', label: 'Constância e autocontrole',       ico: 'circle-check' },
-  { slug: 'rv_autoimagem',   label: 'Autoimagem e autoestima',         ico: 'mood-smile' },
-  { slug: 'rv_libido',       label: 'Libido e conexão íntima',         ico: 'heart' },
-  { slug: 'rv_intestinal',   label: 'Saúde intestinal e digestão',     ico: 'meat' },
-  { slug: 'rv_recuperacao',  label: 'Recuperação física',              ico: 'barbell' },
+  { slug: 'rv_sono',          label: 'Qualidade do sono',          ico: 'moon' },
+  { slug: 'rv_vitalidade',    label: 'Vitalidade e energia',       ico: 'bolt' },
+  { slug: 'rv_emocional',     label: 'Equilíbrio emocional',       ico: 'heartbeat' },
+  { slug: 'rv_libido',        label: 'Libido e saúde sexual',      ico: 'heart' },
+  { slug: 'rv_autoimagem',    label: 'Autoimagem e autoestima',    ico: 'mood-smile' },
+  { slug: 'rv_felicidade',    label: 'Felicidade e bem-estar',     ico: 'sun' },
+  { slug: 'rv_autocontrole',  label: 'Constância e autocontrole',  ico: 'circle-check' },
+  { slug: 'rv_cognitiva',     label: 'Performance cognitiva',      ico: 'brain' },
+  { slug: 'rv_produtividade', label: 'Produtividade',              ico: 'rocket' },
 ];
 
 function prAbrirRodaVida() {
