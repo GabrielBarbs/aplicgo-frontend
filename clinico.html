@@ -12642,9 +12642,12 @@ function prRenderTimeline() {
 
   const _podePresc = temPermissao('prontuario.prescrever');
   const _podeExam = temPermissao('prontuario.solicitar_exames');
-  // Apenas botões "secundários" (prescrição, exames). Nova evolução fica nos cards.
-  const actionsBar = (_podePresc || _podeExam) ? `
+  // Botões "secundários". Nova evolução por setor fica nos cards.
+  const actionsBar = `
     <div class="pr-actions-bar">
+      <button class="pac-btn-secondary" onclick="prAbrirPreConsulta()">
+        <i class="ti ti-clipboard-list"></i> Pré-consulta
+      </button>
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
         <i class="ti ti-pill"></i> Nova prescrição
       </button>` : ''}
@@ -12652,7 +12655,7 @@ function prRenderTimeline() {
         <i class="ti ti-flask"></i> Solicitar exames
       </button>` : ''}
     </div>
-  ` : '';
+  `;
 
   // Cards por profissional (Aula Cap 5)
   const cardsHtml = prRenderCardsPorProfissional();
@@ -13010,6 +13013,18 @@ function prAbrirRodaVida() {
     const titulo = document.getElementById('pr-evol-title');
     if (titulo) titulo.textContent = 'Roda da Vida';
     prAplicarTemplate('roda-da-vida', 'Roda da Vida');
+  }, 80);
+}
+
+function prAbrirPreConsulta() {
+  if (!prState.pacienteAtual) return;
+  prAbrirNovaEvol();
+  setTimeout(() => {
+    const sel = document.getElementById('pr-evol-tipo');
+    if (sel) sel.value = 'GERAL';
+    const titulo = document.getElementById('pr-evol-title');
+    if (titulo) titulo.textContent = 'Pré-consulta';
+    prAplicarTemplate('pre-consulta', 'Pré-consulta');
   }, 80);
 }
 
