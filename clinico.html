@@ -10089,7 +10089,8 @@ async function cpAbrirConversaWa(chave, nome, numero) {
   document.getElementById('cp-tab-wa').classList.add('ativo');
   document.getElementById('cp-tab-int').classList.remove('ativo');
   cpState.waJid = chave;
-  const numReal = (numero && String(numero).replace(/\D/g, '')) || (String(chave).includes('@') ? '' : String(chave).replace(/\D/g, ''));
+  let numReal = (numero && String(numero).replace(/\D/g, '')) || (String(chave).includes('@') ? '' : String(chave).replace(/\D/g, ''));
+  if (!(numReal.length >= 10 && numReal.length <= 13)) numReal = ''; // descarta @lid (14+ digitos)
   cpState.waContato = { nome: nome || null, telefone: numReal || null };
   cpState.waMsgs = [];
   chatPopMostrarConversa();
