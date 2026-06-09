@@ -3315,6 +3315,30 @@
       .chat-pop { width: calc(100vw - 20px); right: 10px; bottom: 74px; height: 72vh; }
     }
 
+    /* ====== DISPOSITIVOS WHATSAPP (Evolution) ====== */
+    .wd-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #21262d; border-radius: 10px; margin-bottom: 10px; background: #0d1117; }
+    .wd-ico { width: 42px; height: 42px; border-radius: 50%; background: rgba(37,211,102,0.14); color: #25D366; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .wd-info { flex: 1; min-width: 0; }
+    .wd-nome { font-size: 14px; color: #f0f6fc; font-weight: 600; }
+    .wd-sub { font-size: 12px; color: #8b949e; margin-top: 3px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .wd-status { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; }
+    .wd-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .wd-status.on { color: #3fb950; } .wd-status.on .wd-dot { background: #3fb950; }
+    .wd-status.off { color: #f85149; } .wd-status.off .wd-dot { background: #f85149; }
+    .wd-status.conn { color: #d29922; } .wd-status.conn .wd-dot { background: #d29922; animation: wdPulse 1s infinite; }
+    @keyframes wdPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .wd-acoes { display: flex; gap: 6px; flex-shrink: 0; }
+    .wd-btn { background: transparent; border: 1px solid #30363d; color: #8b949e; padding: 6px 10px; border-radius: 7px; font-size: 12px; font-family: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all .12s; }
+    .wd-btn:hover { color: #f0f6fc; border-color: #484f58; }
+    .wd-btn.primario { background: #25D366; border-color: #25D366; color: #06210f; font-weight: 700; }
+    .wd-btn.primario:hover { background: #22c35e; color: #06210f; }
+    .wd-btn.perigo:hover { border-color: #f85149; color: #f85149; }
+    .wd-novo-form { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px dashed #30363d; border-radius: 10px; margin-bottom: 12px; background: #0d1117; }
+    .wd-input { width: 100%; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 9px 11px; color: #f0f6fc; font-size: 13px; font-family: inherit; }
+    .wd-qr-wrap { text-align: center; padding: 6px; }
+    .wd-qr-img { width: 256px; height: 256px; max-width: 100%; background: #fff; border-radius: 10px; padding: 8px; }
+    .wd-qr-status { margin-top: 12px; font-size: 13px; color: #8b949e; }
+
     /* ====== MENÇÕES (@) ====== */
     .badge-marcacoes {
       position: absolute; top: -3px; right: -3px;
@@ -9937,7 +9961,9 @@ function chatPopRenderLista() {
   if (cpState.modo === 'whatsapp') {
     if (banner) {
       banner.style.display = 'flex';
-      banner.innerHTML = '<i class="ti ti-lock"></i> API do WhatsApp desativada -- as conversas reais entram quando ligarmos a integra&ccedil;&atilde;o.';
+      const podeGerenciar = temPermissao('whatsapp.gerenciar');
+      banner.innerHTML = '<i class="ti ti-brand-whatsapp" style="color:#25D366;"></i> <span style="flex:1;">Conecte um número pra ativar o WhatsApp.</span>' +
+        (podeGerenciar ? '<button class="wd-btn" style="padding:4px 9px;" onclick="wdAbrir()"><i class="ti ti-settings"></i> Dispositivos</button>' : '');
     }
     const lista = (cpState.waPacientes || []).filter(p =>
       !f || (p.nome_completo || '').toLowerCase().includes(f) || String(p.telefone1 || '').includes(f));
@@ -10119,6 +10145,167 @@ async function chatPopPoll() {
       ciAtualizarBadge();
     }
   }
+}
+
+// ============== DISPOSITIVOS WHATSAPP (Evolution API) ==============
+let wdState = { devices: [], configurado: true, qrDeviceId: null, qrPoll: null, qrRefresh: null };
+
+// Formata numero vindo do WhatsApp (vem com DDI 55): 5534998228523 -> +55 (34) 99822-8523
+function wdFmtTel(n) {
+  const dig = String(n || '').replace(/\D/g, '');
+  if (dig.length >= 12 && dig.startsWith('55')) return '+55 ' + fmtTel(dig.slice(2));
+  return fmtTel(dig);
+}
+
+function wdAbrir() {
+  document.getElementById('wpp-dev-modal').classList.add('aberto');
+  wdCarregar();
+}
+function wdFechar() {
+  document.getElementById('wpp-dev-modal').classList.remove('aberto');
+}
+async function wdCarregar() {
+  const body = document.getElementById('wd-body');
+  body.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando dispositivos...</div>';
+  const r = await pacApi('/api/clinico/whatsapp/devices');
+  if (!r.ok) { body.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (r.data.erro || '--') + '</div>'; return; }
+  wdState.devices = r.data.devices || [];
+  wdState.configurado = r.data.configurado !== false;
+  wdRender();
+}
+function wdRender() {
+  const body = document.getElementById('wd-body');
+  let aviso = '';
+  if (!wdState.configurado) {
+    aviso = '<div class="cp-banner" style="border-radius:8px; margin-bottom:12px;"><i class="ti ti-alert-triangle"></i> Evolution API ainda não configurado no servidor (faltam EVOLUTION_API_URL / EVOLUTION_API_KEY). Dá pra criar os dispositivos, mas eles só conectam depois de configurar.</div>';
+  }
+  const rows = wdState.devices.map(d => {
+    const st = d.status === 'CONECTADO' ? { c: 'on', t: 'Conectado' }
+      : d.status === 'CONECTANDO' ? { c: 'conn', t: 'Conectando...' }
+      : { c: 'off', t: 'Desconectado' };
+    const conectado = d.status === 'CONECTADO';
+    const nomeEsc = (d.nome || '').replace(/</g, '&lt;');
+    const nomeAttr = (d.nome || '').replace(/'/g, '');
+    return `<div class="wd-row">
+      <div class="wd-ico"><i class="ti ti-device-mobile"></i></div>
+      <div class="wd-info">
+        <div class="wd-nome">${nomeEsc}</div>
+        <div class="wd-sub">
+          <span class="wd-status ${st.c}"><span class="wd-dot"></span>${st.t}</span>
+          ${d.telefone ? '<span>· ' + wdFmtTel(d.telefone) + '</span>' : ''}
+          ${d.setor ? '<span>· ' + d.setor.replace(/</g, '&lt;') + '</span>' : ''}
+        </div>
+      </div>
+      <div class="wd-acoes">
+        ${conectado
+          ? `<button class="wd-btn" onclick="wdDesconectar('${d.id}')"><i class="ti ti-plug-off"></i> Desconectar</button>`
+          : `<button class="wd-btn primario" onclick="wdConectar('${d.id}')"><i class="ti ti-qrcode"></i> Conectar</button>`}
+        <button class="wd-btn perigo" title="Excluir" onclick="wdExcluir('${d.id}','${nomeAttr}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+  const vazio = wdState.devices.length ? '' : '<div class="pac-empty"><i class="ti ti-device-mobile-off"></i>Nenhum dispositivo ainda. Crie o primeiro pra conectar um WhatsApp.</div>';
+  body.innerHTML = aviso + '<div id="wd-novo-area"></div>' + vazio + rows +
+    '<button class="wd-btn primario" style="margin-top:6px;" onclick="wdNovoForm()"><i class="ti ti-plus"></i> Novo dispositivo</button>';
+}
+function wdNovoForm() {
+  const area = document.getElementById('wd-novo-area');
+  if (!area) return;
+  area.innerHTML = `<div class="wd-novo-form">
+    <div style="font-size:13px; color:#f0f6fc; font-weight:600;">Novo dispositivo WhatsApp</div>
+    <input id="wd-novo-nome" class="wd-input" placeholder="Nome (ex: Clínica, Recepção, Dr. Pedro)">
+    <input id="wd-novo-setor" class="wd-input" placeholder="Setor (opcional)">
+    <div style="display:flex; gap:8px;">
+      <button class="wd-btn primario" onclick="wdCriar()"><i class="ti ti-qrcode"></i> Criar e gerar QR</button>
+      <button class="wd-btn" onclick="document.getElementById('wd-novo-area').innerHTML=''">Cancelar</button>
+    </div>
+  </div>`;
+  setTimeout(() => { const el = document.getElementById('wd-novo-nome'); if (el) el.focus(); }, 50);
+}
+async function wdCriar() {
+  const nomeEl = document.getElementById('wd-novo-nome');
+  const nome = nomeEl.value.trim();
+  const setor = document.getElementById('wd-novo-setor').value.trim();
+  if (!nome) { nomeEl.focus(); return; }
+  const r = await pacApi('/api/clinico/whatsapp/devices', { method: 'POST', body: JSON.stringify({ nome, setor: setor || null }) });
+  if (!r.ok) { alert('Erro: ' + (r.data.erro || '--')); return; }
+  await wdCarregar();
+  if (r.data.qr) wdQrAbrir(r.data.device.id, r.data.qr);
+}
+async function wdConectar(id) {
+  const r = await pacApi('/api/clinico/whatsapp/devices/' + id + '/qr');
+  if (!r.ok) { alert('Erro: ' + (r.data.erro || '--')); return; }
+  if (r.data.ja_conectado) { await wdCarregar(); return; }
+  wdQrAbrir(id, r.data.qr);
+}
+function wdQrAbrir(deviceId, qr) {
+  wdState.qrDeviceId = deviceId;
+  document.getElementById('wpp-qr-modal').classList.add('aberto');
+  wdQrRender(qr);
+  wdQrIniciarPoll();
+}
+function wdQrRender(qr) {
+  const body = document.getElementById('wd-qr-body');
+  if (!qr || (!qr.base64 && !qr.code && !qr.pairingCode)) {
+    body.innerHTML = '<div class="pac-empty">QR indisponível. Clica em "Gerar QR novo".</div>';
+    return;
+  }
+  const src = qr.base64 ? (String(qr.base64).startsWith('data:') ? qr.base64 : 'data:image/png;base64,' + qr.base64) : null;
+  body.innerHTML = `
+    <div class="wd-qr-wrap">
+      ${src ? `<img class="wd-qr-img" src="${src}" alt="QR Code">` : ''}
+      ${qr.pairingCode ? `<div style="margin-top:10px; color:#c9d1d9;">Ou digite o código: <strong style="letter-spacing:2px;">${qr.pairingCode}</strong></div>` : ''}
+      <div class="wd-qr-status" id="wd-qr-status"><i class="ti ti-loader"></i> Aguardando leitura...</div>
+    </div>
+    <div style="font-size:12px; color:#8b949e; line-height:1.55; margin-top:12px;">
+      No celular: abra o <strong>WhatsApp → Aparelhos conectados → Conectar um aparelho</strong> e aponte a câmera pra esse QR.
+    </div>
+    <div style="margin-top:12px; text-align:center;">
+      <button class="wd-btn" onclick="wdQrRefresh()"><i class="ti ti-refresh"></i> Gerar QR novo</button>
+    </div>`;
+}
+function wdQrFechar() {
+  document.getElementById('wpp-qr-modal').classList.remove('aberto');
+  wdQrPararPoll();
+  wdState.qrDeviceId = null;
+  wdCarregar();
+}
+function wdQrIniciarPoll() {
+  wdQrPararPoll();
+  wdState.qrPoll = setInterval(wdQrPoll, 3000);
+  wdState.qrRefresh = setInterval(wdQrRefresh, 25000); // QR expira rápido; renova sozinho
+}
+function wdQrPararPoll() {
+  if (wdState.qrPoll) { clearInterval(wdState.qrPoll); wdState.qrPoll = null; }
+  if (wdState.qrRefresh) { clearInterval(wdState.qrRefresh); wdState.qrRefresh = null; }
+}
+async function wdQrPoll() {
+  if (!wdState.qrDeviceId) return;
+  const r = await pacApi('/api/clinico/whatsapp/devices/' + wdState.qrDeviceId + '/status');
+  if (r.ok && r.data.status === 'CONECTADO') {
+    wdQrPararPoll();
+    const st = document.getElementById('wd-qr-status');
+    if (st) st.innerHTML = '<span style="color:#3fb950; font-weight:600;"><i class="ti ti-circle-check"></i> Conectado!</span>';
+    setTimeout(() => { wdQrFechar(); }, 1300);
+  }
+}
+async function wdQrRefresh() {
+  if (!wdState.qrDeviceId) return;
+  const r = await pacApi('/api/clinico/whatsapp/devices/' + wdState.qrDeviceId + '/qr');
+  if (r.ok && r.data.ja_conectado) { wdQrPoll(); return; }
+  if (r.ok && r.data.qr) wdQrRender(r.data.qr);
+}
+async function wdDesconectar(id) {
+  if (!confirm('Desconectar esse WhatsApp? As mensagens param de chegar até reconectar.')) return;
+  const r = await pacApi('/api/clinico/whatsapp/devices/' + id + '/logout', { method: 'POST' });
+  if (!r.ok) { alert('Erro: ' + (r.data.erro || '--')); return; }
+  wdCarregar();
+}
+async function wdExcluir(id, nome) {
+  if (!confirm('Excluir o dispositivo "' + nome + '"? Isso remove a conexão de vez.')) return;
+  const r = await pacApi('/api/clinico/whatsapp/devices/' + id, { method: 'DELETE' });
+  if (!r.ok) { alert('Erro: ' + (r.data.erro || '--')); return; }
+  wdCarregar();
 }
 
 function agAcaoOnboarding() {
@@ -15371,6 +15558,32 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="ci-input-bar" id="cp-input-bar">
       <textarea id="cp-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" onkeydown="chatPopInputKey(event)"></textarea>
       <button class="ci-send" id="cp-send" onclick="chatPopEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============== WHATSAPP: GERENCIADOR DE DISPOSITIVOS ============== -->
+<div class="ag-modal-overlay" id="wpp-dev-modal" style="z-index:9600;" onclick="if(event.target.id==='wpp-dev-modal') wdFechar()">
+  <div class="ag-modal" style="max-width:640px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-brand-whatsapp" style="color:#25D366;"></i> <span>WhatsApp · Dispositivos</span></div>
+      <button class="pac-modal-close" onclick="wdFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body" id="wd-body" style="max-height:65vh; overflow-y:auto;">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== WHATSAPP: QR CODE PRA CONECTAR ============== -->
+<div class="ag-modal-overlay" id="wpp-qr-modal" style="z-index:9700;" onclick="if(event.target.id==='wpp-qr-modal') wdQrFechar()">
+  <div class="ag-modal" style="max-width:420px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-qrcode" style="color:#25D366;"></i> <span>Conectar WhatsApp</span></div>
+      <button class="pac-modal-close" onclick="wdQrFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body" id="wd-qr-body">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Gerando QR...</div>
     </div>
   </div>
 </div>
