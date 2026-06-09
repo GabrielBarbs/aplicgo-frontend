@@ -10089,6 +10089,12 @@ async function cpCarregarMsgsWa(scroll) {
   if (!cpState.waNumero) return;
   const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waNumero) + '/messages');
   cpState.waMsgs = (r.ok && r.data.mensagens) ? r.data.mensagens : [];
+  // Abriu pelo numero (sem nome)? usa o nome que veio das mensagens (pushName).
+  if (r.ok && r.data.contato_nome && !(cpState.waContato && cpState.waContato.nome)) {
+    if (cpState.waContato) cpState.waContato.nome = r.data.contato_nome;
+    const nmEl = document.querySelector('#cp-conv-head .nm');
+    if (nmEl) nmEl.textContent = r.data.contato_nome;
+  }
   cpRenderMsgsWa(scroll);
 }
 function cpRenderMsgsWa(scroll) {
