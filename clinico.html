@@ -9924,7 +9924,7 @@ function ligarParaPaciente(telefone) {
 // ============== POPUP DE CHAT UNIFICADO (WhatsApp + Interno) ==============
 let cpState = {
   aberto: false, modo: 'whatsapp', vista: 'lista', filtro: '',
-  waChats: [], waContato: null, waJid: null, waMsgs: [], waPoll: null, waSemDevice: false, waDeviceId: null,
+  waChats: [], waContato: null, waJid: null, waMsgs: [], waPoll: null, waListaPoll: null, waSemDevice: false, waDeviceId: null,
   intUsuarios: [], intConversas: {}, intEquipe: null, intPeer: null, intLastTs: null, intMsgs: [], poll: null,
 };
 
@@ -9939,6 +9939,7 @@ function chatPopFechar() {
   cpState.aberto = false;
   chatPopPararPoll();
   cpPararPollWa();
+  cpPararPollLista();
   document.getElementById('chat-pop').style.display = 'none';
 }
 function chatPopModo(modo) {
@@ -9958,12 +9959,13 @@ function chatPopMostrarLista() {
   cpState.vista = 'lista';
   document.getElementById('cp-vista-lista').style.display = 'flex';
   document.getElementById('cp-vista-conversa').style.display = 'none';
+  if (cpState.modo === 'whatsapp') cpIniciarPollLista(); else cpPararPollLista();
 }
 function chatPopBusca(v) { cpState.filtro = v; chatPopRenderLista(); }
 
-async function chatPopCarregarLista() {
+async function chatPopCarregarLista(silent) {
   const wrap = document.getElementById('cp-lista');
-  wrap.innerHTML = '<div class="ci-loading">Carregando...</div>';
+  if (!silent) wrap.innerHTML = '<div class="ci-loading">Carregando...</div>';
   if (cpState.modo === 'whatsapp') {
     const r = await pacApi('/api/clinico/whatsapp/chats');
     cpState.waSemDevice = !r.ok || r.data.sem_device || r.data.configurado === false;
@@ -10062,13 +10064,14 @@ function chatPopRenderLista() {
 
 function chatPopMostrarConversa() {
   cpState.vista = 'conversa';
+  cpPararPollLista();
   document.getElementById('cp-vista-lista').style.display = 'none';
   document.getElementById('cp-vista-conversa').style.display = 'flex';
 }
 function chatPopVoltar() {
   chatPopPararPoll();
   cpPararPollWa();
-  cpState.intPeer = null; cpState.waContato = null; cpState.waJid = null;
+  cpState.intPeer = null; cpState.waContato = null; cpState.waJid = null; cpState.waMsgs = [];
   chatPopMostrarLista();
   chatPopRenderLista();
 }
@@ -10110,19 +10113,32 @@ async function cpAbrirConversaWa(chave, nome, numero) {
   document.getElementById('cp-send').disabled = false;
   document.getElementById('cp-msgs').innerHTML = '<div class="ci-loading">Carregando conversa...</div>';
   await cpCarregarMsgsWa(true);
+  cpMarcarLido(chave);
   cpIniciarPollWa();
 }
 async function cpCarregarMsgsWa(scroll) {
   if (!cpState.waJid) return;
-  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/messages');
+  const jid = cpState.waJid;
+  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages');
+  if (cpState.waJid !== jid) return; // trocou de conversa durante o fetch
   cpState.waMsgs = (r.ok && r.data.mensagens) ? r.data.mensagens : [];
-  // Abriu sem nome? usa o nome que veio das mensagens (pushName).
-  if (r.ok && r.data.contato_nome && !(cpState.waContato && cpState.waContato.nome)) {
-    if (cpState.waContato) cpState.waContato.nome = r.data.contato_nome;
-    const nmEl = document.querySelector('#cp-conv-head .nm');
-    if (nmEl) nmEl.textContent = r.data.contato_nome;
+  // Nome vindo das mensagens (pushName): preenche o header E o item da lista.
+  if (r.ok && r.data.contato_nome) {
+    if (cpState.waContato && !cpState.waContato.nome) {
+      cpState.waContato.nome = r.data.contato_nome;
+      const nmEl = document.querySelector('#cp-conv-head .nm');
+      if (nmEl) nmEl.textContent = r.data.contato_nome;
+    }
+    const ch = (cpState.waChats || []).find(c => c.id === jid);
+    if (ch && !ch.nome) ch.nome = r.data.contato_nome;
   }
   cpRenderMsgsWa(scroll);
+}
+// marca a conversa como lida (zera badge local na hora + manda o WhatsApp marcar lido)
+async function cpMarcarLido(chave) {
+  const ch = (cpState.waChats || []).find(c => c.id === chave);
+  if (ch) ch.nao_lidas = 0;
+  try { await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(chave) + '/read', { method: 'POST', body: JSON.stringify({}) }); } catch (e) {}
 }
 function cpRenderMsgsWa(scroll) {
   const wrap = document.getElementById('cp-msgs');
@@ -10141,20 +10157,38 @@ async function cpEnviarWa() {
   const texto = inp.value.trim();
   if (!texto || !cpState.waJid) return;
   inp.value = '';
-  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto }) });
+  const numeroReal = (cpState.waContato && cpState.waContato.telefone) || '';
+  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto, numero: numeroReal }) });
   if (!r.ok) { alert('Erro ao enviar: ' + (r.data.erro || '--')); inp.value = texto; return; }
   cpState.waMsgs.push(r.data.mensagem);
   cpRenderMsgsWa(true);
+  // reflete no item da lista
+  const ch = (cpState.waChats || []).find(c => c.id === cpState.waJid);
+  if (ch) { ch.ultima = texto; ch.ultima_em = r.data.mensagem.data; ch.ultima_de_mim = true; }
 }
 function cpIniciarPollWa() { cpPararPollWa(); cpState.waPoll = setInterval(cpPollWa, 4000); }
 function cpPararPollWa() { if (cpState.waPoll) { clearInterval(cpState.waPoll); cpState.waPoll = null; } }
 async function cpPollWa() {
   if (cpState.modo !== 'whatsapp' || !cpState.waJid) return;
-  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/messages');
-  if (r.ok && r.data.mensagens && r.data.mensagens.length !== (cpState.waMsgs || []).length) {
-    cpState.waMsgs = r.data.mensagens;
-    cpRenderMsgsWa(true);
-  }
+  const jid = cpState.waJid;
+  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages');
+  if (!(r.ok && r.data.mensagens) || cpState.waJid !== jid) return; // ignora resposta tardia de outra conversa
+  const serv = r.data.mensagens;
+  // mantem mensagens otimistas locais (sem id) que ainda nao apareceram no servidor
+  const pendentes = (cpState.waMsgs || []).filter(m => !m.id && m.de_mim && !serv.some(s => s.de_mim && s.texto === m.texto));
+  const merged = serv.concat(pendentes).sort((a, b) => new Date(a.data) - new Date(b.data));
+  const sig = arr => (arr || []).length + '|' + ((arr && arr.length) ? (arr[arr.length - 1].id || arr[arr.length - 1].data) : '');
+  if (sig(merged) !== sig(cpState.waMsgs)) { cpState.waMsgs = merged; cpRenderMsgsWa(true); }
+  // mantem o item da lista atualizado e a conversa aberta como lida
+  const last = merged[merged.length - 1];
+  const ch = (cpState.waChats || []).find(c => c.id === jid);
+  if (ch && last) { ch.ultima = last.texto; ch.ultima_em = last.data; ch.ultima_de_mim = last.de_mim; ch.nao_lidas = 0; }
+}
+// poll da LISTA (atualiza conversas/preview/nao-lidas enquanto o painel esta na lista do WhatsApp)
+function cpIniciarPollLista() { cpPararPollLista(); cpState.waListaPoll = setInterval(cpPollLista, 6000); }
+function cpPararPollLista() { if (cpState.waListaPoll) { clearInterval(cpState.waListaPoll); cpState.waListaPoll = null; } }
+function cpPollLista() {
+  if (cpState.aberto && cpState.modo === 'whatsapp' && cpState.vista === 'lista') chatPopCarregarLista(true);
 }
 // horario relativo pra lista (hoje=hora, ontem, senao data)
 function cpHora(iso) {
