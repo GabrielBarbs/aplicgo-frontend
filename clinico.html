@@ -3279,6 +3279,42 @@
       .chat-launcher-menu { bottom: 74px; right: 14px; width: calc(100vw - 28px); max-width: 320px; }
     }
 
+    /* ====== POPUP DE CHAT UNIFICADO (WhatsApp + Interno) ====== */
+    .chat-pop {
+      position: fixed; bottom: 84px; right: 20px;
+      width: 360px; height: 540px; max-height: calc(100vh - 110px);
+      background: #0d1117; border: 1px solid #30363d; border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      z-index: 9402; display: flex; flex-direction: column; overflow: hidden;
+      animation: chatLauncherIn 0.16s ease-out;
+    }
+    .chat-pop-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #21262d; background: #161b22; flex-shrink: 0; }
+    .chat-pop-tabs { display: flex; gap: 6px; flex: 1; }
+    .cp-tab {
+      flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 9px;
+      color: #8b949e; font-size: 12px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: all 0.12s;
+    }
+    .cp-tab:hover { color: #f0f6fc; }
+    .cp-tab.ativo { background: rgba(29,158,117,0.14); border-color: rgba(29,158,117,0.4); color: #1D9E75; }
+    .cp-tab.wa.ativo { background: rgba(37,211,102,0.14); border-color: rgba(37,211,102,0.4); color: #25D366; }
+    .cp-tab-badge { background: #f85149; color: #fff; font-size: 9px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+    .chat-pop-x { width: 32px; height: 32px; flex-shrink: 0; background: transparent; border: none; color: #8b949e; cursor: pointer; border-radius: 8px; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+    .chat-pop-x:hover { background: #21262d; color: #f0f6fc; }
+    .cp-lista-topo { padding: 8px 10px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .cp-lista-topo i { color: #7d8590; }
+    .cp-lista-topo input { flex: 1; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 7px 10px; color: #f0f6fc; font-size: 12px; font-family: inherit; }
+    .cp-banner { padding: 8px 12px; font-size: 11px; color: #f0b4b0; background: rgba(248,81,73,0.08); border-bottom: 1px solid rgba(248,81,73,0.2); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .cp-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+    .cp-conv-back { background: transparent; border: none; color: #8b949e; cursor: pointer; font-size: 20px; display: flex; align-items: center; padding: 2px; border-radius: 6px; flex-shrink: 0; }
+    .cp-conv-back:hover { background: #21262d; color: #f0f6fc; }
+    .cp-acao { background: transparent; border: 1px solid #30363d; color: #8b949e; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .cp-acao:hover { border-color: #1D9E75; color: #1D9E75; }
+    @media (max-width: 600px) {
+      .chat-pop { width: calc(100vw - 20px); right: 10px; bottom: 74px; height: 72vh; }
+    }
+
     /* ====== MENÇÕES (@) ====== */
     .badge-marcacoes {
       position: absolute; top: -3px; right: -3px;
@@ -4831,10 +4867,6 @@
       <div class="sidebar-group-label"><i class="ti ti-settings"></i> Sistema</div>
       <button class="sidebar-item" data-view="auditoria" data-perm="admin.ver_auditoria">
         <i class="ti ti-shield-check"></i> Auditoria
-      </button>
-      <button class="sidebar-item" data-view="comunicacao">
-        <i class="ti ti-messages"></i> Comunicação Interna
-        <span class="ci-nav-badge" id="ci-nav-badge" style="display:none;">0</span>
       </button>
       <button class="sidebar-item" data-view="financeiro" data-perm="financeiro.ver">
         <i class="ti ti-coin"></i> Financeiro
@@ -9821,54 +9853,14 @@ function avisoWhatsappOff() {
   alert('⚠ WhatsApp: a API de envio automático está DESATIVADA no momento.\n\nO envio automático entra quando ligarmos a integração (Evolution API). Por enquanto, dá pra abrir o WhatsApp e enviar manualmente.');
 }
 
+// Abre o popup unificado direto na conversa de WhatsApp do contato (compat: callers antigos)
 function chatAbrir(contato) {
   if (!contato) return;
-  chatState.aberto = true;
-  chatState.contato = contato;
-  const nome = contato.nome || 'Sem nome';
-  const tel = contato.telefone || '';
-  document.getElementById('chat-floating-nome').textContent = nome;
-  document.getElementById('chat-floating-tel').textContent = tel ? fmtTel(tel) : 'Sem telefone';
-  document.getElementById('chat-floating-avatar').textContent = nome.charAt(0).toUpperCase();
-  // Mostra body com placeholder (vai virar lista de mensagens depois)
-  document.getElementById('chat-floating-body').innerHTML = `
-    <div class="chat-vazio">
-      <i class="ti ti-message-circle"></i>
-      <div class="msg">Conversa com <strong>${nome}</strong></div>
-      <div class="sub" style="color:#f0b4b0;"><i class="ti ti-lock"></i> API do WhatsApp <strong>desativada</strong> no momento. O chat integrado entra quando ligarmos a integração -- por enquanto, use "Ligar" ou abra o WhatsApp manualmente.</div>
-    </div>
-  `;
-  document.getElementById('chat-floating').style.display = 'flex';
+  cpMostrarConversaWa(contato.nome || 'Sem nome', contato.telefone || '');
 }
-
-function chatFechar() {
-  chatState.aberto = false;
-  document.getElementById('chat-floating').style.display = 'none';
-}
-
-function chatLigar() {
-  const tel = chatState.contato?.telefone;
-  if (!tel) return;
-  const limpo = String(tel).replace(/\D/g, '');
-  if (!limpo) return;
-  const numTel = limpo.length === 10 || limpo.length === 11 ? '+55' + limpo : '+' + limpo;
-  window.location.href = 'tel:' + numTel;
-}
-
-function chatAbrirWaWeb() {
-  const tel = chatState.contato?.telefone;
-  if (!tel) return;
-  avisoWhatsappOff();
-  const limpo = String(tel).replace(/\D/g, '');
-  if (!limpo) return;
-  const num = limpo.length === 10 || limpo.length === 11 ? '55' + limpo : limpo;
-  const msg = encodeURIComponent(`Olá ${(chatState.contato.nome || '').split(' ')[0]}, falamos da clínica Aplic & Go.`);
-  window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
-}
-
 // Helpers para serem chamados de qualquer lista
 function abrirChatPorTelefone(nome, telefone) {
-  chatAbrir({ nome, telefone });
+  cpMostrarConversaWa(nome, telefone);
 }
 function ligarParaPaciente(telefone) {
   const limpo = String(telefone || '').replace(/\D/g, '');
@@ -9877,41 +9869,256 @@ function ligarParaPaciente(telefone) {
   window.location.href = 'tel:' + num;
 }
 
-// ============== BOLINHA DE CHAT (launcher: chat interno + WhatsApp) ==============
-function chatLauncherToggle(e) {
-  if (e) e.stopPropagation();
-  const m = document.getElementById('chat-launcher-menu');
-  if (!m) return;
-  const abrir = (m.style.display === 'none' || !m.style.display);
-  m.style.display = abrir ? 'block' : 'none';
-  if (abrir) {
-    ciAtualizarBadge();
-    // adiciona o listener de "clicar fora" no proximo tick (so se ainda estiver aberto)
-    setTimeout(() => { if (m.style.display === 'block') document.addEventListener('click', chatLauncherFora); }, 0);
+// ============== POPUP DE CHAT UNIFICADO (WhatsApp + Interno) ==============
+let cpState = {
+  aberto: false, modo: 'whatsapp', vista: 'lista', filtro: '',
+  waPacientes: null, waContato: null,
+  intUsuarios: [], intConversas: {}, intEquipe: null, intPeer: null, intLastTs: null, intMsgs: [], poll: null,
+};
+
+function chatPopToggle() { if (cpState.aberto) chatPopFechar(); else chatPopAbrir(); }
+
+function chatPopAbrir(modo) {
+  cpState.aberto = true;
+  document.getElementById('chat-pop').style.display = 'flex';
+  chatPopModo(modo || cpState.modo || 'whatsapp');
+}
+function chatPopFechar() {
+  cpState.aberto = false;
+  chatPopPararPoll();
+  document.getElementById('chat-pop').style.display = 'none';
+}
+function chatPopModo(modo) {
+  cpState.modo = modo;
+  cpState.filtro = '';
+  chatPopPararPoll();
+  const tw = document.getElementById('cp-tab-wa'), ti = document.getElementById('cp-tab-int');
+  if (tw) tw.classList.toggle('ativo', modo === 'whatsapp');
+  if (ti) ti.classList.toggle('ativo', modo === 'interno');
+  const busca = document.getElementById('cp-busca');
+  if (busca) { busca.value = ''; busca.placeholder = modo === 'whatsapp' ? 'Buscar paciente...' : 'Buscar colega...'; }
+  chatPopMostrarLista();
+  chatPopCarregarLista();
+}
+function chatPopMostrarLista() {
+  cpState.vista = 'lista';
+  document.getElementById('cp-vista-lista').style.display = 'flex';
+  document.getElementById('cp-vista-conversa').style.display = 'none';
+}
+function chatPopBusca(v) { cpState.filtro = v; chatPopRenderLista(); }
+
+async function chatPopCarregarLista() {
+  const wrap = document.getElementById('cp-lista');
+  wrap.innerHTML = '<div class="ci-loading">Carregando...</div>';
+  if (cpState.modo === 'whatsapp') {
+    if (cpState.waPacientes === null) {
+      const r = await pacApi('/api/clinico/patients?limit=100');
+      cpState.waPacientes = (r.ok && r.data.pacientes) ? r.data.pacientes : [];
+    }
   } else {
-    document.removeEventListener('click', chatLauncherFora);
+    const [ru, rc] = await Promise.all([
+      pacApi('/api/clinico/chat/usuarios'),
+      pacApi('/api/clinico/chat/conversas'),
+    ]);
+    cpState.intUsuarios = (ru.ok && ru.data.usuarios) ? ru.data.usuarios : [];
+    cpState.intConversas = {};
+    if (rc.ok && rc.data.conversas) rc.data.conversas.forEach(c => { cpState.intConversas[c.id] = c; });
+    cpState.intEquipe = (rc.ok && rc.data.equipe) ? rc.data.equipe : { id: 'equipe', nome: 'Equipe', grupo: true, nao_lidas: 0 };
+    ciAtualizarBadge();
+  }
+  if (cpState.vista === 'lista') chatPopRenderLista();
+}
+
+function chatPopRenderLista() {
+  const wrap = document.getElementById('cp-lista');
+  const banner = document.getElementById('cp-banner');
+  if (!wrap) return;
+  const f = (cpState.filtro || '').trim().toLowerCase();
+  if (cpState.modo === 'whatsapp') {
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.innerHTML = '<i class="ti ti-lock"></i> API do WhatsApp desativada -- as conversas reais entram quando ligarmos a integra&ccedil;&atilde;o.';
+    }
+    const lista = (cpState.waPacientes || []).filter(p =>
+      !f || (p.nome_completo || '').toLowerCase().includes(f) || String(p.telefone1 || '').includes(f));
+    if (!lista.length) { wrap.innerHTML = '<div class="ci-loading">Nenhum paciente encontrado.</div>'; return; }
+    wrap.innerHTML = lista.map(p => {
+      const nome = p.nome_completo || '?';
+      const ini = nome.charAt(0).toUpperCase();
+      return `<div class="ci-conv" onclick="chatPopAbrirWa('${p.id}')">
+        <div class="ci-av" style="background:#25D36622; color:#25D366; border-color:#25D36655;">${ini}</div>
+        <div class="ci-conv-info">
+          <div class="ci-conv-nome">${nome.replace(/</g, '&lt;')}</div>
+          <div class="ci-conv-prev">${p.telefone1 ? fmtTel(p.telefone1) : 'Sem telefone'}</div>
+        </div>
+        <i class="ti ti-brand-whatsapp" style="color:#25D366;"></i>
+      </div>`;
+    }).join('');
+  } else {
+    if (banner) banner.style.display = 'none';
+    const eq = cpState.intEquipe || { nao_lidas: 0 };
+    const lista = cpState.intUsuarios.map(u => {
+      const c = cpState.intConversas[u.id];
+      return { ...u, ultima: c?.ultima || null, ultima_em: c?.ultima_em || null, nao_lidas: c?.nao_lidas || 0, de_mim: c?.de_mim };
+    }).filter(u => !f || (u.nome || '').toLowerCase().includes(f) || (u.email || '').toLowerCase().includes(f));
+    lista.sort((a, b) => {
+      if (a.ultima_em && b.ultima_em) return new Date(b.ultima_em) - new Date(a.ultima_em);
+      if (a.ultima_em) return -1; if (b.ultima_em) return 1;
+      return (a.nome || '').localeCompare(b.nome || '');
+    });
+    const eqPrev = eq.ultima ? eq.ultima : 'Canal de toda a equipe';
+    let html = `<div class="ci-conv" onclick="chatPopAbrirInt('equipe')">
+      <div class="ci-av" style="background:#1D9E7522; color:#1D9E75; border-color:#1D9E7555;"><i class="ti ti-users-group"></i></div>
+      <div class="ci-conv-info"><div class="ci-conv-nome">Equipe</div><div class="ci-conv-prev">${String(eqPrev).slice(0, 40).replace(/</g, '&lt;')}</div></div>
+      ${eq.nao_lidas > 0 ? `<span class="ci-conv-badge">${eq.nao_lidas}</span>` : ''}
+    </div>`;
+    html += lista.map(u => {
+      const cor = u.cor || '#7d8590';
+      const ini = (u.nome || '?').charAt(0).toUpperCase();
+      const prev = u.ultima ? ((u.de_mim ? 'Voc&ecirc;: ' : '') + u.ultima) : (u.cargo || u.email || '');
+      return `<div class="ci-conv" onclick="chatPopAbrirInt('${u.id}')">
+        <div class="ci-av" style="background:${cor}22; color:${cor}; border-color:${cor}55;">${ini}</div>
+        <div class="ci-conv-info"><div class="ci-conv-nome">${(u.nome || '').replace(/</g, '&lt;')}</div><div class="ci-conv-prev">${String(prev).slice(0, 40).replace(/</g, '&lt;')}</div></div>
+        ${u.nao_lidas > 0 ? `<span class="ci-conv-badge">${u.nao_lidas}</span>` : ''}
+      </div>`;
+    }).join('');
+    wrap.innerHTML = html;
   }
 }
-function chatLauncherFora(e) {
-  const m = document.getElementById('chat-launcher-menu');
-  const fab = document.getElementById('chat-fab');
-  if (!m) return;
-  if (m.contains(e.target) || (fab && fab.contains(e.target))) return;
-  chatLauncherFechar();
+
+function chatPopMostrarConversa() {
+  cpState.vista = 'conversa';
+  document.getElementById('cp-vista-lista').style.display = 'none';
+  document.getElementById('cp-vista-conversa').style.display = 'flex';
 }
-function chatLauncherFechar() {
-  const m = document.getElementById('chat-launcher-menu');
-  if (m) m.style.display = 'none';
-  document.removeEventListener('click', chatLauncherFora);
+function chatPopVoltar() {
+  chatPopPararPoll();
+  cpState.intPeer = null; cpState.waContato = null;
+  chatPopMostrarLista();
+  chatPopRenderLista();
 }
-function chatLauncherInterno() {
-  chatLauncherFechar();
-  if (typeof trocarView === 'function') trocarView('comunicacao');
+
+// ---- WhatsApp (API desativada: mostra contato + ligar/abrir wa) ----
+function chatPopAbrirWa(pid) {
+  const p = (cpState.waPacientes || []).find(x => x.id === pid);
+  if (!p) return;
+  cpMostrarConversaWa(p.nome_completo, p.telefone1);
 }
-function chatLauncherWhatsapp() {
-  chatLauncherFechar();
+function cpMostrarConversaWa(nome, telefone) {
+  if (!cpState.aberto) { cpState.aberto = true; document.getElementById('chat-pop').style.display = 'flex'; }
+  cpState.modo = 'whatsapp';
+  chatPopPararPoll();
+  document.getElementById('cp-tab-wa').classList.add('ativo');
+  document.getElementById('cp-tab-int').classList.remove('ativo');
+  cpState.waContato = { nome: nome || 'Paciente', telefone: telefone || '' };
+  chatPopMostrarConversa();
+  const nm = nome || 'Paciente';
+  const tel = telefone ? fmtTel(telefone) : 'Sem telefone';
+  document.getElementById('cp-conv-head').innerHTML = `
+    <button class="cp-conv-back" onclick="chatPopVoltar()"><i class="ti ti-chevron-left"></i></button>
+    <div class="ci-av" style="background:#25D36622; color:#25D366; border-color:#25D36655;">${nm.charAt(0).toUpperCase()}</div>
+    <div style="flex:1; min-width:0;"><div class="nm">${nm.replace(/</g, '&lt;')}</div><div class="sub">${tel}</div></div>
+    <button class="cp-acao" title="Ligar" onclick="cpLigar()"><i class="ti ti-phone"></i></button>
+    <button class="cp-acao" title="Abrir no WhatsApp Web" onclick="cpWaWeb()"><i class="ti ti-brand-whatsapp"></i></button>`;
+  document.getElementById('cp-msgs').innerHTML = `
+    <div class="ci-vazio" style="flex:1;">
+      <i class="ti ti-brand-whatsapp" style="color:#25D366;"></i>
+      <div>Conversa com <strong>${nm.replace(/</g, '&lt;')}</strong></div>
+      <div class="sub" style="color:#f0b4b0;"><i class="ti ti-lock"></i> API do WhatsApp desativada. Use "Ligar" ou "Abrir no WhatsApp Web" por enquanto.</div>
+    </div>`;
+  const inp = document.getElementById('cp-input');
+  inp.value = ''; inp.disabled = true; inp.placeholder = 'API do WhatsApp desativada';
+  document.getElementById('cp-send').disabled = true;
+}
+function cpLigar() {
+  const t = cpState.waContato && cpState.waContato.telefone;
+  if (!t) return;
+  const l = String(t).replace(/\D/g, '');
+  if (!l) return;
+  window.location.href = 'tel:' + ((l.length === 10 || l.length === 11) ? '+55' + l : '+' + l);
+}
+function cpWaWeb() {
+  const c = cpState.waContato;
+  if (!c || !c.telefone) return;
   avisoWhatsappOff();
-  if (typeof trocarView === 'function') trocarView('pacientes');
+  const l = String(c.telefone).replace(/\D/g, '');
+  if (!l) return;
+  const num = (l.length === 10 || l.length === 11) ? '55' + l : l;
+  const msg = encodeURIComponent(`Ol&aacute; ${(c.nome || '').split(' ')[0]}, falamos da cl&iacute;nica Aplic & Go.`);
+  window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+}
+
+// ---- Interno (chat da equipe, reaproveita os endpoints /chat/*) ----
+async function chatPopAbrirInt(peerId) {
+  cpState.intPeer = peerId; cpState.intLastTs = null; cpState.intMsgs = [];
+  chatPopMostrarConversa();
+  const ehEquipe = peerId === 'equipe';
+  let headInner;
+  if (ehEquipe) {
+    headInner = `<div class="ci-av" style="background:#1D9E7522; color:#1D9E75; border-color:#1D9E7555;"><i class="ti ti-users-group"></i></div>
+      <div style="flex:1; min-width:0;"><div class="nm">Equipe</div><div class="sub">Canal de toda a equipe</div></div>`;
+  } else {
+    const u = cpState.intUsuarios.find(x => x.id === peerId) || {};
+    const cor = u.cor || '#1D9E75';
+    headInner = `<div class="ci-av" style="background:${cor}22; color:${cor}; border-color:${cor}55;">${(u.nome || '?').charAt(0).toUpperCase()}</div>
+      <div style="flex:1; min-width:0;"><div class="nm">${(u.nome || '').replace(/</g, '&lt;')}</div><div class="sub">${(u.cargo || u.email || '').replace(/</g, '&lt;')}</div></div>`;
+  }
+  document.getElementById('cp-conv-head').innerHTML = `<button class="cp-conv-back" onclick="chatPopVoltar()"><i class="ti ti-chevron-left"></i></button>` + headInner;
+  const inp = document.getElementById('cp-input');
+  inp.disabled = false; inp.placeholder = 'Escreva uma mensagem... (Enter envia)'; inp.value = '';
+  document.getElementById('cp-send').disabled = false;
+  document.getElementById('cp-msgs').innerHTML = '<div class="ci-loading">Carregando...</div>';
+  const r = await pacApi('/api/clinico/chat/mensagens?peer=' + peerId);
+  cpState.intMsgs = (r.ok && r.data.mensagens) ? r.data.mensagens : [];
+  chatPopRenderMsgs(true);
+  await pacApi('/api/clinico/chat/ler', { method: 'POST', body: JSON.stringify({ peer: peerId }) });
+  if (ehEquipe) { if (cpState.intEquipe) cpState.intEquipe.nao_lidas = 0; }
+  else if (cpState.intConversas[peerId]) cpState.intConversas[peerId].nao_lidas = 0;
+  ciAtualizarBadge();
+  chatPopIniciarPoll();
+}
+function chatPopRenderMsgs(scroll) {
+  const wrap = document.getElementById('cp-msgs');
+  if (!wrap) return;
+  const msgs = cpState.intMsgs || [];
+  if (!msgs.length) { wrap.innerHTML = '<div class="ci-loading">Sem mensagens ainda. Diga oi!</div>'; return; }
+  cpState.intLastTs = msgs[msgs.length - 1].data;
+  const grupo = cpState.intPeer === 'equipe';
+  wrap.innerHTML = msgs.map(m => `
+    <div class="ci-msg ${m.de_mim ? 'mine' : ''}">
+      ${grupo && !m.de_mim ? `<div class="autor">${(m.de_nome || '').replace(/</g, '&lt;')}</div>` : ''}
+      <div class="bolha">${(m.texto || '').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
+      <div class="hora">${ciFmtHora(m.data)}${m.de_mim && !grupo && m.lida ? ' · lida' : ''}</div>
+    </div>`).join('');
+  if (scroll) wrap.scrollTop = wrap.scrollHeight;
+}
+async function chatPopEnviar() {
+  if (cpState.modo !== 'interno' || !cpState.intPeer) return;
+  const inp = document.getElementById('cp-input');
+  const texto = inp.value.trim();
+  if (!texto) return;
+  inp.value = '';
+  const r = await pacApi('/api/clinico/chat/mensagens', { method: 'POST', body: JSON.stringify({ para: cpState.intPeer, texto }) });
+  if (!r.ok) { alert('Erro ao enviar: ' + (r.data.erro || '--')); inp.value = texto; return; }
+  cpState.intMsgs.push(r.data.mensagem);
+  chatPopRenderMsgs(true);
+}
+function chatPopInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatPopEnviar(); } }
+function chatPopIniciarPoll() { chatPopPararPoll(); cpState.poll = setInterval(chatPopPoll, 4000); }
+function chatPopPararPoll() { if (cpState.poll) { clearInterval(cpState.poll); cpState.poll = null; } }
+async function chatPopPoll() {
+  if (cpState.modo !== 'interno' || !cpState.intPeer) return;
+  const depois = cpState.intLastTs ? '&depois=' + encodeURIComponent(cpState.intLastTs) : '';
+  const r = await pacApi('/api/clinico/chat/mensagens?peer=' + cpState.intPeer + depois);
+  if (r.ok && r.data.mensagens && r.data.mensagens.length) {
+    let novas = false;
+    r.data.mensagens.forEach(m => { cpState.intMsgs.push(m); if (!m.de_mim) novas = true; });
+    chatPopRenderMsgs(true);
+    if (novas) {
+      await pacApi('/api/clinico/chat/ler', { method: 'POST', body: JSON.stringify({ peer: cpState.intPeer }) });
+      ciAtualizarBadge();
+    }
+  }
 }
 
 function agAcaoOnboarding() {
@@ -15051,11 +15258,11 @@ async function ciAtualizarBadge() {
   const txt = n > 99 ? '99+' : String(n);
   const b = document.getElementById('ci-nav-badge');
   if (b) { b.textContent = txt; b.style.display = n > 0 ? '' : 'none'; }
-  // Espelha no FAB de chat e no item "Chat interno" do menu da bolinha
+  // Espelha no FAB de chat e na aba "Interno" do popup da bolinha
   const fb = document.getElementById('chat-fab-badge');
   if (fb) { fb.textContent = txt; fb.style.display = n > 0 ? 'flex' : 'none'; }
-  const ci = document.getElementById('chat-launcher-count-interno');
-  if (ci) { ci.textContent = txt; ci.style.display = n > 0 ? 'flex' : 'none'; }
+  const tb = document.getElementById('cp-tab-badge');
+  if (tb) { tb.textContent = txt; tb.style.display = n > 0 ? 'flex' : 'none'; }
 }
 
 const _origTrocarView = trocarView;
@@ -15135,26 +15342,35 @@ document.addEventListener('DOMContentLoaded', () => {
   <i class="ti ti-bug"></i>
 </button>
 
-<!-- ============== BOLINHA DE CHAT (launcher: interno + whatsapp) ============== -->
-<button class="chat-fab" id="chat-fab" onclick="chatLauncherToggle(event)" title="Mensagens">
+<!-- ============== BOLINHA DE CHAT + POPUP UNIFICADO ============== -->
+<button class="chat-fab" id="chat-fab" onclick="chatPopToggle()" title="Mensagens">
   <i class="ti ti-messages"></i>
   <span class="chat-fab-badge" id="chat-fab-badge">0</span>
 </button>
-<div class="chat-launcher-menu" id="chat-launcher-menu" style="display:none;">
-  <div class="clm-head"><i class="ti ti-messages"></i> Mensagens</div>
-  <div class="chat-launcher-item" onclick="chatLauncherInterno()">
-    <div class="clm-ico" style="background:#1D9E7522; color:#1D9E75;"><i class="ti ti-users-group"></i></div>
-    <div class="clm-txt">
-      <div class="t">Chat interno</div>
-      <div class="s">Equipe e colegas</div>
+<div class="chat-pop" id="chat-pop" style="display:none;">
+  <div class="chat-pop-head">
+    <div class="chat-pop-tabs">
+      <button class="cp-tab wa" id="cp-tab-wa" onclick="chatPopModo('whatsapp')"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
+      <button class="cp-tab" id="cp-tab-int" onclick="chatPopModo('interno')"><i class="ti ti-users-group"></i> Interno <span class="cp-tab-badge" id="cp-tab-badge" style="display:none;">0</span></button>
     </div>
-    <span class="clm-count" id="chat-launcher-count-interno">0</span>
+    <button class="chat-pop-x" onclick="chatPopFechar()" title="Fechar"><i class="ti ti-x"></i></button>
   </div>
-  <div class="chat-launcher-item" onclick="chatLauncherWhatsapp()">
-    <div class="clm-ico" style="background:#25D36622; color:#25D366;"><i class="ti ti-brand-whatsapp"></i></div>
-    <div class="clm-txt">
-      <div class="t">WhatsApp · Pacientes</div>
-      <div class="s"><span class="clm-pill"><i class="ti ti-lock" style="font-size:9px;"></i> API desativada</span></div>
+  <!-- VISTA: lista de conversas -->
+  <div class="chat-pop-body" id="cp-vista-lista" style="display:flex; flex-direction:column; min-height:0; flex:1;">
+    <div class="cp-lista-topo">
+      <i class="ti ti-search"></i>
+      <input id="cp-busca" placeholder="Buscar..." oninput="chatPopBusca(this.value)">
+    </div>
+    <div class="cp-banner" id="cp-banner" style="display:none;"></div>
+    <div class="cp-scroll" id="cp-lista"><div class="ci-loading">Carregando...</div></div>
+  </div>
+  <!-- VISTA: conversa aberta -->
+  <div class="chat-pop-body" id="cp-vista-conversa" style="display:none; flex-direction:column; min-height:0; flex:1;">
+    <div class="ci-conversa-head" id="cp-conv-head"></div>
+    <div class="ci-msgs cp-scroll" id="cp-msgs"></div>
+    <div class="ci-input-bar" id="cp-input-bar">
+      <textarea id="cp-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" onkeydown="chatPopInputKey(event)"></textarea>
+      <button class="ci-send" id="cp-send" onclick="chatPopEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
     </div>
   </div>
 </div>
@@ -15240,40 +15456,5 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <!-- ============== JANELA DE CHAT FLUTUANTE (canto inferior direito) ============== -->
-<div class="chat-floating" id="chat-floating" style="display:none;">
-  <div class="chat-floating-head">
-    <div class="avatar" id="chat-floating-avatar">?</div>
-    <div class="info">
-      <div class="nome" id="chat-floating-nome">--</div>
-      <div class="status">
-        <span class="dot"></span>
-        <span id="chat-floating-tel">--</span>
-      </div>
-    </div>
-    <button class="btn-acao" id="chat-floating-call" title="Ligar" onclick="chatLigar()">
-      <i class="ti ti-phone"></i>
-    </button>
-    <button class="btn-acao" id="chat-floating-wa" title="Abrir no WhatsApp Web" onclick="chatAbrirWaWeb()">
-      <i class="ti ti-external-link"></i>
-    </button>
-    <button class="btn-fechar" onclick="chatFechar()" title="Fechar">
-      <i class="ti ti-x"></i>
-    </button>
-  </div>
-  <div class="chat-floating-body" id="chat-floating-body">
-    <div class="chat-vazio">
-      <i class="ti ti-message-circle"></i>
-      <div class="msg">Em breve: chat simultâneo<br>integrado ao WhatsApp.</div>
-      <div class="sub">Por enquanto, esta é a estrutura visual. A sincronização das mensagens será configurada na próxima etapa.</div>
-    </div>
-  </div>
-  <div class="chat-floating-foot">
-    <input type="text" placeholder="Em breve: envie mensagem..." disabled>
-    <button class="btn-enviar" disabled title="Em breve">
-      <i class="ti ti-send"></i>
-    </button>
-  </div>
-</div>
-
 </body>
 </html>
