@@ -3200,6 +3200,85 @@
       .bug-fab { bottom: 14px; left: 14px; width: 42px; height: 42px; }
     }
 
+    /* ====== BOLINHA DE CHAT (launcher: interno + whatsapp) ====== */
+    .chat-fab {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: #1D9E75;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      z-index: 9400;
+      box-shadow: 0 6px 20px rgba(29,158,117,0.45);
+      transition: transform 0.15s, background 0.15s;
+    }
+    .chat-fab:hover { transform: scale(1.08); background: #22b384; }
+    .chat-fab-badge {
+      position: absolute; top: -4px; right: -4px;
+      min-width: 20px; height: 20px; padding: 0 5px;
+      border-radius: 10px;
+      background: #f85149; color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: none; align-items: center; justify-content: center;
+      border: 2px solid #010409;
+    }
+    .chat-launcher-menu {
+      position: fixed;
+      bottom: 84px; right: 20px;
+      width: 290px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+      z-index: 9401;
+      overflow: hidden;
+      animation: chatLauncherIn 0.14s ease-out;
+    }
+    @keyframes chatLauncherIn { from { opacity:0; transform: translateY(8px) scale(0.98); } to { opacity:1; transform:none; } }
+    .chat-launcher-menu .clm-head {
+      padding: 12px 14px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px; color: #7d8590;
+      border-bottom: 1px solid #21262d;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chat-launcher-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 14px; cursor: pointer;
+      border-bottom: 1px solid #21262d;
+      transition: background 0.12s;
+    }
+    .chat-launcher-item:last-child { border-bottom: none; }
+    .chat-launcher-item:hover { background: #1c2230; }
+    .chat-launcher-item .clm-ico {
+      width: 40px; height: 40px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .chat-launcher-item .clm-txt { flex: 1; min-width: 0; }
+    .chat-launcher-item .clm-txt .t { font-size: 14px; font-weight: 600; color: #f0f6fc; }
+    .chat-launcher-item .clm-txt .s { font-size: 11px; color: #8b949e; margin-top: 2px; display: flex; align-items: center; }
+    .chat-launcher-item .clm-count {
+      min-width: 20px; height: 20px; padding: 0 6px;
+      border-radius: 10px; background: #f85149; color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: none; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .clm-pill {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      background: rgba(248,81,73,0.15); color: #f0857f;
+      border: 1px solid rgba(248,81,73,0.3);
+      padding: 2px 6px; border-radius: 6px; letter-spacing: 0.3px;
+      display: inline-flex; align-items: center; gap: 3px;
+    }
+    @media (max-width: 600px) {
+      .chat-fab { bottom: 14px; right: 14px; width: 48px; height: 48px; }
+      .chat-launcher-menu { bottom: 74px; right: 14px; width: calc(100vw - 28px); max-width: 320px; }
+    }
+
     /* ====== MENÇÕES (@) ====== */
     .badge-marcacoes {
       position: absolute; top: -3px; right: -3px;
@@ -9798,6 +9877,43 @@ function ligarParaPaciente(telefone) {
   window.location.href = 'tel:' + num;
 }
 
+// ============== BOLINHA DE CHAT (launcher: chat interno + WhatsApp) ==============
+function chatLauncherToggle(e) {
+  if (e) e.stopPropagation();
+  const m = document.getElementById('chat-launcher-menu');
+  if (!m) return;
+  const abrir = (m.style.display === 'none' || !m.style.display);
+  m.style.display = abrir ? 'block' : 'none';
+  if (abrir) {
+    ciAtualizarBadge();
+    // adiciona o listener de "clicar fora" no proximo tick (so se ainda estiver aberto)
+    setTimeout(() => { if (m.style.display === 'block') document.addEventListener('click', chatLauncherFora); }, 0);
+  } else {
+    document.removeEventListener('click', chatLauncherFora);
+  }
+}
+function chatLauncherFora(e) {
+  const m = document.getElementById('chat-launcher-menu');
+  const fab = document.getElementById('chat-fab');
+  if (!m) return;
+  if (m.contains(e.target) || (fab && fab.contains(e.target))) return;
+  chatLauncherFechar();
+}
+function chatLauncherFechar() {
+  const m = document.getElementById('chat-launcher-menu');
+  if (m) m.style.display = 'none';
+  document.removeEventListener('click', chatLauncherFora);
+}
+function chatLauncherInterno() {
+  chatLauncherFechar();
+  if (typeof trocarView === 'function') trocarView('comunicacao');
+}
+function chatLauncherWhatsapp() {
+  chatLauncherFechar();
+  avisoWhatsappOff();
+  if (typeof trocarView === 'function') trocarView('pacientes');
+}
+
 function agAcaoOnboarding() {
   const p = _agAcaoPaciente();
   if (!p) return alert('Paciente não encontrado.');
@@ -14932,8 +15048,14 @@ async function ciAtualizarBadge() {
   const r = await pacApi('/api/clinico/chat/contador');
   if (!r.ok) return;
   const n = r.data.nao_lidas || 0;
+  const txt = n > 99 ? '99+' : String(n);
   const b = document.getElementById('ci-nav-badge');
-  if (b) { b.textContent = n > 99 ? '99+' : n; b.style.display = n > 0 ? '' : 'none'; }
+  if (b) { b.textContent = txt; b.style.display = n > 0 ? '' : 'none'; }
+  // Espelha no FAB de chat e no item "Chat interno" do menu da bolinha
+  const fb = document.getElementById('chat-fab-badge');
+  if (fb) { fb.textContent = txt; fb.style.display = n > 0 ? 'flex' : 'none'; }
+  const ci = document.getElementById('chat-launcher-count-interno');
+  if (ci) { ci.textContent = txt; ci.style.display = n > 0 ? 'flex' : 'none'; }
 }
 
 const _origTrocarView = trocarView;
@@ -14969,8 +15091,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   carregarMe();
-  // Badge de mensagens não lidas do chat interno (atualiza periodicamente)
-  setInterval(ciAtualizarBadge, 25000);
+  // Badge de mensagens não lidas do chat interno (kick inicial + atualização periódica)
+  setTimeout(ciAtualizarBadge, 4000);
+  setInterval(ciAtualizarBadge, 20000);
 });
 </script>
 
@@ -15011,6 +15134,30 @@ document.addEventListener('DOMContentLoaded', () => {
 <button class="bug-fab" id="bug-fab" onclick="bugAbrir()" title="Reportar bug ou erro">
   <i class="ti ti-bug"></i>
 </button>
+
+<!-- ============== BOLINHA DE CHAT (launcher: interno + whatsapp) ============== -->
+<button class="chat-fab" id="chat-fab" onclick="chatLauncherToggle(event)" title="Mensagens">
+  <i class="ti ti-messages"></i>
+  <span class="chat-fab-badge" id="chat-fab-badge">0</span>
+</button>
+<div class="chat-launcher-menu" id="chat-launcher-menu" style="display:none;">
+  <div class="clm-head"><i class="ti ti-messages"></i> Mensagens</div>
+  <div class="chat-launcher-item" onclick="chatLauncherInterno()">
+    <div class="clm-ico" style="background:#1D9E7522; color:#1D9E75;"><i class="ti ti-users-group"></i></div>
+    <div class="clm-txt">
+      <div class="t">Chat interno</div>
+      <div class="s">Equipe e colegas</div>
+    </div>
+    <span class="clm-count" id="chat-launcher-count-interno">0</span>
+  </div>
+  <div class="chat-launcher-item" onclick="chatLauncherWhatsapp()">
+    <div class="clm-ico" style="background:#25D36622; color:#25D366;"><i class="ti ti-brand-whatsapp"></i></div>
+    <div class="clm-txt">
+      <div class="t">WhatsApp · Pacientes</div>
+      <div class="s"><span class="clm-pill"><i class="ti ti-lock" style="font-size:9px;"></i> API desativada</span></div>
+    </div>
+  </div>
+</div>
 
 <div class="ag-modal-overlay" id="bug-modal" onclick="if(event.target.id==='bug-modal') bugFechar()">
   <div class="ag-modal" style="max-width: 480px;">
