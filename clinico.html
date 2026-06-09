@@ -11401,7 +11401,7 @@ async function prCarregarHeader() {
   prState.headerData = h;
   // Atualiza barrinha curta no topo (selector)
   const sel = document.getElementById('pr-pat-selector');
-  sel.innerHTML = `
+  if (sel) sel.innerHTML = `
     <div class="pr-pat-info" style="flex:1;">
       <div class="avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
       <div class="info">
@@ -12016,14 +12016,17 @@ async function bioSalvar() {
     return;
   }
   bioFechar();
-  // Recarrega tudo do servidor (timeline + header + serie de bio) e redesenha:
-  // garante que o grafico "Evolucao corporal" reflita a nova medicao na hora.
-  if (prState.pacienteAtual && prState.pacienteAtual.id === bioState.patientId) {
-    await prCarregarTimeline();
-  } else {
+  // 1) Atualiza o grafico DIRETO e isolado (a prova de erro no reload geral): recarrega a
+  //    serie do servidor e redesenha so o card do grafico. E o que garante a "Evolucao corporal".
+  try {
     await bioCarregarSerie(bioState.patientId);
     const card = document.getElementById('pr-grafico-card-render');
     if (card) card.innerHTML = bioRenderGrafico();
+  } catch (e) { console.warn('[bio] falha ao redesenhar o grafico', e); }
+  // 2) Recarrega o prontuario inteiro (peso atual, header, timeline) -- best-effort,
+  //    nunca pode derrubar o passo 1 (por isso o try/catch separado).
+  if (prState.pacienteAtual && prState.pacienteAtual.id === bioState.patientId) {
+    try { await prCarregarTimeline(); } catch (e) { console.warn('[bio] falha no reload geral do prontuario', e); }
   }
 }
 
