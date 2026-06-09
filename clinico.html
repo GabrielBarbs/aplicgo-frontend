@@ -4889,6 +4889,9 @@
 
     <div class="sidebar-group" data-grupo-sistema>
       <div class="sidebar-group-label"><i class="ti ti-settings"></i> Sistema</div>
+      <button class="sidebar-item" data-view="whatsapp" data-perm="whatsapp.gerenciar">
+        <i class="ti ti-brand-whatsapp"></i> WhatsApp
+      </button>
       <button class="sidebar-item" data-view="auditoria" data-perm="admin.ver_auditoria">
         <i class="ti ti-shield-check"></i> Auditoria
       </button>
@@ -5565,6 +5568,21 @@
           </div>
         </div>
       </section>
+    </div>
+  </div>
+
+  <!-- VIEW: WhatsApp (dispositivos / canais) -->
+  <div class="view" id="view-whatsapp">
+    <div class="dev-toolbar">
+      <div class="dev-info">
+        <strong>Dispositivos WhatsApp:</strong> conecte um ou vários números por QR code. Conectou, já fica disponível. Trocou de celular? Só reconectar e ler de novo.
+      </div>
+      <div class="dev-acoes">
+        <button class="pac-btn-secondary" onclick="wdCarregar()" title="Atualizar"><i class="ti ti-refresh"></i> Atualizar</button>
+      </div>
+    </div>
+    <div id="wd-body" style="max-width: 780px;">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando dispositivos...</div>
     </div>
   </div>
 
@@ -7906,6 +7924,7 @@ const VIEW_TITLES = {
   prontuario: { titulo: 'Prontuário', sub: 'Evoluções multiprofissionais' },
   aplicacoes: { titulo: 'Aplicações', sub: 'Injetáveis e bioimpedância' },
   estoque: { titulo: 'Estoque', sub: 'Produtos, lotes e validades' },
+  whatsapp: { titulo: 'WhatsApp', sub: 'Dispositivos e conexão' },
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
   financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
@@ -10158,11 +10177,9 @@ function wdFmtTel(n) {
 }
 
 function wdAbrir() {
-  document.getElementById('wpp-dev-modal').classList.add('aberto');
-  wdCarregar();
-}
-function wdFechar() {
-  document.getElementById('wpp-dev-modal').classList.remove('aberto');
+  // Atalho (vindo do popup de chat): leva pra aba WhatsApp na barra lateral
+  if (typeof chatPopFechar === 'function') chatPopFechar();
+  trocarView('whatsapp');
 }
 async function wdCarregar() {
   const body = document.getElementById('wd-body');
@@ -15457,6 +15474,7 @@ trocarView = function(v) {
   _origTrocarView(v);
   if (v === 'comunicacao') ciCarregar();
   else ciPararPoll();
+  if (v === 'whatsapp') wdCarregar();
   if (v === 'pacientes') pacInit();
   if (v === 'agenda') {
     if (!agJaInicializou) { agJaInicializou = true; agInit(); }
@@ -15558,19 +15576,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="ci-input-bar" id="cp-input-bar">
       <textarea id="cp-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" onkeydown="chatPopInputKey(event)"></textarea>
       <button class="ci-send" id="cp-send" onclick="chatPopEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
-    </div>
-  </div>
-</div>
-
-<!-- ============== WHATSAPP: GERENCIADOR DE DISPOSITIVOS ============== -->
-<div class="ag-modal-overlay" id="wpp-dev-modal" style="z-index:9600;" onclick="if(event.target.id==='wpp-dev-modal') wdFechar()">
-  <div class="ag-modal" style="max-width:640px;">
-    <div class="ag-modal-header">
-      <div class="ttl"><i class="ti ti-brand-whatsapp" style="color:#25D366;"></i> <span>WhatsApp · Dispositivos</span></div>
-      <button class="pac-modal-close" onclick="wdFechar()"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="ag-modal-body" id="wd-body" style="max-height:65vh; overflow-y:auto;">
-      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
     </div>
   </div>
 </div>
