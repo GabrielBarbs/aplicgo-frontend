@@ -1950,6 +1950,30 @@
     .pr-h2-alerta .al-item.comorb i { color: #E8945A; }
     .pr-h2-alerta .al-item.comorb strong { color: #E8945A; }
 
+    /* Card de SITUAÇÃO (semáforo de progresso: verde / amarelo / vermelho) */
+    .pr-h2-situacao {
+      margin-top: 12px;
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: 10px;
+      border: 1px solid #30363d; background: rgba(125,133,144,0.06);
+    }
+    .pr-h2-situacao .sit-ico {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .pr-h2-situacao .sit-label { font-size: 13px; font-weight: 700; }
+    .pr-h2-situacao .sit-desc { font-size: 12px; color: #8b949e; margin-top: 1px; line-height: 1.35; }
+    .pr-h2-situacao.verde { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.35); }
+    .pr-h2-situacao.verde .sit-ico { background: rgba(63,185,80,0.15); color: #3fb950; }
+    .pr-h2-situacao.verde .sit-label { color: #3fb950; }
+    .pr-h2-situacao.amarelo { background: rgba(210,153,34,0.09); border-color: rgba(210,153,34,0.38); }
+    .pr-h2-situacao.amarelo .sit-ico { background: rgba(210,153,34,0.16); color: #d29922; }
+    .pr-h2-situacao.amarelo .sit-label { color: #d29922; }
+    .pr-h2-situacao.vermelho { background: rgba(248,81,73,0.09); border-color: rgba(248,81,73,0.38); }
+    .pr-h2-situacao.vermelho .sit-ico { background: rgba(248,81,73,0.16); color: #f85149; }
+    .pr-h2-situacao.vermelho .sit-label { color: #f85149; }
+    .pr-h2-meds .med-dose { color: #6FD89A; font-weight: 700; }
+
     /* Linha de contexto (próximo retorno, última visita, equipe) */
     .pr-h2-contexto {
       display: flex; flex-wrap: wrap; gap: 16px;
@@ -11468,6 +11492,22 @@ function prFmtIMC(imc) {
   return { val: imc.toFixed(1).replace('.', ','), classe };
 }
 
+// Semáforo de SITUAÇÃO do paciente (verde/amarelo/vermelho) conforme o progresso de peso
+// e o status clínico marcado pelo profissional.
+function prCalcSituacao(h) {
+  if (h.status_clinico === 'URGENCIA') return { cor: 'vermelho', icone: 'alert-triangle', label: 'Alerta', desc: 'Status clínico de urgência -- avaliar com prioridade.' };
+  const ini = h.peso_inicial_kg, at = h.peso_atual_kg;
+  if (ini == null || at == null) return { cor: 'amarelo', icone: 'help-circle', label: 'Sem dados', desc: 'Falta peso inicial/atual pra avaliar o progresso.' };
+  const dif = Math.round((at - ini) * 10) / 10;
+  const pct = ini ? (dif / ini) * 100 : 0;
+  const absKg = Math.abs(dif).toString().replace('.', ',');
+  const absPct = Math.abs(pct).toFixed(1).replace('.', ',');
+  if (h.status_clinico === 'ATENCAO') return { cor: 'amarelo', icone: 'alert-circle', label: 'Atenção', desc: dif < 0 ? `Perdeu ${absKg} kg, mas marcado como atenção pelo profissional.` : 'Marcado como atenção pelo profissional.' };
+  if (pct <= -1) return { cor: 'verde', icone: 'trending-down', label: 'Progredindo', desc: `Perdeu ${absKg} kg (${absPct}%) desde o início. No caminho certo.` };
+  if (pct < 1) return { cor: 'amarelo', icone: 'minus', label: 'Estagnado', desc: 'Peso praticamente estável -- revisar conduta e adesão.' };
+  return { cor: 'vermelho', icone: 'trending-up', label: 'Alerta', desc: `Ganhou ${absKg} kg desde o início -- revisar conduta.` };
+}
+
 function prRenderHeaderRico() {
   const h = prState.headerData;
   if (!h) return '';
@@ -11481,18 +11521,17 @@ function prRenderHeaderRico() {
       d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Faixa de ALERTA de segurança (alergias + comorbidades) -- sempre visível
-  const temAlergia = h.alergias && String(h.alergias).trim();
-  const comorb = h.comorbidades || [];
-  let alertaHtml = '';
-  if (temAlergia || comorb.length) {
-    alertaHtml = `
-      <div class="pr-h2-alerta ${temAlergia ? 'critico' : ''}">
-        ${temAlergia ? `<div class="al-item alergia"><i class="ti ti-alert-triangle"></i> <span><strong>Alergias:</strong> ${String(h.alergias).replace(/</g,'&lt;')}</span></div>` : ''}
-        ${comorb.length ? `<div class="al-item comorb"><i class="ti ti-heartbeat"></i> <span><strong>Comorbidades:</strong> ${comorb.join(', ')}</span></div>` : ''}
+  // Card de SITUAÇÃO (semáforo de progresso): verde / amarelo / vermelho
+  const sit = prCalcSituacao(h);
+  const situacaoHtml = `
+    <div class="pr-h2-situacao ${sit.cor}">
+      <div class="sit-ico"><i class="ti ti-${sit.icone}"></i></div>
+      <div class="sit-txt">
+        <div class="sit-label">Situação · ${sit.label}</div>
+        <div class="sit-desc">${sit.desc}</div>
       </div>
-    `;
-  }
+    </div>
+  `;
 
   // Linha de CONTEXTO (próximo retorno + última visita + médico/nutri)
   const ctxLinhas = [];
@@ -11521,13 +11560,12 @@ function prRenderHeaderRico() {
   const meds = h.medicacoes || { injetaveis: [], orais: [], suplementos: [] };
   const medLinhas = [];
 
-  // Injetável + dose atual
+  // Injetável: nome + DOSE logo após (em destaque) + frequência
   if (meds.injetaveis && meds.injetaveis.length) {
     meds.injetaveis.forEach(m => {
-      const partes = [m.nome];
-      if (m.dose) partes.push(m.dose);
+      const dose = m.dose ? ` <strong class="med-dose">${m.dose}</strong>` : '';
       const freq = m.frequencia ? ` · ${m.frequencia}` : '';
-      medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${partes.join(' ')}${freq}</span></div>`);
+      medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${m.nome}${dose}${freq}</span></div>`);
     });
   } else {
     medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-vaccine"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">--</span></div>`);
@@ -11541,13 +11579,13 @@ function prRenderHeaderRico() {
     medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-pill"></i> <span class="med-tipo">Oral:</span> <span class="med-val">--</span></div>`);
   }
 
-  // Suplementos + última reposição
+  // Suplementos: TODOS numa linha só (um card de suplemento)
   if (meds.suplementos && meds.suplementos.length) {
-    meds.suplementos.forEach(m => {
+    const nomesSup = meds.suplementos.map(m => {
       const cat = m.categoria ? ` (${m.categoria === 'APLIC_PLUS' ? 'Aplic PLUS' : m.categoria})` : '';
-      const repo = m.desde_quando ? ` · últ. ${fmtDataCurta(m.desde_quando)}` : '';
-      medLinhas.push(`<div class="med-linha"><i class="ti ti-capsule" style="color:#E8945A;"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">${m.nome}${cat}${repo}</span></div>`);
-    });
+      return `${m.nome}${cat}`;
+    }).join(', ');
+    medLinhas.push(`<div class="med-linha"><i class="ti ti-capsule" style="color:#E8945A;"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">${nomesSup}</span></div>`);
   } else {
     medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-capsule"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">--</span></div>`);
   }
@@ -11604,7 +11642,7 @@ function prRenderHeaderRico() {
         </button>
       </div>
 
-      ${alertaHtml}
+      ${situacaoHtml}
 
       <!-- Blocos de destaque grandes -->
       <div class="pr-h2-blocos">${blocosHtml}</div>
@@ -13436,6 +13474,7 @@ function prRenderTimeline() {
   const _podePresc = temPermissao('prontuario.prescrever');
   const _podeExam = temPermissao('prontuario.solicitar_exames');
   // Botões "secundários". Nova evolução por setor fica nos cards.
+  const nAnexos = (prState.documentos || []).length;
   const actionsBar = `
     <div class="pr-actions-bar">
       <button class="pac-btn-secondary" onclick="prAbrirPreConsulta()">
@@ -13447,6 +13486,9 @@ function prRenderTimeline() {
       ${_podeExam ? `<button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
         <i class="ti ti-flask"></i> Solicitar exames
       </button>` : ''}
+      <button class="pac-btn-secondary ${prState.anexosAberto ? 'ativo' : ''}" id="pr-anexos-btn" onclick="prToggleAnexos()">
+        <i class="ti ti-paperclip"></i> Anexos${nAnexos ? ` (${nAnexos})` : ''}
+      </button>
     </div>
   `;
 
@@ -13473,7 +13515,9 @@ function prRenderTimeline() {
     </div>
   `;
 
-  conteudo.innerHTML = headerHtml + cardsHtml + actionsBar + anexosHtml + histHtml;
+  conteudo.innerHTML = headerHtml + cardsHtml + actionsBar
+    + `<div id="pr-anexos-wrap" style="display:${prState.anexosAberto ? 'block' : 'none'};">${anexosHtml}</div>`
+    + histHtml;
 
   // Se veio de uma marcação, rola até a evolução-alvo e destaca
   if (prState.evolucaoAlvo) {
@@ -13490,7 +13534,19 @@ function prRenderTimeline() {
   }
 }
 
-// ===== ANEXOS (front pronto, sem persistência ainda) =====
+// Abre/fecha a seção de anexos (botão fica na barra de ações; começa fechada)
+function prToggleAnexos() {
+  prState.anexosAberto = !prState.anexosAberto;
+  const w = document.getElementById('pr-anexos-wrap');
+  const b = document.getElementById('pr-anexos-btn');
+  if (b) b.classList.toggle('ativo', prState.anexosAberto);
+  if (w) {
+    w.style.display = prState.anexosAberto ? 'block' : 'none';
+    if (prState.anexosAberto) setTimeout(() => w.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  }
+}
+
+// ===== ANEXOS =====
 function prRenderAnexos() {
   const arquivos = prState.documentos || [];
   const enviando = !!prState.anexoEnviando;
