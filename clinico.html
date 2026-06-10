@@ -13762,9 +13762,20 @@ let prOrganizando = false;  // modo "organizar cards" ligado/desligado
 let prDragTipo = null;
 
 function prCardOrderNormalizar(order) {
-  const valid = (Array.isArray(order) ? order : []).filter((t, i, a) => PR_CARDS_DEFAULT.includes(t) && a.indexOf(t) === i);
-  const faltando = PR_CARDS_DEFAULT.filter(t => !valid.includes(t));
-  return [...valid, ...faltando];
+  const saved = (Array.isArray(order) ? order : []).filter((t, i, a) => PR_CARDS_DEFAULT.includes(t) && a.indexOf(t) === i);
+  if (!saved.length) return PR_CARDS_DEFAULT.slice();
+  // Blocos ausentes na ordem salva (ex.: recém-criados, ou ordem antiga só com os
+  // 4 cards) entram na POSIÇÃO PADRÃO deles -- não jogados no fim.
+  const result = saved.slice();
+  PR_CARDS_DEFAULT.filter(t => !saved.includes(t)).forEach(m => {
+    const defIdx = PR_CARDS_DEFAULT.indexOf(m);
+    let pos = result.length;
+    for (let i = 0; i < result.length; i++) {
+      if (PR_CARDS_DEFAULT.indexOf(result[i]) > defIdx) { pos = i; break; }
+    }
+    result.splice(pos, 0, m);
+  });
+  return result;
 }
 function prCardOrderEfetiva() { return prCardOrderNormalizar(prCardOrder); }
 
