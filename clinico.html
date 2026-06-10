@@ -4266,6 +4266,47 @@
       margin-bottom: 14px;
     }
 
+    /* ===== Organizar cards do prontuário (botão de engrenagem) ===== */
+    /* slot some no modo normal (display:contents) -> zero impacto no layout */
+    .pr-card-slot { display: contents; }
+    .pr-org-hint {
+      font-size: 12px; color: var(--tx2);
+      background: rgba(var(--ac-rgb), .08);
+      border: 1px solid rgba(var(--ac-rgb), .28);
+      border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pr-org-hint i { color: var(--ac); }
+    .pr-cards-profissionais.organizando .pr-card-slot {
+      display: flex; flex-direction: column; min-width: 0;
+      border: 1.5px dashed var(--bd1); border-radius: 12px; padding: 6px;
+      background: rgba(var(--bg3-rgb), .35); cursor: grab;
+    }
+    .pr-cards-profissionais.organizando .pr-card-slot:hover { border-color: var(--ac); }
+    .pr-cards-profissionais.organizando .pr-card-slot.arrastando {
+      opacity: .45; cursor: grabbing; outline: 2px solid var(--ac); outline-offset: 1px;
+    }
+    /* enquanto organiza, o conteúdo do card não é clicável (só a barrinha e o arrasto) */
+    .pr-cards-profissionais.organizando .pr-card-slot > :not(.pr-card-org-bar) {
+      pointer-events: none; user-select: none;
+    }
+    .pr-card-org-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      margin-bottom: 6px;
+    }
+    .pr-org-grip {
+      font-size: 10.5px; color: var(--tx3); display: flex; align-items: center; gap: 4px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: .04em; overflow: hidden;
+      white-space: nowrap; text-overflow: ellipsis;
+    }
+    .pr-org-btn {
+      flex: 0 0 auto; width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
+      background: var(--bg3); border: 1px solid var(--bd1); color: var(--tx2);
+      display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .pr-org-btn:hover { background: var(--ac); color: #fff; border-color: var(--ac); }
+    .pr-org-btn:active { transform: scale(.92); }
+
     .pr-empty {
       padding: 60px 30px; text-align: center;
       color: var(--tx3b); font-size: 13px;
@@ -7769,6 +7810,7 @@ async function carregarMe() {
     authUser = data.user;
     meData = data;
     aplicarUI();
+    prCarregarPrefs();   // carrega preferências do usuário (ordem dos cards do prontuário)
     await carregarStatus();
   } catch (e) {
     document.getElementById('status-text').textContent = 'Offline';
@@ -13534,6 +13576,9 @@ function prRenderTimeline() {
       <button class="pac-btn-secondary ${prState.anexosAberto ? 'ativo' : ''}" id="pr-anexos-btn" onclick="prToggleAnexos()">
         <i class="ti ti-paperclip"></i> Anexos${nAnexos ? ` (${nAnexos})` : ''}
       </button>
+      <button class="pac-btn-secondary ${prOrganizando ? 'ativo' : ''}" id="pr-organizar-btn" onclick="prToggleOrganizar()" title="Organizar a posição dos cards do prontuário (fica salvo no seu usuário)">
+        <i class="ti ti-${prOrganizando ? 'check' : 'settings'}"></i> ${prOrganizando ? 'Concluir' : 'Organizar cards'}
+      </button>
     </div>
   `;
 
@@ -13685,18 +13730,117 @@ const PROF_TIPOS = [
   { tipo: 'ENFERMAGEM',  num: '3', label: 'Enfermagem',  icone: 'vaccine',     cor: '#E8945A', permCriar: 'prontuario.evolucao_enfermagem.criar' },
 ];
 
+// ===== Organização (ordem) dos cards do prontuário — salva por usuário =====
+const PR_CARDS_DEFAULT = ['MEDICA', 'NUTRICIONAL', 'ENFERMAGEM', 'RODA'];
+const PR_CARD_LABELS = { MEDICA: 'Médica', NUTRICIONAL: 'Nutricional', ENFERMAGEM: 'Enfermagem', RODA: 'Roda da vida' };
+let prCardOrder = null;     // ordem preferida do usuário (carregada das prefs)
+let prOrganizando = false;  // modo "organizar cards" ligado/desligado
+let prDragTipo = null;
+
+function prCardOrderNormalizar(order) {
+  const valid = (Array.isArray(order) ? order : []).filter((t, i, a) => PR_CARDS_DEFAULT.includes(t) && a.indexOf(t) === i);
+  const faltando = PR_CARDS_DEFAULT.filter(t => !valid.includes(t));
+  return [...valid, ...faltando];
+}
+function prCardOrderEfetiva() { return prCardOrderNormalizar(prCardOrder); }
+
+function prCardSlot(tipo, inner) {
+  if (!prOrganizando) return `<div class="pr-card-slot" data-card-tipo="${tipo}">${inner}</div>`;
+  return `<div class="pr-card-slot organizando" data-card-tipo="${tipo}" draggable="true" ondragstart="prDragStart(event)" ondragend="prDragEnd(event)">
+    <div class="pr-card-org-bar">
+      <button class="pr-org-btn" title="Mover para trás" onclick="prMoverCard('${tipo}',-1)"><i class="ti ti-chevron-left"></i></button>
+      <span class="pr-org-grip"><i class="ti ti-grip-vertical"></i> ${PR_CARD_LABELS[tipo] || tipo}</span>
+      <button class="pr-org-btn" title="Mover para frente" onclick="prMoverCard('${tipo}',1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    ${inner}
+  </div>`;
+}
+
+function prToggleOrganizar() { prOrganizando = !prOrganizando; prRenderTimeline(); }
+
+function prMoverCard(tipo, dir) {
+  const order = prCardOrderEfetiva();
+  const i = order.indexOf(tipo); if (i < 0) return;
+  const j = i + dir; if (j < 0 || j >= order.length) return;
+  order.splice(i, 1); order.splice(j, 0, tipo);
+  prSalvarCardOrder(order);
+}
+
+function prSalvarCardOrder(order) {
+  prCardOrder = prCardOrderNormalizar(order);
+  if (meData) { meData.prefs = meData.prefs || {}; meData.prefs.prontCardOrder = prCardOrder; }
+  prRenderTimeline();
+  prPersistirPrefs({ prontCardOrder: prCardOrder });
+}
+
+async function prPersistirPrefs(patch) {
+  try { await pacApi('/api/clinico/me/prefs', { method: 'PUT', body: JSON.stringify(patch) }); }
+  catch (e) { /* já aplicado localmente; falha de rede é silenciosa */ }
+}
+
+async function prCarregarPrefs() {
+  try {
+    const r = await pacApi('/api/clinico/me/prefs');
+    const prefs = (r && r.data && r.data.prefs) || {};
+    if (meData) meData.prefs = prefs;
+    if (Array.isArray(prefs.prontCardOrder)) prCardOrder = prCardOrderNormalizar(prefs.prontCardOrder);
+  } catch (e) { /* silencioso */ }
+}
+
+// arrastar-e-soltar (reordena ao vivo; salva ao soltar)
+function prDragStart(e) {
+  const slot = e.target.closest('.pr-card-slot'); if (!slot) return;
+  prDragTipo = slot.dataset.cardTipo; slot.classList.add('arrastando');
+  if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', prDragTipo); } catch (_) {} }
+}
+function prDragEnd(e) {
+  const slot = e.target.closest('.pr-card-slot'); if (slot) slot.classList.remove('arrastando');
+  const grid = document.getElementById('pr-cards-grid');
+  prDragTipo = null;
+  if (!grid) return;
+  const nova = [...grid.querySelectorAll('.pr-card-slot')].map(s => s.dataset.cardTipo);
+  prSalvarCardOrder(nova);
+}
+function prDragOver(e) {
+  if (!prDragTipo) return;
+  e.preventDefault();
+  const grid = document.getElementById('pr-cards-grid'); if (!grid) return;
+  const dragging = grid.querySelector('.pr-card-slot.arrastando'); if (!dragging) return;
+  const ref = prDragAfter(grid, e.clientX, e.clientY);
+  if (ref == null) grid.appendChild(dragging);
+  else if (ref !== dragging) grid.insertBefore(dragging, ref);
+}
+function prDragDrop(e) { e.preventDefault(); }
+function prDragAfter(grid, x, y) {
+  const slots = [...grid.querySelectorAll('.pr-card-slot:not(.arrastando)')];
+  let best = null, bestDist = Infinity;
+  for (const s of slots) {
+    const r = s.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const depois = (y < cy - 6) || (Math.abs(y - cy) <= r.height / 2 && x < cx);
+    if (depois) { const d = Math.hypot(x - cx, y - cy); if (d < bestDist) { bestDist = d; best = s; } }
+  }
+  return best;
+}
+
 function prRenderCardsPorProfissional() {
   const items = prState.timeline.filter(t => t.tipo === 'evolucao');
-  const cardsProf = PROF_TIPOS.map(p => {
+  const html = {};
+  PROF_TIPOS.forEach(p => {
     const evs = items.filter(it => it.dados.tipo_evolucao === p.tipo);
     const atual = evs[0] || null;
     const anterior = evs[1] || null;
     const podeCriar = temPermissao(p.permCriar);
     const recolhido = prState.cardsRecolhidos?.[p.tipo] || false;
-    return prRenderCardProfissional(p, atual, anterior, podeCriar, recolhido);
-  }).join('');
-  const cardRoda = prRenderRodaVida();
-  return `<div class="pr-cards-profissionais">${cardsProf}${cardRoda}</div>`;
+    html[p.tipo] = prRenderCardProfissional(p, atual, anterior, podeCriar, recolhido);
+  });
+  html['RODA'] = prRenderRodaVida();
+  const slots = prCardOrderEfetiva().map(t => prCardSlot(t, html[t] || '')).join('');
+  const hint = prOrganizando
+    ? `<div class="pr-org-hint"><i class="ti ti-info-circle"></i> Arraste os cards ou use as setas para mudar a ordem. Sua organização fica salva no seu usuário.</div>`
+    : '';
+  const dnd = prOrganizando ? ' ondragover="prDragOver(event)" ondrop="prDragDrop(event)"' : '';
+  return `${hint}<div class="pr-cards-profissionais${prOrganizando ? ' organizando' : ''}" id="pr-cards-grid"${dnd}>${slots}</div>`;
 }
 
 function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
