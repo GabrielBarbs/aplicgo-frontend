@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- CSP: trava o destino de exfiltracao (connect-src) e injecao de script externo. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.memed.com.br; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https:; connect-src 'self' https://srv.aplicgo.com https://*.memed.com.br; frame-src https://*.memed.com.br; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Aplic &amp; Go · Sistema Clínico</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+  <!-- Sanitizador de HTML (DOMPurify): impede XSS no conteudo rico das evolucoes. -->
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
   <style>
     :root {
       --bg0:#010409; --bg1:#0d1117; --bg2:#161b22; --bg3:#21262d; --bg4:#1c2230;
@@ -7718,6 +7722,16 @@ const CHANGELOG_CLINICO = [
 // CONFIG
 // ============================================================
 const API_BASE = "https://srv.aplicgo.com";
+
+// ===== Seguranca: escape de texto + sanitizacao de HTML rico (anti-XSS) =====
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function safeHtml(html) {
+  const s = String(html == null ? '' : html);
+  if (window.DOMPurify && typeof DOMPurify.sanitize === 'function') return DOMPurify.sanitize(s);
+  return esc(s); // fallback seguro se o DOMPurify nao tiver carregado
+}
 const AUTH_TOKEN_KEY = 'aplic_auth_token';
 const NOVIDADES_KEY = 'aplic_clinico_novidades_lida';
 
@@ -7987,8 +8001,8 @@ async function dashCarregar() {
         <div class="dash-ag-item" style="border-left-color:${a.cor || '#4A90E2'};" onclick="dashAbrirPaciente('${a.paciente_id}', '${(a.paciente||'').replace(/'/g,'&apos;')}')">
           <div class="hora">${hora}</div>
           <div class="info">
-            <div class="pac">${a.paciente}</div>
-            <div class="det">${a.tipo} · ${a.profissional}${a.unidade ? ' · ' + a.unidade : ''}</div>
+            <div class="pac">${esc(a.paciente)}</div>
+            <div class="det">${esc(a.tipo)} · ${esc(a.profissional)}${a.unidade ? ' · ' + esc(a.unidade) : ''}</div>
           </div>
           <span class="st ${a.status}">${a.status}</span>
         </div>
@@ -10174,7 +10188,7 @@ function chatPopRenderLista() {
       const nomeAttr = String(c.nome || '').replace(/'/g, '');
       const numAttr = String(c.numero || '');
       const av = c.foto
-        ? `<img src="${c.foto}" class="cp-av-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="ci-av cp-av-ini" style="display:none; background:#25D36622; color:#25D366; border-color:#25D36655;">${ini}</div>`
+        ? `<img src="${esc(c.foto)}" class="cp-av-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="ci-av cp-av-ini" style="display:none; background:#25D36622; color:#25D366; border-color:#25D36655;">${esc(ini)}</div>`
         : `<div class="ci-av cp-av-ini" style="background:#25D36622; color:#25D366; border-color:#25D36655;">${ini}</div>`;
       return `<div class="ci-conv" onclick="cpAbrirConversaWa('${keyEsc}','${nomeAttr}','${numAttr}')">
         <div class="cp-av">${av}<span class="cp-av-wa"><i class="ti ti-brand-whatsapp"></i></span></div>
@@ -13944,7 +13958,7 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
     let resumo = '';
     if (d.conteudo) {
       const div = document.createElement('div');
-      div.innerHTML = d.conteudo;
+      div.innerHTML = safeHtml(d.conteudo);
       resumo = (div.textContent || '').slice(0, 200);
     } else {
       resumo = [d.subjetivo, d.objetivo, d.avaliacao, d.plano].filter(Boolean).join(' ').slice(0, 200);
@@ -14026,7 +14040,7 @@ function prVerTodasSetor(tipo) {
       const d = ev.dados;
       let resumo = '';
       if (d.conteudo) {
-        const div = document.createElement('div'); div.innerHTML = d.conteudo;
+        const div = document.createElement('div'); div.innerHTML = safeHtml(d.conteudo);
         resumo = (div.textContent || '').slice(0, 160);
       } else {
         resumo = [d.subjetivo, d.objetivo, d.avaliacao, d.plano].filter(Boolean).join(' ').slice(0, 160);
@@ -14282,7 +14296,7 @@ function prRenderItem(it) {
       const d = it.dados;
       // Preferência: novo formato (conteudo HTML rico)
       if (d.conteudo) {
-        body = `<div class="pr-evol-conteudo-render">${d.conteudo}</div>`;
+        body = `<div class="pr-evol-conteudo-render">${safeHtml(d.conteudo)}</div>`;
         if (d.template_slug) {
           body = `<div style="font-size:10px; color:var(--ac); margin-bottom:6px;"><i class="ti ti-template"></i> ${d.template_slug}</div>` + body;
         }
@@ -14445,7 +14459,7 @@ async function prEditarEvol(id) {
         `<i class="ti ti-template"></i> Editando formulário "${d.template_slug}"`;
     } else {
       // Fallback: editor de texto
-      document.getElementById('pr-evol-conteudo').innerHTML = d.conteudo || '';
+      document.getElementById('pr-evol-conteudo').innerHTML = safeHtml(d.conteudo || '');
       document.getElementById('pr-evol-form').style.display = 'none';
       document.getElementById('pr-evol-editor-wrap').style.display = '';
     }
