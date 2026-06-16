@@ -5602,6 +5602,18 @@
         </button>
       </div>
     </div>
+    <!-- Auditoria de Segurança (Ferramenta 3: botão de status) -->
+    <div class="dev-toolbar" style="margin-bottom:12px;">
+      <div class="dev-info"><strong><i class="ti ti-shield-lock"></i> Auditoria de Segurança:</strong> checagens reais do estado atual (sessão, CORS, convites, Memed, etc.).</div>
+      <div class="dev-acoes">
+        <span class="dev-ts" id="seg-ts">--</span>
+        <button class="pac-btn-primary" onclick="segRodarAuditoria()"><i class="ti ti-shield-check"></i> Rodar auditoria</button>
+      </div>
+    </div>
+    <div id="seg-conteudo" style="margin-bottom:20px;">
+      <div class="pac-empty">Clique em "Rodar auditoria" para ver o status de segurança.</div>
+    </div>
+
     <div id="dev-conteudo">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
     </div>
@@ -12398,6 +12410,44 @@ function bioTooltipHide() {
 // ============================================================
 // PAINEL DESENVOLVEDOR (Combo extra)
 // ============================================================
+// ===== Auditoria de Segurança (botão da aba Dev) =====
+async function segRodarAuditoria() {
+  const wrap = document.getElementById('seg-conteudo');
+  wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Rodando auditoria...</div>';
+  const r = await pacApi('/api/clinico/dev/security/audit');
+  if (!r.ok || !r.data || !r.data.ok || !r.data.relatorio) {
+    wrap.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + ((r.data && r.data.erro) || 'falha ao rodar auditoria') + '</div>';
+    return;
+  }
+  segRender(r.data.relatorio);
+  document.getElementById('seg-ts').textContent = 'Auditado em ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+function segRender(rel) {
+  const cor = { ok: '#1D9E75', alerta: '#EF9F27', risco: '#f85149' };
+  const ic = { ok: 'circle-check', alerta: 'alert-triangle', risco: 'alert-octagon' };
+  const lbl = { ok: 'Tudo certo', alerta: 'Pontos de atenção', risco: 'Risco' };
+  const nivel = rel.nivel || 'ok';
+  const cards = (rel.checks || []).map(c => `
+    <div style="display:flex; gap:10px; align-items:flex-start; padding:10px 12px; background:var(--bg2); border:1px solid var(--bg3); border-left:3px solid ${cor[c.status] || 'var(--bd1)'}; border-radius:8px;">
+      <i class="ti ti-${ic[c.status] || 'point'}" style="color:${cor[c.status] || 'var(--tx3)'}; font-size:18px; flex:0 0 auto; margin-top:1px;"></i>
+      <div style="min-width:0;">
+        <div style="font-weight:600; font-size:13px; color:var(--tx1);">${esc(c.label)}</div>
+        <div style="font-size:12px; color:var(--tx3); margin-top:2px;">${esc(c.detalhe)}</div>
+      </div>
+    </div>`).join('');
+  const r = rel.resumo || { ok: 0, alerta: 0, risco: 0 };
+  document.getElementById('seg-conteudo').innerHTML = `
+    <div style="display:flex; gap:12px; align-items:center; padding:12px 14px; background:var(--bg2); border:1px solid ${cor[nivel]}; border-radius:10px; margin-bottom:12px;">
+      <i class="ti ti-${ic[nivel]}" style="color:${cor[nivel]}; font-size:24px;"></i>
+      <div>
+        <div style="font-weight:700; color:${cor[nivel]};">${lbl[nivel]}</div>
+        <div style="font-size:12px; color:var(--tx3);">${r.ok} ok · ${r.alerta} atenção · ${r.risco} risco</div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:10px;">${cards}</div>`;
+}
+
 async function devCarregar() {
   const wrap = document.getElementById('dev-conteudo');
   wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando snapshot técnico...</div>';
