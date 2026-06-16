@@ -13483,7 +13483,9 @@ function admNovoUserConcluir() {
 }
 
 // ===== ACEITAR CONVITE (definir senha pelo link ?aceitar=) =====
-function mostrarAceitarConvite(email) {
+let _conviteToken = '';
+function mostrarAceitarConvite(email, token) {
+  _conviteToken = token || '';
   document.getElementById('auth-overlay').classList.remove('aberto');
   document.getElementById('convite-email').value = email;
   document.getElementById('convite-overlay').classList.add('aberto');
@@ -13507,7 +13509,7 @@ async function aceitarConvite() {
     const resp = await fetch(API_BASE + '/api/auth/aceitar-convite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, senha }),
+      body: JSON.stringify({ email, token: _conviteToken, senha }),
     });
     const data = await resp.json();
     if (!resp.ok || !data.token) {
@@ -16058,9 +16060,13 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarBadgeNovidades();
   // Link de convite: ?aceitar=<email> -> tela de definir senha
   const params = new URLSearchParams(window.location.search);
-  const aceitarEmail = params.get('aceitar');
-  if (aceitarEmail && !getToken()) {
-    mostrarAceitarConvite(decodeURIComponent(aceitarEmail));
+  const aceitarParam = params.get('aceitar');
+  if (aceitarParam && !getToken()) {
+    // formato: <email>~<token>  (params.get já decodifica o %40 etc.)
+    const sep = aceitarParam.indexOf('~');
+    const emailConv = sep >= 0 ? aceitarParam.slice(0, sep) : aceitarParam;
+    const tokenConv = sep >= 0 ? aceitarParam.slice(sep + 1) : '';
+    mostrarAceitarConvite(emailConv, tokenConv);
     return;
   }
   carregarMe();
