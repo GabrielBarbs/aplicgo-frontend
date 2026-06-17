@@ -754,6 +754,51 @@
     .pac-table th:nth-child(14), .pac-table td:nth-child(14),
     .pac-table th:nth-child(15), .pac-table td:nth-child(15),
     .pac-table th:nth-child(16), .pac-table td:nth-child(16) { text-align: center; }
+
+    /* ===== Pacientes vira CARDS no celular (a tabela de 1750px nao cabe) ===== */
+    @media (max-width: 700px) {
+      .pac-table-scroll { overflow-x: visible; }
+      .pac-table-scroll .pac-table { min-width: 0; }
+      .pac-table thead { display: none; }
+      .pac-table, .pac-table tbody, .pac-table tr, .pac-table td { display: block; width: auto; }
+      .pac-table tr {
+        background: var(--bg2); border: 1px solid var(--bg3);
+        border-radius: 12px; padding: 10px 14px; margin-bottom: 10px;
+      }
+      .pac-table tbody tr:hover { background: var(--bg2); }
+      .pac-table td {
+        border: 0 !important;
+        padding: 6px 0 6px 42% !important;
+        position: relative; white-space: normal;
+        text-align: right !important; min-height: 30px;
+      }
+      .pac-table td::before {
+        content: attr(data-label);
+        position: absolute; left: 0; top: 6px; width: 40%;
+        color: var(--tx3b); font-size: 11px; font-weight: 500;
+        text-transform: uppercase; letter-spacing: 0.3px;
+        text-align: left; white-space: normal;
+      }
+      /* colunas antes fixas: viram normais dentro do card */
+      .pac-table .col-fix-l1, .pac-table .col-fix-l2, .pac-table .col-fix-r {
+        position: static; z-index: auto; background: transparent;
+        width: auto; min-width: 0; max-width: none; box-shadow: none;
+      }
+      /* Codigo: linha discreta no topo */
+      .pac-table td.col-fix-l1 { padding: 0 0 2px !important; text-align: left !important;
+        color: var(--ac); font-family: 'SF Mono', Consolas, monospace; font-size: 11px; }
+      .pac-table td.col-fix-l1::before { display: none; }
+      /* Nome: titulo do card */
+      .pac-table td.col-fix-l2 { padding: 0 0 8px !important; text-align: left !important;
+        font-size: 15px; font-weight: 600; color: var(--tx1);
+        border-bottom: 1px solid var(--bg3) !important; margin-bottom: 6px; }
+      .pac-table td.col-fix-l2::before { display: none; }
+      /* Contato: botoes no rodape do card */
+      .pac-table td.col-fix-r { padding: 8px 0 0 !important; text-align: left !important;
+        border-top: 1px solid var(--bg3) !important; margin-top: 6px; }
+      .pac-table td.col-fix-r::before { display: none; }
+      .pac-table .pac-btn-contato { width: 44px; height: 38px; }
+    }
     .pac-score { display: inline-block; min-width: 26px; text-align: center; font-weight: 700; padding: 1px 7px; border-radius: 20px; background: rgba(var(--ac-rgb), 0.15); color: var(--ac); }
     .pac-codigo { font-weight: 600; color: var(--ac); font-family: 'SF Mono', Consolas, monospace; }
     .pac-nome { color: var(--tx1); font-weight: 500; }
@@ -8562,25 +8607,25 @@ function renderListaPacientes() {
           <tr onclick="pacAbrirDetalhe('${p.id}')">
             <td class="col-fix-l1 pac-codigo">${esc(p.codigo)}</td>
             <td class="col-fix-l2 pac-nome">${esc(p.nome_completo)}</td>
-            <td><span class="pac-tag ${esc(p.status)}">${esc(labelStatus(p.status))}</span></td>
-            <td>${p.programa ? esc(nomePrograma(p.programa)) : na}</td>
-            <td>${tempo}</td>
-            <td>${na}</td>
-            <td>${na}</td>
-            <td>${score}</td>
-            <td>${fKg(p.peso_inicial_kg)}</td>
-            <td>${fKg(p.peso_atual_kg)}</td>
-            <td>${fKg(p.meta_kg)}</td>
-            <td>${perda}</td>
-            <td>${fData(p.ult_consulta_medica)}</td>
-            <td>${fData(p.ult_consulta_nutri)}</td>
-            <td>${fData(p.ult_aplicacao)}</td>
-            <td>${fData(p.ult_pesagem)}</td>
-            <td>${p.medico ? esc(p.medico.name || p.medico.email) : na}</td>
-            <td>${p.nutri ? esc(p.nutri.name || p.nutri.email) : na}</td>
-            <td>${p.unidade ? esc(p.unidade.nome) : na}</td>
-            <td>${fmtTel(p.telefone1)}</td>
-            <td class="col-fix-r" onclick="event.stopPropagation();">
+            <td data-label="Status"><span class="pac-tag ${esc(p.status)}">${esc(labelStatus(p.status))}</span></td>
+            <td data-label="Programa">${p.programa ? esc(nomePrograma(p.programa)) : na}</td>
+            <td data-label="Tempo">${tempo}</td>
+            <td data-label="Queixas">${na}</td>
+            <td data-label="Pendências">${na}</td>
+            <td data-label="Score">${score}</td>
+            <td data-label="P. inicial">${fKg(p.peso_inicial_kg)}</td>
+            <td data-label="P. atual">${fKg(p.peso_atual_kg)}</td>
+            <td data-label="Meta">${fKg(p.meta_kg)}</td>
+            <td data-label="kg/sem">${perda}</td>
+            <td data-label="Últ. médica">${fData(p.ult_consulta_medica)}</td>
+            <td data-label="Últ. nutri">${fData(p.ult_consulta_nutri)}</td>
+            <td data-label="Últ. aplic.">${fData(p.ult_aplicacao)}</td>
+            <td data-label="Últ. pesagem">${fData(p.ult_pesagem)}</td>
+            <td data-label="Médico">${p.medico ? esc(p.medico.name || p.medico.email) : na}</td>
+            <td data-label="Nutri">${p.nutri ? esc(p.nutri.name || p.nutri.email) : na}</td>
+            <td data-label="Unidade">${p.unidade ? esc(p.unidade.nome) : na}</td>
+            <td data-label="Telefone">${fmtTel(p.telefone1)}</td>
+            <td class="col-fix-r" data-label="Contato" onclick="event.stopPropagation();">
               ${telLimpo ? `
                 <button class="pac-btn-contato ligar" title="Ligar" onclick="event.stopPropagation(); ligarParaPaciente('${p.telefone1}')"><i class="ti ti-phone"></i></button>
                 <button class="pac-btn-contato wa" title="Abrir chat / WhatsApp" onclick="event.stopPropagation(); abrirChatPorTelefone('${nomeEsc}', '${p.telefone1}')"><i class="ti ti-brand-whatsapp"></i></button>
