@@ -7773,6 +7773,16 @@ function safeHtml(html) {
   if (window.DOMPurify && typeof DOMPurify.sanitize === 'function') return DOMPurify.sanitize(s);
   return esc(s); // fallback seguro se o DOMPurify nao tiver carregado
 }
+
+// Nome inteiro dos programas -- normaliza abreviacoes antigas pro padrao da lista.
+const PROGRAMA_NOMES = {
+  'B&B': 'Burn&Build', 'BB': 'Burn&Build', 'B & B': 'Burn&Build', 'Burn & Build': 'Burn&Build',
+};
+function nomePrograma(p) {
+  if (!p) return p;
+  const k = String(p).trim();
+  return PROGRAMA_NOMES[k] || k;
+}
 const AUTH_TOKEN_KEY = 'aplic_auth_token';
 const NOVIDADES_KEY = 'aplic_clinico_novidades_lida';
 
@@ -8480,7 +8490,7 @@ function renderListaPacientes() {
             <td class="col-fix-l1 pac-codigo">${esc(p.codigo)}</td>
             <td class="col-fix-l2 pac-nome">${esc(p.nome_completo)}</td>
             <td><span class="pac-tag ${esc(p.status)}">${esc(p.status)}</span></td>
-            <td>${p.programa ? esc(p.programa) : na}</td>
+            <td>${p.programa ? esc(nomePrograma(p.programa)) : na}</td>
             <td>${tempo}</td>
             <td>${na}</td>
             <td>${na}</td>
@@ -8579,7 +8589,7 @@ async function pacAbrirEditarModal(id) {
   // Saúde
   // Programa e jornada (dropdown -- preserva valor antigo que não esteja na lista)
   const _selProg = document.getElementById('pac-programa');
-  const _progVal = p.programa || '';
+  const _progVal = nomePrograma(p.programa) || '';
   if (_progVal && ![..._selProg.options].some(o => o.value === _progVal)) {
     const _o = document.createElement('option'); _o.value = _progVal; _o.textContent = _progVal; _selProg.appendChild(_o);
   }
@@ -11831,7 +11841,7 @@ function prRenderHeaderRico() {
     : h.status.charAt(0) + h.status.slice(1).toLowerCase().replace(/_/g, ' ');
   const infoBlocos = [
     { label: 'Status', valor: statusLabel, classe: 'status-' + h.status, icone: 'circle-dot' },
-    ...(h.programa ? [{ label: 'Programa', valor: h.programa, classe: 'programa', icone: 'rocket' }] : []),
+    ...(h.programa ? [{ label: 'Programa', valor: nomePrograma(h.programa), classe: 'programa', icone: 'rocket' }] : []),
     ...(h.semana_atual_de ? [{ label: 'Semana', valor: `${h.semana_atual_de}${h.total_semanas ? ' / ' + h.total_semanas : ''}`, classe: 'semana', icone: 'calendar-stats' }] : []),
     ...(h.fase_atual ? [{ label: 'Fase atual', valor: prFmtFase(h.fase_atual), classe: 'fase', icone: 'flame' }] : []),
     ...(h.status_clinico && h.status_clinico !== 'ESTAVEL' ? [{ label: 'Status clínico', valor: prFmtStatusClinico(h.status_clinico), classe: 'clinico-' + h.status_clinico, icone: 'activity-heartbeat' }] : []),
@@ -13014,7 +13024,7 @@ async function onbAbrirModal(patientId) {
         <div style="color:var(--tx1); font-weight:500;">${p.nome} <span style="font-family:'SF Mono',Consolas,monospace; color:var(--ac); font-size:11px;">${p.codigo}</span></div>
         <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">
           <span style="color:${statusCor};">● ${p.status}</span>
-          ${p.programa ? ' · Programa: <strong style="color:var(--tx2);">' + p.programa + '</strong>' : ''}
+          ${p.programa ? ' · Programa: <strong style="color:var(--tx2);">' + esc(nomePrograma(p.programa)) + '</strong>' : ''}
           ${p.medico ? ' · Médico: <strong style="color:var(--tx2);">' + (p.medico.name || p.medico.email) + '</strong>' : ''}
           ${p.nutri ? ' · Nutri: <strong style="color:var(--tx2);">' + (p.nutri.name || p.nutri.email) + '</strong>' : ''}
         </div>
