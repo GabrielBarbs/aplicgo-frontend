@@ -711,7 +711,11 @@
     .pac-table tbody tr:hover { background: rgba(var(--bg3-rgb),0.4); cursor: pointer; }
     .pac-table tbody tr:last-child td { border-bottom: 0; }
     /* Tabela de pacientes -- scroll horizontal + colunas congeladas */
-    .pac-table-scroll { overflow-x: auto; }
+    .pac-table-scroll { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--bd1) transparent; }
+    .pac-table-scroll::-webkit-scrollbar { height: 9px; }
+    .pac-table-scroll::-webkit-scrollbar-track { background: transparent; }
+    .pac-table-scroll::-webkit-scrollbar-thumb { background: var(--bd1); border-radius: 8px; border: 2px solid var(--bg2); }
+    .pac-table-scroll::-webkit-scrollbar-thumb:hover { background: var(--bd2); }
     .pac-table-scroll .pac-table { min-width: 1750px; }
     .pac-table th, .pac-table td { white-space: nowrap; }
     .pac-table .col-fix-l1, .pac-table .col-fix-l2, .pac-table .col-fix-r { position: sticky; z-index: 2; background: var(--bg2); }
