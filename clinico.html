@@ -5307,6 +5307,20 @@
           <option value="CONCLUIDO">Finalizou programa</option>
           <option value="INATIVO">Inativo</option>
         </select>
+        <select class="pac-select" id="pac-filter-programa">
+          <option value="">Todos programas</option>
+          <option value="Burn&amp;Build">Burn&amp;Build</option>
+          <option value="Lipedema">Lipedema</option>
+          <option value="P&amp;L">P&amp;L</option>
+          <option value="Club Aplic">Club Aplic</option>
+          <option value="Consulta avulsa">Consulta avulsa</option>
+        </select>
+        <select class="pac-select" id="pac-filter-medico">
+          <option value="">Todos médicos</option>
+        </select>
+        <select class="pac-select" id="pac-filter-nutri">
+          <option value="">Todos nutris</option>
+        </select>
         <button class="pac-btn-secondary" onclick="pacCarregarLista()" title="Atualizar">
           <i class="ti ti-refresh"></i>
         </button>
@@ -8349,6 +8363,9 @@ let pacState = {
   q: '',
   unit: '',
   status: '',
+  programa: '',
+  medico: '',
+  nutri: '',
   pacientes: [],
   unidades: [],
   profissionais: [],
@@ -8412,17 +8429,30 @@ async function pacCarregarApoio() {
     medicos.map(p => `<option value="${p.id || p.email}">${p.nome || p.email} (${p.role})</option>`).join('');
   if (selNut) selNut.innerHTML = '<option value="">—</option>' +
     nutris.map(p => `<option value="${p.id || p.email}">${p.nome || p.email} (${p.role})</option>`).join('');
+  // Filtros de médico/nutri responsável (valor = id do profissional)
+  const selFMed = document.getElementById('pac-filter-medico');
+  const selFNut = document.getElementById('pac-filter-nutri');
+  if (selFMed) selFMed.innerHTML = '<option value="">Todos médicos</option>' +
+    medicos.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join('');
+  if (selFNut) selFNut.innerHTML = '<option value="">Todos nutris</option>' +
+    nutris.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join('');
 }
 
 async function pacCarregarLista() {
   pacState.q = document.getElementById('pac-search-input').value.trim();
   pacState.unit = document.getElementById('pac-filter-unit').value;
   pacState.status = document.getElementById('pac-filter-status').value;
+  pacState.programa = document.getElementById('pac-filter-programa').value;
+  pacState.medico = document.getElementById('pac-filter-medico').value;
+  pacState.nutri = document.getElementById('pac-filter-nutri').value;
 
   const params = new URLSearchParams();
   if (pacState.q) params.set('q', pacState.q);
   if (pacState.unit) params.set('unit', pacState.unit);
   if (pacState.status) params.set('status', pacState.status);
+  if (pacState.programa) params.set('programa', pacState.programa);
+  if (pacState.medico) params.set('medico', pacState.medico);
+  if (pacState.nutri) params.set('nutri', pacState.nutri);
   params.set('page', pacState.page);
   params.set('limit', pacState.limit);
 
@@ -8560,6 +8590,9 @@ function pacBindToolbar() {
   });
   document.getElementById('pac-filter-unit').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
   document.getElementById('pac-filter-status').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
+  document.getElementById('pac-filter-programa').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
+  document.getElementById('pac-filter-medico').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
+  document.getElementById('pac-filter-nutri').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
 }
 
 // ===== MODAL CRIAR / EDITAR =====
