@@ -721,6 +721,19 @@
     .pac-table thead .col-fix-l1, .pac-table thead .col-fix-l2, .pac-table thead .col-fix-r { z-index: 3; }
     .pac-table tbody tr:hover .col-fix-l1, .pac-table tbody tr:hover .col-fix-l2, .pac-table tbody tr:hover .col-fix-r { background: var(--bg3); }
     .pac-na { color: var(--bd2); }
+    /* polish visual da tabela de pacientes */
+    .pac-table thead .col-fix-l1, .pac-table thead .col-fix-l2, .pac-table thead .col-fix-r { background: var(--bg1); }
+    .pac-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+    .pac-table th:nth-child(5),  .pac-table td:nth-child(5),
+    .pac-table th:nth-child(8),  .pac-table td:nth-child(8),
+    .pac-table th:nth-child(9),  .pac-table td:nth-child(9),
+    .pac-table th:nth-child(10), .pac-table td:nth-child(10),
+    .pac-table th:nth-child(11), .pac-table td:nth-child(11),
+    .pac-table th:nth-child(12), .pac-table td:nth-child(12),
+    .pac-table th:nth-child(13), .pac-table td:nth-child(13),
+    .pac-table th:nth-child(14), .pac-table td:nth-child(14),
+    .pac-table th:nth-child(15), .pac-table td:nth-child(15),
+    .pac-table th:nth-child(16), .pac-table td:nth-child(16) { text-align: center; }
     .pac-score { display: inline-block; min-width: 26px; text-align: center; font-weight: 700; padding: 1px 7px; border-radius: 20px; background: rgba(var(--ac-rgb), 0.15); color: var(--ac); }
     .pac-codigo { font-weight: 600; color: var(--ac); font-family: 'SF Mono', Consolas, monospace; }
     .pac-nome { color: var(--tx1); font-weight: 500; }
@@ -8445,13 +8458,19 @@ function renderListaPacientes() {
           const nomeEsc = (p.nome_completo || '').replace(/'/g, "&apos;").replace(/"/g, '&quot;');
           const telLimpo = String(p.telefone1 || '').replace(/\D/g, '');
           const tempo = p.semana_atual ? `Sem ${p.semana_atual}${p.total_semanas ? '/' + p.total_semanas : ''}` : na;
+          const dot = (c) => `<span class="pac-dot" style="background:${c};"></span>`;
           let perda = na;
           if (p.perda_kg_sem != null) {
             const v = p.perda_kg_sem; // >0 = perdeu (bom), <0 = ganhou (ruim)
-            const cor = v > 0 ? '#1D9E75' : v < 0 ? '#f85149' : 'var(--tx3)';
-            perda = `<span style="color:${cor}; font-weight:600;">${v > 0 ? '-' : v < 0 ? '+' : ''}${Math.abs(v).toString().replace('.', ',')}</span>`;
+            const cor = v > 0 ? '#1D9E75' : v < 0 ? '#f85149' : '#8b949e';
+            perda = `${dot(cor)}<span style="color:${cor}; font-weight:600;">${v > 0 ? '-' : v < 0 ? '+' : ''}${Math.abs(v).toString().replace('.', ',')}</span>`;
           }
-          const score = (p.aplic_score == null) ? na : `<span class="pac-score">${p.aplic_score}</span>`;
+          let score = na;
+          if (p.aplic_score != null) {
+            const s = p.aplic_score;
+            const cor = s >= 70 ? '#1D9E75' : s >= 40 ? '#EF9F27' : '#f85149';
+            score = `${dot(cor)}<strong style="color:${cor};">${s}</strong>`;
+          }
           return `
           <tr onclick="pacAbrirDetalhe('${p.id}')">
             <td class="col-fix-l1 pac-codigo">${esc(p.codigo)}</td>
