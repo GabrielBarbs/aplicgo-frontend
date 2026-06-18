@@ -6776,6 +6776,16 @@
         </div>
       </div>
 
+      <div class="pac-form-section">
+        <div class="pac-form-section-title"><i class="ti ti-star"></i> Pontuação InBody (entra no Aplic Score)</div>
+        <div class="pac-form-grid col-3">
+          <div class="pac-field">
+            <label>Pontuação InBody (0-100)</label>
+            <input type="number" id="bio-pontuacao" min="0" max="100" step="1">
+          </div>
+        </div>
+      </div>
+
       <div class="pac-field" style="margin-top:8px;">
         <label>Observações</label>
         <textarea id="bio-obs" placeholder="Notas, aparelho usado (InBody), condições da medição"></textarea>
@@ -7485,6 +7495,11 @@
             <input type="number" id="ap-bio-perna-e" step="0.01">
           </div>
         </div>
+      </div>
+
+      <div class="pac-field">
+        <label>Pontuação InBody (0-100) — entra no Aplic Score</label>
+        <input type="number" id="ap-bio-pontuacao" min="0" max="100" step="1">
       </div>
 
       <div class="pac-field">
@@ -12342,9 +12357,9 @@ function bioPreencherDeIA(e) {
     set('bio-gord-visc', e.gordura_visceral); set('bio-tmb', e.tmb_kcal);
     set('bio-c-cintura', e.circ_cintura_cm); set('bio-c-quadril', e.circ_quadril_cm); set('bio-c-abdomen', e.circ_abdomen_cm);
     set('bio-agua-total', e.agua_total_litros);
+    set('bio-pontuacao', e.pontuacao_inbody);
     if (e.data) { const el = document.getElementById('bio-data'); if (el) el.value = e.data + 'T08:00'; }
     const extras = [];
-    if (e.pontuacao_inbody != null) extras.push('Pontuação InBody: ' + e.pontuacao_inbody);
     if (e.relacao_cintura_quadril != null) extras.push('Cintura-quadril: ' + e.relacao_cintura_quadril);
     if (e.grau_obesidade_pct != null) extras.push('Grau de obesidade: ' + e.grau_obesidade_pct + '%');
     if (e.resumo) extras.push(e.resumo);
@@ -12394,6 +12409,7 @@ async function bioSalvar() {
     agua_total_litros: num('bio-agua-total'),
     agua_intracelular: num('bio-agua-intra'),
     agua_extracelular: num('bio-agua-extra'),
+    pontuacao_inbody: numInt('bio-pontuacao'),
     observacoes: document.getElementById('bio-obs').value.trim() || null,
   };
 
@@ -15690,6 +15706,7 @@ async function apSalvarBio() {
     tronco_kg: num('ap-bio-tronco'),
     perna_d_kg: num('ap-bio-perna-d'),
     perna_e_kg: num('ap-bio-perna-e'),
+    pontuacao_inbody: numInt('ap-bio-pontuacao'),
     observacoes: document.getElementById('ap-bio-obs').value.trim() || null,
   };
 
