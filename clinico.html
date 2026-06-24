@@ -14845,6 +14845,16 @@ async function prAplicarTemplate(slug, nome) {
     prEvolFormState.campos = r.data.campos || [];
     prEvolFormState.respostas = r.data.respostas || {};
     prEvolFormState.origens = r.data.origens || {};
+    // Campo numero (<input type=number>) RECUSA valor formatado tipo "80 kg" e
+    // mostra vazio. Normaliza pra numero cru aqui no front -- garantido,
+    // independente do que o backend mande.
+    prEvolFormState.campos.forEach(cc => {
+      if (cc.tipo === 'numero' && prEvolFormState.respostas[cc.slug]) {
+        const mm = String(prEvolFormState.respostas[cc.slug]).replace(',', '.').match(/-?\d+(\.\d+)?/);
+        prEvolFormState.respostas[cc.slug] = mm ? mm[0] : '';
+        if (!prEvolFormState.respostas[cc.slug]) prEvolFormState.origens[cc.slug] = '';
+      }
+    });
     prEvolRenderForm();
     document.getElementById('pr-evol-editor-wrap').style.display = 'none';
     document.getElementById('pr-evol-form').style.display = 'block';
