@@ -7889,6 +7889,13 @@ const STATUS_LABELS = {
   CANCELADO: 'Cancelado',
 };
 function labelStatus(s) { return STATUS_LABELS[s] || s; }
+// Dose: se vier só número ("8"), exibe "8mg"; se já tem unidade ("8mg"/"8ml"/"5000 UI"), mantém.
+function fmtDoseUnidade(d) {
+  if (d == null) return '';
+  const s = String(d).trim();
+  if (!s) return '';
+  return /[a-zA-Z]/.test(s) ? s : s + 'mg';
+}
 const AUTH_TOKEN_KEY = 'aplic_auth_token';
 const NOVIDADES_KEY = 'aplic_clinico_novidades_lida';
 
@@ -11938,7 +11945,7 @@ function prRenderHeaderRico() {
   // Injetável: nome + DOSE logo após (em destaque) + frequência
   if (meds.injetaveis && meds.injetaveis.length) {
     meds.injetaveis.forEach(m => {
-      const dose = m.dose ? ` <strong class="med-dose">${m.dose}</strong>` : '';
+      const dose = m.dose ? ` <strong class="med-dose">${fmtDoseUnidade(m.dose)}</strong>` : '';
       const freq = m.frequencia ? ` · ${m.frequencia}` : '';
       medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${m.nome}${dose}${freq}</span></div>`);
     });
@@ -12061,7 +12068,7 @@ function prRenderCardClinico(h) {
 
   const renderMed = (m, cls) => {
     const partes = [];
-    if (m.dose) partes.push('<strong>' + m.dose + '</strong>');
+    if (m.dose) partes.push('<strong>' + (cls === 'injetavel' ? fmtDoseUnidade(m.dose) : m.dose) + '</strong>');
     if (m.dose_anterior) partes.push('<span class="dose-ant">' + m.dose_anterior + '</span>');
     if (m.frequencia) partes.push(m.frequencia);
     if (m.via) partes.push(m.via);
