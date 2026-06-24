@@ -8045,6 +8045,9 @@ async function carregarMe() {
     document.getElementById('status-dot').style.background = '#f85149';
     document.getElementById('hero-saudacao').textContent = 'Erro de conexão';
     document.getElementById('hero-sub').textContent = e.message;
+    // NÃO deixa o usuário preso numa casca sem permissões (ex.: servidor reiniciando
+    // num deploy): manda pro login pra ele entrar de novo quando o servidor voltar.
+    mostrarLogin('Falha ao falar com o servidor. Entre novamente.');
   }
 }
 
@@ -8062,14 +8065,14 @@ function aplicarUI() {
   const agora = new Date();
   const horas = agora.getHours();
   const saud = horas < 12 ? 'Bom dia' : horas < 18 ? 'Boa tarde' : 'Boa noite';
-  document.getElementById('hero-saudacao').textContent = `${saud}, ${authUser.nome.split(' ')[0]}`;
+  document.getElementById('hero-saudacao').textContent = `${saud}, ${(authUser.nome || authUser.email || 'Usuário').split(' ')[0]}`;
   document.getElementById('hero-sub').textContent = 'Sistema Clínico · Fundação ativa, demais módulos chegando por etapas';
 
   // Hero chips
   document.getElementById('hero-role-txt').textContent = authUser.role;
   document.getElementById('hero-unidades-txt').textContent =
     `${meData.unidades.length} ${meData.unidades.length === 1 ? 'unidade' : 'unidades'}`;
-  const caps = Object.keys(meData.capabilities).filter(k => meData.capabilities[k]).length;
+  const caps = Object.keys(meData.capabilities || {}).filter(k => meData.capabilities[k]).length;
   document.getElementById('hero-caps-txt').textContent = `${caps} capabilities`;
 
   // Mostra sidebar Admin se tem permissão de admin ou dev
