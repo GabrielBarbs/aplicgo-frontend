@@ -13153,6 +13153,33 @@ async function onbAbrirModal(patientId) {
   // Resumo
   const p = r.data.paciente;
   const statusCor = p.status === 'ATIVO' ? '#1D9E75' : (p.status === 'INCOMPLETO' || p.status === 'PRE_PROGRAMA' ? '#EF9F27' : 'var(--tx3b)');
+  // Dados clínicos puxados do paciente (peso/altura/meta/saúde/anamnese). Antes o
+  // onboarding era uma ilha e não mostrava nada disso.
+  const c = r.data.clinico || {};
+  const naOnb = '<span style="color:var(--tx4);">—</span>';
+  const fkgOnb = (v) => v == null ? naOnb : String(v).replace('.', ',') + ' kg';
+  const ftxOnb = (v) => v ? esc(String(v)) : naOnb;
+  const origLblOnb = { cadastro: 'cadastro', bioimpedancia: 'bioimp.', evolucao: 'evolução' };
+  const origOnb = (o) => o ? ` <span style="font-size:9px; color:var(--tx4);">(${origLblOnb[o] || o})</span>` : '';
+  const comorOnb = (c.comorbidades && c.comorbidades.length) ? c.comorbidades.map(x => esc(x)).join(', ') : naOnb;
+  const campoOnb = (lbl, val, full) => `<div${full ? ' style="grid-column:1/-1;"' : ''}><div style="font-size:10px; color:var(--tx3b);">${lbl}</div><div style="color:var(--tx1);">${val}</div></div>`;
+  const clinicoHtml = `
+    <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--bg3);">
+      <div style="font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--tx3b); margin-bottom:8px; font-weight:600;">
+        <i class="ti ti-clipboard-heart" style="color:#1D9E75;"></i> Dados clínicos do paciente
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px 14px; font-size:12px;">
+        ${campoOnb('Peso inicial', fkgOnb(c.peso_inicial_kg) + origOnb(c.peso_inicial_origem))}
+        ${campoOnb('Peso atual', fkgOnb(c.peso_atual_kg) + origOnb(c.peso_atual_origem))}
+        ${campoOnb('Meta', fkgOnb(c.peso_objetivo_kg))}
+        ${campoOnb('Altura', c.altura_cm != null ? c.altura_cm + ' cm' : naOnb)}
+        ${campoOnb('IMC atual', c.imc_atual != null ? String(c.imc_atual).replace('.', ',') : naOnb)}
+        ${campoOnb('Motivação', ftxOnb(c.motivacao))}
+        ${campoOnb('Comorbidades', comorOnb, true)}
+        ${campoOnb('Alergias', ftxOnb(c.alergias), true)}
+        ${campoOnb('Medicações em uso', ftxOnb(c.medicacoes_em_uso), true)}
+      </div>
+    </div>`;
   document.getElementById('onb-pat-info').innerHTML = `
     <div style="display:flex; align-items:center; gap:10px;">
       <i class="ti ti-user-circle" style="color:#4A90E2; font-size:18px;"></i>
@@ -13166,7 +13193,7 @@ async function onbAbrirModal(patientId) {
         </div>
       </div>
     </div>
-  `;
+  ${clinicoHtml}`;
 
   // Datas opcionais
   const ob = onbState.data || {};
