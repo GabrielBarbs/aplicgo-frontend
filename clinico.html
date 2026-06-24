@@ -14886,7 +14886,7 @@ function prEvolRenderForm() {
   let html = `
     <div style="background:rgba(74,144,226,0.06); border:1px solid rgba(74,144,226,0.20); border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:11px; color:var(--tx3);">
       <i class="ti ti-info-circle" style="color:#4A90E2; margin-right:4px;"></i>
-      Campos com origem (cadastro / evolução anterior) atualizam automaticamente o perfil do paciente ao salvar.
+      Campos preenchidos automaticamente (do paciente / último registro) atualizam o perfil do paciente ao salvar.
     </div>
   `;
   let secaoAtual = null;
@@ -14897,9 +14897,15 @@ function prEvolRenderForm() {
     }
     const valor = (respostas[c.slug] || '').replace(/"/g, '&quot;');
     const origem = origens[c.slug];
-    const origemHtml = origem === 'evolucao_anterior'
-      ? '<span class="origem anterior"><i class="ti ti-history" style="font-size:9px;"></i> da evolução anterior</span>'
-      : (origem && origem !== '' ? '<span class="origem fonte"><i class="ti ti-database" style="font-size:9px;"></i> do cadastro</span>' : '');
+    // Selo de origem HONESTO: o cadastro nao guarda mais peso/meta, entao nada de
+    // "do cadastro" falso. Carry-forward = "do ultimo registro"; dado do registro
+    // do paciente (peso/meta/saude/anamnese) = "do paciente".
+    let origemHtml = '';
+    if (origem === 'evolucao_anterior' || origem === 'ultimo_acompanhamento') {
+      origemHtml = '<span class="origem anterior"><i class="ti ti-history" style="font-size:9px;"></i> do último registro</span>';
+    } else if (origem && origem !== '') {
+      origemHtml = '<span class="origem fonte"><i class="ti ti-database" style="font-size:9px;"></i> do paciente</span>';
+    }
     const inputId = 'pr-evol-campo-' + c.slug;
     let inputHtml;
     if (c.tipo === 'texto_longo') {
