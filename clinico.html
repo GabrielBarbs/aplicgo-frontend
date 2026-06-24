@@ -12457,7 +12457,7 @@ async function bioCarregarSerie(patientId) {
   if (!r.ok) { bioState.serie = []; return; }
   const lista = (r.data.bioimpedancias || []).slice().reverse();
   // Calcula fallbacks pros campos que talvez nao existam (backend pre-Combo 3)
-  bioState.serie = lista.map(b => {
+  bioState.serieBio = lista.map(b => {
     let massaGordura = b.massa_gordura_kg;
     if (massaGordura == null && b.peso_kg != null && b.gordura_pct != null) {
       massaGordura = Math.round(b.peso_kg * b.gordura_pct) / 100;
@@ -12477,6 +12477,28 @@ async function bioCarregarSerie(patientId) {
       massa_muscular_kg: massaMuscular,
     };
   });
+  bioMontarSerie();
+}
+
+// Junta a série da bioimpedância com os pontos de peso/gordura/massa vindos dos
+// acompanhamentos e onboarding (evoluções). Aceita ponto PARCIAL (só peso, etc.).
+function bioMontarSerie() {
+  const bio = bioState.serieBio || [];
+  const pf = (v) => { if (v == null) return null; const m = String(v).replace(',', '.').match(/-?\d+(\.\d+)?/); return m ? Number(m[0]) : null; };
+  const evol = [];
+  const tl = (typeof prState !== 'undefined' && prState.timeline) || [];
+  tl.forEach(t => {
+    if (t.tipo !== 'evolucao') return;
+    const d = t.dados || {}, r = d.respostas || {};
+    const peso = d.peso_atual_kg != null ? Number(d.peso_atual_kg) : (pf(r.peso_atual) != null ? pf(r.peso_atual) : pf(r.peso_inicial));
+    const gordura = pf(r.gordura_pct) != null ? pf(r.gordura_pct) : pf(r.gordura);
+    const massa = pf(r.massa_muscular) != null ? pf(r.massa_muscular) : pf(r.massa_magra);
+    if (peso == null && gordura == null && massa == null) return;
+    evol.push({ data: t.data || d.data, peso_kg: peso, gordura_pct: gordura, massa_muscular_kg: massa, massa_gordura_kg: null, fonte: 'evolucao' });
+  });
+  bioState.serie = bio.concat(evol).filter(p => p.data).sort((a, b) => new Date(a.data) - new Date(b.data));
+  const card = document.getElementById('pr-grafico-card-render');
+  if (card) card.innerHTML = bioRenderGrafico();
 }
 
 function bioToggleSerie(metrica) {
@@ -13907,6 +13929,7 @@ async function prCarregarTimeline() {
     return;
   }
   prState.timeline = r.data.timeline;
+  if (typeof bioMontarSerie === 'function') bioMontarSerie(); // dobra peso/massa/gordura das evoluções no gráfico
   prRenderTimeline();
   prCarregarDocumentos();
 }
