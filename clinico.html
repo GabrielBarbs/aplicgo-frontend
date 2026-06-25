@@ -4360,6 +4360,23 @@
       margin-bottom: 14px;
     }
 
+    /* ===== Protocolos injetáveis (modal de prescrição) ===== */
+    .pro-grp { margin-top: 8px; }
+    .pro-grp-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--tx3b); margin-bottom: 4px; font-weight: 600; }
+    .pro-chks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+    .pro-chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--tx2); cursor: pointer; }
+    .pro-vazio { font-size: 11px; color: var(--tx4); font-style: italic; }
+    .pro-preview { background: rgba(var(--bg3-rgb),0.4); border: 1px solid var(--bg3); border-radius: 8px; padding: 10px 12px; }
+    .pro-calc { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--tx1); margin-bottom: 6px; }
+    .pro-bloqueio { font-size: 12px; color: #f85149; display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+    .pro-aviso { font-size: 12px; color: #EF9F27; display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+    .pro-confirma { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #EF9F27; margin-top: 6px; cursor: pointer; }
+    .pro-alertas { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .pro-alerta { font-size: 10px; background: rgba(74,144,226,0.12); color: #4A90E2; border-radius: 6px; padding: 2px 7px; }
+    .pro-presc-item { display: flex; justify-content: space-between; font-size: 12px; color: var(--tx2); padding: 3px 0; }
+    .pro-presc-meta { color: var(--tx3b); font-size: 11px; }
+    .pro-sep { border-top: 1px solid var(--bg3); margin: 10px 0; }
+
     /* ===== Organizar cards do prontuário (botão de engrenagem) ===== */
     /* slot some no modo normal (display:contents) -> zero impacto no layout */
     .pr-card-slot { display: contents; }
@@ -7273,6 +7290,58 @@
         <button class="pac-btn-secondary" onclick="prFecharPresc()">Cancelar</button>
         <button class="pac-btn-primary" onclick="prSalvarPresc()">
           <i class="ti ti-device-floppy"></i> Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL PROTOCOLO INJETÁVEL ============== -->
+<div class="ag-modal-overlay" id="pro-modal" onclick="if(event.target.id==='pro-modal') proFechar()">
+  <div class="ag-modal" style="max-width: 640px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-vaccine"></i> Prescrever protocolo injetável</div>
+      <button class="pac-modal-close" onclick="proFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="pro-erro"></div>
+      <input type="hidden" id="pro-patient-id">
+      <div id="pro-lista-ativos"></div>
+      <div class="pac-form-grid col-2">
+        <div class="pac-field" style="grid-column: span 2;">
+          <label>Protocolo (pacote) <span class="req">*</span></label>
+          <select id="pro-pacote" onchange="proPacoteMudou()"></select>
+        </div>
+        <div class="pac-field">
+          <label>Semanas <span class="req">*</span></label>
+          <input type="number" id="pro-semanas" min="1" max="24" value="6" oninput="proSimular()">
+        </div>
+        <div class="pac-field">
+          <label>Frequência <span class="req">*</span></label>
+          <select id="pro-frequencia" onchange="proSimular()">
+            <option value="semanal">Semanal</option>
+            <option value="quinzenal">Quinzenal</option>
+            <option value="mensal">Mensal</option>
+          </select>
+        </div>
+        <div class="pac-field" style="grid-column: span 2; display:none;" id="pro-intercalar-wrap">
+          <label>Intercalar com</label>
+          <select id="pro-intercalar" onchange="proSimular()"><option value="">—</option></select>
+        </div>
+      </div>
+      <div id="pro-ativos"></div>
+      <div class="pac-field" style="margin-top:10px;">
+        <label>Observações</label>
+        <textarea id="pro-obs" placeholder="Notas do médico"></textarea>
+      </div>
+      <div id="pro-preview" style="margin-top:12px;"></div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="proFechar()">Cancelar</button>
+        <button class="pac-btn-primary" id="pro-salvar" onclick="proSalvar()" disabled>
+          <i class="ti ti-vaccine"></i> Prescrever
         </button>
       </div>
     </div>
@@ -13960,6 +14029,9 @@ function prRenderTimeline() {
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="memedAbrir()" title="Emitir receita com assinatura digital ICP-Brasil (Memed)">
         <i class="ti ti-file-certificate"></i> Receita (Memed)
       </button>` : ''}
+      ${_podePresc ? `<button class="pac-btn-secondary" onclick="proAbrirModal(prState.pacienteAtual.id)" title="Prescrever protocolo injetável (pacotes adjuvantes)">
+        <i class="ti ti-vaccine"></i> Protocolo injetável
+      </button>` : ''}
       ${_podeExam ? `<button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
         <i class="ti ti-flask"></i> Solicitar exames
       </button>` : ''}
@@ -15285,6 +15357,144 @@ function prAbrirNovaPresc() {
 
 function prFecharPresc() {
   document.getElementById('pr-presc-modal').classList.remove('aberto');
+}
+
+// ============================================================
+// PROTOCOLOS INJETÁVEIS — prescrição (Fase 2b): pacote + preview ao vivo (/simular)
+// API do catálogo devolve camelCase (Prisma).
+// ============================================================
+let proState = { patientId: null, pacotes: [], ativos: {}, simTimer: null };
+
+async function proAbrirModal(patientId) {
+  proState.patientId = patientId;
+  document.getElementById('pro-patient-id').value = patientId;
+  document.getElementById('pro-erro').style.display = 'none';
+  document.getElementById('pro-preview').innerHTML = '';
+  document.getElementById('pro-lista-ativos').innerHTML = '';
+  document.getElementById('pro-obs').value = '';
+  document.getElementById('pro-salvar').disabled = true;
+  if (!proState.pacotes.length) await proCarregarCatalogo();
+  proPopularPacotes();
+  proCarregarLista(patientId);
+  proPacoteMudou();
+  document.getElementById('pro-modal').classList.add('aberto');
+}
+
+function proFechar() { document.getElementById('pro-modal').classList.remove('aberto'); }
+
+async function proCarregarCatalogo() {
+  const [rp, ra] = await Promise.all([
+    pacApi('/api/clinico/protocolos/pacotes'),
+    pacApi('/api/clinico/protocolos/ativos'),
+  ]);
+  proState.pacotes = (rp.ok && rp.data.pacotes) || [];
+  proState.ativos = {};
+  ((ra.ok && ra.data.ativos) || []).forEach(a => { proState.ativos[a.slug] = a; });
+}
+
+function proPopularPacotes() {
+  const porFam = {};
+  proState.pacotes.forEach(p => { const f = p.familia || 'Outros'; (porFam[f] = porFam[f] || []).push(p); });
+  document.getElementById('pro-pacote').innerHTML = Object.keys(porFam).sort().map(fam =>
+    `<optgroup label="${esc(fam)}">` + porFam[fam].map(p => `<option value="${esc(p.slug)}">${esc(p.nome)}</option>`).join('') + '</optgroup>'
+  ).join('');
+}
+
+function proPacoteAtual() { return proState.pacotes.find(p => p.slug === document.getElementById('pro-pacote').value); }
+
+function proPacoteMudou() {
+  const p = proPacoteAtual();
+  if (!p) return;
+  if (p.frequenciaPadrao) document.getElementById('pro-frequencia').value = p.frequenciaPadrao;
+  if (p.duracaoSemanasPadrao) document.getElementById('pro-semanas').value = p.duracaoSemanasPadrao;
+  const wrap = document.getElementById('pro-intercalar-wrap');
+  const isel = document.getElementById('pro-intercalar');
+  if (p.intercalaCom && p.intercalaCom.length) {
+    wrap.style.display = '';
+    isel.innerHTML = '<option value="">—</option>' + p.intercalaCom.map(slug => {
+      const o = proState.pacotes.find(x => x.slug === slug);
+      return `<option value="${esc(slug)}">${esc(o ? o.nome : slug)}</option>`;
+    }).join('');
+  } else { wrap.style.display = 'none'; isel.innerHTML = '<option value="">—</option>'; }
+  const nomeAtivo = (slug) => { const a = proState.ativos[slug]; return esc(a ? a.nome : slug); };
+  const nucleo = (p.ativosNucleo || []).map(slug =>
+    `<label class="pro-chk"><input type="checkbox" class="pro-excluir" value="${esc(slug)}" checked onchange="proSimular()"> ${nomeAtivo(slug)}</label>`).join('') || '<span class="pro-vazio">—</span>';
+  const opc = (p.ativosOpcionais || []).map(slug =>
+    `<label class="pro-chk"><input type="checkbox" class="pro-incluir" value="${esc(slug)}" onchange="proSimular()"> ${nomeAtivo(slug)}</label>`).join('') || '<span class="pro-vazio">—</span>';
+  document.getElementById('pro-ativos').innerHTML =
+    `<div class="pro-grp"><div class="pro-grp-lbl">Núcleo (desmarque pra remover)</div><div class="pro-chks">${nucleo}</div></div>` +
+    `<div class="pro-grp"><div class="pro-grp-lbl">Opcionais (marque pra incluir)</div><div class="pro-chks">${opc}</div></div>`;
+  proSimular();
+}
+
+function proColetar() {
+  return {
+    patient_id: proState.patientId,
+    pacote_slug: document.getElementById('pro-pacote').value,
+    semanas: Number(document.getElementById('pro-semanas').value) || 0,
+    frequencia: document.getElementById('pro-frequencia').value,
+    intercalar_com: document.getElementById('pro-intercalar').value || null,
+    incluir_ativos: [...document.querySelectorAll('.pro-incluir:checked')].map(c => c.value),
+    excluir_ativos: [...document.querySelectorAll('.pro-excluir:not(:checked)')].map(c => c.value),
+    confirmacoes: [...document.querySelectorAll('.pro-confirmar:checked')].map(c => c.value),
+    observacoes: document.getElementById('pro-obs').value || null,
+  };
+}
+
+function proSimular() {
+  clearTimeout(proState.simTimer);
+  proState.simTimer = setTimeout(proSimularAgora, 250);
+}
+async function proSimularAgora() {
+  const cfg = proColetar();
+  if (!cfg.pacote_slug) return;
+  const r = await pacApi('/api/clinico/protocolos/simular', { method: 'POST', body: JSON.stringify(cfg) });
+  if (!r.ok) { document.getElementById('pro-preview').innerHTML = ''; document.getElementById('pro-salvar').disabled = true; return; }
+  proRenderPreview(r.data.calc, r.data.validacao);
+}
+
+function proFmtReais(cents) { return cents == null ? '—' : 'R$ ' + (cents / 100).toFixed(2).replace('.', ','); }
+
+function proRenderPreview(calc, val) {
+  const blo = (val.bloqueios || []).map(b => `<div class="pro-bloqueio"><i class="ti ti-ban"></i> ${esc(b)}</div>`).join('');
+  const conf = (val.confirmacoesNecessarias || []).map(slug => {
+    const a = proState.ativos[slug];
+    return `<label class="pro-confirma"><input type="checkbox" class="pro-confirmar" value="${esc(slug)}" onchange="proSimular()"> Confirmo o uso não-rotina de <strong>${esc(a ? a.nome : slug)}</strong></label>`;
+  }).join('');
+  const avi = (val.avisos || []).map(a => `<div class="pro-aviso"><i class="ti ti-alert-triangle"></i> ${esc(a)}</div>`).join('');
+  const ale = (val.alertas || []).map(a => `<span class="pro-alerta">${esc(a)}</span>`).join('');
+  document.getElementById('pro-preview').innerHTML = `
+    <div class="pro-preview">
+      <div class="pro-calc"><span><b>${calc.nAplicacoes}</b> aplicações</span><span>Custo estimado <b>${proFmtReais(calc.custoEstimadoCents)}</b></span></div>
+      ${blo}${conf}${avi}
+      ${ale ? `<div class="pro-alertas">${ale}</div>` : ''}
+    </div>`;
+  document.getElementById('pro-salvar').disabled = !val.ok;
+}
+
+async function proSalvar() {
+  const btn = document.getElementById('pro-salvar'); btn.disabled = true;
+  const r = await pacApi('/api/clinico/protocolos/prescricoes', { method: 'POST', body: JSON.stringify(proColetar()) });
+  if (!r.ok) {
+    const err = document.getElementById('pro-erro');
+    const bloq = r.data && r.data.validacao && (r.data.validacao.bloqueios || []).join(' · ');
+    err.textContent = bloq || (r.data && r.data.erro) || 'Erro ao prescrever';
+    err.style.display = 'block'; btn.disabled = false; return;
+  }
+  proFechar();
+  if (typeof prCarregarTimeline === 'function') prCarregarTimeline();
+}
+
+async function proCarregarLista(patientId) {
+  const wrap = document.getElementById('pro-lista-ativos');
+  if (!wrap) return;
+  const r = await pacApi('/api/clinico/protocolos/prescricoes/' + patientId);
+  const lista = (r.ok && r.data.prescricoes) || [];
+  if (!lista.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<div class="pro-grp-lbl">Já prescritos</div>' + lista.map(p => {
+    const pac = proState.pacotes.find(x => x.slug === p.pacoteSlug);
+    return `<div class="pro-presc-item"><span>${esc(pac ? pac.nome : p.pacoteSlug)}</span><span class="pro-presc-meta">${p.nAplicacoes || '?'} aplic · ${esc(p.status)}</span></div>`;
+  }).join('') + '<div class="pro-sep"></div>';
 }
 
 function prAddItem() {
