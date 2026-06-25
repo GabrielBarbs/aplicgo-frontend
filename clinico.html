@@ -4386,6 +4386,8 @@
     .pro-status-btn { font-size: 10px; background: rgba(var(--ac-rgb),0.12); color: var(--ac); border: 1px solid rgba(var(--ac-rgb),0.3); border-radius: 6px; padding: 2px 7px; cursor: pointer; }
     .pro-status-btn:hover { background: rgba(var(--ac-rgb),0.2); }
     .pro-status-btn.cancelar { background: transparent; color: var(--tx3b); border-color: var(--bd1); }
+    .pro-estoque-ok { font-size: 12px; color: #1D9E75; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+    .pro-estoque-warn { font-size: 12px; color: #EF9F27; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
 
     /* ===== Organizar cards do prontuário (botão de engrenagem) ===== */
     /* slot some no modo normal (display:contents) -> zero impacto no layout */
@@ -15515,12 +15517,20 @@ async function proSimularAgora() {
   if (!cfg.pacote_slug) return;
   const r = await pacApi('/api/clinico/protocolos/simular', { method: 'POST', body: JSON.stringify(cfg) });
   if (!r.ok) { document.getElementById('pro-preview').innerHTML = ''; document.getElementById('pro-salvar').disabled = true; return; }
-  proRenderPreview(r.data.calc, r.data.validacao);
+  proRenderPreview(r.data.calc, r.data.validacao, r.data.estoque);
 }
 
 function proFmtReais(cents) { return cents == null ? '—' : 'R$ ' + (cents / 100).toFixed(2).replace('.', ','); }
 
-function proRenderPreview(calc, val) {
+function proRenderEstoque(est) {
+  if (!est || !(est.itens || []).length) return '';
+  const linhas = [];
+  if ((est.semProduto || []).length) linhas.push(`<div class="pro-estoque-warn"><i class="ti ti-link-off"></i> Sem produto vinculado ao estoque: ${est.semProduto.map(esc).join(', ')}</div>`);
+  (est.insuficientes || []).forEach(i => linhas.push(`<div class="pro-estoque-warn"><i class="ti ti-alert-triangle"></i> ${esc(i.nome)}: precisa ${i.necessario}, tem ${i.disponivel}</div>`));
+  if (!linhas.length) return `<div class="pro-estoque-ok"><i class="ti ti-checks"></i> Estoque suficiente pros insumos</div>`;
+  return linhas.join('');
+}
+function proRenderPreview(calc, val, estoque) {
   const blo = (val.bloqueios || []).map(b => `<div class="pro-bloqueio"><i class="ti ti-ban"></i> ${esc(b)}</div>`).join('');
   const conf = (val.confirmacoesNecessarias || []).map(slug => {
     const a = proState.ativos[slug];
@@ -15531,6 +15541,7 @@ function proRenderPreview(calc, val) {
   document.getElementById('pro-preview').innerHTML = `
     <div class="pro-preview">
       <div class="pro-calc"><span><b>${calc.nAplicacoes}</b> aplicações</span><span>Custo estimado <b>${proFmtReais(calc.custoEstimadoCents)}</b></span></div>
+      ${proRenderEstoque(estoque)}
       ${blo}${conf}${avi}
       ${ale ? `<div class="pro-alertas">${ale}</div>` : ''}
     </div>`;
