@@ -4376,6 +4376,11 @@
     .pro-presc-item { display: flex; justify-content: space-between; font-size: 12px; color: var(--tx2); padding: 3px 0; }
     .pro-presc-meta { color: var(--tx3b); font-size: 11px; }
     .pro-sep { border-top: 1px solid var(--bg3); margin: 10px 0; }
+    .pbase-titul-head { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+    .pbase-titul-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .pbase-titul-row select, .pbase-titul-row input { width: 110px; }
+    .pbase-titul-ate { font-size: 11px; color: var(--tx3b); }
+    .pbase-titul-del { background: transparent; border: 1px solid var(--bd1); color: var(--tx3b); border-radius: 6px; cursor: pointer; padding: 4px 7px; margin-left: auto; }
 
     /* ===== Organizar cards do prontuário (botão de engrenagem) ===== */
     /* slot some no modo normal (display:contents) -> zero impacto no layout */
@@ -7342,6 +7347,55 @@
         <button class="pac-btn-secondary" onclick="proFechar()">Cancelar</button>
         <button class="pac-btn-primary" id="pro-salvar" onclick="proSalvar()" disabled>
           <i class="ti ti-vaccine"></i> Prescrever
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL MEDICAMENTO-BASE (GLP-1) ============== -->
+<div class="ag-modal-overlay" id="pbase-modal" onclick="if(event.target.id==='pbase-modal') pbaseFechar()">
+  <div class="ag-modal" style="max-width: 600px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-syringe"></i> Prescrever medicamento-base (GLP-1)</div>
+      <button class="pac-modal-close" onclick="pbaseFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="pbase-erro"></div>
+      <input type="hidden" id="pbase-patient-id">
+      <div id="pbase-lista-ativos"></div>
+      <div class="pac-form-grid col-2">
+        <div class="pac-field" style="grid-column: span 2;">
+          <label>Droga <span class="req">*</span></label>
+          <select id="pbase-droga" onchange="pbaseDrogaMudou()"></select>
+        </div>
+        <div class="pac-field">
+          <label>Dose inicial <span class="req">*</span></label>
+          <select id="pbase-dose"></select>
+        </div>
+        <div class="pac-field">
+          <label>Frequência <span class="req">*</span></label>
+          <select id="pbase-freq"></select>
+        </div>
+      </div>
+      <div id="pbase-alertas" style="margin-top:8px;"></div>
+      <div class="pbase-titul-head">
+        <span class="pro-grp-lbl">Plano de titulação (escalonamento)</span>
+        <button type="button" class="pr-protocolos-novo" onclick="pbaseAddTitul()"><i class="ti ti-plus"></i> Degrau</button>
+      </div>
+      <div id="pbase-titul"></div>
+      <label class="pro-confirma" style="color:var(--tx2); margin-top:10px;"><input type="checkbox" id="pbase-auto" checked> Auto-administrado (paciente aplica em casa)</label>
+      <div class="pac-field" style="margin-top:10px;">
+        <label>Observações</label>
+        <textarea id="pbase-obs" placeholder="Notas do médico"></textarea>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="pbaseFechar()">Cancelar</button>
+        <button class="pac-btn-primary" id="pbase-salvar" onclick="pbaseSalvar()">
+          <i class="ti ti-device-floppy"></i> Prescrever
         </button>
       </div>
     </div>
@@ -14032,6 +14086,9 @@ function prRenderTimeline() {
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="proAbrirModal(prState.pacienteAtual.id)" title="Prescrever protocolo injetável (pacotes adjuvantes)">
         <i class="ti ti-vaccine"></i> Protocolo injetável
       </button>` : ''}
+      ${_podePresc ? `<button class="pac-btn-secondary" onclick="pbaseAbrirModal(prState.pacienteAtual.id)" title="Prescrever medicamento-base GLP-1/GIP (semaglutida/tirzepatida)">
+        <i class="ti ti-syringe"></i> Medicamento base (GLP-1)
+      </button>` : ''}
       ${_podeExam ? `<button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
         <i class="ti ti-flask"></i> Solicitar exames
       </button>` : ''}
@@ -15494,6 +15551,108 @@ async function proCarregarLista(patientId) {
   wrap.innerHTML = '<div class="pro-grp-lbl">Já prescritos</div>' + lista.map(p => {
     const pac = proState.pacotes.find(x => x.slug === p.pacoteSlug);
     return `<div class="pro-presc-item"><span>${esc(pac ? pac.nome : p.pacoteSlug)}</span><span class="pro-presc-meta">${p.nAplicacoes || '?'} aplic · ${esc(p.status)}</span></div>`;
+  }).join('') + '<div class="pro-sep"></div>';
+}
+
+// ============================================================
+// MEDICAMENTO-BASE (GLP-1/GIP) — prescrição (Fase 2c)
+// ============================================================
+const PBASE_FREQ_LBL = { semanal: 'Semanal', '2x_semana': '2x na semana', quinzenal: 'Quinzenal (a cada 15 dias)', dose_unica: 'Dose única' };
+let pbaseState = { patientId: null, medicamentos: [], titul: [] };
+
+async function pbaseAbrirModal(patientId) {
+  pbaseState.patientId = patientId;
+  document.getElementById('pbase-patient-id').value = patientId;
+  document.getElementById('pbase-erro').style.display = 'none';
+  document.getElementById('pbase-obs').value = '';
+  document.getElementById('pbase-auto').checked = true;
+  document.getElementById('pbase-lista-ativos').innerHTML = '';
+  if (!pbaseState.medicamentos.length) await pbaseCarregarCatalogo();
+  pbasePopularDrogas();
+  pbaseCarregarLista(patientId);
+  pbaseDrogaMudou();
+  document.getElementById('pbase-modal').classList.add('aberto');
+}
+
+function pbaseFechar() { document.getElementById('pbase-modal').classList.remove('aberto'); }
+
+async function pbaseCarregarCatalogo() {
+  const r = await pacApi('/api/clinico/protocolos/medicamentos-base');
+  pbaseState.medicamentos = (r.ok && r.data.medicamentos) || [];
+}
+
+function pbasePopularDrogas() {
+  document.getElementById('pbase-droga').innerHTML = pbaseState.medicamentos.map(m =>
+    `<option value="${esc(m.slug)}">${esc(m.nome)}${m.classe ? ' (' + esc(m.classe) + ')' : ''}</option>`).join('');
+}
+
+function pbaseDrogaAtual() { return pbaseState.medicamentos.find(m => m.slug === document.getElementById('pbase-droga').value); }
+
+function pbaseDrogaMudou() {
+  const m = pbaseDrogaAtual();
+  if (!m) return;
+  document.getElementById('pbase-dose').innerHTML = (m.dosesMg || []).map(d =>
+    `<option value="${d}" ${d === m.doseInicialPadrao ? 'selected' : ''}>${String(d).replace('.', ',')} mg</option>`).join('');
+  document.getElementById('pbase-freq').innerHTML = (m.frequenciasPermitidas || []).map(f =>
+    `<option value="${esc(f)}" ${f === m.frequenciaPadrao ? 'selected' : ''}>${PBASE_FREQ_LBL[f] || f}</option>`).join('');
+  pbaseState.titul = Array.isArray(m.titulacaoPadrao) ? m.titulacaoPadrao.map(t => ({ dose_mg: t.dose_mg, semanas: t.semanas })) : [];
+  pbaseRenderTitulacao();
+  const ale = (m.alertas || []).map(a => `<span class="pro-alerta">${esc(a)}</span>`).join('');
+  document.getElementById('pbase-alertas').innerHTML = ale ? `<div class="pro-alertas">${ale}</div>` : '';
+}
+
+function pbaseRenderTitulacao() {
+  const m = pbaseDrogaAtual();
+  const doses = (m && m.dosesMg) || [];
+  document.getElementById('pbase-titul').innerHTML = pbaseState.titul.map((t, i) => `
+    <div class="pbase-titul-row">
+      <select onchange="pbaseState.titul[${i}].dose_mg = Number(this.value)">
+        ${doses.map(d => `<option value="${d}" ${Number(t.dose_mg) === d ? 'selected' : ''}>${String(d).replace('.', ',')} mg</option>`).join('')}
+      </select>
+      <input type="number" min="1" placeholder="semanas" value="${t.semanas == null ? '' : t.semanas}" onchange="pbaseState.titul[${i}].semanas = this.value === '' ? null : Number(this.value)">
+      <span class="pbase-titul-ate">${t.semanas == null ? 'manutenção' : 'semanas'}</span>
+      <button type="button" class="pbase-titul-del" onclick="pbaseRemoveTitul(${i})"><i class="ti ti-x"></i></button>
+    </div>`).join('') || '<div class="pro-vazio">Sem degraus — dose fixa.</div>';
+}
+
+function pbaseAddTitul() {
+  const m = pbaseDrogaAtual();
+  pbaseState.titul.push({ dose_mg: m ? m.doseInicialPadrao : 0, semanas: 4 });
+  pbaseRenderTitulacao();
+}
+function pbaseRemoveTitul(i) { pbaseState.titul.splice(i, 1); pbaseRenderTitulacao(); }
+
+async function pbaseSalvar() {
+  const btn = document.getElementById('pbase-salvar'); btn.disabled = true;
+  const body = {
+    patient_id: pbaseState.patientId,
+    medicamento_base_slug: document.getElementById('pbase-droga').value,
+    dose_inicial_mg: Number(document.getElementById('pbase-dose').value),
+    frequencia: document.getElementById('pbase-freq').value,
+    titulacao: pbaseState.titul,
+    auto_administrado: document.getElementById('pbase-auto').checked,
+    observacoes: document.getElementById('pbase-obs').value || null,
+  };
+  const r = await pacApi('/api/clinico/protocolos/prescricoes-base', { method: 'POST', body: JSON.stringify(body) });
+  if (!r.ok) {
+    const err = document.getElementById('pbase-erro');
+    err.textContent = (r.data && r.data.erro) || 'Erro ao prescrever';
+    err.style.display = 'block'; btn.disabled = false; return;
+  }
+  btn.disabled = false;
+  pbaseFechar();
+  if (typeof prCarregarTimeline === 'function') prCarregarTimeline();
+}
+
+async function pbaseCarregarLista(patientId) {
+  const wrap = document.getElementById('pbase-lista-ativos');
+  if (!wrap) return;
+  const r = await pacApi('/api/clinico/protocolos/prescricoes-base/' + patientId);
+  const lista = (r.ok && r.data.prescricoes) || [];
+  if (!lista.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<div class="pro-grp-lbl">Já prescritos</div>' + lista.map(p => {
+    const m = pbaseState.medicamentos.find(x => x.slug === p.medicamentoBaseSlug);
+    return `<div class="pro-presc-item"><span>${esc(m ? m.nome : p.medicamentoBaseSlug)} ${String(p.doseInicialMg).replace('.', ',')}mg</span><span class="pro-presc-meta">${esc(p.frequencia)} · ${esc(p.status)}</span></div>`;
   }).join('') + '<div class="pro-sep"></div>';
 }
 
