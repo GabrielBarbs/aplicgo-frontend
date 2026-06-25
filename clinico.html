@@ -4381,6 +4381,11 @@
     .pbase-titul-row select, .pbase-titul-row input { width: 110px; }
     .pbase-titul-ate { font-size: 11px; color: var(--tx3b); }
     .pbase-titul-del { background: transparent; border: 1px solid var(--bd1); color: var(--tx3b); border-radius: 6px; cursor: pointer; padding: 4px 7px; margin-left: auto; }
+    .pro-presc-acoes { display: inline-flex; align-items: center; gap: 6px; }
+    .pro-status-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+    .pro-status-btn { font-size: 10px; background: rgba(var(--ac-rgb),0.12); color: var(--ac); border: 1px solid rgba(var(--ac-rgb),0.3); border-radius: 6px; padding: 2px 7px; cursor: pointer; }
+    .pro-status-btn:hover { background: rgba(var(--ac-rgb),0.2); }
+    .pro-status-btn.cancelar { background: transparent; color: var(--tx3b); border-color: var(--bd1); }
 
     /* ===== Organizar cards do prontuário (botão de engrenagem) ===== */
     /* slot some no modo normal (display:contents) -> zero impacto no layout */
@@ -15421,6 +15426,9 @@ function prFecharPresc() {
 // API do catálogo devolve camelCase (Prisma).
 // ============================================================
 let proState = { patientId: null, pacotes: [], ativos: {}, simTimer: null };
+const PRO_TRANSICOES = { prescrita:['agendada','cancelada'], agendada:['preparada','cancelada'], preparada:['aplicada','cancelada'], aplicada:['registrada'] };
+const PRO_STATUS_LBL = { prescrita:'Prescrita', agendada:'Agendada', preparada:'Preparada', aplicada:'Aplicada', registrada:'Registrada', cancelada:'Cancelada' };
+const PRO_STATUS_COR = { prescrita:'#4A90E2', agendada:'#7B68EE', preparada:'#EF9F27', aplicada:'#1D9E75', registrada:'#1D9E75', cancelada:'#f85149' };
 
 async function proAbrirModal(patientId) {
   proState.patientId = patientId;
@@ -15550,8 +15558,21 @@ async function proCarregarLista(patientId) {
   if (!lista.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = '<div class="pro-grp-lbl">Já prescritos</div>' + lista.map(p => {
     const pac = proState.pacotes.find(x => x.slug === p.pacoteSlug);
-    return `<div class="pro-presc-item"><span>${esc(pac ? pac.nome : p.pacoteSlug)}</span><span class="pro-presc-meta">${p.nAplicacoes || '?'} aplic · ${esc(p.status)}</span></div>`;
+    const trans = PRO_TRANSICOES[p.status] || [];
+    const prox = trans.find(t => t !== 'cancelada');
+    const acoes = (prox ? `<button class="pro-status-btn" onclick="proStatus('${p.id}','${prox}')">→ ${PRO_STATUS_LBL[prox]}</button>` : '') +
+      (trans.includes('cancelada') ? `<button class="pro-status-btn cancelar" onclick="proStatus('${p.id}','cancelada')" title="Cancelar">✕</button>` : '');
+    return `<div class="pro-presc-item">
+      <span>${esc(pac ? pac.nome : p.pacoteSlug)} <span class="pro-presc-meta">· ${p.nAplicacoes || '?'} aplic</span></span>
+      <span class="pro-presc-acoes"><span class="pro-status-badge" style="color:${PRO_STATUS_COR[p.status] || 'var(--tx3b)'};">${PRO_STATUS_LBL[p.status] || esc(p.status)}</span>${acoes}</span>
+    </div>`;
   }).join('') + '<div class="pro-sep"></div>';
+}
+
+async function proStatus(id, novo) {
+  const r = await pacApi('/api/clinico/protocolos/prescricoes/' + id + '/status', { method: 'PATCH', body: JSON.stringify({ status: novo }) });
+  if (!r.ok) { alert('Erro ao mudar status: ' + ((r.data && r.data.erro) || '--')); return; }
+  proCarregarLista(proState.patientId);
 }
 
 // ============================================================
