@@ -4378,7 +4378,19 @@
     .pro-sep { border-top: 1px solid var(--bg3); margin: 10px 0; }
     .pbase-titul-head { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
     .pbase-titul-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-    .pbase-titul-row select, .pbase-titul-row input { width: 110px; }
+    .pbase-titul-row select, .pbase-titul-row input {
+      width: 110px; background: var(--bg2); border: 1px solid var(--bg3);
+      color: var(--tx1); padding: 7px 9px; border-radius: 7px;
+      font-size: 12px; font-family: inherit; transition: border-color 0.15s;
+    }
+    .pbase-titul-row select:focus, .pbase-titul-row input:focus { outline: none; border-color: var(--ac); }
+    .pbase-titul-add {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--bg2); border: 1px solid var(--bg3); color: var(--tx2);
+      padding: 6px 11px; border-radius: 7px; font-size: 12px; font-family: inherit;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .pbase-titul-add:hover { border-color: var(--ac); color: var(--tx1); }
     .pbase-titul-ate { font-size: 11px; color: var(--tx3b); }
     .pbase-titul-del { background: transparent; border: 1px solid var(--bd1); color: var(--tx3b); border-radius: 6px; cursor: pointer; padding: 4px 7px; margin-left: auto; }
     .pro-presc-acoes { display: inline-flex; align-items: center; gap: 6px; }
@@ -7388,7 +7400,7 @@
       <div id="pbase-alertas" style="margin-top:8px;"></div>
       <div class="pbase-titul-head">
         <span class="pro-grp-lbl">Plano de titulação (escalonamento)</span>
-        <button type="button" class="pr-protocolos-novo" onclick="pbaseAddTitul()"><i class="ti ti-plus"></i> Degrau</button>
+        <button type="button" class="pbase-titul-add" onclick="pbaseAddTitul()"><i class="ti ti-plus"></i> Degrau</button>
       </div>
       <div id="pbase-titul"></div>
       <label class="pro-confirma" style="color:var(--tx2); margin-top:10px;"><input type="checkbox" id="pbase-auto" checked> Auto-administrado (paciente aplica em casa)</label>
