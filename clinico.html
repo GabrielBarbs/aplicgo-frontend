@@ -5119,6 +5119,9 @@
       <button class="sidebar-item" data-view="estoque" data-perm="estoque.ver">
         <i class="ti ti-package"></i> Estoque
       </button>
+      <button class="sidebar-item" data-view="pac_app" data-perm="paciente.ver_lista">
+        <i class="ti ti-device-mobile"></i> Pacientes no App
+      </button>
     </div>
 
     <div class="sidebar-group" id="sidebar-group-admin" style="display:none;">
@@ -5854,6 +5857,24 @@
     </div>
     <div id="wd-body" style="max-width: 780px;">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando dispositivos...</div>
+    </div>
+  </div>
+
+  <!-- VIEW: Pacientes no App -->
+  <div class="view" id="view-pac_app">
+    <div id="pacapp-lista">
+      <div class="dev-toolbar">
+        <div class="dev-info">
+          <strong>Pacientes no app:</strong> quem está com sessão ativa, último acesso, wearables conectados e última sincronização. Clique pra abrir o acompanhamento completo.
+        </div>
+        <div class="dev-acoes">
+          <button class="pac-btn-secondary" onclick="pacAppCarregar()" title="Atualizar"><i class="ti ti-refresh"></i> Atualizar</button>
+        </div>
+      </div>
+      <div id="pacapp-wrap"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
+    </div>
+    <div id="pacapp-detalhe" style="display:none;">
+      <div id="pacapp-detalhe-wrap"></div>
     </div>
   </div>
 
@@ -8410,6 +8431,145 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================================
+// PACIENTES NO APP (monitoramento via aplicativo)
+// ============================================================
+const pacAppState = { lista: [], detalhe: null };
+const PACAPP_PROV = { APPLE:'Apple Watch', OURA:'Oura', GARMIN:'Garmin', FITBIT:'Fitbit', WHOOP:'Whoop', WITHINGS:'Withings', POLAR:'Polar', SUUNTO:'Suunto', SAMSUNG:'Samsung', GOOGLE:'Google Fit', FREESTYLELIBRE:'FreeStyle Libre' };
+function pacAppProv(p){ return PACAPP_PROV[(p||'').toUpperCase()] || p || '—'; }
+function pacAppTempo(iso){ if(!iso) return '—'; const min=Math.floor((Date.now()-new Date(iso).getTime())/60000); if(min<1) return 'agora'; if(min<60) return 'há '+min+' min'; const h=Math.floor(min/60); if(h<24) return 'há '+h+'h'; return 'há '+Math.floor(h/24)+'d'; }
+function pacAppData(iso){ if(!iso) return '—'; try { return new Date(iso).toLocaleDateString('pt-BR'); } catch(e){ return '—'; } }
+function pacAppSono(min){ if(min==null) return '—'; return Math.floor(min/60)+'h '+(min%60)+'m'; }
+function pacAppEsc(s){ return String(s==null?'':s).replace(/[<>'"\\]/g,''); }
+
+function pacAppInit(){ pacAppVoltar(); pacAppCarregar(); }
+function pacAppVoltar(){ document.getElementById('pacapp-detalhe').style.display='none'; document.getElementById('pacapp-lista').style.display='block'; }
+
+async function pacAppCarregar(){
+  const wrap=document.getElementById('pacapp-wrap');
+  wrap.innerHTML='<div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div>';
+  try {
+    const r=await pacApi('/api/clinico/app/pacientes');
+    if(!r.ok){ wrap.innerHTML='<div class="pac-empty">Não consegui carregar.</div>'; return; }
+    pacAppState.lista=r.data.pacientes||[];
+    renderPacAppLista();
+  } catch(e){ wrap.innerHTML='<div class="pac-empty">Erro ao carregar.</div>'; }
+}
+
+function renderPacAppLista(){
+  const wrap=document.getElementById('pacapp-wrap');
+  const ps=pacAppState.lista;
+  if(!ps.length){ wrap.innerHTML='<div class="pac-empty"><i class="ti ti-device-mobile"></i>Nenhum paciente ativo no app ainda.</div>'; return; }
+  const rows=ps.map(function(p){
+    const dot='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#1D9E75;box-shadow:0 0 6px rgba(29,158,117,.6);margin-right:6px;"></span>';
+    const wear=p.wearable_conectado?'<span class="pac-tag ATIVO" style="font-size:10px;">'+(p.wearables||[]).map(pacAppProv).join(', ')+'</span>':'<span style="color:var(--tx4);font-size:11px;">—</span>';
+    const nome=pacAppEsc(p.nome);
+    return '<tr style="cursor:pointer;" onclick="pacAppAbrir(\''+p.id+'\')">'
+      +'<td class="col-fix-l1">'+dot+(p.codigo||'')+'</td>'
+      +'<td class="col-fix-l2">'+(p.nome||'')+'</td>'
+      +'<td>'+pacAppTempo(p.ultima_sessao)+'</td>'
+      +'<td>'+(p.device||'—')+'</td>'
+      +'<td>'+wear+'</td>'
+      +'<td>'+(p.ultimo_sync?pacAppTempo(p.ultimo_sync):'—')+'</td>'
+      +'<td onclick="event.stopPropagation();" style="white-space:nowrap;">'
+        +'<button class="pac-btn-mini" title="Abrir prontuário" onclick="pacAppProntuario(\''+p.id+'\',\''+nome+'\',\''+(p.codigo||'')+'\',\''+(p.telefone||'')+'\')"><i class="ti ti-file-text"></i></button> '
+        +'<button class="pac-btn-mini" title="Acompanhamento" onclick="pacAppAbrir(\''+p.id+'\')"><i class="ti ti-chevron-right"></i></button>'
+      +'</td></tr>';
+  }).join('');
+  wrap.innerHTML='<div class="pac-table-card"><div style="overflow-x:auto;"><table class="pac-table">'
+    +'<thead><tr><th class="col-fix-l1">Código</th><th class="col-fix-l2">Paciente</th><th>Última sessão</th><th>Dispositivo</th><th>Wearable</th><th>Último sync</th><th>Ações</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div></div>';
+}
+
+function pacAppProntuario(id,nome,codigo,tel){ trocarView('prontuario'); prSelecionarPaciente({ id:id, nome:nome, codigo:codigo, telefone:tel }); }
+
+async function pacAppAbrir(id){
+  document.getElementById('pacapp-lista').style.display='none';
+  document.getElementById('pacapp-detalhe').style.display='block';
+  const wrap=document.getElementById('pacapp-detalhe-wrap');
+  wrap.innerHTML='<div class="pac-empty"><i class="ti ti-loader"></i>Carregando acompanhamento…</div>';
+  try {
+    const r=await pacApi('/api/clinico/app/paciente/'+id);
+    if(!r.ok){ wrap.innerHTML='<div class="pac-empty">Não consegui carregar. <button class="pac-btn-secondary" onclick="pacAppVoltar()">Voltar</button></div>'; return; }
+    pacAppState.detalhe=r.data;
+    renderPacAppDetalhe(r.data);
+  } catch(e){ wrap.innerHTML='<div class="pac-empty">Erro ao carregar.</div>'; }
+}
+
+function pacAppMini(lbl,val,un){ const v=(val==null||val==='')?'<span style="color:var(--tx4)">—</span>':(val+(un?'<span style="font-size:10px;color:var(--tx3)"> '+un+'</span>':'')); return '<div style="flex:1;min-width:62px;"><div style="font-size:9px;color:var(--tx3b);text-transform:uppercase;letter-spacing:.4px;">'+lbl+'</div><div style="font-size:15px;color:var(--tx1);font-weight:600;">'+v+'</div></div>'; }
+
+function pacAppSpark(serie){
+  if(!serie||serie.length<2) return '<div style="color:var(--tx4);font-size:12px;padding:10px 0;">Sem histórico suficiente pro gráfico ainda.</div>';
+  const W=520,H=120,pad=16;
+  const x=function(i){ return pad+(i/(serie.length-1))*(W-pad*2); };
+  const y=function(v){ return pad+(1-v/100)*(H-pad*2); };
+  const pts=serie.map(function(s,i){ return x(i)+','+y(s.aplic); }).join(' ');
+  const dots=serie.map(function(s,i){ return '<circle cx="'+x(i)+'" cy="'+y(s.aplic)+'" r="3" fill="var(--ac)"/>'; }).join('');
+  return '<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="max-height:130px;">'
+    +'<polyline points="'+pts+'" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linejoin="round"/>'+dots+'</svg>';
+}
+
+function pacAppDia(titulo,dd){
+  if(!dd) return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-activity"></i> '+titulo+'</div></div><div style="color:var(--tx4);font-size:12px;">Sem dados.</div></div>';
+  return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-activity"></i> '+titulo+'</div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +pacAppMini('Passos',dd.passos)+pacAppMini('Sono',dd.sono_min!=null?pacAppSono(dd.sono_min):null)
+    +pacAppMini('FC rep.',dd.fc_repouso,'bpm')+pacAppMini('HRV',dd.hrv_ms!=null?Math.round(dd.hrv_ms):null,'ms')
+    +pacAppMini('Calorias',dd.calorias_kcal)+pacAppMini('Glicemia',dd.glicemia_media,'mg/dL')
+    +'</div></div>';
+}
+
+function renderPacAppDetalhe(d){
+  const p=d.paciente, s=d.sessao, w=d.wearables, sc=d.aplic_score;
+  const foto=p.foto_url?'<img src="'+p.foto_url+'" style="width:54px;height:54px;border-radius:12px;object-fit:cover;">':'<div style="width:54px;height:54px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:22px;"><i class="ti ti-user"></i></div>';
+  const statusApp=s.ativo_app?'<span class="pac-tag ATIVO" style="font-size:10px;">● Ativo no app</span>':'<span class="pac-tag INATIVO" style="font-size:10px;">○ Inativo no app</span>';
+  const nomeEsc=pacAppEsc(p.nome);
+
+  const header='<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;">'
+    +'<button class="pac-btn-secondary" onclick="pacAppVoltar()"><i class="ti ti-arrow-left"></i> Voltar</button>'+foto
+    +'<div style="flex:1;min-width:200px;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:18px;font-weight:600;color:var(--tx1);">'+(p.nome||'')+'</span>'+statusApp+'</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-top:2px;">'+(p.codigo||'')+(p.unidade?(' · '+p.unidade):'')+' · última sessão '+pacAppTempo(s.ultima_sessao)+(s.device?(' · '+s.device):'')+'</div></div>'
+    +'<button class="pac-btn-primary" onclick="pacAppProntuario(\''+p.id+'\',\''+nomeEsc+'\',\''+(p.codigo||'')+'\',\''+(p.telefone||'')+'\')"><i class="ti ti-file-text"></i> Abrir prontuário</button></div>';
+
+  const conns=(w.conexoes||[]).filter(function(c){return c.status==='ativo';});
+  const chips=conns.length?conns.map(function(c){return '<span class="pac-ctag" style="font-size:11px;"><i class="ti ti-device-watch"></i> '+pacAppProv(c.provider)+' <span style="color:var(--tx3);font-size:10px;">· sync '+pacAppTempo(c.ultimo_sync)+'</span></span>';}).join(''):'<span style="color:var(--tx4);font-size:12px;">Nenhum dispositivo conectado.</span>';
+  const week=(w.semana||[]);
+  const weekRows=week.map(function(x){return '<tr><td>'+pacAppData(x.dia)+'</td><td>'+(x.passos!=null?x.passos:'—')+'</td><td>'+(x.sono_min!=null?pacAppSono(x.sono_min):'—')+'</td><td>'+(x.fc_repouso!=null?x.fc_repouso:'—')+'</td><td>'+(x.hrv_ms!=null?Math.round(x.hrv_ms):'—')+'</td><td>'+(x.calorias_kcal!=null?x.calorias_kcal:'—')+'</td><td>'+(x.glicemia_media!=null?x.glicemia_media:'—')+'</td></tr>';}).join('');
+  const weekTable=week.length?'<div class="pac-table-card"><div style="overflow-x:auto;"><table class="pac-table"><thead><tr><th>Dia</th><th>Passos</th><th>Sono</th><th>FC</th><th>HRV</th><th>Cal</th><th>Glic</th></tr></thead><tbody>'+weekRows+'</tbody></table></div></div>':'<div style="color:var(--tx4);font-size:12px;">Sem dados na última semana.</div>';
+  const wearSection='<div class="dash-card" style="margin-bottom:12px;"><div class="dash-card-head"><div class="ttl"><i class="ti ti-devices"></i> Wearables</div></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'+chips+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">'+pacAppDia('Hoje',w.hoje)+pacAppDia('Ontem',w.ontem)+'</div>'
+    +'<div style="font-size:10px;color:var(--tx3b);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;">Últimos 7 dias</div>'+weekTable+'</div>';
+
+  const scoreBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-chart-line"></i> Evolução do Aplic Score</div><div class="dash-count">'+(sc.atual!=null?sc.atual:'—')+(sc.faixa?(' · '+sc.faixa):'')+'</div></div>'+pacAppSpark(sc.serie)
+    +'<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--tx3);"><span>InBody: <b style="color:var(--tx1)">'+(sc.composicao.inbody!=null?sc.composicao.inbody:'—')+'</b></span><span>Roda da Vida: <b style="color:var(--tx1)">'+(sc.composicao.roda!=null?sc.composicao.roda:'—')+'</b></span></div></div>';
+
+  const roda=(d.roda&&d.roda.atual)?d.roda.atual.notas:null;
+  const rodaBlock=roda?'<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-chart-radar"></i> Roda da Vida</div><div class="dash-count">'+pacAppData(d.roda.atual.data)+'</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+d.roda.dimensoes.map(function(k){var v=roda[k];var nome=k.replace('rv_','');return '<div style="flex:1;min-width:60px;"><div style="font-size:9px;color:var(--tx3b);text-transform:capitalize;">'+nome+'</div><div style="font-size:15px;color:var(--tx1);font-weight:600;">'+(v==null?'—':v)+'</div></div>';}).join('')+'</div></div>':'';
+
+  const bio=(d.bioimpedancia||[])[0];
+  const bioBlock=bio?'<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-scale"></i> Bioimpedância (última)</div><div class="dash-count">'+pacAppData(bio.data)+'</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+pacAppMini('Peso',bio.peso_kg,'kg')+pacAppMini('% Gord.',bio.gordura_pct,'%')+pacAppMini('M. magra',bio.massa_magra_kg,'kg')+pacAppMini('Músculo',bio.massa_muscular_kg,'kg')+pacAppMini('InBody',bio.pontuacao_inbody)+'</div></div>':'';
+
+  const pesoArr=d.peso||[]; const pAtual=pesoArr.length?pesoArr[pesoArr.length-1].peso:null;
+  const pesoBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-weight"></i> Peso</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+pacAppMini('Inicial',p.peso_inicial_kg,'kg')+pacAppMini('Atual',pAtual,'kg')+pacAppMini('Meta',p.meta_kg,'kg')+'</div></div>';
+
+  const aplics=(d.aplicacoes||[]).slice(0,5);
+  const aplicHtml=aplics.length?aplics.map(function(a){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);font-size:12px;"><span style="color:var(--tx2)">'+(a.produto||'—')+(a.dose?(' · '+a.dose):'')+'</span><span style="color:var(--tx3)">'+pacAppData(a.data)+'</span></div>';}).join(''):'<div style="color:var(--tx4);font-size:12px;">Nenhuma.</div>';
+  const aplicBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-vaccine"></i> Aplicações recentes</div></div>'+aplicHtml+'</div>';
+
+  const meds=(d.medicacoes||[]);
+  const medHtml=meds.length?meds.map(function(m){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);font-size:12px;"><span style="color:var(--tx2)">'+(m.nome||'—')+(m.dose?(' · '+m.dose):'')+' <span style="color:var(--tx4);font-size:10px;">'+(m.tipo||'')+'</span></span><span style="color:var(--tx3)">'+(m.proxima_dose?('próx '+pacAppData(m.proxima_dose)):'')+'</span></div>';}).join(''):'<div style="color:var(--tx4);font-size:12px;">Nenhuma.</div>';
+  const medBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-pill"></i> Medicações ativas</div></div>'+medHtml+'</div>';
+
+  const fotosBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="display:flex;gap:8px;">'+[0,1,2].map(function(){return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>';}).join('')+'</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">Linha do tempo de fotos (frente/costas/perfil) pelo app — em construção.</div></div>';
+
+  function coachCard(nome,ic,c){ return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti '+ic+'"></i> Coach IA — '+nome+'</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="font-size:12px;color:var(--tx3);min-height:40px;">'+((c&&c.disponivel&&c.resumo)?c.resumo:('Resumo da conversa do paciente com o coach '+nome.toLowerCase()+' (ainda não disponível).'))+'</div><button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button></div>'; }
+
+  const grid='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">'+scoreBlock+rodaBlock+bioBlock+pesoBlock+aplicBlock+medBlock+fotosBlock+coachCard('Nutricional','ti-apple',d.coach_ia&&d.coach_ia.nutricional)+coachCard('Físico','ti-barbell',d.coach_ia&&d.coach_ia.fisico)+'</div>';
+
+  document.getElementById('pacapp-detalhe-wrap').innerHTML=header+wearSection+grid;
+}
+
+// ============================================================
 // NAVEGAÇÃO ENTRE VIEWS
 // ============================================================
 const VIEW_TITLES = {
@@ -8425,7 +8585,8 @@ const VIEW_TITLES = {
   financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
   admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' },
   pendencias: { titulo: 'Pendências', sub: 'Onboarding administrativo em aberto' },
-  dev: { titulo: 'Desenvolvedor', sub: 'Painel técnico: DB, audit, env, métricas' }
+  dev: { titulo: 'Desenvolvedor', sub: 'Painel técnico: DB, audit, env, métricas' },
+  pac_app: { titulo: 'Pacientes no App', sub: 'Quem está usando o aplicativo + acompanhamento' }
 };
 
 document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
@@ -8453,6 +8614,7 @@ function trocarView(v) {
   if (v === 'admin') adminTrocarTab('cargos');
   else if (v === 'pendencias') pendCarregar();
   else if (v === 'dev') devCarregar();
+  else if (v === 'pac_app') pacAppInit();
   fecharSidebar(); // no mobile, fecha o drawer após escolher uma seção
 }
 
