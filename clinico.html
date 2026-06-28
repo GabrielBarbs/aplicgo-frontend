@@ -5233,8 +5233,50 @@
         <input type="password" class="auth-input" id="login-senha" required autocomplete="current-password">
       </div>
       <button type="submit" class="auth-btn" id="login-submit">Entrar</button>
+      <div style="text-align:center; margin-top:10px;">
+        <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
+      </div>
     </form>
     <div class="auth-footer">Acesso restrito · Aplic &amp; Go</div>
+  </div>
+</div>
+
+<!-- ============== OVERLAY: ESQUECI A SENHA (reset por código) ============== -->
+<div class="auth-overlay" id="reset-overlay">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <img src="logo.png" alt="aplic&amp;go">
+      <div>
+        <div class="auth-title">Redefinir senha</div>
+        <div class="auth-subtitle" id="reset-subtitle">Te enviaremos um código por e-mail</div>
+      </div>
+    </div>
+    <div class="auth-error" id="reset-error"></div>
+    <!-- Passo 1: e-mail -->
+    <form class="auth-form" id="form-reset-email" onsubmit="event.preventDefault(); resetEnviarCodigo();">
+      <div class="auth-field">
+        <label for="reset-email">Email da conta</label>
+        <input type="email" class="auth-input" id="reset-email" required autocomplete="email">
+      </div>
+      <button type="submit" class="auth-btn" id="reset-enviar">Enviar código</button>
+    </form>
+    <!-- Passo 2: código + nova senha -->
+    <form class="auth-form" id="form-reset-codigo" style="display:none;" onsubmit="event.preventDefault(); resetTrocarSenha();">
+      <div class="auth-field">
+        <label for="reset-codigo">Código recebido por e-mail</label>
+        <input type="text" class="auth-input" id="reset-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 dígitos" required>
+      </div>
+      <div class="auth-field">
+        <label for="reset-senha">Nova senha <span style="color:var(--tx3b); font-weight:400;">(mínimo 8 caracteres)</span></label>
+        <input type="password" class="auth-input" id="reset-senha" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="auth-field">
+        <label for="reset-senha2">Repita a nova senha</label>
+        <input type="password" class="auth-input" id="reset-senha2" required minlength="8" autocomplete="new-password">
+      </div>
+      <button type="submit" class="auth-btn" id="reset-trocar">Trocar senha</button>
+    </form>
+    <div class="auth-footer"><a href="#" onclick="esconderReset(); mostrarLogin(); return false;" style="color:var(--ac); text-decoration:none;">← Voltar ao login</a></div>
   </div>
 </div>
 
@@ -8161,6 +8203,64 @@ async function tentarLogin() {
     mostrarLogin('Erro de conexão: ' + e.message);
   } finally {
     btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+
+// ===== Esqueci a senha (reset por código de e-mail) =====
+function mostrarReset(prefillEmail) {
+  esconderLogin();
+  document.getElementById('reset-overlay').classList.add('aberto');
+  document.getElementById('form-reset-email').style.display = '';
+  document.getElementById('form-reset-codigo').style.display = 'none';
+  document.getElementById('reset-subtitle').textContent = 'Te enviaremos um código por e-mail';
+  resetErro('');
+  if (prefillEmail) document.getElementById('reset-email').value = prefillEmail;
+}
+function esconderReset() {
+  document.getElementById('reset-overlay').classList.remove('aberto');
+}
+function resetErro(msg) {
+  const err = document.getElementById('reset-error');
+  if (msg) { err.textContent = msg; err.style.display = 'block'; } else err.style.display = 'none';
+}
+async function resetEnviarCodigo() {
+  const email = document.getElementById('reset-email').value.trim();
+  if (!email) { resetErro('Informe o e-mail.'); return; }
+  const btn = document.getElementById('reset-enviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    await fetch(API_BASE + '/api/auth/forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+    });
+  } catch (e) {}
+  btn.disabled = false; btn.textContent = 'Enviar código';
+  // Anti-enumeração: avança sempre, exista o e-mail ou não.
+  document.getElementById('form-reset-email').style.display = 'none';
+  document.getElementById('form-reset-codigo').style.display = '';
+  document.getElementById('reset-subtitle').textContent = 'Se o e-mail existir, o código chegou — confira a caixa';
+  resetErro('');
+  document.getElementById('reset-codigo').focus();
+}
+async function resetTrocarSenha() {
+  const email = document.getElementById('reset-email').value.trim();
+  const codigo = document.getElementById('reset-codigo').value.trim();
+  const senha = document.getElementById('reset-senha').value;
+  const senha2 = document.getElementById('reset-senha2').value;
+  if (senha.length < 8) { resetErro('A senha precisa ter ao menos 8 caracteres.'); return; }
+  if (senha !== senha2) { resetErro('As senhas não batem.'); return; }
+  const btn = document.getElementById('reset-trocar'); btn.disabled = true; btn.textContent = 'Trocando…';
+  try {
+    const resp = await fetch(API_BASE + '/api/auth/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, codigo, senha })
+    });
+    const data = await resp.json().catch(() => ({}));
+    btn.disabled = false; btn.textContent = 'Trocar senha';
+    if (!resp.ok || !data.ok) { resetErro((data && data.erro) || 'Não foi possível trocar a senha.'); return; }
+    esconderReset();
+    document.getElementById('login-email').value = email;
+    mostrarLogin('Senha alterada! Entre com a nova senha.');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Trocar senha';
+    resetErro('Erro de conexão. Tente de novo.');
   }
 }
 

@@ -3556,6 +3556,9 @@
         <input type="password" class="auth-input" id="login-senha" required autocomplete="current-password">
       </div>
       <button type="submit" class="auth-btn" id="login-submit">Entrar</button>
+      <div style="text-align:center; margin-top:10px;">
+        <a href="#" id="link-esqueci" style="color:#9aa4af; font-size:13px; text-decoration:none;">Esqueci minha senha</a>
+      </div>
     </form>
 
     <!-- Form de ACEITAR CONVITE -->
@@ -3573,6 +3576,35 @@
         <input type="password" class="auth-input" id="convite-senha2" required minlength="6" autocomplete="new-password">
       </div>
       <button type="submit" class="auth-btn" id="convite-submit">Ativar minha conta</button>
+    </form>
+
+    <!-- Form de RESET DE SENHA -->
+    <form class="auth-form" id="form-reset" style="display:none;">
+      <div id="reset-step-email">
+        <div class="auth-field">
+          <label for="reset-email">Email da conta</label>
+          <input type="email" class="auth-input" id="reset-email" autocomplete="email">
+        </div>
+        <button type="submit" class="auth-btn" id="reset-enviar">Enviar código</button>
+      </div>
+      <div id="reset-step-codigo" style="display:none;">
+        <div class="auth-field">
+          <label for="reset-codigo">Código recebido por e-mail</label>
+          <input type="text" class="auth-input" id="reset-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 dígitos">
+        </div>
+        <div class="auth-field">
+          <label for="reset-senha">Nova senha (mínimo 8 caracteres)</label>
+          <input type="password" class="auth-input" id="reset-senha" minlength="8" autocomplete="new-password">
+        </div>
+        <div class="auth-field">
+          <label for="reset-senha2">Repita a nova senha</label>
+          <input type="password" class="auth-input" id="reset-senha2" minlength="8" autocomplete="new-password">
+        </div>
+        <button type="submit" class="auth-btn" id="reset-trocar">Trocar senha</button>
+      </div>
+      <div style="text-align:center; margin-top:12px;">
+        <a href="#" id="reset-voltar" style="color:#9aa4af; font-size:13px; text-decoration:none;">← Voltar ao login</a>
+      </div>
     </form>
 
     <div class="auth-footer" id="auth-footer">
@@ -5528,6 +5560,61 @@ function showConvite(tokenConvite) {
   document.getElementById('form-convite').dataset.token = tokenConvite;
 }
 
+// ===== Esqueci a senha (reset por código de e-mail) =====
+function showReset(prefillEmail) {
+  document.getElementById('form-login').style.display = 'none';
+  document.getElementById('form-convite').style.display = 'none';
+  document.getElementById('form-reset').style.display = '';
+  document.getElementById('reset-step-email').style.display = '';
+  document.getElementById('reset-step-codigo').style.display = 'none';
+  document.getElementById('auth-card-title').textContent = 'Redefinir senha';
+  document.getElementById('auth-card-subtitle').textContent = 'Te enviaremos um código por e-mail';
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('auth-error').classList.remove('show');
+  if (prefillEmail) document.getElementById('reset-email').value = prefillEmail;
+}
+async function resetEnviarCodigo() {
+  const email = document.getElementById('reset-email').value.trim();
+  const err = document.getElementById('auth-error');
+  if (!email) { err.textContent = 'Informe o e-mail.'; err.classList.add('show'); return; }
+  const btn = document.getElementById('reset-enviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+  try {
+    await fetch(API_BASE + '/api/auth/forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email })
+    });
+  } catch (e) {}
+  btn.disabled = false; btn.textContent = 'Enviar código';
+  // Anti-enumeração: avança sempre, exista o e-mail ou não.
+  document.getElementById('reset-step-email').style.display = 'none';
+  document.getElementById('reset-step-codigo').style.display = '';
+  document.getElementById('auth-card-subtitle').textContent = 'Se o e-mail existir, o código chegou — confira a caixa';
+  err.classList.remove('show');
+  document.getElementById('reset-codigo').focus();
+}
+async function resetTrocarSenha() {
+  const email = document.getElementById('reset-email').value.trim();
+  const codigo = document.getElementById('reset-codigo').value.trim();
+  const senha = document.getElementById('reset-senha').value;
+  const senha2 = document.getElementById('reset-senha2').value;
+  const err = document.getElementById('auth-error');
+  if (senha.length < 8) { err.textContent = 'A senha precisa ter ao menos 8 caracteres.'; err.classList.add('show'); return; }
+  if (senha !== senha2) { err.textContent = 'As senhas não batem.'; err.classList.add('show'); return; }
+  const btn = document.getElementById('reset-trocar'); btn.disabled = true; btn.textContent = 'Trocando…';
+  try {
+    const resp = await fetch(API_BASE + '/api/auth/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, codigo, senha })
+    });
+    const data = await resp.json().catch(() => ({}));
+    btn.disabled = false; btn.textContent = 'Trocar senha';
+    if (!resp.ok || !data.ok) { err.textContent = (data && data.erro) || 'Não foi possível trocar a senha.'; err.classList.add('show'); return; }
+    showLogin('Senha alterada! Entre com a nova senha.');
+    document.getElementById('login-email').value = email;
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Trocar senha';
+    err.textContent = 'Erro de conexão. Tente de novo.'; err.classList.add('show');
+  }
+}
+
 // Adapta shape do Node ({ user: { name, ... } }) pro shape antigo
 // que o resto do app usa ({ nome, email, role, status })
 function adaptarUsuarioNode(u) {
@@ -5713,6 +5800,18 @@ function setupAuthForms() {
     btn.disabled = true; btn.textContent = 'Ativando…';
     await aceitarConvite(tokenConvite, senha);
     btn.disabled = false; btn.textContent = 'Ativar minha conta';
+  });
+
+  // Esqueci a senha
+  const linkEsq = document.getElementById('link-esqueci');
+  if (linkEsq) linkEsq.addEventListener('click', (ev) => { ev.preventDefault(); showReset(document.getElementById('login-email').value.trim()); });
+  const resetVoltar = document.getElementById('reset-voltar');
+  if (resetVoltar) resetVoltar.addEventListener('click', (ev) => { ev.preventDefault(); showLogin(); });
+  const formReset = document.getElementById('form-reset');
+  if (formReset) formReset.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const naEtapaCodigo = document.getElementById('reset-step-codigo').style.display !== 'none';
+    if (naEtapaCodigo) resetTrocarSenha(); else resetEnviarCodigo();
   });
 }
 
