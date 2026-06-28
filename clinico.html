@@ -5066,6 +5066,130 @@
     body.tema-claro .ag-modal-overlay, body.tema-claro .auth-overlay,
     body.tema-claro .pac-modal-overlay, body.tema-claro .modal-overlay,
     body.tema-claro .pr-modal-overlay { background:rgba(48,58,72,.42) !important; }
+
+    /* =================================================================
+       UI POLISH LAYER — refino visual ADITIVO.
+       Só sobrescreve propriedades visuais (sombra, borda, peso, transição)
+       das classes que já existem. NÃO muda estrutura, layout, fluxo nem
+       posição de nada. É reversível removendo este bloco inteiro.
+       ================================================================= */
+    :root {
+      --sh-1: 0 1px 2px rgba(0,0,0,.30);
+      --sh-2: 0 2px 6px rgba(0,0,0,.22), 0 1px 2px rgba(0,0,0,.30);
+      --sh-3: 0 10px 30px rgba(0,0,0,.34), 0 3px 8px rgba(0,0,0,.24);
+      --hair: rgba(255,255,255,.06);
+      --hair-2: rgba(255,255,255,.09);
+      --card-bd: rgba(255,255,255,.08);
+      --card-hi: inset 0 1px 0 rgba(255,255,255,.045);
+      --ease: cubic-bezier(.4,0,.2,1);
+    }
+    body.tema-claro {
+      --sh-1: 0 1px 2px rgba(16,24,40,.06);
+      --sh-2: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.05);
+      --sh-3: 0 8px 24px rgba(16,24,40,.10), 0 2px 6px rgba(16,24,40,.06);
+      --hair: rgba(16,24,40,.07);
+      --hair-2: rgba(16,24,40,.11);
+      --card-bd: rgba(16,24,40,.10);
+      --card-hi: inset 0 1px 0 rgba(255,255,255,.6);
+    }
+
+    /* ---- Cards: borda discreta + sombra suave + topo iluminado + profundidade ---- */
+    .stat-card, .dash-card, .pac-toolbar, .unit-row, .quick-btn, .dash-ag-item {
+      border-color: var(--card-bd);
+      box-shadow: var(--card-hi), var(--sh-1);
+      transition: border-color .18s var(--ease), box-shadow .18s var(--ease), transform .18s var(--ease), background .18s var(--ease);
+    }
+    .section-card, .pac-table-card, .pr-card-clinico, .pr-header-card, .pac-modal, .ag-modal, .auth-card {
+      border-color: var(--card-bd);
+      box-shadow: var(--card-hi), var(--sh-2);
+    }
+    .pac-modal, .ag-modal { box-shadow: var(--card-hi), var(--sh-3); }
+    /* leve reação ao hover nos cards de número (premium, sutil) */
+    .stat-card:hover { box-shadow: var(--card-hi), var(--sh-2); border-color: rgba(var(--ac-rgb),.22); transform: translateY(-1px); }
+
+    /* ---- Divisórias via opacity (mais elegantes que linha cheia) ---- */
+    .dash-aniv-item, .pr-h2-topo, .pac-modal-header, .pac-modal-footer,
+    .ag-modal-header, .ag-modal-footer, .user-menu-item, .topbar-search-results .res { border-color: var(--hair); }
+    .dash-mini { border-bottom-color: var(--hair); }
+
+    /* ---- Tipografia: mais hierarquia (números maiores/fortes, labels discretos) ---- */
+    .stat-card .val { font-size: 24px; font-weight: 600; letter-spacing: -.4px; }
+    .hero-title, .pac-detail-info .nome, .pr-h2-id .nome { font-weight: 600; letter-spacing: -.4px; }
+    .hero-clock .hora { font-weight: 600; }
+    .dash-mini strong, .dash-ag-item .hora, .pr-roda-resumo .big { font-weight: 700; letter-spacing: -.3px; }
+    .stat-card .lbl, .section-card-title, .dash-card-head .ttl { letter-spacing: .6px; }
+    .hero-sub, .stat-card .ext, .quick-btn .sub { line-height: 1.45; }
+
+    /* ---- Botões: padding/sombra/hover/active/foco refinados (mesmo comportamento) ---- */
+    .pac-btn-primary, .pac-btn-secondary, .pac-btn-mini, .pac-btn-block, .dash-cfg-btn {
+      transition: transform .15s var(--ease), box-shadow .18s var(--ease), background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease);
+    }
+    .pac-btn-primary { box-shadow: 0 1px 2px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.14); }
+    .pac-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(var(--ac-rgb),.36), inset 0 1px 0 rgba(255,255,255,.18); }
+    .pac-btn-primary:active { transform: translateY(0) scale(.98); }
+    .pac-btn-secondary { border-color: var(--card-bd); }
+    .pac-btn-secondary:hover { transform: translateY(-1px); }
+    .pac-btn-secondary:active, .pac-btn-mini:active, .pac-btn-block:active { transform: scale(.98); }
+    .pac-btn-primary:focus-visible, .pac-btn-secondary:focus-visible, .pac-btn-mini:focus-visible, .pac-btn-block:focus-visible {
+      outline: 2px solid rgba(var(--ac-rgb),.55); outline-offset: 2px;
+    }
+
+    /* ---- Inputs: foco com halo suave + placeholder discreto ---- */
+    .pac-search, .pac-select, .pac-field input, .pac-field select, .pac-field textarea, .auth-input {
+      transition: border-color .16s var(--ease), box-shadow .16s var(--ease), background .16s var(--ease);
+    }
+    .pac-search:focus, .pac-select:focus, .pac-field input:focus, .pac-field select:focus,
+    .pac-field textarea:focus, .auth-input:focus { box-shadow: 0 0 0 3px rgba(var(--ac-rgb),.14); }
+    .pac-search::placeholder, .pac-field input::placeholder, .pac-field textarea::placeholder,
+    .auth-input::placeholder { color: var(--tx4); }
+
+    /* ---- Sidebar: hover/ativo mais elegantes + transição suave ---- */
+    .sidebar-item { transition: background .16s var(--ease), color .16s var(--ease), box-shadow .16s var(--ease); }
+    .sidebar-item:hover { box-shadow: inset 0 0 0 1px var(--hair); }
+    .sidebar-item.active { box-shadow: inset 3px 0 0 var(--ac), var(--card-hi); }
+    .sidebar-user { transition: border-color .16s var(--ease), background .16s var(--ease); border-color: var(--card-bd); }
+
+    /* ---- Avatares: anel sutil + sombra (mais sofisticados) ---- */
+    .pac-detail-avatar, .pr-pat-info .avatar, .pr-h2-avatar, .sidebar-user .avatar,
+    .pr-header-card .pr-h-avatar, .dash-aniv-item .bolo {
+      box-shadow: 0 2px 8px rgba(var(--ac-d-rgb),.28), inset 0 0 0 1px rgba(255,255,255,.10);
+    }
+
+    /* ---- Micro-animações de abertura (discretas, rápidas) ---- */
+    @keyframes polishPop { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
+    @keyframes polishFade { from { opacity: 0; } to { opacity: 1; } }
+    .pac-modal, .ag-modal, .auth-card { animation: polishPop .22s var(--ease); }
+    .user-menu, .topbar-search-results { animation: polishFade .14s var(--ease); }
+    @media (prefers-reduced-motion: reduce) {
+      *, .pac-modal, .ag-modal, .auth-card, .user-menu { animation: none !important; transition: none !important; }
+    }
+
+    /* ---- Gráficos: estilo dashboard premium (curva suave + área + draw) ---- */
+    .pr-grafico-svg .grid line { stroke: var(--hair); stroke-width: 1; }
+    .pr-grafico-svg .axis text { fill: var(--tx4); letter-spacing: .2px; }
+    .pr-grafico-svg .linha {
+      stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 1; stroke-dashoffset: 1; animation: bioDraw .65s var(--ease) forwards;
+    }
+    .pr-grafico-svg .area { animation: polishFade .8s var(--ease); }
+    .pr-grafico-svg .ponto { r: 3; stroke-width: 2; opacity: 0; animation: polishFade .3s var(--ease) .45s forwards; }
+    @keyframes bioDraw { to { stroke-dashoffset: 0; } }
+    .pr-grafico-tooltip {
+      background: rgba(var(--bg1-rgb),.92);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--hair-2); border-radius: 9px;
+      padding: 8px 11px; box-shadow: var(--sh-3);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pr-grafico-svg .linha { stroke-dashoffset: 0; animation: none; }
+      .pr-grafico-svg .ponto, .pr-grafico-svg .area { opacity: 1; animation: none; }
+    }
+
+    /* ---- Scrollbar premium (não afeta a do sidebar, que tem regra própria) ---- */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--hair-2); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--bd2); background-clip: padding-box; }
+    ::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 <body>
@@ -8602,10 +8726,14 @@ function pacAppSpark(serie){
   const W=520,H=120,pad=16;
   const x=function(i){ return pad+(i/(serie.length-1))*(W-pad*2); };
   const y=function(v){ return pad+(1-v/100)*(H-pad*2); };
-  const pts=serie.map(function(s,i){ return x(i)+','+y(s.aplic); }).join(' ');
-  const dots=serie.map(function(s,i){ return '<circle cx="'+x(i)+'" cy="'+y(s.aplic)+'" r="3" fill="var(--ac)"/>'; }).join('');
+  const xy=serie.map(function(s,i){ return { x:x(i), y:y(s.aplic) }; });
+  const path=bioSmoothPath(xy);
+  const areaD=path+' L'+xy[xy.length-1].x.toFixed(1)+','+(H-pad)+' L'+xy[0].x.toFixed(1)+','+(H-pad)+' Z';
+  const dots=serie.map(function(s,i){ return '<circle cx="'+x(i)+'" cy="'+y(s.aplic)+'" r="2.5" fill="var(--ac)"/>'; }).join('');
   return '<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="max-height:130px;">'
-    +'<polyline points="'+pts+'" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linejoin="round"/>'+dots+'</svg>';
+    +'<defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--ac)" stop-opacity="0.18"/><stop offset="100%" stop-color="var(--ac)" stop-opacity="0"/></linearGradient></defs>'
+    +'<path d="'+areaD+'" fill="url(#sparkGrad)"/>'
+    +'<path d="'+path+'" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+dots+'</svg>';
 }
 
 function pacAppDia(titulo,dd){
@@ -12913,6 +13041,22 @@ function bioToggleSerie(metrica) {
   if (card) card.innerHTML = bioRenderGrafico();
 }
 
+// Suaviza a curva (Catmull-Rom -> Bézier) pra dar cara de dashboard premium.
+function bioSmoothPath(pts) {
+  if (!pts.length) return '';
+  if (pts.length === 1) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  if (pts.length === 2) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)}`;
+  const t = 0.2;
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) * t, c1y = p1.y + (p2.y - p0.y) * t;
+    const c2x = p2.x - (p3.x - p1.x) * t, c2y = p2.y - (p3.y - p1.y) * t;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 function bioRenderGrafico() {
   const serie = bioState.serie;
   const togglesHtml = ['peso', 'massa_muscular', 'massa_gordura', 'gordura_pct'].map(m => `
@@ -12967,9 +13111,9 @@ function bioRenderGrafico() {
   const x = i => N === 1 ? padL + innerW / 2 : padL + (i / (N - 1)) * innerW;
   const y = v => padT + innerH - ((v - minV) / (maxV - minV)) * innerH;
 
-  // Eixo Y: 5 marcas
-  const yMarks = [0, 1, 2, 3, 4].map(k => {
-    const v = minV + (maxV - minV) * k / 4;
+  // Eixo Y: 4 marcas (menos linhas de grade -> visual mais limpo)
+  const yMarks = [0, 1, 2, 3].map(k => {
+    const v = minV + (maxV - minV) * k / 3;
     return { y: y(v), label: v.toFixed(0) };
   });
 
@@ -12987,22 +13131,32 @@ function bioRenderGrafico() {
 
   // Linhas + pontos
   const camposChave = { peso: 'peso_kg', massa_muscular: 'massa_muscular_kg', massa_gordura: 'massa_gordura_kg', gordura_pct: 'gordura_pct' };
+  const baseY = padT + innerH;  // linha de base pro preenchimento (área sob a curva)
   const linhas = visMetricas.map(m => {
     const campo = camposChave[m];
     const pontos = serie.map((p, i) => ({ i, v: p[campo] })).filter(p => p.v != null);
     if (pontos.length === 0) return '';
-    const path = pontos.map((p, k) => (k === 0 ? 'M' : 'L') + x(p.i) + ',' + y(p.v)).join(' ');
+    const xy = pontos.map(p => ({ x: x(p.i), y: y(p.v) }));
+    const path = bioSmoothPath(xy);                       // curva suave
+    const areaD = `${path} L${xy[xy.length - 1].x.toFixed(1)},${baseY} L${xy[0].x.toFixed(1)},${baseY} Z`;
     const ptsSvg = pontos.map(p => {
       const lblBr = (BIO_LABELS[m] || '').replace(/"/g, '&quot;');
       const data = new Date(serie[p.i].data).toLocaleDateString('pt-BR');
       const tip = `${data} -- ${lblBr}: ${p.v.toString().replace('.', ',')}`;
       const cx = x(p.i), cy = y(p.v);
       // ponto visivel (estatico, nao muda no hover) + circulo-alvo transparente maior que captura o mouse
-      return `<circle class="ponto" cx="${cx}" cy="${cy}" r="4" fill="${BIO_CORES[m]}"/>`
+      return `<circle class="ponto" cx="${cx}" cy="${cy}" r="3" fill="${BIO_CORES[m]}"/>`
            + `<circle class="ponto-hit" cx="${cx}" cy="${cy}" r="9" data-tooltip="${tip}"/>`;
     }).join('');
-    return `<path class="linha" d="${path}" stroke="${BIO_CORES[m]}"/>${ptsSvg}`;
+    return `<path class="area" d="${areaD}" fill="url(#bioGrad-${m})"/>`
+         + `<path class="linha" d="${path}" stroke="${BIO_CORES[m]}" pathLength="1"/>${ptsSvg}`;
   }).join('');
+
+  // Gradientes sutis sob cada curva (dashboard premium)
+  const defs = `<defs>${visMetricas.map(m => `<linearGradient id="bioGrad-${m}" x1="0" y1="0" x2="0" y2="1">`
+    + `<stop offset="0%" stop-color="${BIO_CORES[m]}" stop-opacity="0.16"/>`
+    + `<stop offset="100%" stop-color="${BIO_CORES[m]}" stop-opacity="0"/>`
+    + `</linearGradient>`).join('')}</defs>`;
 
   return `
     <div class="pr-grafico-card">
@@ -13020,6 +13174,7 @@ function bioRenderGrafico() {
       <div class="pr-grafico-toggles">${togglesHtml}</div>
       <div class="pr-grafico-wrap" style="position:relative;" onmousemove="bioTooltip(event)" onmouseleave="bioTooltipHide()">
         <svg class="pr-grafico-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+          ${defs}
           <g class="grid">${gridY}</g>
           <g class="axis">${axisY}${axisX}</g>
           ${linhas}
