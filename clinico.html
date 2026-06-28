@@ -8721,15 +8721,16 @@ async function pacAppAbrir(id){
 
 function pacAppMini(lbl,val,un){ const v=(val==null||val==='')?'<span style="color:var(--tx4)">—</span>':(val+(un?'<span style="font-size:10px;color:var(--tx3)"> '+un+'</span>':'')); return '<div style="flex:1;min-width:62px;"><div style="font-size:9px;color:var(--tx3b);text-transform:uppercase;letter-spacing:.4px;">'+lbl+'</div><div style="font-size:15px;color:var(--tx1);font-weight:600;">'+v+'</div></div>'; }
 
-function pacAppSpark(serie){
+function pacAppSpark(serie, key){
+  key = key || 'aplic';
   if(!serie||serie.length<2) return '<div style="color:var(--tx4);font-size:12px;padding:10px 0;">Sem histórico suficiente pro gráfico ainda.</div>';
   const W=520,H=120,pad=16;
   const x=function(i){ return pad+(i/(serie.length-1))*(W-pad*2); };
   const y=function(v){ return pad+(1-v/100)*(H-pad*2); };
-  const xy=serie.map(function(s,i){ return { x:x(i), y:y(s.aplic) }; });
+  const xy=serie.map(function(s,i){ return { x:x(i), y:y(s[key]) }; });
   const path=bioSmoothPath(xy);
   const areaD=path+' L'+xy[xy.length-1].x.toFixed(1)+','+(H-pad)+' L'+xy[0].x.toFixed(1)+','+(H-pad)+' Z';
-  const dots=serie.map(function(s,i){ return '<circle cx="'+x(i)+'" cy="'+y(s.aplic)+'" r="2.5" fill="var(--ac)"/>'; }).join('');
+  const dots=serie.map(function(s,i){ return '<circle cx="'+x(i)+'" cy="'+y(s[key])+'" r="2.5" fill="var(--ac)"/>'; }).join('');
   return '<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="max-height:130px;">'
     +'<defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--ac)" stop-opacity="0.18"/><stop offset="100%" stop-color="var(--ac)" stop-opacity="0"/></linearGradient></defs>'
     +'<path d="'+areaD+'" fill="url(#sparkGrad)"/>'
@@ -8746,6 +8747,26 @@ function pacAppDia(titulo,dd){
     +'</div></div>';
 }
 
+// Cards dos scores de wearable (Fase A): Sono, Recuperação, Movimento.
+const WELL_LABELS = {
+  sono: { excelente:'Excelente', muito_bom:'Muito Bom', bom:'Bom', regular:'Regular', baixo:'Sono Insuficiente' },
+  recovery: { excelente:'Excelente', muito_bom:'Muito Boa', bom:'Boa', regular:'Moderada', baixo:'Necessita Recuperação' },
+  movimento: { excelente:'Excelente', muito_bom:'Muito Bom', bom:'Bom', regular:'Regular', baixo:'Baixa Adesão' }
+};
+const WELL_FONTE = { nativo:'dispositivo', wearable:'wearable', estimado:'estimado' };
+const WELL_COR = { excelente:'#1D9E75', muito_bom:'#6FD89A', bom:'var(--ac)', regular:'#EF9F27', baixo:'#E5534B' };
+function pacAppWellCard(titulo, ic, blk, tipo, extra){
+  if(!blk || blk.atual==null){
+    return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti '+ic+'"></i> '+titulo+'</div><span class="badge-mini">SEM DADOS</span></div><div style="color:var(--tx4);font-size:12px;">Conecte um wearable pra ver este score.</div></div>';
+  }
+  const lbl=(WELL_LABELS[tipo]||{})[blk.faixa]||'';
+  const cor=WELL_COR[blk.faixa]||'var(--tx2)';
+  const fonte=WELL_FONTE[blk.fonte]||'';
+  return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti '+ic+'"></i> '+titulo+'</div>'
+    +'<div class="dash-count" style="color:'+cor+';">'+blk.atual+(lbl?(' · '+lbl):'')+'</div></div>'
+    +pacAppSpark(blk.serie,'valor')
+    +'<div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--tx4);"><span>'+(extra||'')+'</span><span>fonte: '+fonte+'</span></div></div>';
+}
 function renderPacAppDetalhe(d){
   const p=d.paciente, s=d.sessao, w=d.wearables, sc=d.aplic_score;
   const foto=p.foto_url?'<img src="'+p.foto_url+'" style="width:54px;height:54px;border-radius:12px;object-fit:cover;">':'<div style="width:54px;height:54px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:22px;"><i class="ti ti-user"></i></div>';
@@ -8792,7 +8813,10 @@ function renderPacAppDetalhe(d){
 
   function coachCard(nome,ic,c){ return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti '+ic+'"></i> Coach IA — '+nome+'</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="font-size:12px;color:var(--tx3);min-height:40px;">'+((c&&c.disponivel&&c.resumo)?c.resumo:('Resumo da conversa do paciente com o coach '+nome.toLowerCase()+' (ainda não disponível).'))+'</div><button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button></div>'; }
 
-  const grid='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">'+scoreBlock+rodaBlock+bioBlock+pesoBlock+aplicBlock+medBlock+fotosBlock+coachCard('Nutricional','ti-apple',d.coach_ia&&d.coach_ia.nutricional)+coachCard('Físico','ti-barbell',d.coach_ia&&d.coach_ia.fisico)+'</div>';
+  const sonoBlock=pacAppWellCard('Sono','ti-moon',d.sono,'sono');
+  const recBlock=pacAppWellCard('Recuperação','ti-bolt',d.recovery,'recovery');
+  const movBlock=pacAppWellCard('Movimento','ti-run',d.movimento,'movimento',(d.movimento&&d.movimento.meta)?('Meta: '+d.movimento.meta.nome):'');
+  const grid='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">'+scoreBlock+sonoBlock+recBlock+movBlock+rodaBlock+bioBlock+pesoBlock+aplicBlock+medBlock+fotosBlock+coachCard('Nutricional','ti-apple',d.coach_ia&&d.coach_ia.nutricional)+coachCard('Físico','ti-barbell',d.coach_ia&&d.coach_ia.fisico)+'</div>';
 
   document.getElementById('pacapp-detalhe-wrap').innerHTML=header+wearSection+grid;
 }
