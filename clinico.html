@@ -5190,6 +5190,16 @@
     ::-webkit-scrollbar-thumb { background: var(--hair-2); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
     ::-webkit-scrollbar-thumb:hover { background: var(--bd2); background-clip: padding-box; }
     ::-webkit-scrollbar-track { background: transparent; }
+
+    /* ---- Monitoramento no App dentro do prontuário (bloco contido) ---- */
+    .pr-app-section { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hair); animation: polishFade .25s var(--ease); }
+    .pr-app-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .pr-app-section-head .ttl { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--tx1); }
+    .pr-app-section-head .ttl i { color: var(--ac); font-size: 16px; }
+    .pr-app-badge.ativo { font-size: 10px; color: #1D9E75; font-weight: 600; letter-spacing: .3px; }
+    .pr-app-section-head .conns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .pr-app-inativo { font-size: 11px; color: var(--tx4); font-style: italic; display: inline-flex; align-items: center; gap: 5px; }
+    .pr-app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
   </style>
 </head>
 <body>
@@ -12335,6 +12345,7 @@ async function prBuscarPaciente() {
 async function prSelecionarPaciente(p) {
   prState.pacienteAtual = p;
   prState.documentos = [];   // anexos recarregam ao abrir o paciente
+  prState.appMonitor = null; // monitoramento do app recarrega pro novo paciente
   // Esconde input, mostra placeholder enquanto carrega o header
   const sel = document.getElementById('pr-pat-selector');
   sel.innerHTML = `
@@ -14517,6 +14528,7 @@ async function prCarregarTimeline() {
   if (typeof bioMontarSerie === 'function') bioMontarSerie(); // dobra peso/massa/gordura das evoluções no gráfico
   prRenderTimeline();
   prCarregarDocumentos();
+  prCarregarAppMonitor(prState.pacienteAtual.id); // carrega o bloco "Monitoramento no App" (best-effort)
 }
 
 function prRenderTimeline() {
@@ -14585,6 +14597,7 @@ function prRenderTimeline() {
   `;
 
   conteudo.innerHTML = headerHtml + cardsHtml + actionsBar
+    + `<div id="pr-app-monitor">${prRenderAppMonitor()}</div>`
     + `<div id="pr-anexos-wrap" style="display:${prState.anexosAberto ? 'block' : 'none'};">${anexosHtml}</div>`
     + histHtml;
 
@@ -14601,6 +14614,53 @@ function prRenderTimeline() {
       }
     }, 150);
   }
+}
+
+// ===== Monitoramento no App dentro do prontuário =====
+// Espelha a aba "Pacientes no App", de forma contida e sem duplicar o que o
+// prontuário já mostra (peso/bio/aplicações). Gating: app inativo -> nada;
+// sem wearable -> "inativo em wearables" e os cards de wearable somem.
+async function prCarregarAppMonitor(id) {
+  try {
+    const r = await pacApi('/api/clinico/app/paciente/' + id);
+    if (!prState.pacienteAtual || prState.pacienteAtual.id !== id) return; // trocou de paciente no meio
+    prState.appMonitor = { patientId: id, data: (r.ok && r.data && r.data.ok) ? r.data : null };
+  } catch (e) {
+    prState.appMonitor = { patientId: id, data: null };
+  }
+  const wrap = document.getElementById('pr-app-monitor');
+  if (wrap) wrap.innerHTML = prRenderAppMonitor();
+}
+
+function prRenderAppMonitor() {
+  const m = prState.appMonitor;
+  if (!m || !m.data) return '';
+  if (prState.pacienteAtual && m.patientId !== prState.pacienteAtual.id) return '';
+  const d = m.data;
+  if (!(d.sessao && d.sessao.ativo_app)) return ''; // inativo no app -> nenhum card
+
+  const conns = ((d.wearables && d.wearables.conexoes) || []).filter(function(c){ return c.status === 'ativo'; });
+  const temWear = conns.length > 0;
+  const chips = temWear
+    ? conns.map(function(c){ return '<span class="pac-ctag" style="font-size:11px;"><i class="ti ti-device-watch"></i> ' + (typeof pacAppProv === 'function' ? pacAppProv(c.provider) : c.provider) + '</span>'; }).join('')
+    : '<span class="pr-app-inativo"><i class="ti ti-plug-connected-x"></i> Inativo em wearables</span>';
+
+  const cards = [];
+  const sc = d.aplic_score;
+  if (sc && sc.atual != null) {
+    cards.push('<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-chart-line"></i> Aplic Score (app)</div><div class="dash-count">' + sc.atual + (sc.faixa ? (' · ' + sc.faixa) : '') + '</div></div>' + pacAppSpark(sc.serie) + '</div>');
+  }
+  if (temWear) {
+    cards.push(pacAppWellCard('Sono', 'ti-moon', d.sono, 'sono'));
+    cards.push(pacAppWellCard('Recuperação', 'ti-bolt', d.recovery, 'recovery'));
+    cards.push(pacAppWellCard('Movimento', 'ti-run', d.movimento, 'movimento', (d.movimento && d.movimento.meta) ? ('Meta: ' + d.movimento.meta.nome) : ''));
+    cards.push(pacAppDia('Hoje', d.wearables.hoje));
+    cards.push(pacAppDia('Ontem', d.wearables.ontem));
+  }
+  if (!cards.length) return '';
+  return '<div class="pr-app-section">'
+    + '<div class="pr-app-section-head"><div class="ttl"><i class="ti ti-device-mobile"></i> Monitoramento no App <span class="pr-app-badge ativo">● Ativo</span></div><div class="conns">' + chips + '</div></div>'
+    + '<div class="pr-app-grid">' + cards.join('') + '</div></div>';
 }
 
 // Abre/fecha a seção de anexos (botão fica na barra de ações; começa fechada)
