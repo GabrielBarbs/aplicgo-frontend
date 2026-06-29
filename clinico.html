@@ -9080,7 +9080,11 @@ async function pacApi(path, opts = {}) {
       ...(opts.headers || {})
     }
   });
-  const data = await resp.json();
+  // Parse defensivo: resposta NÃO-JSON (ex: 502/504 HTML do proxy, timeout) não pode
+  // mais lançar e travar quem chamou -- vira um erro estruturado com o status HTTP.
+  let data;
+  try { data = await resp.json(); }
+  catch (e) { data = { error: 'Resposta inválida do servidor (HTTP ' + resp.status + ')', erro: 'Resposta inválida do servidor (HTTP ' + resp.status + ')' }; }
   if (resp.status === 401) {
     setToken(null);
     mostrarLogin('Sessão expirada');
@@ -14803,26 +14807,30 @@ async function examLerIA(docId, nome) {
   document.getElementById('exam-rev-form').style.display = 'none';
   document.getElementById('exam-rev-salvar').style.display = 'none';
   const st = document.getElementById('exam-rev-status');
+  const tentarDeNovo = '<button class="pac-btn-secondary" style="margin-left:8px;" onclick="examLerIA(\'' + docId + '\',\'' + (examState.nome) + '\')">Tentar de novo</button>';
   st.innerHTML = '<i class="ti ti-loader"></i> Lendo o exame com IA… pode levar alguns segundos.';
-  const r = await pacApi('/api/clinico/documentos/' + docId + '/ler-exame', { method: 'POST' });
-  if (!r.ok) {
-    if (r.data && r.data.sem_ia) {
-      st.innerHTML = '<span style="color:#EF9F27;"><i class="ti ti-alert-triangle"></i> A leitura por IA ainda não está ligada (falta a chave no servidor).</span>';
-    } else {
-      st.innerHTML = '<span style="color:#f85149;"><i class="ti ti-alert-circle"></i> Erro na leitura: ' + ((r.data && r.data.erro) || '--') + '</span> '
-        + '<button class="pac-btn-secondary" style="margin-left:8px;" onclick="examLerIA(\'' + docId + '\',\'' + (examState.nome) + '\')">Tentar de novo</button>';
+  try {
+    const r = await pacApi('/api/clinico/documentos/' + docId + '/ler-exame', { method: 'POST' });
+    if (!r.ok) {
+      if (r.data && r.data.sem_ia) {
+        st.innerHTML = '<span style="color:#EF9F27;"><i class="ti ti-alert-triangle"></i> A leitura por IA ainda não está ligada (falta a chave no servidor).</span>';
+      } else {
+        st.innerHTML = '<span style="color:#f85149;"><i class="ti ti-alert-circle"></i> Erro na leitura: ' + ((r.data && (r.data.erro || r.data.error)) || '--') + '</span> ' + tentarDeNovo;
+      }
+      return;
     }
-    return;
+    const e = r.data.extraido || {};
+    examState.marcadores = Array.isArray(e.marcadores) ? e.marcadores : [];
+    document.getElementById('exam-rev-lab').value = e.laboratorio || '';
+    document.getElementById('exam-rev-data').value = e.data_coleta || '';
+    document.getElementById('exam-rev-tipo').value = e.tipo_exame || examState.nome || '';
+    st.innerHTML = '<i class="ti ti-circle-check" style="color:#1D9E75;"></i> ' + examState.marcadores.length + ' marcadores extraídos. Confira abaixo antes de salvar.';
+    document.getElementById('exam-rev-form').style.display = 'block';
+    document.getElementById('exam-rev-salvar').style.display = '';
+    examRenderLinhas();
+  } catch (err) {
+    st.innerHTML = '<span style="color:#f85149;"><i class="ti ti-alert-circle"></i> Falha de conexão na leitura' + (err && err.message ? (' (' + err.message + ')') : '') + '.</span> ' + tentarDeNovo;
   }
-  const e = r.data.extraido || {};
-  examState.marcadores = Array.isArray(e.marcadores) ? e.marcadores : [];
-  document.getElementById('exam-rev-lab').value = e.laboratorio || '';
-  document.getElementById('exam-rev-data').value = e.data_coleta || '';
-  document.getElementById('exam-rev-tipo').value = e.tipo_exame || examState.nome || '';
-  st.innerHTML = '<i class="ti ti-circle-check" style="color:#1D9E75;"></i> ' + examState.marcadores.length + ' marcadores extraídos. Confira abaixo antes de salvar.';
-  document.getElementById('exam-rev-form').style.display = 'block';
-  document.getElementById('exam-rev-salvar').style.display = '';
-  examRenderLinhas();
 }
 function examRenderLinhas() {
   const wrap = document.getElementById('exam-rev-linhas');
