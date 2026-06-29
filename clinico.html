@@ -5200,6 +5200,11 @@
     .pr-app-section-head .conns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
     .pr-app-inativo { font-size: 11px; color: var(--tx4); font-style: italic; display: inline-flex; align-items: center; gap: 5px; }
     .pr-app-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+
+    /* ---- Badge de status no app (lista de Pacientes) ---- */
+    .pac-app-pill { font-size: 9px; padding: 2px 7px; border-radius: 6px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; vertical-align: middle; display: inline-flex; align-items: center; gap: 3px; }
+    .pac-app-pill.on { background: rgba(29,158,117,.14); color: #1D9E75; border: 1px solid rgba(29,158,117,.30); }
+    .pac-app-pill.off { background: rgba(var(--tx3b-rgb),.10); color: var(--tx4); border: 1px solid var(--bd1); }
   </style>
 </head>
 <body>
@@ -9133,8 +9138,24 @@ async function pacCarregarLista() {
   renderListaPacientes();
 }
 
+// Carrega (uma vez, cacheado) quem está ATIVO no app pra marcar na lista.
+async function pacCarregarAppAtivos() {
+  if (pacState._appAtivosLoading) return;
+  pacState._appAtivosLoading = true;
+  try {
+    const r = await pacApi('/api/clinico/app/pacientes');
+    const ids = (r.ok && r.data && r.data.pacientes) ? r.data.pacientes.map(x => x.id) : [];
+    pacState.appAtivos = new Set(ids);
+  } catch (e) {
+    pacState.appAtivos = new Set();
+  }
+  pacState._appAtivosLoading = false;
+  renderListaPacientes();
+}
+
 function renderListaPacientes() {
   const wrap = document.getElementById('pac-table-wrap');
+  if (pacState.appAtivos == null && !pacState._appAtivosLoading) pacCarregarAppAtivos();
   if (pacState.pacientes.length === 0) {
     wrap.innerHTML = `<div class="pac-empty">
       <i class="ti ti-users"></i>
@@ -9178,6 +9199,11 @@ function renderListaPacientes() {
           const telLimpo = String(p.telefone1 || '').replace(/\D/g, '');
           const tempo = p.semana_atual ? `Sem ${p.semana_atual}${p.total_semanas ? '/' + p.total_semanas : ''}` : na;
           const dot = (c) => `<span class="pac-dot" style="background:${c};"></span>`;
+          const appAtivo = pacState.appAtivos ? pacState.appAtivos.has(p.id) : false;
+          const appPill = pacState.appAtivos == null ? ''
+            : (appAtivo
+              ? '<span class="pac-app-pill on" title="Ativo no app"><i class="ti ti-device-mobile" style="font-size:10px;"></i> App</span>'
+              : '<span class="pac-app-pill off" title="Inativo no app"><i class="ti ti-device-mobile-off" style="font-size:10px;"></i> Sem app</span>');
           let perda = na;
           if (p.perda_kg_sem != null) {
             const v = p.perda_kg_sem; // >0 = perdeu (bom), <0 = ganhou (ruim)
@@ -9196,7 +9222,7 @@ function renderListaPacientes() {
           <tr onclick="pacAbrirDetalhe('${p.id}')">
             <td class="col-fix-l1 pac-codigo">${esc(p.codigo)}</td>
             <td class="col-fix-l2 pac-nome">${esc(p.nome_completo)}</td>
-            <td data-label="Status"><span class="pac-tag ${esc(p.status)}">${esc(labelStatus(p.status))}</span></td>
+            <td data-label="Status"><span class="pac-tag ${esc(p.status)}">${esc(labelStatus(p.status))}</span> ${appPill}</td>
             <td data-label="Programa">${p.programa ? esc(nomePrograma(p.programa)) : na}</td>
             <td data-label="Tempo">${tempo}</td>
             <td data-label="Queixas">${na}</td>
