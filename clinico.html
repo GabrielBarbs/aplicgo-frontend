@@ -5205,6 +5205,17 @@
     .pac-app-pill { font-size: 9px; padding: 2px 7px; border-radius: 6px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; vertical-align: middle; display: inline-flex; align-items: center; gap: 3px; }
     .pac-app-pill.on { background: rgba(29,158,117,.14); color: #1D9E75; border: 1px solid rgba(29,158,117,.30); }
     .pac-app-pill.off { background: rgba(var(--tx3b-rgb),.10); color: var(--tx4); border: 1px solid var(--bd1); }
+
+    /* ---- Tabela de revisão de exame (leitura por IA) ---- */
+    .exam-tab-head, .exam-row { display: grid; grid-template-columns: 2fr 0.9fr 0.8fr 1.2fr 30px; gap: 6px; align-items: center; }
+    .exam-tab-head { font-size: 9px; text-transform: uppercase; letter-spacing: .4px; color: var(--tx3b); padding: 0 2px 4px; }
+    .exam-row { margin-top: 5px; }
+    .exam-row input { width: 100%; background: var(--bg2); border: 1px solid var(--bg3); color: var(--tx1); padding: 6px 8px; border-radius: 6px; font-size: 12px; font-family: inherit; }
+    .exam-row input:focus { outline: none; border-color: var(--ac); box-shadow: 0 0 0 3px rgba(var(--ac-rgb),.12); }
+    .exam-row.alterado input.exam-valor { border-color: #EF9F27; color: #EF9F27; font-weight: 600; }
+    .exam-row .exam-del { background: transparent; border: 1px solid var(--bd1); color: var(--tx3b); border-radius: 6px; cursor: pointer; padding: 5px; line-height: 1; }
+    .exam-row .exam-del:hover { border-color: #E5534B; color: #E5534B; }
+    .pr-anexo-item .rm.exam-ler:hover { background: rgba(var(--ac-rgb),.14); color: var(--ac); }
   </style>
 </head>
 <body>
@@ -7262,6 +7273,43 @@
 </div>
 
 <!-- ============== MODAL: IMPORTAR BIOIMPEDÂNCIA (PDF) ============== -->
+<!-- ============== MODAL: LER EXAME COM IA (revisão) ============== -->
+<div class="ag-modal-overlay" id="exam-rev-modal" onclick="if(event.target.id==='exam-rev-modal') examFechar()">
+  <div class="ag-modal" style="max-width: 780px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-flask"></i> Ler exame com IA</div>
+      <button class="pac-modal-close" onclick="examFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="exam-rev-erro"></div>
+      <div id="exam-rev-status" style="font-size:12px; color:var(--tx2); margin-bottom:10px;"></div>
+      <div id="exam-rev-form" style="display:none;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+          <div class="pac-field"><label>Laboratório</label><input type="text" id="exam-rev-lab" placeholder="—"></div>
+          <div class="pac-field"><label>Data de coleta</label><input type="text" id="exam-rev-data" placeholder="aaaa-mm-dd"></div>
+          <div class="pac-field"><label>Tipo de exame</label><input type="text" id="exam-rev-tipo" placeholder="ex: Painel metabólico"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px;">
+          <span class="pro-grp-lbl">Marcadores extraídos <span id="exam-rev-count" style="color:var(--tx4);"></span></span>
+          <button type="button" class="pbase-titul-add" onclick="examAddLinha()"><i class="ti ti-plus"></i> Marcador</button>
+        </div>
+        <div class="exam-tab-head"><span>Marcador (laudo)</span><span>Valor</span><span>Unidade</span><span>Código</span><span></span></div>
+        <div id="exam-rev-linhas"></div>
+        <div style="font-size:11px; color:var(--tx4); margin-top:10px; line-height:1.5;">
+          <i class="ti ti-robot"></i> Extraído por IA — <strong>confira tudo antes de salvar.</strong> Em laranja = fora da referência. O "Código" liga o marcador ao Aplic Score (ex.: <code>glicose</code>, <code>hdl</code>); deixe vazio se não souber. O exame inteiro fica anexado ao paciente.
+        </div>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="examFechar()">Cancelar</button>
+        <button class="pac-btn-primary" id="exam-rev-salvar" onclick="examSalvar()" style="display:none;"><i class="ti ti-device-floppy"></i> Salvar no paciente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="ag-modal-overlay" id="bio-import-modal" onclick="if(event.target.id==='bio-import-modal') bioImportarFechar()">
   <div class="ag-modal" style="max-width: 520px;">
     <div class="ag-modal-header">
@@ -14696,17 +14744,21 @@ function prRenderAnexos() {
   const enviando = !!prState.anexoEnviando;
   const listaHtml = arquivos.length === 0
     ? '<div class="pr-anexos-vazio"><i class="ti ti-folder-open"></i> Nenhum anexo ainda. Exames, laudos, fotos, bioimpedância e documentos entram aqui.</div>'
-    : arquivos.map((a) => `
+    : arquivos.map((a) => {
+        const nomeSafe = (a.nome || '').replace(/[<>'"\\]/g, '');
+        const podeLer = a.mime === 'application/pdf' || (a.mime || '').startsWith('image/');
+        return `
         <div class="pr-anexo-item">
           <i class="ti ti-${prIconePorTipo(a.mime)}"></i>
           <div class="info">
             <div class="nome">${(a.nome || '').replace(/</g, '&lt;')}</div>
             <div class="meta">${a.tipo}${a.tamanho ? ' · ' + prFmtTamanho(a.tamanho) : ''}${a.enviado_por ? ' · ' + a.enviado_por : ''}</div>
           </div>
+          ${podeLer ? `<button class="rm exam-ler" onclick="examLerIA('${a.id}', '${nomeSafe}')" title="Ler exame com IA"><i class="ti ti-robot"></i></button>` : ''}
           <button class="rm" onclick="prDocVer('${a.id}')" title="Ver / baixar"><i class="ti ti-eye"></i></button>
           <button class="rm" onclick="prDocRemover('${a.id}')" title="Remover"><i class="ti ti-x"></i></button>
         </div>
-      `).join('');
+      `; }).join('');
   return `
     <div class="pr-anexos-card">
       <div class="pr-anexos-head">
@@ -14740,6 +14792,108 @@ async function prCarregarDocumentos() {
   const r = await pacApi('/api/clinico/documentos/patient/' + prState.pacienteAtual.id);
   prState.documentos = (r.ok && r.data.documentos) ? r.data.documentos : [];
   prRenderTimeline();
+}
+
+// ===== Leitura de exame por IA (revisão antes de salvar) =====
+let examState = { docId: null, nome: '', marcadores: [] };
+async function examLerIA(docId, nome) {
+  examState = { docId: docId, nome: nome || '', marcadores: [] };
+  document.getElementById('exam-rev-modal').classList.add('aberto');
+  document.getElementById('exam-rev-erro').style.display = 'none';
+  document.getElementById('exam-rev-form').style.display = 'none';
+  document.getElementById('exam-rev-salvar').style.display = 'none';
+  const st = document.getElementById('exam-rev-status');
+  st.innerHTML = '<i class="ti ti-loader"></i> Lendo o exame com IA… pode levar alguns segundos.';
+  const r = await pacApi('/api/clinico/documentos/' + docId + '/ler-exame', { method: 'POST' });
+  if (!r.ok) {
+    if (r.data && r.data.sem_ia) {
+      st.innerHTML = '<span style="color:#EF9F27;"><i class="ti ti-alert-triangle"></i> A leitura por IA ainda não está ligada (falta a chave no servidor).</span>';
+    } else {
+      st.innerHTML = '<span style="color:#f85149;"><i class="ti ti-alert-circle"></i> Erro na leitura: ' + ((r.data && r.data.erro) || '--') + '</span> '
+        + '<button class="pac-btn-secondary" style="margin-left:8px;" onclick="examLerIA(\'' + docId + '\',\'' + (examState.nome) + '\')">Tentar de novo</button>';
+    }
+    return;
+  }
+  const e = r.data.extraido || {};
+  examState.marcadores = Array.isArray(e.marcadores) ? e.marcadores : [];
+  document.getElementById('exam-rev-lab').value = e.laboratorio || '';
+  document.getElementById('exam-rev-data').value = e.data_coleta || '';
+  document.getElementById('exam-rev-tipo').value = e.tipo_exame || examState.nome || '';
+  st.innerHTML = '<i class="ti ti-circle-check" style="color:#1D9E75;"></i> ' + examState.marcadores.length + ' marcadores extraídos. Confira abaixo antes de salvar.';
+  document.getElementById('exam-rev-form').style.display = 'block';
+  document.getElementById('exam-rev-salvar').style.display = '';
+  examRenderLinhas();
+}
+function examRenderLinhas() {
+  const wrap = document.getElementById('exam-rev-linhas');
+  document.getElementById('exam-rev-count').textContent = '(' + examState.marcadores.length + ')';
+  wrap.innerHTML = examState.marcadores.map(function (m, i) {
+    const val = (m.valor != null ? m.valor : (m.valor_texto != null ? m.valor_texto : ''));
+    const ref = m.ref_texto || ((m.ref_min != null || m.ref_max != null) ? ((m.ref_min != null ? m.ref_min : '') + '–' + (m.ref_max != null ? m.ref_max : '')) : '');
+    return '<div class="exam-row' + (m.alterado ? ' alterado' : '') + '" data-i="' + i + '">'
+      + '<input class="exam-rotulo" value="' + pacAppEsc(m.rotulo || '') + '" title="' + pacAppEsc(m.rotulo || '') + '">'
+      + '<input class="exam-valor" value="' + pacAppEsc(String(val)) + '" title="Ref: ' + pacAppEsc(ref || '—') + '">'
+      + '<input class="exam-unidade" value="' + pacAppEsc(m.unidade || '') + '">'
+      + '<input class="exam-codigo" value="' + pacAppEsc(m.codigo || '') + '" placeholder="—">'
+      + '<button type="button" class="exam-del" onclick="examRemLinha(' + i + ')"><i class="ti ti-x"></i></button>'
+      + '</div>';
+  }).join('') || '<div style="color:var(--tx4); font-size:12px; padding:8px 0;">Nenhum marcador lido. Adicione manualmente se precisar.</div>';
+}
+function examColetar() {
+  const rows = Array.prototype.slice.call(document.querySelectorAll('#exam-rev-linhas .exam-row'));
+  return rows.map(function (row) {
+    const i = Number(row.dataset.i);
+    const base = examState.marcadores[i] || {};
+    const rotulo = row.querySelector('.exam-rotulo').value.trim();
+    const valRaw = row.querySelector('.exam-valor').value.trim();
+    const unidade = row.querySelector('.exam-unidade').value.trim() || null;
+    const codigo = row.querySelector('.exam-codigo').value.trim() || null;
+    const n = parseFloat(valRaw.replace(',', '.'));
+    const ehNum = valRaw !== '' && isFinite(n) && /^[-+]?[0-9.,]+$/.test(valRaw);
+    return {
+      codigo: codigo, rotulo: rotulo,
+      valor: ehNum ? n : null, valor_texto: ehNum ? null : (valRaw || null),
+      unidade: unidade,
+      ref_min: base.ref_min != null ? base.ref_min : null,
+      ref_max: base.ref_max != null ? base.ref_max : null,
+      ref_texto: base.ref_texto != null ? base.ref_texto : null,
+      alterado: base.alterado != null ? base.alterado : null,
+    };
+  }).filter(function (m) { return m.rotulo || m.valor != null || m.valor_texto; });
+}
+function examAddLinha() {
+  examState.marcadores = examColetar();
+  examState.marcadores.push({ codigo: null, rotulo: '', valor: null, valor_texto: null, unidade: null, ref_min: null, ref_max: null, ref_texto: null, alterado: null });
+  examRenderLinhas();
+}
+function examRemLinha(i) {
+  examState.marcadores = examColetar();
+  examState.marcadores.splice(i, 1);
+  examRenderLinhas();
+}
+function examFechar() { document.getElementById('exam-rev-modal').classList.remove('aberto'); }
+async function examSalvar() {
+  const pid = prState.pacienteAtual && prState.pacienteAtual.id;
+  const erro = document.getElementById('exam-rev-erro');
+  if (!pid) { erro.textContent = 'Abra um paciente primeiro.'; erro.style.display = 'block'; return; }
+  const marcadores = examColetar();
+  if (!marcadores.length) { erro.textContent = 'Nada pra salvar — nenhum marcador.'; erro.style.display = 'block'; return; }
+  const lab = document.getElementById('exam-rev-lab').value.trim() || null;
+  const tipo = document.getElementById('exam-rev-tipo').value.trim() || 'Exame laboratorial';
+  const dataColeta = document.getElementById('exam-rev-data').value.trim() || null;
+  const btn = document.getElementById('exam-rev-salvar');
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Salvando…';
+  const body = {
+    patient_id: pid, exame: tipo,
+    resultado: { laboratorio: lab, tipo_exame: tipo, marcadores: marcadores },
+    data_coleta: dataColeta,
+    observacoes: examState.nome ? ('Lido por IA de: ' + examState.nome) : null,
+  };
+  const r = await pacApi('/api/clinico/exam-results', { method: 'POST', body: JSON.stringify(body) });
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar no paciente';
+  if (!r.ok) { erro.textContent = (r.data && r.data.erro) || 'Erro ao salvar'; erro.style.display = 'block'; return; }
+  examFechar();
+  if (typeof prCarregarTimeline === 'function') prCarregarTimeline();
 }
 
 async function prAnexoUpload(files) {
