@@ -8798,6 +8798,22 @@ async function pacAppAbrir(id){
 
 function pacAppMini(lbl,val,un){ const v=(val==null||val==='')?'<span style="color:var(--tx4)">—</span>':(val+(un?'<span style="font-size:10px;color:var(--tx3)"> '+un+'</span>':'')); return '<div style="flex:1;min-width:62px;"><div style="font-size:9px;color:var(--tx3b);text-transform:uppercase;letter-spacing:.4px;">'+lbl+'</div><div style="font-size:15px;color:var(--tx1);font-weight:600;">'+v+'</div></div>'; }
 
+// Tooltip do sparkline (JS, segue o mouse) — mais confiável que o <title> nativo do SVG.
+function sparkTip(ev, txt) {
+  let tt = document.getElementById('__sparktip');
+  if (!tt) {
+    tt = document.createElement('div');
+    tt.id = '__sparktip';
+    tt.style.cssText = 'position:fixed;z-index:99999;background:rgba(13,17,23,.96);border:1px solid #30363d;color:#f0f6fc;font-size:11px;font-weight:600;padding:5px 9px;border-radius:8px;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.5);white-space:nowrap;';
+    document.body.appendChild(tt);
+  }
+  tt.textContent = txt;
+  tt.style.display = 'block';
+  tt.style.left = (ev.clientX + 12) + 'px';
+  tt.style.top = (ev.clientY - 32) + 'px';
+}
+function sparkTipHide() { const tt = document.getElementById('__sparktip'); if (tt) tt.style.display = 'none'; }
+
 function pacAppSpark(serie, key){
   key = key || 'aplic';
   if(!serie||serie.length<2) return '<div style="color:var(--tx4);font-size:12px;padding:10px 0;">Sem histórico suficiente pro gráfico ainda.</div>';
@@ -8810,9 +8826,9 @@ function pacAppSpark(serie, key){
   const dots=serie.map(function(s,i){
     const ds=String(s.data||'');
     const dt=(ds.length>=10)?(ds.slice(8,10)+'/'+ds.slice(5,7)+'/'+ds.slice(0,4)):ds; // dd/mm/aaaa sem deslocar fuso
-    // bolinha visível (r 2.5) + alvo transparente maior (r 8) com <title> = tooltip nativo de data ao passar o mouse.
+    // bolinha visível (r 2.5) + alvo transparente maior (r 10, pointer-events:all) que dispara o tooltip JS.
     return '<circle cx="'+x(i)+'" cy="'+y(s[key])+'" r="2.5" fill="var(--ac)"/>'
-      +'<circle cx="'+x(i)+'" cy="'+y(s[key])+'" r="8" fill="transparent" style="cursor:pointer;"><title>'+dt+' · '+s[key]+'</title></circle>';
+      +'<circle cx="'+x(i)+'" cy="'+y(s[key])+'" r="10" fill="transparent" style="cursor:pointer;pointer-events:all;" onmousemove="sparkTip(event,\''+dt+' · '+s[key]+'\')" onmouseleave="sparkTipHide()"/>';
   }).join('');
   return '<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="max-height:130px;">'
     +'<defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--ac)" stop-opacity="0.18"/><stop offset="100%" stop-color="var(--ac)" stop-opacity="0"/></linearGradient></defs>'
