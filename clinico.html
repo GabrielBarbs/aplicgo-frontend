@@ -8807,7 +8807,13 @@ function pacAppSpark(serie, key){
   const xy=serie.map(function(s,i){ return { x:x(i), y:y(s[key]) }; });
   const path=bioSmoothPath(xy);
   const areaD=path+' L'+xy[xy.length-1].x.toFixed(1)+','+(H-pad)+' L'+xy[0].x.toFixed(1)+','+(H-pad)+' Z';
-  const dots=serie.map(function(s,i){ return '<circle cx="'+x(i)+'" cy="'+y(s[key])+'" r="2.5" fill="var(--ac)"/>'; }).join('');
+  const dots=serie.map(function(s,i){
+    const ds=String(s.data||'');
+    const dt=(ds.length>=10)?(ds.slice(8,10)+'/'+ds.slice(5,7)+'/'+ds.slice(0,4)):ds; // dd/mm/aaaa sem deslocar fuso
+    // bolinha visível (r 2.5) + alvo transparente maior (r 8) com <title> = tooltip nativo de data ao passar o mouse.
+    return '<circle cx="'+x(i)+'" cy="'+y(s[key])+'" r="2.5" fill="var(--ac)"/>'
+      +'<circle cx="'+x(i)+'" cy="'+y(s[key])+'" r="8" fill="transparent" style="cursor:pointer;"><title>'+dt+' · '+s[key]+'</title></circle>';
+  }).join('');
   return '<svg width="100%" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="max-height:130px;">'
     +'<defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--ac)" stop-opacity="0.18"/><stop offset="100%" stop-color="var(--ac)" stop-opacity="0"/></linearGradient></defs>'
     +'<path d="'+areaD+'" fill="url(#sparkGrad)"/>'
@@ -14811,9 +14817,9 @@ function prRenderScores() {
       + '<div style="color:var(--tx4); font-size:12px;">Sem dados ainda. Registre uma bioimpedância e leia exames de sangue (anexos) pra calcular os scores.</div></div>';
   }
   const well = '<div class="scores-wellness">'
-    + pacAppWellCard('Sono', 'ti-moon', s.sono, 'sono')
-    + pacAppWellCard('Recuperação', 'ti-bolt', s.recovery, 'recovery')
-    + pacAppWellCard('Movimento', 'ti-run', s.movimento, 'movimento', (s.movimento && s.movimento.meta) ? ('Meta: ' + s.movimento.meta.nome) : '')
+    + pacAppWellCard('Aplic Sono', 'ti-moon', s.sono, 'sono')
+    + pacAppWellCard('Aplic Recovery', 'ti-bolt', s.recovery, 'recovery')
+    + pacAppWellCard('Aplic Movimento', 'ti-run', s.movimento, 'movimento', (s.movimento && s.movimento.meta) ? ('Meta: ' + s.movimento.meta.nome) : '')
     + '</div>';
   return '<div class="scores-stack">'
     + prRenderLongevityCard(long, ib)
