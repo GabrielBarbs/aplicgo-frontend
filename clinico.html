@@ -5231,6 +5231,15 @@
     .met-comp .p .mx { color: var(--tx4); font-weight: 400; font-size: 10px; }
     .met-comp.falta .n, .met-comp.falta .p { color: var(--tx4); }
     .met-nota { font-size: 10px; color: var(--tx4); margin-top: 10px; display: flex; align-items: center; gap: 5px; }
+
+    /* ---- Status da leitura de exame por IA (no anexo) ---- */
+    .exam-st { font-size: 10px; padding: 3px 9px; border-radius: 6px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .exam-st.pend { background: rgba(239,159,39,.12); color: #EF9F27; }
+    .exam-st.pend i { animation: examspin 1s linear infinite; }
+    .exam-st.ok { background: rgba(29,158,117,.14); color: #1D9E75; }
+    .exam-st.neutro { background: rgba(var(--tx3b-rgb),.10); color: var(--tx4); }
+    .exam-st.err { background: rgba(229,83,75,.12); color: #E5534B; cursor: pointer; }
+    @keyframes examspin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -14804,8 +14813,14 @@ function prRenderAnexos() {
   const listaHtml = arquivos.length === 0
     ? '<div class="pr-anexos-vazio"><i class="ti ti-folder-open"></i> Nenhum anexo ainda. Exames, laudos, fotos, bioimpedância e documentos entram aqui.</div>'
     : arquivos.map((a) => {
-        const nomeSafe = (a.nome || '').replace(/[<>'"\\]/g, '');
-        const podeLer = a.mime === 'application/pdf' || (a.mime || '').startsWith('image/');
+        const es = a.exame_status;
+        let badge = '';
+        if (es) {
+          if (es.status === 'pendente') badge = '<span class="exam-st pend"><i class="ti ti-loader"></i> Aguardando leitura</span>';
+          else if (es.status === 'lido') badge = '<span class="exam-st ok"><i class="ti ti-circle-check"></i> Salvo' + (es.qtd ? ' · ' + es.qtd + ' marcador' + (es.qtd > 1 ? 'es' : '') : '') + '</span>';
+          else if (es.status === 'sem_marcadores') badge = '<span class="exam-st neutro"><i class="ti ti-file-off"></i> Sem marcadores</span>';
+          else if (es.status === 'erro') badge = '<span class="exam-st err" title="' + String(es.erro || '').replace(/[<>"]/g, '') + '" onclick="examReprocessar(event,\'' + a.id + '\')"><i class="ti ti-alert-triangle"></i> Falha — tentar de novo</span>';
+        }
         return `
         <div class="pr-anexo-item">
           <i class="ti ti-${prIconePorTipo(a.mime)}"></i>
@@ -14813,7 +14828,7 @@ function prRenderAnexos() {
             <div class="nome">${(a.nome || '').replace(/</g, '&lt;')}</div>
             <div class="meta">${a.tipo}${a.tamanho ? ' · ' + prFmtTamanho(a.tamanho) : ''}${a.enviado_por ? ' · ' + a.enviado_por : ''}</div>
           </div>
-          ${podeLer ? `<button class="rm exam-ler" onclick="examLerIA('${a.id}', '${nomeSafe}')" title="Ler exame com IA"><i class="ti ti-robot"></i></button>` : ''}
+          ${badge}
           <button class="rm" onclick="prDocVer('${a.id}')" title="Ver / baixar"><i class="ti ti-eye"></i></button>
           <button class="rm" onclick="prDocRemover('${a.id}')" title="Remover"><i class="ti ti-x"></i></button>
         </div>
@@ -14850,7 +14865,38 @@ async function prCarregarDocumentos() {
   if (!prState.pacienteAtual) { prState.documentos = []; return; }
   const r = await pacApi('/api/clinico/documentos/patient/' + prState.pacienteAtual.id);
   prState.documentos = (r.ok && r.data.documentos) ? r.data.documentos : [];
+  prState._docPollN = 0; // zera o contador de polling a cada carga nova
   prRenderTimeline();
+  prPollAnexosSeNecessario();
+}
+
+// Enquanto algum exame estiver "pendente" (lendo em segundo plano), reconsulta
+// e atualiza SÓ o card de anexos (sem re-renderizar o prontuário inteiro).
+// Teto de ~4 min de polling pra não ficar em loop se algo travar no servidor.
+function prPollAnexosSeNecessario() {
+  clearTimeout(prState._docPoll);
+  const pend = (prState.documentos || []).some((d) => d.exame_status && d.exame_status.status === 'pendente');
+  if (!pend || !prState.pacienteAtual) return;
+  prState._docPollN = (prState._docPollN || 0) + 1;
+  if (prState._docPollN > 40) return;
+  prState._docPoll = setTimeout(prAtualizarAnexos, 6000);
+}
+async function prAtualizarAnexos() {
+  if (!prState.pacienteAtual) return;
+  const idAtual = prState.pacienteAtual.id;
+  const r = await pacApi('/api/clinico/documentos/patient/' + idAtual);
+  if (!prState.pacienteAtual || prState.pacienteAtual.id !== idAtual) return; // trocou de paciente
+  prState.documentos = (r.ok && r.data.documentos) ? r.data.documentos : [];
+  const wrap = document.getElementById('pr-anexos-wrap');
+  if (wrap) wrap.innerHTML = prRenderAnexos();
+  const aindaPend = prState.documentos.some((d) => d.exame_status && d.exame_status.status === 'pendente');
+  if (aindaPend) prPollAnexosSeNecessario();
+  else if (typeof prCarregarMetabolic === 'function') prCarregarMetabolic(idAtual); // exame novo salvo -> recalcula o score
+}
+async function examReprocessar(ev, id) {
+  if (ev) ev.stopPropagation();
+  await pacApi('/api/clinico/documentos/' + id + '/reprocessar', { method: 'POST' });
+  prAtualizarAnexos();
 }
 
 // ===== Leitura de exame por IA (revisão antes de salvar) =====
