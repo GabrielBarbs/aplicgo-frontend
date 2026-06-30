@@ -16199,11 +16199,14 @@ async function prAssinarReceita(d, btn) {
   prMostrarQRModal(d);
 }
 
-// Já assinada: só reabre o QR (assina sob demanda se faltar token).
+// Já assinada: prescritor re-assina (idempotente, mesmo token, data preservada)
+// -> garante o hash canônico atualizado e auto-cura receitas da versão antiga.
+// Quem não prescreve apenas reabre o QR existente.
 function prReceitaQR(d) {
   if (typeof d === 'string') { try { d = JSON.parse(d.replace(/&apos;/g, "'")); } catch { return; } }
-  if (!d.verif_token) { prAssinarReceita(d); return; }
-  prMostrarQRModal(d);
+  if (typeof temPermissao === 'function' && temPermissao('prontuario.prescrever')) { prAssinarReceita(d); return; }
+  if (d.verif_token) { prMostrarQRModal(d); return; }
+  prAssinarReceita(d);
 }
 
 function prQrCopy(url, btn) {

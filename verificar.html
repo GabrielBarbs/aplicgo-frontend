@@ -5,66 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'self' https://srv.aplicgo.com; object-src 'none'; base-uri 'self'">
   <title>Verificar receita · Aplic &amp; Go</title>
+  <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --vd: #0F6E56; --vd2: #1D9E75; --ok: #1D9E75; --amber: #C77F12; --red: #C0392B;
-      --bg: #f4f6f5; --card: #ffffff; --tx1: #1a2421; --tx2: #4a5854; --tx3: #8a9590; --hair: #e4e9e7;
+      --vd: #4F7A5E; --vd-deep: #3C6149; --sage: #8FA98C; --sage-soft: #E8EFE8;
+      --ok: #4F7A5E; --amber: #B8841F; --red: #C0392B;
+      --bg: #eef2ee; --card: #ffffff; --tx1: #1d2a22; --tx2: #54635a; --tx3: #93a097; --hair: #e6ece6;
+      --shadow: 0 18px 48px rgba(43,78,57,0.12), 0 2px 8px rgba(43,78,57,0.06);
     }
-    body { font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif; background: var(--bg); color: var(--tx1); line-height: 1.5; min-height: 100vh; padding: 24px 16px 60px; }
-    .wrap { max-width: 560px; margin: 0 auto; }
-    .topo { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 8px 0 22px; }
-    .topo .marca { font-size: 19px; font-weight: 800; color: var(--vd); letter-spacing: -0.3px; }
-    .topo .sub { font-size: 11px; color: var(--tx3); text-transform: uppercase; letter-spacing: 1px; }
-    .card { background: var(--card); border: 1px solid var(--hair); border-radius: 16px; box-shadow: 0 6px 24px rgba(15,110,86,0.06); overflow: hidden; }
-    .banner { padding: 26px 24px; text-align: center; color: #fff; }
-    .banner i { font-size: 44px; display: block; margin-bottom: 8px; }
-    .banner .t { font-size: 19px; font-weight: 700; }
-    .banner .d { font-size: 13px; opacity: 0.92; margin-top: 4px; }
-    .banner.ok { background: linear-gradient(135deg, #1D9E75, #0F6E56); }
-    .banner.warn { background: linear-gradient(135deg, #E0A340, #C77F12); }
-    .banner.bad { background: linear-gradient(135deg, #E05B4A, #C0392B); }
-    .banner.neutro { background: linear-gradient(135deg, #6b7a75, #4a5854); }
-    .corpo { padding: 22px 24px; }
-    .sec-tit { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--vd); font-weight: 700; margin: 0 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--hair); }
-    .linha { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 5px 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+      color: var(--tx1); line-height: 1.5;
+      background:
+        radial-gradient(1100px 520px at 50% -10%, rgba(143,169,140,0.30), transparent 70%),
+        radial-gradient(800px 600px at 100% 100%, rgba(79,122,94,0.10), transparent 60%),
+        var(--bg);
+      padding: 34px 16px 70px;
+    }
+    .wrap { max-width: 540px; margin: 0 auto; }
+
+    .brand { text-align: center; margin: 4px 0 26px; }
+    .brand img { height: 46px; width: auto; object-fit: contain; }
+    .brand .tag {
+      margin-top: 12px; display: inline-flex; align-items: center; gap: 7px;
+      font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 600;
+      color: var(--vd-deep); background: rgba(255,255,255,0.7); border: 1px solid var(--hair);
+      padding: 6px 13px; border-radius: 999px; backdrop-filter: blur(4px);
+    }
+    .brand .tag i { font-size: 14px; }
+
+    .card { background: var(--card); border: 1px solid rgba(255,255,255,0.7); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
+
+    .banner { position: relative; padding: 34px 26px 30px; text-align: center; color: #fff; overflow: hidden; }
+    .banner::after { content: ''; position: absolute; inset: 0; background: radial-gradient(420px 180px at 50% -40%, rgba(255,255,255,0.28), transparent 70%); pointer-events: none; }
+    .banner .ring {
+      width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 14px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.45);
+      box-shadow: 0 0 0 8px rgba(255,255,255,0.07);
+    }
+    .banner .ring i { font-size: 40px; line-height: 1; }
+    .banner .t { font-size: 21px; font-weight: 750; letter-spacing: -0.2px; }
+    .banner .d { font-size: 13.5px; opacity: 0.94; margin-top: 6px; max-width: 360px; margin-left: auto; margin-right: auto; }
+    .banner.ok   { background: linear-gradient(140deg, #5C9A72 0%, #3C6149 100%); }
+    .banner.warn { background: linear-gradient(140deg, #E0A340 0%, #B8841F 100%); }
+    .banner.bad  { background: linear-gradient(140deg, #E0685A 0%, #C0392B 100%); }
+    .banner.neutro { background: linear-gradient(140deg, #8A9A90 0%, #5C6B62 100%); }
+
+    .corpo { padding: 24px 26px 26px; }
+    .sec-tit { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.3px; color: var(--vd); font-weight: 700; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--hair); }
+    .linha { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; padding: 6px 0; }
     .linha .k { color: var(--tx3); }
     .linha .v { color: var(--tx1); font-weight: 600; text-align: right; }
-    .med { padding: 11px 0; border-bottom: 1px dashed var(--hair); }
-    .med:last-child { border-bottom: 0; }
-    .med .nome { font-size: 14px; font-weight: 600; }
-    .med .uso { font-size: 12px; color: var(--tx2); margin-top: 2px; }
-    .med .obs { font-size: 12px; color: var(--tx3); font-style: italic; margin-top: 2px; }
-    .bloco { margin-top: 22px; }
-    .obs-box { font-size: 13px; color: var(--tx2); background: #f7faf9; border: 1px solid var(--hair); border-radius: 10px; padding: 12px 14px; }
-    .selo { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; font-size: 13px; }
-    .selo i { font-size: 22px; }
-    .selo.ok { background: rgba(29,158,117,0.1); color: var(--vd); border: 1px solid rgba(29,158,117,0.28); }
-    .selo.warn { background: rgba(199,127,18,0.1); color: var(--amber); border: 1px solid rgba(199,127,18,0.28); }
-    .selo.bad { background: rgba(192,57,43,0.08); color: var(--red); border: 1px solid rgba(192,57,43,0.25); }
-    .hash { font-family: ui-monospace, monospace; font-size: 10px; color: var(--tx3); word-break: break-all; margin-top: 10px; }
-    .rodape { text-align: center; font-size: 11px; color: var(--tx3); margin-top: 22px; line-height: 1.6; }
-    .loading { text-align: center; padding: 60px 0; color: var(--tx3); }
-    .loading i { font-size: 34px; animation: spin 1s linear infinite; }
+
+    .bloco { margin-top: 24px; }
+    .med {
+      position: relative; padding: 12px 14px 12px 16px; margin-bottom: 8px;
+      background: #f7faf7; border: 1px solid var(--hair); border-radius: 12px;
+    }
+    .med::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--sage); }
+    .med:last-child { margin-bottom: 0; }
+    .med .nome { font-size: 14.5px; font-weight: 650; color: var(--tx1); }
+    .med .uso { font-size: 12.5px; color: var(--tx2); margin-top: 3px; }
+    .med .obs { font-size: 12px; color: var(--tx3); font-style: italic; margin-top: 3px; }
+
+    .obs-box { font-size: 13px; color: var(--tx2); background: #f7faf7; border: 1px solid var(--hair); border-radius: 12px; padding: 13px 15px; }
+
+    .selo { display: flex; align-items: flex-start; gap: 11px; padding: 13px 15px; border-radius: 12px; font-size: 12.5px; line-height: 1.5; }
+    .selo i { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+    .selo.ok { background: rgba(79,122,94,0.09); color: var(--vd-deep); border: 1px solid rgba(79,122,94,0.25); }
+    .selo.warn { background: rgba(184,132,31,0.09); color: var(--amber); border: 1px solid rgba(184,132,31,0.26); }
+    .selo.bad { background: rgba(192,57,43,0.07); color: var(--red); border: 1px solid rgba(192,57,43,0.22); }
+    .hash { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 10px; color: var(--tx3); word-break: break-all; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--hair); }
+
+    .rodape { text-align: center; font-size: 11px; color: var(--tx3); margin-top: 24px; line-height: 1.7; }
+    .rodape img { height: 16px; opacity: 0.55; vertical-align: middle; margin-bottom: 2px; }
+
+    .loading { text-align: center; padding: 56px 0; color: var(--tx3); }
+    .loading i { font-size: 32px; animation: spin 1s linear infinite; color: var(--sage); }
+    .loading .skel { font-size: 13px; margin-top: 14px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .skel { color: var(--tx3); font-size: 13px; margin-top: 12px; }
+
+    @media (max-width: 440px) {
+      .banner .t { font-size: 19px; }
+      .corpo { padding: 20px 18px 22px; }
+      .banner { padding: 28px 18px 24px; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="topo">
-      <div>
-        <div class="marca">Aplic &amp; Go</div>
-        <div class="sub">Verificação de receita</div>
-      </div>
+    <div class="brand">
+      <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'">
+      <div class="tag"><i class="ti ti-shield-lock"></i> Verificação de autenticidade</div>
     </div>
     <div id="alvo">
       <div class="loading"><i class="ti ti-loader-2"></i><div class="skel">Verificando autenticidade…</div></div>
     </div>
     <div class="rodape">
-      Esta página confere a autenticidade de receitas emitidas pelo Sistema Clínico Aplic &amp; Go.<br>
-      Em caso de dúvida sobre a validade legal, entre em contato com a clínica emissora.
+      <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'"><br>
+      Página oficial de verificação de receitas do Sistema Clínico Aplic &amp; Go.<br>
+      Em caso de dúvida sobre a validade legal, contate a clínica emissora.
     </div>
   </div>
 
@@ -81,7 +125,7 @@
     }
 
     function banner(cls, icon, titulo, desc) {
-      return `<div class="banner ${cls}"><i class="ti ${icon}"></i><div class="t">${titulo}</div>${desc ? `<div class="d">${desc}</div>` : ''}</div>`;
+      return `<div class="banner ${cls}"><div class="ring"><i class="ti ${icon}"></i></div><div class="t">${titulo}</div>${desc ? `<div class="d">${desc}</div>` : ''}</div>`;
     }
 
     function render(r) {
