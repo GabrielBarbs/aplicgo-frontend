@@ -5240,6 +5240,14 @@
     .exam-st.neutro { background: rgba(var(--tx3b-rgb),.10); color: var(--tx4); }
     .exam-st.err { background: rgba(229,83,75,.12); color: #E5534B; cursor: pointer; }
     @keyframes examspin { to { transform: rotate(360deg); } }
+
+    /* ---- Idade biológica (dentro do card de Longevity) ---- */
+    .lon-ib { margin-left: auto; text-align: right; padding-left: 16px; border-left: 1px solid var(--hair); }
+    .lon-ib .lbl { font-size: 10px; color: var(--tx3b); text-transform: uppercase; letter-spacing: .4px; }
+    .lon-ib .val { font-size: 26px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .lon-ib .val .anos { font-size: 13px; font-weight: 500; color: var(--tx4); }
+    .lon-ib .sub { font-size: 11px; margin-top: 2px; }
+    @media (max-width: 560px) { .lon-ib { margin-left: 0; border-left: 0; padding-left: 0; text-align: left; width: 100%; } }
   </style>
 </head>
 <body>
@@ -14610,6 +14618,7 @@ async function prCarregarTimeline() {
   prCarregarDocumentos();
   prCarregarAppMonitor(prState.pacienteAtual.id); // carrega o bloco "Monitoramento no App" (best-effort)
   prCarregarMetabolic(prState.pacienteAtual.id);   // calcula o Aplic Metabolic Score (best-effort)
+  prCarregarLongevity(prState.pacienteAtual.id);   // Longevity + Idade Biológica (best-effort)
 }
 
 function prRenderTimeline() {
@@ -14679,6 +14688,7 @@ function prRenderTimeline() {
 
   conteudo.innerHTML = headerHtml
     + `<div id="pr-metabolic-card">${prRenderMetabolic()}</div>`
+    + `<div id="pr-longevity-card">${prRenderLongevity()}</div>`
     + cardsHtml + actionsBar
     + `<div id="pr-app-monitor">${prRenderAppMonitor()}</div>`
     + `<div id="pr-anexos-wrap" style="display:${prState.anexosAberto ? 'block' : 'none'};">${anexosHtml}</div>`
@@ -14750,6 +14760,47 @@ function prRenderMetabolic() {
     + '<div class="met-grid">' + comps + '</div>'
     + (m.homa_fonte === 'calculado' ? '<div class="met-nota"><i class="ti ti-calculator"></i> HOMA-IR calculado de glicose × insulina (÷405).</div>' : '')
     + '</div>';
+}
+
+// ===== Aplic Longevity Score + Idade Biológica =====
+async function prCarregarLongevity(id) {
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + id + '/longevity-score');
+    if (!prState.pacienteAtual || prState.pacienteAtual.id !== id) return;
+    prState.longevity = (r.ok && r.data) ? { longevity: r.data.longevity, idade_biologica: r.data.idade_biologica } : null;
+  } catch (e) { prState.longevity = null; }
+  const wrap = document.getElementById('pr-longevity-card');
+  if (wrap) wrap.innerHTML = prRenderLongevity();
+}
+function prRenderLongevity() {
+  const m = prState.longevity;
+  if (!m) return '';
+  const L = m.longevity, ib = m.idade_biologica;
+  const cor = { elite: '#1D9E75', excelente: '#1D9E75', boa: '#6FD89A', melhoria: '#EF9F27', atencao: '#F0883E', risco: '#E5534B' };
+  if (!L || L.score == null) {
+    return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-infinity"></i> Aplic Longevity Score</div></div>'
+      + '<div style="color:var(--tx4); font-size:12px;">Sem dados ainda. Precisa de pelo menos o Metabolic Score ou a pontuação InBody.</div></div>';
+  }
+  const c = cor[L.faixa] || 'var(--ac)';
+  const comps = (L.componentes || []).map(function (cp) {
+    const peso = '<span style="color:var(--tx4); font-size:10px;">' + cp.peso + '%</span>';
+    if (cp.presente) return '<div class="met-comp"><span class="n">' + cp.nome + ' ' + peso + '</span><span class="p">' + cp.valor + '</span></div>';
+    return '<div class="met-comp falta"><span class="n">' + cp.nome + ' ' + peso + '</span><span class="p" title="Falta esse dado">—</span></div>';
+  }).join('');
+  let ibHtml = '';
+  if (ib) {
+    const corIb = ib.mais_jovem ? '#1D9E75' : (ib.diferenca === 0 ? 'var(--tx2)' : '#EF9F27');
+    const txt = ib.diferenca > 0 ? (Math.abs(ib.diferenca) + ' anos mais jovem') : (ib.diferenca < 0 ? (Math.abs(ib.diferenca) + ' anos mais velho') : 'na sua idade cronológica');
+    ibHtml = '<div class="lon-ib"><div class="lbl">Idade biológica</div><div class="val" style="color:' + corIb + ';">' + ib.idade_biologica + ' <span class="anos">anos</span></div><div class="sub" style="color:' + corIb + ';">' + txt + ' · cronológica ' + ib.idade_cronologica + '</div></div>';
+  }
+  return '<div class="dash-card met-card">'
+    + '<div class="dash-card-head"><div class="ttl"><i class="ti ti-infinity"></i> Aplic Longevity Score</div><div class="dash-count" style="color:' + c + ';">' + L.completude + '% dos dados</div></div>'
+    + '<div class="met-top">'
+    + '<div class="met-score" style="color:' + c + ';">' + L.score + '<span class="met-de">/100</span></div>'
+    + '<div class="met-faixa"><div class="lbl" style="color:' + c + ';">' + (L.label || '') + '</div></div>'
+    + ibHtml
+    + '</div>'
+    + '<div class="met-grid">' + comps + '</div></div>';
 }
 
 function prRenderAppMonitor() {
@@ -14891,7 +14942,7 @@ async function prAtualizarAnexos() {
   if (wrap) wrap.innerHTML = prRenderAnexos();
   const aindaPend = prState.documentos.some((d) => d.exame_status && d.exame_status.status === 'pendente');
   if (aindaPend) prPollAnexosSeNecessario();
-  else if (typeof prCarregarMetabolic === 'function') prCarregarMetabolic(idAtual); // exame novo salvo -> recalcula o score
+  else if (typeof prCarregarMetabolic === 'function') { prCarregarMetabolic(idAtual); prCarregarLongevity(idAtual); } // exame novo -> recalcula scores
 }
 async function examReprocessar(ev, id) {
   if (ev) ev.stopPropagation();
