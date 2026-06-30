@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'self' https://srv.aplicgo.com; object-src 'none'; base-uri 'self'">
+  <title>Verificar receita · Aplic &amp; Go</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --vd: #0F6E56; --vd2: #1D9E75; --ok: #1D9E75; --amber: #C77F12; --red: #C0392B;
+      --bg: #f4f6f5; --card: #ffffff; --tx1: #1a2421; --tx2: #4a5854; --tx3: #8a9590; --hair: #e4e9e7;
+    }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif; background: var(--bg); color: var(--tx1); line-height: 1.5; min-height: 100vh; padding: 24px 16px 60px; }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    .topo { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 8px 0 22px; }
+    .topo .marca { font-size: 19px; font-weight: 800; color: var(--vd); letter-spacing: -0.3px; }
+    .topo .sub { font-size: 11px; color: var(--tx3); text-transform: uppercase; letter-spacing: 1px; }
+    .card { background: var(--card); border: 1px solid var(--hair); border-radius: 16px; box-shadow: 0 6px 24px rgba(15,110,86,0.06); overflow: hidden; }
+    .banner { padding: 26px 24px; text-align: center; color: #fff; }
+    .banner i { font-size: 44px; display: block; margin-bottom: 8px; }
+    .banner .t { font-size: 19px; font-weight: 700; }
+    .banner .d { font-size: 13px; opacity: 0.92; margin-top: 4px; }
+    .banner.ok { background: linear-gradient(135deg, #1D9E75, #0F6E56); }
+    .banner.warn { background: linear-gradient(135deg, #E0A340, #C77F12); }
+    .banner.bad { background: linear-gradient(135deg, #E05B4A, #C0392B); }
+    .banner.neutro { background: linear-gradient(135deg, #6b7a75, #4a5854); }
+    .corpo { padding: 22px 24px; }
+    .sec-tit { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--vd); font-weight: 700; margin: 0 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--hair); }
+    .linha { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 5px 0; }
+    .linha .k { color: var(--tx3); }
+    .linha .v { color: var(--tx1); font-weight: 600; text-align: right; }
+    .med { padding: 11px 0; border-bottom: 1px dashed var(--hair); }
+    .med:last-child { border-bottom: 0; }
+    .med .nome { font-size: 14px; font-weight: 600; }
+    .med .uso { font-size: 12px; color: var(--tx2); margin-top: 2px; }
+    .med .obs { font-size: 12px; color: var(--tx3); font-style: italic; margin-top: 2px; }
+    .bloco { margin-top: 22px; }
+    .obs-box { font-size: 13px; color: var(--tx2); background: #f7faf9; border: 1px solid var(--hair); border-radius: 10px; padding: 12px 14px; }
+    .selo { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; font-size: 13px; }
+    .selo i { font-size: 22px; }
+    .selo.ok { background: rgba(29,158,117,0.1); color: var(--vd); border: 1px solid rgba(29,158,117,0.28); }
+    .selo.warn { background: rgba(199,127,18,0.1); color: var(--amber); border: 1px solid rgba(199,127,18,0.28); }
+    .selo.bad { background: rgba(192,57,43,0.08); color: var(--red); border: 1px solid rgba(192,57,43,0.25); }
+    .hash { font-family: ui-monospace, monospace; font-size: 10px; color: var(--tx3); word-break: break-all; margin-top: 10px; }
+    .rodape { text-align: center; font-size: 11px; color: var(--tx3); margin-top: 22px; line-height: 1.6; }
+    .loading { text-align: center; padding: 60px 0; color: var(--tx3); }
+    .loading i { font-size: 34px; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .skel { color: var(--tx3); font-size: 13px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topo">
+      <div>
+        <div class="marca">Aplic &amp; Go</div>
+        <div class="sub">Verificação de receita</div>
+      </div>
+    </div>
+    <div id="alvo">
+      <div class="loading"><i class="ti ti-loader-2"></i><div class="skel">Verificando autenticidade…</div></div>
+    </div>
+    <div class="rodape">
+      Esta página confere a autenticidade de receitas emitidas pelo Sistema Clínico Aplic &amp; Go.<br>
+      Em caso de dúvida sobre a validade legal, entre em contato com a clínica emissora.
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://srv.aplicgo.com';
+    const TIPO = { BRANCA_COMUM: 'Receituário (branca comum)', BRANCA_CONTROLADA: 'Receituário de Controle Especial', AZUL_CONTROLADA: 'Receituário Azul (B)', ATESTADO: 'Atestado' };
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const fmtData = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString('pt-BR'); };
+    const fmtDataCurta = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleDateString('pt-BR'); };
+
+    function getToken() {
+      const u = new URLSearchParams(location.search);
+      return u.get('t') || u.get('token') || location.hash.replace(/^#\/?/, '') || '';
+    }
+
+    function banner(cls, icon, titulo, desc) {
+      return `<div class="banner ${cls}"><i class="ti ${icon}"></i><div class="t">${titulo}</div>${desc ? `<div class="d">${desc}</div>` : ''}</div>`;
+    }
+
+    function render(r) {
+      const alvo = document.getElementById('alvo');
+      if (!r || !r.ok) {
+        alvo.innerHTML = `<div class="card">${banner('neutro', 'ti-cloud-off', 'Não foi possível verificar', 'Tente novamente em instantes.')}</div>`;
+        return;
+      }
+      if (!r.encontrada) {
+        alvo.innerHTML = `<div class="card">${banner('neutro', 'ti-search-off', 'Receita não encontrada', 'O código pode estar incorreto ou a receita foi removida.')}</div>`;
+        return;
+      }
+      const c = r.conteudo || {};
+      const sig = r.assinatura || {};
+      const integro = r.hash_confere;
+      const assinada = sig.valida;
+
+      let bn;
+      if (!integro) {
+        bn = banner('bad', 'ti-alert-triangle', 'Conteúdo adulterado', 'O conteúdo não confere com o registro original. Não aceite.');
+      } else if (assinada) {
+        bn = banner('ok', 'ti-rosette-discount-check', 'Receita autêntica', 'Assinatura digital Aplic verificada.');
+      } else {
+        bn = banner('warn', 'ti-shield-check', 'Conteúdo íntegro', 'Sem assinatura criptográfica — confere a integridade do conteúdo.');
+      }
+
+      const itens = (c.itens || []).map((i) => `
+        <div class="med">
+          <div class="nome">${esc(i.medicamento)}${i.dose ? ' — ' + esc(i.dose) : ''}</div>
+          ${(i.frequencia || i.duracao) ? `<div class="uso">${[i.frequencia, i.duracao].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
+          ${i.observacoes ? `<div class="obs">${esc(i.observacoes)}</div>` : ''}
+        </div>`).join('') || '<div class="med"><div class="uso">Sem itens.</div></div>';
+
+      let selo;
+      if (assinada) {
+        selo = `<div class="selo ok"><i class="ti ti-certificate"></i><div><strong>Assinatura digital Aplic</strong> — verificada criptograficamente (Ed25519). O documento não foi alterado desde a emissão.</div></div>`;
+      } else if (integro) {
+        selo = `<div class="selo warn"><i class="ti ti-shield-half"></i><div>O conteúdo confere com o registro, mas <strong>sem assinatura criptográfica</strong>. Para validade legal de medicamentos controlados, exija assinatura ICP-Brasil.</div></div>`;
+      } else {
+        selo = `<div class="selo bad"><i class="ti ti-x"></i><div>Verificação falhou — não confie neste documento.</div></div>`;
+      }
+
+      alvo.innerHTML = `
+        <div class="card">
+          ${bn}
+          <div class="corpo">
+            <div class="sec-tit">${esc(TIPO[c.tipo] || 'Receituário')}</div>
+            <div class="linha"><span class="k">Paciente</span><span class="v">${esc(c.paciente && c.paciente.nome || '—')}${c.paciente && c.paciente.codigo ? ' (' + esc(c.paciente.codigo) + ')' : ''}</span></div>
+            <div class="linha"><span class="k">Profissional</span><span class="v">${esc(c.profissional && c.profissional.nome || r.assinante || '—')}</span></div>
+            <div class="linha"><span class="k">Emitida em</span><span class="v">${fmtDataCurta(c.data)}</span></div>
+            <div class="linha"><span class="k">Assinada em</span><span class="v">${fmtData(r.criado_em)}</span></div>
+
+            <div class="bloco">
+              <div class="sec-tit">${c.tipo === 'ATESTADO' ? 'Atestado' : 'Medicamentos'}</div>
+              ${itens}
+            </div>
+
+            ${c.observacoes ? `<div class="bloco"><div class="sec-tit">Observações</div><div class="obs-box">${esc(c.observacoes)}</div></div>` : ''}
+
+            <div class="bloco">
+              <div class="sec-tit">Autenticidade</div>
+              ${selo}
+              <div class="hash">SHA-256: ${esc(r.hash)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    (async () => {
+      const token = getToken();
+      if (!token) { render({ ok: true, encontrada: false }); return; }
+      try {
+        const resp = await fetch(API_BASE + '/api/verificar/' + encodeURIComponent(token), { headers: { 'Accept': 'application/json' } });
+        let data = null;
+        try { data = await resp.json(); } catch (e) { data = null; }
+        render(data || { ok: false });
+      } catch (e) {
+        render({ ok: false });
+      }
+    })();
+  </script>
+</body>
+</html>
