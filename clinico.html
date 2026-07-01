@@ -5219,7 +5219,7 @@
     .exam-row .exam-del:hover { border-color: #E5534B; color: #E5534B; }
     .pr-anexo-item .rm.exam-ler:hover { background: rgba(var(--ac-rgb),.14); color: var(--ac); }
 
-    /* ---- Aplic Metabolic Score (card do prontuário) ---- */
+    /* ---- Metabolic Score (card do prontuário) ---- */
     .met-card { margin-bottom: 14px; }
     .met-top { display: flex; align-items: center; gap: 18px; margin: 6px 0 14px; flex-wrap: wrap; }
     .met-score { font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
@@ -5252,6 +5252,19 @@
     .lon-ib .val .anos { font-size: 13px; font-weight: 500; color: var(--tx4); }
     .lon-ib .sub { font-size: 11px; margin-top: 2px; }
     @media (max-width: 560px) { .lon-ib { margin-left: 0; border-left: 0; padding-left: 0; text-align: left; width: 100%; } }
+    /* Scores como chips compactos (só o número) abaixo dos setores */
+    @keyframes prspin { to { transform: rotate(360deg); } }
+    .scores-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 2px 0 14px; animation: polishFade .25s var(--ease, ease); }
+    .score-chip { flex: 1 1 92px; min-width: 88px; background: var(--card-bd, var(--bg2)); border: 1px solid var(--hair); border-radius: 14px; padding: 12px 8px 10px; text-align: center; cursor: pointer; font: inherit; transition: transform .12s var(--ease, ease), border-color .12s, box-shadow .12s; }
+    .score-chip:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.14); box-shadow: var(--sh-2, 0 6px 18px rgba(0,0,0,.25)); }
+    .score-chip .sc-num { font-size: 26px; font-weight: 750; line-height: 1; font-variant-numeric: tabular-nums; }
+    .score-chip .sc-num .sc-u { font-size: 12px; font-weight: 600; opacity: .6; margin-left: 1px; }
+    .score-chip .sc-nome { font-size: 10px; color: var(--tx3); margin-top: 6px; text-transform: uppercase; letter-spacing: .4px; }
+    .sc-modal-chart { background: rgba(var(--bg3-rgb),0.35); border: 1px solid var(--hair); border-radius: 12px; padding: 12px; margin-bottom: 14px; }
+    .sc-chart { width: 100%; height: 140px; display: block; }
+    .sc-empty { font-size: 12px; color: var(--tx3); padding: 22px 8px; text-align: center; line-height: 1.5; }
+    .sc-loading { text-align: center; padding: 42px 0; color: var(--tx4); }
+    .sc-loading i { font-size: 26px; animation: prspin 1s linear infinite; display: inline-block; }
     /* Receita assinada (QR verificável) */
     .rx-assinada-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; color: #1D9E75; background: rgba(29,158,117,0.12); border: 1px solid rgba(29,158,117,0.3); padding: 3px 8px; border-radius: 999px; }
     .qr-box { display: inline-block; background: #fff; padding: 12px; border-radius: 12px; box-shadow: var(--sh-2, 0 4px 16px rgba(0,0,0,0.25)); }
@@ -14728,12 +14741,12 @@ function prRenderTimeline() {
     </div>
   `;
 
-  // Ordem: setor (Médica/Nutri/Enf) -> Monitoramento no App (com Roda) -> Scores Aplic
-  //        -> ações -> Anexos (barra) -> histórico.
+  // Ordem: setor (Médica/Nutri/Enf) -> Scores (chips, abaixo de Atividade) ->
+  //        Monitoramento no App (com Roda) -> ações -> Anexos -> histórico.
   conteudo.innerHTML = headerHtml
     + cardsHtml
-    + `<div id="pr-app-monitor">${prRenderAppMonitor()}</div>`
     + `<div id="pr-scores-section">${prRenderScores()}</div>`
+    + `<div id="pr-app-monitor">${prRenderAppMonitor()}</div>`
     + actionsBar
     + anexosBar
     + histHtml;
@@ -14769,12 +14782,12 @@ async function prCarregarAppMonitor(id) {
   if (wrap) wrap.innerHTML = prRenderAppMonitor();
 }
 
-// ===== Aplic Metabolic Score (card detalhado; dados vêm via /longevity-score) =====
+// ===== Metabolic Score (card detalhado; dados vêm via /longevity-score) =====
 function prRenderMetabolicCard(m) {
   if (!m) return '';
   const cor = { elite: '#1D9E75', saudavel: '#1D9E75', bom: '#6FD89A', inicial: '#EF9F27', moderado: '#F0883E', alto: '#E5534B' };
   if (m.score == null) {
-    return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-activity-heartbeat"></i> Aplic Metabolic Score</div></div>'
+    return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-activity-heartbeat"></i> Metabolic Score</div></div>'
       + '<div style="color:var(--tx4); font-size:12px;">Sem dados ainda. Registre uma <strong>bioimpedância</strong> e leia um <strong>exame de sangue</strong> (botão "Ler exame" nos anexos) pra calcular.</div></div>';
   }
   const c = cor[m.faixa] || 'var(--ac)';
@@ -14784,7 +14797,7 @@ function prRenderMetabolicCard(m) {
   }).join('');
   const faltando = (m.componentes || []).filter(function (cp) { return !cp.presente; }).map(function (cp) { return cp.nome; });
   return '<div class="dash-card met-card">'
-    + '<div class="dash-card-head"><div class="ttl"><i class="ti ti-activity-heartbeat"></i> Aplic Metabolic Score</div>'
+    + '<div class="dash-card-head"><div class="ttl"><i class="ti ti-activity-heartbeat"></i> Metabolic Score</div>'
     + '<div class="dash-count" style="color:' + c + ';">' + m.completude + '% dos dados</div></div>'
     + '<div class="met-top">'
     + '<div class="met-score" style="color:' + c + ';">' + m.score + '<span class="met-de">/100</span></div>'
@@ -14803,6 +14816,7 @@ async function prCarregarScores(id) {
     const r = await pacApi('/api/clinico/prontuario/patient/' + id + '/longevity-score');
     if (!prState.pacienteAtual || prState.pacienteAtual.id !== id) return;
     prState.scores = (r.ok && r.data) ? r.data : null;
+    prState.scoresHist = null; // invalida o histórico em cache
   } catch (e) { prState.scores = null; }
   const wrap = document.getElementById('pr-scores-section');
   if (wrap) wrap.innerHTML = prRenderScores();
@@ -14824,7 +14838,7 @@ function prRenderLongevityCard(L, ib) {
     ibHtml = '<div class="lon-ib"><div class="lbl">Idade biológica</div><div class="val" style="color:' + corIb + ';">' + ib.idade_biologica + ' <span class="anos">anos</span></div><div class="sub" style="color:' + corIb + ';">' + txt + '</div></div>';
   }
   return '<div class="dash-card met-card">'
-    + '<div class="dash-card-head"><div class="ttl"><i class="ti ti-infinity"></i> Aplic Longevity Score</div><div class="dash-count" style="color:' + c + ';">' + L.completude + '% dos dados</div></div>'
+    + '<div class="dash-card-head"><div class="ttl"><i class="ti ti-infinity"></i> Longevity Score</div><div class="dash-count" style="color:' + c + ';">' + L.completude + '% dos dados</div></div>'
     + '<div class="met-top">'
     + '<div class="met-score" style="color:' + c + ';">' + L.score + '<span class="met-de">/100</span></div>'
     + '<div class="met-faixa"><div class="lbl" style="color:' + c + ';">' + (L.label || '') + '</div></div>'
@@ -14834,25 +14848,106 @@ function prRenderLongevityCard(L, ib) {
 }
 // Seção "Scores Aplic": cada score num card com seus dados (Longevity + Metabolic
 // empilhados; Sono/Recuperação/Movimento lado a lado).
+// Chips compactos (só o número), lado a lado, abaixo dos cards de setor.
+// Clicar abre o histórico do paciente naquele score.
 function prRenderScores() {
   const s = prState.scores;
   if (!s) return '';
-  const long = s.longevity, ib = s.idade_biologica, met = s.metabolic;
-  const temAlgo = (long && long.score != null) || (met && met.score != null);
-  if (!temAlgo) {
-    return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-stethoscope"></i> Scores Aplic</div></div>'
-      + '<div style="color:var(--tx4); font-size:12px;">Sem dados ainda. Registre uma bioimpedância e leia exames de sangue (anexos) pra calcular os scores.</div></div>';
-  }
-  const well = '<div class="scores-wellness">'
-    + pacAppWellCard('Aplic Sono', 'ti-moon', s.sono, 'sono')
-    + pacAppWellCard('Aplic Recovery', 'ti-bolt', s.recovery, 'recovery')
-    + pacAppWellCard('Aplic Movimento', 'ti-run', s.movimento, 'movimento', (s.movimento && s.movimento.meta) ? ('Meta: ' + s.movimento.meta.nome) : '')
-    + '</div>';
-  return '<div class="scores-stack">'
-    + prRenderLongevityCard(long, ib)
-    + prRenderMetabolicCard(met)
-    + well
-    + '</div>';
+  const CLON = { elite: '#1D9E75', excelente: '#1D9E75', boa: '#6FD89A', melhoria: '#EF9F27', atencao: '#F0883E', risco: '#E5534B' };
+  const CMET = { elite: '#1D9E75', saudavel: '#1D9E75', bom: '#6FD89A', inicial: '#EF9F27', moderado: '#F0883E', alto: '#E5534B' };
+  const WC = (typeof WELL_COR !== 'undefined') ? WELL_COR : {};
+  const chip = function (tipo, nome, valor, cor, suf) {
+    if (valor == null) return '';
+    return '<button class="score-chip" onclick="prAbrirScoreHist(\'' + tipo + '\')" title="Ver histórico">'
+      + '<div class="sc-num" style="color:' + cor + ';">' + valor + (suf || '') + '</div>'
+      + '<div class="sc-nome">' + nome + '</div></button>';
+  };
+  const chips = [];
+  if (s.longevity) chips.push(chip('longevity', 'Longevity', s.longevity.score, CLON[s.longevity.faixa] || 'var(--ac)'));
+  if (s.metabolic) chips.push(chip('metabolic', 'Metabolic', s.metabolic.score, CMET[s.metabolic.faixa] || 'var(--ac)'));
+  if (s.idade_biologica) chips.push(chip('idade', 'Idade Bio.', s.idade_biologica.idade_biologica, s.idade_biologica.mais_jovem ? '#1D9E75' : (s.idade_biologica.diferenca === 0 ? 'var(--tx2)' : '#EF9F27'), '<span class="sc-u">a</span>'));
+  if (s.sono) chips.push(chip('sono', 'Sono', s.sono.atual, WC[s.sono.faixa] || 'var(--ac)'));
+  if (s.recovery) chips.push(chip('recovery', 'Recovery', s.recovery.atual, WC[s.recovery.faixa] || 'var(--ac)'));
+  if (s.movimento) chips.push(chip('movimento', 'Movimento', s.movimento.atual, WC[s.movimento.faixa] || 'var(--ac)'));
+  const html = chips.filter(Boolean).join('');
+  if (!html) return '';
+  return '<div class="scores-row">' + html + '</div>';
+}
+
+function prScoreData(iso) {
+  const d = String(iso || '');
+  if (d.length >= 10) return d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4);
+  return d;
+}
+
+// Gráfico de linha do histórico do score, com tooltip de data na bolinha.
+function prScoreChart(serie, cor) {
+  const pts = (serie || []).filter(function (x) { return x && x.valor != null; });
+  if (!pts.length) return '<div class="sc-empty"><i class="ti ti-timeline"></i> Ainda sem histórico para este score.</div>';
+  if (pts.length === 1) return '<div class="sc-empty"><i class="ti ti-timeline"></i> 1 medição (' + prScoreData(pts[0].data) + '): <b style="color:' + cor + '">' + pts[0].valor + '</b>. O gráfico aparece a partir de 2 medições.</div>';
+  const W = 320, H = 120, pad = 12;
+  const vals = pts.map(function (p) { return Number(p.valor); });
+  let mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+  if (mn === mx) { mn -= 1; mx += 1; }
+  const rng = mx - mn;
+  const X = function (i) { return pad + i * (W - 2 * pad) / (pts.length - 1); };
+  const Y = function (v) { return pad + (1 - (v - mn) / rng) * (H - 2 * pad); };
+  const line = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(p.valor).toFixed(1); }).join(' ');
+  const area = 'M' + X(0).toFixed(1) + ' ' + (H - pad) + ' ' + pts.map(function (p, i) { return 'L' + X(i).toFixed(1) + ' ' + Y(p.valor).toFixed(1); }).join(' ') + ' L' + X(pts.length - 1).toFixed(1) + ' ' + (H - pad) + ' Z';
+  const dots = pts.map(function (p, i) {
+    return '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(p.valor).toFixed(1) + '" r="2.6" fill="' + cor + '"></circle>'
+      + '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(p.valor).toFixed(1) + '" r="10" fill="transparent" style="pointer-events:all;cursor:pointer;" onmousemove="sparkTip(event,\'' + prScoreData(p.data) + ' · ' + p.valor + '\')" onmouseleave="sparkTipHide()"></circle>';
+  }).join('');
+  return '<svg class="sc-chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">'
+    + '<path d="' + area + '" fill="' + cor + '" opacity="0.10"></path>'
+    + '<path d="' + line + '" fill="none" stroke="' + cor + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>'
+    + dots + '</svg>';
+}
+
+function prScoreDetWellness(tipo, blk) {
+  if (!blk || blk.atual == null) return '<div class="sc-empty">Sem dados de wearable para este score.</div>';
+  const lbl = ((typeof WELL_LABELS !== 'undefined' ? WELL_LABELS : {})[tipo] || {})[blk.faixa] || '';
+  const fonte = (typeof WELL_FONTE !== 'undefined' ? WELL_FONTE : {})[blk.fonte] || '';
+  return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-gauge"></i> Atual</div><div class="dash-count">' + blk.atual + (lbl ? (' · ' + lbl) : '') + '</div></div>'
+    + '<div style="font-size:11px;color:var(--tx3);">' + (fonte ? ('Fonte: ' + fonte + '. ') : '') + 'O gráfico acima mostra a evolução diária deste score.</div></div>';
+}
+
+// Abre o modal com o histórico do paciente naquele score.
+async function prAbrirScoreHist(tipo) {
+  const s = prState.scores; if (!s || !prState.pacienteAtual) return;
+  const NOME = { longevity: 'Longevity Score', metabolic: 'Metabolic Score', idade: 'Idade Biológica', sono: 'Sono', recovery: 'Recovery', movimento: 'Movimento' };
+  const ICON = { longevity: 'ti-infinity', metabolic: 'ti-activity-heartbeat', idade: 'ti-hourglass-high', sono: 'ti-moon', recovery: 'ti-bolt', movimento: 'ti-run' };
+  let ov = document.getElementById('pr-score-modal'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'pr-score-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'pr-score-modal') ov.remove(); };
+  ov.innerHTML = '<div class="pac-modal" style="max-width:520px;"><div class="pac-modal-head"><div class="ttl"><i class="ti ' + (ICON[tipo] || 'ti-chart-line') + '"></i> ' + (NOME[tipo] || 'Score') + '</div>'
+    + '<button class="pac-modal-close" onclick="document.getElementById(\'pr-score-modal\').remove()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body" id="pr-score-body"><div class="sc-loading"><i class="ti ti-loader-2"></i></div></div></div>';
+  document.body.appendChild(ov);
+
+  const CLON = { elite: '#1D9E75', excelente: '#1D9E75', boa: '#6FD89A', melhoria: '#EF9F27', atencao: '#F0883E', risco: '#E5534B' };
+  const CMET = { elite: '#1D9E75', saudavel: '#1D9E75', bom: '#6FD89A', inicial: '#EF9F27', moderado: '#F0883E', alto: '#E5534B' };
+  const WC = (typeof WELL_COR !== 'undefined') ? WELL_COR : {};
+  let serie = [], detalhe = '', cor = 'var(--ac)';
+  try {
+    if (tipo === 'sono' || tipo === 'recovery' || tipo === 'movimento') {
+      const blk = s[tipo] || {}; serie = blk.serie || []; cor = WC[blk.faixa] || 'var(--ac)';
+      detalhe = prScoreDetWellness(tipo, blk);
+    } else {
+      if (!prState.scoresHist || prState.scoresHistPid !== prState.pacienteAtual.id) {
+        const r = await pacApi('/api/clinico/prontuario/patient/' + prState.pacienteAtual.id + '/score-historico');
+        prState.scoresHist = (r.ok && r.data) ? r.data : {};
+        prState.scoresHistPid = prState.pacienteAtual.id;
+      }
+      const key = tipo === 'idade' ? 'idade_biologica' : tipo;
+      serie = prState.scoresHist[key] || [];
+      if (tipo === 'metabolic') { detalhe = prRenderMetabolicCard(s.metabolic); cor = CMET[s.metabolic && s.metabolic.faixa] || 'var(--ac)'; }
+      else { detalhe = prRenderLongevityCard(s.longevity, s.idade_biologica); cor = CLON[s.longevity && s.longevity.faixa] || 'var(--ac)'; }
+    }
+  } catch (e) { detalhe = '<div class="sc-empty">Não foi possível carregar o histórico.</div>'; }
+  const body = document.getElementById('pr-score-body');
+  if (!body) return; // modal fechado durante o fetch
+  body.innerHTML = '<div class="sc-modal-chart">' + prScoreChart(serie, cor) + '</div>' + detalhe;
 }
 
 function prRenderAppMonitor() {
