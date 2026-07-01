@@ -5295,7 +5295,15 @@
     .ex-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .ex-panel-head .ttl { font-size: 15px; font-weight: 700; color: var(--tx1); display: flex; align-items: center; gap: 8px; }
     .ex-panel-head .ttl i { color: var(--ac); }
+    .ex-head-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .ex-add { cursor: pointer; font-size: 12px; padding: 6px 12px; }
     .ex-fechar { font-size: 12px; padding: 6px 12px; }
+    .ex-aviso { display: flex; gap: 10px; align-items: flex-start; background: rgba(224,163,64,0.12); border: 1px solid rgba(224,163,64,0.35); color: #E0A340; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; line-height: 1.5; }
+    .ex-aviso i { font-size: 18px; margin-top: 1px; flex-shrink: 0; }
+    .ex-col.conflito .ex-cnome { color: #E0A340; }
+    .ex-card.conflito { border-color: rgba(224,163,64,0.45); }
+    .ex-card-warn { font-size: 10.5px; color: #E0A340; margin-top: 3px; }
+    .exam-st.warn { color: #E0A340; background: rgba(224,163,64,0.12); border-color: rgba(224,163,64,0.3); }
     .ex-lista-tit { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--tx3); margin: 20px 0 10px; }
     .ex-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
     .ex-card { display: flex; align-items: center; gap: 10px; background: var(--card-bd, var(--bg2)); border: 1px solid var(--hair); border-radius: 12px; padding: 10px 12px; }
@@ -15060,6 +15068,7 @@ function prRenderAnexos() {
           else if (es.status === 'sem_marcadores') badge = '<span class="exam-st neutro"><i class="ti ti-file-off"></i> Sem marcadores</span>';
           else if (es.status === 'erro') badge = '<span class="exam-st err" title="' + String(es.erro || '').replace(/[<>"]/g, '') + '" onclick="examReprocessar(event,\'' + a.id + '\')"><i class="ti ti-alert-triangle"></i> Falha — tentar de novo</span>';
         }
+        if (es && es.nome_conflito) badge += ' <span class="exam-st warn" title="Nome no laudo: ' + String(es.nome_exame || '').replace(/[<>"]/g, '') + '"><i class="ti ti-alert-triangle"></i> Conferir paciente</span>';
         return `
         <div class="pr-anexo-item">
           <i class="ti ti-${prIconePorTipo(a.mime)}"></i>
@@ -15131,6 +15140,7 @@ async function prAtualizarAnexos() {
   const aindaPend = prState.documentos.some((d) => d.exame_status && d.exame_status.status === 'pendente');
   if (aindaPend) prPollAnexosSeNecessario();
   else if (typeof prCarregarScores === 'function') prCarregarScores(idAtual); // exame novo -> recalcula os scores
+  if (prState.examesAberto && typeof prExamesRefresh === 'function') prExamesRefresh(idAtual); // atualiza a tabela de exames se aberta
 }
 async function examReprocessar(ev, id) {
   if (ev) ev.stopPropagation();
@@ -16336,7 +16346,10 @@ function prRenderExamesSection() {
   if (prState.examesPid && prState.pacienteAtual && prState.examesPid !== prState.pacienteAtual.id) { prState.examesAberto = false; return ''; }
   const inner = prState.examesLoading ? '<div class="sc-loading"><i class="ti ti-loader-2"></i></div>' : prRenderExamesConteudo();
   return '<div class="ex-panel"><div class="ex-panel-head"><div class="ttl"><i class="ti ti-table"></i> Exames</div>'
-    + '<button class="pac-btn-secondary ex-fechar" onclick="prFecharExames()"><i class="ti ti-x"></i> Fechar</button></div>'
+    + '<div class="ex-head-acoes">'
+    + '<label class="pac-btn-secondary ex-add"><input type="file" multiple accept="application/pdf,image/*" style="display:none;" onchange="prExamesUpload(this.files)"><i class="ti ti-plus"></i> Adicionar exame</label>'
+    + '<button class="pac-btn-secondary ex-fechar" onclick="prFecharExames()"><i class="ti ti-x"></i> Fechar</button>'
+    + '</div></div>'
     + '<div class="ex-panel-body">' + inner + '</div></div>';
 }
 function prRerenderExames() { const el = document.getElementById('pr-exames-section'); if (el) el.innerHTML = prRenderExamesSection(); }
@@ -16355,18 +16368,42 @@ async function prAbrirExames() {
   prState.examesLoading = false;
   prRerenderExames();
 }
+// Re-busca a tabela (usado quando um exame novo termina de ser lido pela IA).
+async function prExamesRefresh(id) {
+  const pid = id || (prState.pacienteAtual && prState.pacienteAtual.id);
+  if (!pid || !prState.examesAberto) return;
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/exames-tabela');
+    if (prState.examesPid !== pid) return;
+    if (r.ok && r.data) prState.examesTabela = r.data;
+  } catch (e) {}
+  prRerenderExames();
+}
+// "Adicionar exame" no painel: sobe pelo MESMO pipeline (upload -> leitura IA em
+// background); a tabela se preenche sozinha quando a leitura terminar.
+async function prExamesUpload(files) {
+  if (!files || !files.length) return;
+  await prAnexoUpload(files);
+  if (prState.examesAberto) prExamesRefresh(prState.pacienteAtual && prState.pacienteAtual.id);
+}
 
 function prRenderExamesConteudo() {
   const d = prState.examesTabela;
   if (!d) return '<div class="sc-empty">Não foi possível carregar os exames.</div>';
-  if (!d.exames || !d.exames.length) return '<div class="sc-empty"><i class="ti ti-flask-off"></i> Nenhum exame lido ainda. Anexe um laudo no prontuário — a IA lê e preenche esta tabela automaticamente.</div>';
-  return prExamesTabelaHtml(d) + prExamesListaHtml(d);
+  if (!d.exames || !d.exames.length) return '<div class="sc-empty"><i class="ti ti-flask-off"></i> Nenhum exame lido ainda. Use <b>Adicionar exame</b> (ou anexe um laudo no prontuário) — a IA lê e preenche esta tabela automaticamente.</div>';
+  const conflitos = d.exames.filter(function (e) { return e.nome_conflito; });
+  let aviso = '';
+  if (conflitos.length) {
+    const nomes = conflitos.map(function (e) { return prExEsc(e.nome_laudo || e.nome); }).join(', ');
+    aviso = '<div class="ex-aviso"><i class="ti ti-alert-triangle"></i><div><b>Confira o paciente.</b> ' + conflitos.length + ' exame(s) com nome diferente do prontuário (<b>' + prExEsc(d.paciente.nome || '') + '</b>): ' + nomes + '. Tem certeza que estão no prontuário certo?</div></div>';
+  }
+  return aviso + prExamesTabelaHtml(d) + prExamesListaHtml(d);
 }
 
 function prExamesTabelaHtml(d) {
   const cols = d.exames;
   let ths = '<th class="ex-an ex-sticky">Analito</th>';
-  cols.forEach(function (c) { ths += '<th class="ex-col"><div class="ex-cnome">' + prExEsc(c.nome) + '</div><div class="ex-cdata">' + prScoreData(c.data) + '</div></th>'; });
+  cols.forEach(function (c) { ths += '<th class="ex-col' + (c.nome_conflito ? ' conflito' : '') + '"><div class="ex-cnome">' + (c.nome_conflito ? '<i class="ti ti-alert-triangle" title="Nome diferente do paciente"></i> ' : '') + prExEsc(c.nome) + '</div><div class="ex-cdata">' + prScoreData(c.data) + '</div></th>'; });
   let rows = '', lg = null;
   d.analitos.forEach(function (a) {
     if (a.grupo !== lg) { lg = a.grupo; rows += '<tr class="ex-grupo"><td colspan="' + (cols.length + 1) + '">' + (EX_GRUPOS[a.grupo] || a.grupo) + '</td></tr>'; }
@@ -16385,11 +16422,12 @@ function prExamesTabelaHtml(d) {
 
 function prExamesListaHtml(d) {
   const cards = d.exames.slice().reverse().map(function (c) {
-    const baixar = c.documento_id ? '<button class="pac-btn-secondary ex-mini" onclick="prBaixarDoc(\'' + c.documento_id + '\')"><i class="ti ti-download"></i> Baixar</button>' : '';
-    return '<div class="ex-card"><div class="ex-card-ic"><i class="ti ti-file-text"></i></div>'
+    const baixar = c.documento_id ? '<button class="pac-btn-secondary ex-mini" onclick="prDocVer(\'' + c.documento_id + '\')"><i class="ti ti-download"></i> Baixar</button>' : '';
+    const warn = c.nome_conflito ? '<div class="ex-card-warn"><i class="ti ti-alert-triangle"></i> Nome no laudo: ' + prExEsc(c.nome_laudo || '—') + ' — confira o paciente</div>' : '';
+    return '<div class="ex-card' + (c.nome_conflito ? ' conflito' : '') + '"><div class="ex-card-ic"><i class="ti ti-file-text"></i></div>'
       + '<div class="ex-card-info"><div class="ex-card-nome">' + prExEsc(c.nome) + '</div>'
       + '<div class="ex-card-sub">Exame' + (c.laboratorio ? (' · ' + prExEsc(c.laboratorio)) : '') + ' · ' + prScoreData(c.data) + '</div>'
-      + '<div class="ex-card-mk">' + c.n_marcadores + ' marcador(es) lido(s)</div></div>' + baixar + '</div>';
+      + '<div class="ex-card-mk">' + c.n_marcadores + ' marcador(es) lido(s)</div>' + warn + '</div>' + baixar + '</div>';
   }).join('');
   return '<div class="ex-lista-tit">Exames anexados</div><div class="ex-lista">' + cards + '</div>';
 }
