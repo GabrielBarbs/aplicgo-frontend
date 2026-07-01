@@ -5326,6 +5326,8 @@
     .pl-ins-tit { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #C58AF0; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
     .pl-plano.ex-ins-body { font-size: 13px; }
     .pl-plano .ex-ins-h { color: #1D9E75; }
+    .wa-num { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--tx1); background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.3); border-radius: 10px; padding: 10px 16px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+    .wa-num i { color: #1D9E75; font-size: 16px; }
     .ex-lista-tit { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--tx3); margin: 20px 0 10px; }
     .ex-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
     .ex-card { display: flex; align-items: center; gap: 10px; background: var(--card-bd, var(--bg2)); border: 1px solid var(--hair); border-radius: 12px; padding: 10px 12px; }
@@ -16476,7 +16478,7 @@ function prRenderPlanoConteudo(data) {
   const quando = data.gerado_em ? prScoreData(data.gerado_em) : '';
   const waBtns = '<div class="pl-acoes">'
     + '<button class="pac-btn-primary" onclick="prPlanoWhatsapp(this)"><i class="ti ti-brand-whatsapp"></i> Enviar no WhatsApp</button>'
-    + (data.wa_link ? '<a class="pac-btn-secondary" href="' + data.wa_link + '" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Abrir no WhatsApp</a>' : '')
+    + (data.wa_link ? '<button class="pac-btn-secondary" onclick="prPlanoAbrirWa()"><i class="ti ti-external-link"></i> Abrir no WhatsApp</button>' : '')
     + '</div>';
   const insight = data.insight ? ('<div class="pl-insight"><div class="pl-ins-tit"><i class="ti ti-sparkles"></i> Insight</div><div class="ex-ins-body">' + prMd(data.insight) + '</div></div>') : '';
   return '<div class="pl-topo"><div class="pl-nome">' + prExEsc(nome) + (cod ? ' <span class="ex-id">' + prExEsc(cod) + '</span>' : '') + '</div><div class="pl-data">Plano gerado em ' + quando + '</div></div>'
@@ -16509,6 +16511,9 @@ async function prCarregarPlano(pid, force) {
 }
 async function prPlanoWhatsapp(btn) {
   const pac = prState.pacienteAtual; if (!pac) return;
+  const numero = (prState.planoData && prState.planoData.telefone) || '';
+  const nome = (prState.planoData && prState.planoData.paciente && prState.planoData.paciente.nome) || '';
+  if (!(await confirmarEnvioWhatsapp(numero, nome))) return; // confere o número antes
   const original = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Enviando...'; }
   try {
@@ -16529,6 +16534,45 @@ async function prPlanoWhatsapp(btn) {
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
     alert('Erro ao enviar no WhatsApp.');
   }
+}
+// "Abrir no WhatsApp" (link wa.me) — também confere o número antes.
+async function prPlanoAbrirWa() {
+  const d = prState.planoData; if (!d || !d.wa_link) return;
+  const nome = (d.paciente && d.paciente.nome) || '';
+  if (await confirmarEnvioWhatsapp(d.telefone || '', nome)) window.open(d.wa_link, '_blank');
+}
+// Formata telefone brasileiro pra exibição: +55 (34) 99920-4296.
+function prFmtTelefone(t) {
+  const d = String(t || '').replace(/\D/g, '');
+  if (!d) return '';
+  let n = d, ddi = '';
+  if (n.length > 11 && n.slice(0, 2) === '55') { ddi = '+55 '; n = n.slice(2); }
+  if (n.length === 11) return ddi + '(' + n.slice(0, 2) + ') ' + n.slice(2, 7) + '-' + n.slice(7);
+  if (n.length === 10) return ddi + '(' + n.slice(0, 2) + ') ' + n.slice(2, 6) + '-' + n.slice(6);
+  return ddi + n;
+}
+// Diálogo REUTILIZÁVEL de confirmação de envio no WhatsApp (mostra o número).
+// Use SEMPRE antes de qualquer envio de WhatsApp. Resolve true (confirmar) / false (cancelar).
+function confirmarEnvioWhatsapp(numero, nome) {
+  return new Promise(function (resolve) {
+    let ov = document.getElementById('wa-confirm-modal'); if (ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'wa-confirm-modal'; ov.className = 'ag-modal-overlay aberto';
+    const fim = function (v) { ov.remove(); resolve(v); };
+    ov.onclick = function (e) { if (e.target.id === 'wa-confirm-modal') fim(false); };
+    const numFmt = prFmtTelefone(numero);
+    ov.innerHTML = '<div class="pac-modal" style="max-width:400px;"><div class="pac-modal-head"><div class="ttl"><i class="ti ti-brand-whatsapp"></i> Confirmar número</div></div>'
+      + '<div class="pac-modal-body" style="text-align:center;">'
+      + '<p style="font-size:13px;color:var(--tx2);margin:0 0 4px;">Enviar no WhatsApp' + (nome ? ' para <b>' + prExEsc(nome) + '</b>' : '') + '?</p>'
+      + '<div class="wa-num"><i class="ti ti-phone"></i> ' + prExEsc(numFmt || 'Sem número cadastrado') + '</div>'
+      + '<p style="font-size:11px;color:var(--tx3);margin:10px 0 0;">Confira se é esse número mesmo antes de enviar.</p>'
+      + '<div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">'
+      + '<button class="pac-btn-secondary" id="wa-cancelar"><i class="ti ti-x"></i> Cancelar</button>'
+      + '<button class="pac-btn-primary" id="wa-confirmar"' + (numFmt ? '' : ' disabled') + '><i class="ti ti-check"></i> Confirmar</button>'
+      + '</div></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('#wa-cancelar').onclick = function () { fim(false); };
+    const cbtn = ov.querySelector('#wa-confirmar'); if (cbtn) cbtn.onclick = function () { fim(true); };
+  });
 }
 
 function prRenderExamesConteudo() {
