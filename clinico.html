@@ -5304,6 +5304,18 @@
     .ex-card.conflito { border-color: rgba(224,163,64,0.45); }
     .ex-card-warn { font-size: 10.5px; color: #E0A340; margin-top: 3px; }
     .exam-st.warn { color: #E0A340; background: rgba(224,163,64,0.12); border-color: rgba(224,163,64,0.3); }
+    .ex-insight { margin-top: 22px; border-top: 1px solid var(--hair); padding-top: 16px; }
+    .ex-insight-load { display: flex; align-items: center; gap: 8px; color: var(--tx3); font-size: 13px; padding: 18px 0; }
+    .ex-insight-load i { animation: prspin 1s linear infinite; display: inline-block; }
+    .ex-ins-head { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--tx1); margin-bottom: 10px; }
+    .ex-ins-head i { color: #C58AF0; }
+    .ex-ins-meta { margin-left: auto; font-size: 10px; font-weight: 500; color: var(--tx4); text-transform: uppercase; letter-spacing: .4px; }
+    .ex-ins-body { font-size: 13px; color: var(--tx2); line-height: 1.6; }
+    .ex-ins-body .ex-ins-h { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ac); margin: 16px 0 6px; }
+    .ex-ins-body p { margin: 0 0 8px; }
+    .ex-ins-body ul { margin: 0 0 10px; padding-left: 18px; }
+    .ex-ins-body li { margin: 3px 0; }
+    .ex-ins-body b { color: var(--tx1); }
     .ex-lista-tit { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--tx3); margin: 20px 0 10px; }
     .ex-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
     .ex-card { display: flex; align-items: center; gap: 10px; background: var(--card-bd, var(--bg2)); border: 1px solid var(--hair); border-radius: 12px; padding: 10px 12px; }
@@ -16357,7 +16369,7 @@ function prFecharExames() { prState.examesAberto = false; prRerenderExames(); }
 async function prAbrirExames() {
   const pac = prState.pacienteAtual; if (!pac) return;
   if (prState.examesAberto) { prFecharExames(); return; } // clicar de novo fecha
-  prState.examesAberto = true; prState.examesLoading = true; prState.examesPid = pac.id;
+  prState.examesAberto = true; prState.examesLoading = true; prState.examesPid = pac.id; prState.examesInsightHtml = null;
   prRerenderExames();
   setTimeout(function () { const el = document.getElementById('pr-exames-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
   try {
@@ -16367,6 +16379,7 @@ async function prAbrirExames() {
   if (prState.examesPid !== pac.id) return; // trocou de paciente no meio do fetch
   prState.examesLoading = false;
   prRerenderExames();
+  prCarregarInsight(pac.id);
 }
 // Re-busca a tabela (usado quando um exame novo termina de ser lido pela IA).
 async function prExamesRefresh(id) {
@@ -16377,7 +16390,9 @@ async function prExamesRefresh(id) {
     if (prState.examesPid !== pid) return;
     if (r.ok && r.data) prState.examesTabela = r.data;
   } catch (e) {}
+  prState.examesInsightHtml = null; // exame novo -> insight novo
   prRerenderExames();
+  prCarregarInsight(pid);
 }
 // "Adicionar exame" no painel: sobe pelo MESMO pipeline (upload -> leitura IA em
 // background); a tabela se preenche sozinha quando a leitura terminar.
@@ -16385,6 +16400,42 @@ async function prExamesUpload(files) {
   if (!files || !files.length) return;
   await prAnexoUpload(files);
   if (prState.examesAberto) prExamesRefresh(prState.pacienteAtual && prState.pacienteAtual.id);
+}
+// Markdown -> HTML mínimo (títulos, negrito, listas, parágrafos), sanitizado.
+function prMd(md) {
+  const lines = String(md || '').split('\n');
+  const inline = function (s) { return prExEsc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'); };
+  let out = '', inList = false;
+  for (const raw of lines) {
+    const l = raw.trim();
+    if (!l) { if (inList) { out += '</ul>'; inList = false; } continue; }
+    const h = l.match(/^(#{1,6})\s+(.*)$/);
+    const b = l.match(/^[-•*]\s+(.*)$/);
+    if (h) { if (inList) { out += '</ul>'; inList = false; } out += '<h4 class="ex-ins-h">' + inline(h[2]) + '</h4>'; }
+    else if (b) { if (!inList) { out += '<ul>'; inList = true; } out += '<li>' + inline(b[1]) + '</li>'; }
+    else { if (inList) { out += '</ul>'; inList = false; } out += '<p>' + inline(l) + '</p>'; }
+  }
+  if (inList) out += '</ul>';
+  return (window.DOMPurify ? DOMPurify.sanitize(out) : out);
+}
+function prRenderInsight(data) {
+  if (!data) return '<div class="sc-empty">Não foi possível gerar o insight.</div>';
+  if (data.sem_ia) return '<div class="sc-empty"><i class="ti ti-robot-off"></i> Insight por IA ainda não está ligado (falta a chave no servidor).</div>';
+  if (!data.insight) return '<div class="sc-empty"><i class="ti ti-sparkles"></i> Sem insight ainda. ' + (data.motivo === 'sem_exames' ? 'Adicione exames pra gerar.' : 'Tente reabrir em instantes.') + '</div>';
+  const quando = data.gerado_em ? (' · ' + prScoreData(data.gerado_em)) : '';
+  return '<div class="ex-ins-head"><i class="ti ti-sparkles"></i> Insight de evolução<span class="ex-ins-meta">IA' + quando + '</span></div>'
+    + '<div class="ex-ins-body">' + prMd(data.insight) + '</div>';
+}
+async function prCarregarInsight(pid) {
+  pid = pid || (prState.pacienteAtual && prState.pacienteAtual.id);
+  if (!pid || !prState.examesAberto) return;
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/exames-insight');
+    if (prState.examesPid !== pid || !prState.examesAberto) return;
+    prState.examesInsightHtml = (r.ok && r.data) ? prRenderInsight(r.data) : '<div class="sc-empty">Não foi possível gerar o insight.</div>';
+  } catch (e) { prState.examesInsightHtml = '<div class="sc-empty">Não foi possível gerar o insight.</div>'; }
+  const box = document.getElementById('pr-exames-insight');
+  if (box) box.innerHTML = prState.examesInsightHtml;
 }
 
 function prRenderExamesConteudo() {
@@ -16397,7 +16448,8 @@ function prRenderExamesConteudo() {
     const nomes = conflitos.map(function (e) { return prExEsc(e.nome_laudo || e.nome); }).join(', ');
     aviso = '<div class="ex-aviso"><i class="ti ti-alert-triangle"></i><div><b>Confira o paciente.</b> ' + conflitos.length + ' exame(s) com nome diferente do prontuário (<b>' + prExEsc(d.paciente.nome || '') + '</b>): ' + nomes + '. Tem certeza que estão no prontuário certo?</div></div>';
   }
-  return aviso + prExamesTabelaHtml(d) + prExamesListaHtml(d);
+  return aviso + prExamesTabelaHtml(d) + prExamesListaHtml(d)
+    + '<div class="ex-insight" id="pr-exames-insight">' + (prState.examesInsightHtml || '<div class="ex-insight-load"><i class="ti ti-loader-2"></i> Gerando insight de evolução…</div>') + '</div>';
 }
 
 function prExamesTabelaHtml(d) {
