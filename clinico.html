@@ -14741,11 +14741,12 @@ function prRenderTimeline() {
     </div>
   `;
 
-  // Ordem: setor (Médica/Nutri/Enf) -> Scores (chips, abaixo de Atividade) ->
-  //        Monitoramento no App (com Roda) -> ações -> Anexos -> histórico.
+  // Ordem: header rico (termina na linha "Atividade") -> Scores (chips, logo
+  //        abaixo de Atividade) -> cards por profissional -> Monitoramento no
+  //        App (com Roda) -> ações -> Anexos -> histórico.
   conteudo.innerHTML = headerHtml
-    + cardsHtml
     + `<div id="pr-scores-section">${prRenderScores()}</div>`
+    + cardsHtml
     + `<div id="pr-app-monitor">${prRenderAppMonitor()}</div>`
     + actionsBar
     + anexosBar
