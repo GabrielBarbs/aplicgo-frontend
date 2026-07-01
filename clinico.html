@@ -5316,6 +5316,16 @@
     .ex-ins-body ul { margin: 0 0 10px; padding-left: 18px; }
     .ex-ins-body li { margin: 3px 0; }
     .ex-ins-body b { color: var(--tx1); }
+    /* Plano alimentar */
+    .pl-topo { margin-bottom: 12px; }
+    .pl-nome { font-size: 15px; font-weight: 700; color: var(--tx1); }
+    .pl-data { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+    .pl-acoes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .pl-acoes a { text-decoration: none; }
+    .pl-insight { background: rgba(197,138,240,0.08); border: 1px solid rgba(197,138,240,0.25); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+    .pl-ins-tit { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #C58AF0; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .pl-plano.ex-ins-body { font-size: 13px; }
+    .pl-plano .ex-ins-h { color: #1D9E75; }
     .ex-lista-tit { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--tx3); margin: 20px 0 10px; }
     .ex-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
     .ex-card { display: flex; align-items: center; gap: 10px; background: var(--card-bd, var(--bg2)); border: 1px solid var(--hair); border-radius: 12px; padding: 10px 12px; }
@@ -14764,6 +14774,9 @@ function prRenderTimeline() {
       <button class="pac-btn-secondary" onclick="prAbrirExames()" title="Tabela de exames (analitos por data) + laudos, exportável em PDF">
         <i class="ti ti-table"></i> Exames
       </button>
+      <button class="pac-btn-secondary" onclick="prAbrirPlano()" title="Plano alimentar personalizado por IA + envio no WhatsApp">
+        <i class="ti ti-salad"></i> Plano alimentar
+      </button>
       <button class="pac-btn-secondary ${prOrganizando ? 'ativo' : ''}" id="pr-organizar-btn" onclick="prToggleOrganizar()" title="Organizar a posição dos cards do prontuário (fica salvo no seu usuário)">
         <i class="ti ti-${prOrganizando ? 'check' : 'settings'}"></i> ${prOrganizando ? 'Concluir' : 'Organizar cards'}
       </button>
@@ -14813,6 +14826,7 @@ function prRenderTimeline() {
     + `<div id="pr-app-monitor">${prRenderAppMonitor()}</div>`
     + actionsBar
     + `<div id="pr-exames-section">${prRenderExamesSection()}</div>`
+    + `<div id="pr-plano-section">${prRenderPlanoSection()}</div>`
     + anexosBar
     + histHtml;
 
@@ -16436,6 +16450,85 @@ async function prCarregarInsight(pid) {
   } catch (e) { prState.examesInsightHtml = '<div class="sc-empty">Não foi possível gerar o insight.</div>'; }
   const box = document.getElementById('pr-exames-insight');
   if (box) box.innerHTML = prState.examesInsightHtml;
+}
+
+// ===== PLANO ALIMENTAR (IA) — painel inline, com insight e envio no WhatsApp =====
+function prRenderPlanoSection() {
+  if (!prState.planoAberto) return '';
+  if (prState.planoPid && prState.pacienteAtual && prState.planoPid !== prState.pacienteAtual.id) { prState.planoAberto = false; return ''; }
+  const inner = prState.planoLoading
+    ? '<div class="ex-insight-load"><i class="ti ti-loader-2"></i> Gerando plano alimentar personalizado…</div>'
+    : (prState.planoHtml || '<div class="sc-empty">—</div>');
+  const podeReg = !prState.planoLoading && prState.planoData && prState.planoData.plano;
+  return '<div class="ex-panel pl-panel"><div class="ex-panel-head"><div class="ttl"><i class="ti ti-salad"></i> Plano alimentar</div>'
+    + '<div class="ex-head-acoes">'
+    + (podeReg ? '<button class="pac-btn-secondary ex-add" onclick="prPlanoRegenerar()"><i class="ti ti-refresh"></i> Regenerar</button>' : '')
+    + '<button class="pac-btn-secondary ex-fechar" onclick="prFecharPlano()"><i class="ti ti-x"></i> Fechar</button>'
+    + '</div></div>'
+    + '<div class="ex-panel-body">' + inner + '</div></div>';
+}
+function prRenderPlanoConteudo(data) {
+  if (!data) return '<div class="sc-empty">Não foi possível gerar o plano.</div>';
+  if (data.sem_ia) return '<div class="sc-empty"><i class="ti ti-robot-off"></i> Plano por IA ainda não está ligado (falta a chave no servidor).</div>';
+  if (!data.plano) return '<div class="sc-empty"><i class="ti ti-salad"></i> ' + (data.erro ? 'Não foi possível gerar agora. Tente Regenerar em instantes.' : 'Sem plano ainda.') + '</div>';
+  const nome = (data.paciente && data.paciente.nome) || '';
+  const cod = (data.paciente && data.paciente.codigo) || '';
+  const quando = data.gerado_em ? prScoreData(data.gerado_em) : '';
+  const waBtns = '<div class="pl-acoes">'
+    + '<button class="pac-btn-primary" onclick="prPlanoWhatsapp(this)"><i class="ti ti-brand-whatsapp"></i> Enviar no WhatsApp</button>'
+    + (data.wa_link ? '<a class="pac-btn-secondary" href="' + data.wa_link + '" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Abrir no WhatsApp</a>' : '')
+    + '</div>';
+  const insight = data.insight ? ('<div class="pl-insight"><div class="pl-ins-tit"><i class="ti ti-sparkles"></i> Insight</div><div class="ex-ins-body">' + prMd(data.insight) + '</div></div>') : '';
+  return '<div class="pl-topo"><div class="pl-nome">' + prExEsc(nome) + (cod ? ' <span class="ex-id">' + prExEsc(cod) + '</span>' : '') + '</div><div class="pl-data">Plano gerado em ' + quando + '</div></div>'
+    + waBtns + insight
+    + '<div class="pl-plano ex-ins-body">' + prMd(data.plano) + '</div>';
+}
+function prRerenderPlano() { const el = document.getElementById('pr-plano-section'); if (el) el.innerHTML = prRenderPlanoSection(); }
+function prFecharPlano() { prState.planoAberto = false; prRerenderPlano(); }
+function prPlanoRegenerar() { prCarregarPlano(prState.pacienteAtual && prState.pacienteAtual.id, true); }
+async function prAbrirPlano() {
+  const pac = prState.pacienteAtual; if (!pac) return;
+  if (prState.planoAberto) { prFecharPlano(); return; }
+  prState.planoAberto = true; prState.planoPid = pac.id; prState.planoHtml = null; prState.planoData = null;
+  prRerenderPlano();
+  setTimeout(function () { const el = document.getElementById('pr-plano-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+  prCarregarPlano(pac.id, false);
+}
+async function prCarregarPlano(pid, force) {
+  pid = pid || (prState.pacienteAtual && prState.pacienteAtual.id);
+  if (!pid || !prState.planoAberto) return;
+  prState.planoLoading = true; prState.planoHtml = null; prRerenderPlano();
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/plano-alimentar' + (force ? '?force=1' : ''));
+    if (prState.planoPid !== pid || !prState.planoAberto) return;
+    prState.planoData = (r.ok && r.data) ? r.data : null;
+    prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
+  } catch (e) { prState.planoData = null; prState.planoHtml = '<div class="sc-empty">Não foi possível gerar o plano.</div>'; }
+  prState.planoLoading = false;
+  prRerenderPlano();
+}
+async function prPlanoWhatsapp(btn) {
+  const pac = prState.pacienteAtual; if (!pac) return;
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Enviando...'; }
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pac.id + '/plano-alimentar/whatsapp', { method: 'POST' });
+    if (r.ok && r.data && r.data.ok) {
+      if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Enviado!'; setTimeout(function () { btn.disabled = false; btn.innerHTML = original; }, 2500); }
+      return;
+    }
+    const erro = (r.data && r.data.erro) || 'falha';
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    const link = prState.planoData && prState.planoData.wa_link;
+    if (link) {
+      if (confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) window.open(link, '_blank');
+    } else {
+      alert('Não foi possível enviar: ' + erro);
+    }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    alert('Erro ao enviar no WhatsApp.');
+  }
 }
 
 function prRenderExamesConteudo() {
