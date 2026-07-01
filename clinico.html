@@ -13271,7 +13271,9 @@ function bioMontarSerie() {
   tl.forEach(t => {
     if (t.tipo !== 'evolucao') return;
     const d = t.dados || {}, r = d.respostas || {};
-    const peso = d.peso_atual_kg != null ? Number(d.peso_atual_kg) : (pf(r.peso_atual) != null ? pf(r.peso_atual) : pf(r.peso_inicial));
+    // Só medição ATUAL vira ponto no gráfico. NÃO usar peso_inicial (baseline do
+    // onboarding) -> senão cada onboarding vira um "ponto novo" na evolução de peso.
+    const peso = d.peso_atual_kg != null ? Number(d.peso_atual_kg) : pf(r.peso_atual);
     const gordura = pf(r.gordura_pct) != null ? pf(r.gordura_pct) : pf(r.gordura);
     const massa = pf(r.massa_muscular) != null ? pf(r.massa_muscular) : pf(r.massa_magra);
     if (peso == null && gordura == null && massa == null) return;
