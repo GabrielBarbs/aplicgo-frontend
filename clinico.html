@@ -5596,20 +5596,66 @@
  <div class="container">
 
   <!-- VIEW: Painel (Visão Geral) -->
+  <style>
+  /* ===== Home Operacional / Gestor (reformulação — briefing v3) ===== */
+  .home-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+  .home-topbar-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .home-toggle{display:inline-flex;background:var(--bg2);border:1px solid var(--bd1);border-radius:9px;padding:3px;gap:2px}
+  .home-toggle button{border:0;background:transparent;color:var(--tx3);font-size:12.5px;font-weight:500;padding:6px 13px;border-radius:7px;cursor:pointer;font-family:inherit}
+  .home-toggle button.on{background:var(--ac);color:#2a1608}
+  .home-unit-wrap{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--bd1);border-radius:9px;padding:0 10px;color:var(--tx3)}
+  .home-unit-wrap i{font-size:15px}
+  .home-unit-wrap select{background:transparent;border:0;color:var(--tx2);font-size:13px;padding:9px 4px;font-family:inherit;cursor:pointer;outline:none}
+  .home-unit-wrap select option{background:var(--bg2);color:var(--tx2)}
+  .impacto{background:#0f2a1c;border:1px solid #1f6f4d;border-radius:14px;padding:16px 20px;margin-bottom:16px}
+  .impacto-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#56d364;letter-spacing:.3px;margin-bottom:14px}
+  .impacto-head i{font-size:18px;color:#3fb950}
+  .impacto-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px 12px}
+  .impacto-metric .num{font-size:26px;font-weight:500;color:#f0f6fc;line-height:1.1}
+  .impacto-metric .num.hl{color:#56d364}
+  .impacto-metric .num small{font-size:14px;color:#3fb950;font-weight:500}
+  .impacto-metric .lbl{font-size:11.5px;color:#7d9c8a;line-height:1.35;margin-top:3px}
+  .impacto-metric.constr .num{color:var(--tx4)}
+  .foco{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg2);border:1px solid var(--bd1);border-left:3px solid #d29922;border-radius:0 10px 10px 0;padding:13px 16px;margin-bottom:16px}
+  .foco-tag{font-size:11px;color:#e3b341;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+  .foco-txt{font-size:14px;color:var(--tx1b)}
+  .foco-btn{background:var(--ac);color:#2a1608;border:0;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit}
+  .op-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+  .op-card{position:relative;background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;padding:13px 15px;cursor:pointer;transition:border-color .15s}
+  .op-card:hover{border-color:var(--bd2)}
+  .op-card-head{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--tx3);margin-bottom:6px}
+  .op-card-head i{font-size:15px}
+  .op-card-val{font-size:24px;font-weight:500;color:var(--tx1)}
+  .op-card-ext{font-size:11.5px;color:var(--tx4)}
+  .em-constr-inline{display:inline-block;font-size:9px;color:var(--tx3);background:var(--bg3);border:1px solid var(--bd1);border-radius:5px;padding:1px 6px;margin-left:5px;text-transform:uppercase;letter-spacing:.3px;vertical-align:middle}
+  .em-constr{position:absolute;top:11px;right:12px;font-size:9px;color:var(--tx3);background:var(--bg3);border:1px solid var(--bd1);border-radius:5px;padding:2px 6px;letter-spacing:.3px;text-transform:uppercase}
+  .op-lower{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .op-lower-card{position:relative;min-height:120px}
+  .op-lower-empty{font-size:12px;color:var(--tx4);line-height:1.5;padding:6px 2px}
+  .gestor-constr{background:var(--bg2);border:1px dashed var(--bd2);border-radius:14px;padding:34px 24px;text-align:center}
+  @media(max-width:720px){.op-lower{grid-template-columns:1fr}}
+  </style>
+
   <div class="view active" id="view-painel">
-    <div class="hero">
+    <!-- 1 + 2: saudação + toggle de home + filtro de unidade + relógio -->
+    <div class="home-topbar">
       <div>
         <h1 class="hero-title" id="hero-saudacao">Bem-vindo</h1>
-        <p class="hero-sub" id="hero-sub">Sistema Clínico Aplic &amp; Go · Fundação ativa</p>
-        <div class="hero-chips">
-          <span class="hero-chip role" id="hero-chip-role"><i class="ti ti-id-badge"></i> <span id="hero-role-txt">—</span></span>
-          <span class="hero-chip"><i class="ti ti-building-hospital"></i> <span id="hero-unidades-txt">— unidades</span></span>
-          <span class="hero-chip"><i class="ti ti-shield-check"></i> <span id="hero-caps-txt">— capabilities</span></span>
-        </div>
+        <p class="hero-sub" id="hero-sub">Sistema Clínico Aplic &amp; Go</p>
       </div>
-      <div class="hero-clock">
-        <div class="hora" id="hero-hora">--:--</div>
-        <div class="data" id="hero-data">—</div>
+      <div class="home-topbar-right">
+        <div class="home-toggle" id="home-toggle">
+          <button class="on" id="home-tab-op" onclick="homeSetMode('op')">Operacional</button>
+          <button id="home-tab-gestor" onclick="homeSetMode('gestor')">Gestor</button>
+        </div>
+        <div class="home-unit-wrap">
+          <i class="ti ti-building-hospital"></i>
+          <select id="home-unit-filter" onchange="homeUnidadeMudou(this.value)"><option value="">Todas as unidades</option></select>
+        </div>
+        <div class="hero-clock">
+          <div class="hora" id="hero-hora">--:--</div>
+          <div class="data" id="hero-data">—</div>
+        </div>
       </div>
     </div>
 
@@ -5643,88 +5689,124 @@
           <div class="sub">selecione o paciente</div>
         </div>
       </button>
+      <button class="quick-btn" onclick="homeCardClick('tarefas')">
+        <div class="ico"><i class="ti ti-checklist"></i></div>
+        <div class="txt">
+          <div class="ttl">Nova tarefa</div>
+          <div class="sub">em construção</div>
+        </div>
+      </button>
     </div>
 
-    <div class="cards-grid" id="cards-status">
-      <div class="stat-card">
-        <div class="stat-card-ico"><i class="ti ti-building-hospital"></i></div>
-        <div class="stat-card-body">
-          <div class="lbl">Unidades</div>
-          <div class="val" id="stat-unidades">—</div>
-          <div class="ext">ativas no sistema</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-ico"><i class="ti ti-user-heart"></i></div>
-        <div class="stat-card-body">
-          <div class="lbl">Pacientes</div>
-          <div class="val" id="stat-pacientes">—</div>
-          <div class="ext">cadastrados</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-ico"><i class="ti ti-calendar"></i></div>
-        <div class="stat-card-body">
-          <div class="lbl">Agendamentos</div>
-          <div class="val" id="stat-appts">—</div>
-          <div class="ext">na base</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card-ico"><i class="ti ti-vaccine"></i></div>
-        <div class="stat-card-body">
-          <div class="lbl">Aplicações</div>
-          <div class="val" id="stat-apps">—</div>
-          <div class="ext">registradas</div>
-        </div>
-      </div>
-    </div>
+    <!-- ===== HOME OPERACIONAL ===== -->
+    <div id="home-operacional">
 
-    <!-- Painel operacional do dia -->
-    <div class="dash-grid">
-      <!-- Agenda de hoje -->
-      <div class="dash-card dash-agenda">
-        <div class="dash-card-head">
-          <div class="ttl"><i class="ti ti-calendar-event"></i> Agenda de hoje</div>
-          <span class="dash-count" id="dash-ag-count">—</span>
-        </div>
-        <div id="dash-agenda-lista">
-          <div class="dash-vazio">Carregando…</div>
+      <!-- 3: Hero de impacto clínico (verde institucional) -->
+      <div class="impacto">
+        <div class="impacto-head"><i class="ti ti-heartbeat"></i> O impacto do nosso cuidado</div>
+        <div class="impacto-grid" id="home-impacto">
+          <div class="impacto-metric"><div class="num">—</div><div class="lbl">carregando agregados…</div></div>
         </div>
       </div>
 
-      <!-- Coluna lateral: pendências + aniversariantes -->
-      <div class="dash-side">
-        <div class="dash-card">
+      <!-- 4: Foco do dia (determinístico) -->
+      <div class="foco" id="home-foco" style="display:none">
+        <div>
+          <div class="foco-tag">Foco do dia</div>
+          <div class="foco-txt" id="home-foco-txt">—</div>
+        </div>
+        <button class="foco-btn" id="home-foco-btn" onclick="homeFocoAcao()">Ver</button>
+      </div>
+
+      <!-- 5: Cards -->
+      <div class="op-cards">
+        <div class="op-card" onclick="homeCardClick('atencao')">
+          <span class="em-constr">em construção</span>
+          <div class="op-card-head"><span>Em atenção</span><i class="ti ti-alert-triangle" style="color:#f85149"></i></div>
+          <div class="op-card-val" id="op-atencao-val">—</div>
+          <div class="op-card-ext">pacientes precisam de ação</div>
+        </div>
+        <div class="op-card" onclick="homeCardClick('renov')">
+          <span class="em-constr">em construção</span>
+          <div class="op-card-head"><span>Renovações em risco</span><i class="ti ti-refresh-alert" style="color:#d29922"></i></div>
+          <div class="op-card-val" id="op-renov-val">—</div>
+          <div class="op-card-ext">vencem em ≤14 dias, sem abordagem</div>
+        </div>
+        <div class="op-card" onclick="trocarView('agenda')">
+          <div class="op-card-head"><span>Agenda hoje</span><i class="ti ti-calendar" style="color:#3fb950"></i></div>
+          <div class="op-card-val" id="op-agenda-val">—</div>
+          <div class="op-card-ext" id="op-agenda-ext">consultas de hoje</div>
+        </div>
+        <div class="op-card" onclick="homeCardClick('tarefas')">
+          <span class="em-constr">em construção</span>
+          <div class="op-card-head"><span>Minhas tarefas</span><i class="ti ti-checklist" style="color:var(--ac)"></i></div>
+          <div class="op-card-val" id="op-tarefas-val">—</div>
+          <div class="op-card-ext">vencidas · hoje · próximas</div>
+        </div>
+      </div>
+
+      <!-- 6: Agenda de hoje + amanhã não confirmados -->
+      <div class="dash-grid">
+        <div class="dash-card dash-agenda">
           <div class="dash-card-head">
-            <div class="ttl"><i class="ti ti-alert-square"></i> Pendências</div>
+            <div class="ttl"><i class="ti ti-calendar-event"></i> Agenda de hoje + amanhã</div>
+            <span class="dash-count" id="dash-ag-count">—</span>
           </div>
-          <div class="dash-mini" onclick="trocarView('pendencias')" style="cursor:pointer;">
-            <span><i class="ti ti-rocket" style="color:#EF9F27;"></i> Onboarding em aberto</span>
-            <strong id="dash-pend-onb">—</strong>
-          </div>
-          <div class="dash-mini" onclick="marcAbrir()" style="cursor:pointer;">
-            <span><i class="ti ti-at" style="color:#4A90E2;"></i> Minhas marcações</span>
-            <strong id="dash-marcacoes">—</strong>
-          </div>
-        </div>
-
-        <div class="dash-card">
-          <div class="dash-card-head">
-            <div class="ttl"><i class="ti ti-cake"></i> Aniversariantes</div>
-            <button class="dash-cfg-btn" onclick="anivAbrirConfig()" title="Configurar mensagem"><i class="ti ti-settings"></i></button>
-          </div>
-          <div id="dash-aniversariantes">
+          <div id="dash-agenda-lista">
             <div class="dash-vazio">Carregando…</div>
           </div>
+          <div id="home-amanha"></div>
+        </div>
+
+        <div class="dash-side">
+          <div class="dash-card">
+            <div class="dash-card-head">
+              <div class="ttl"><i class="ti ti-alert-square"></i> Pendências</div>
+            </div>
+            <div class="dash-mini" onclick="trocarView('pendencias')" style="cursor:pointer;">
+              <span><i class="ti ti-rocket" style="color:#EF9F27;"></i> Onboarding em aberto</span>
+              <strong id="dash-pend-onb">—</strong>
+            </div>
+            <div class="dash-mini" onclick="marcAbrir()" style="cursor:pointer;">
+              <span><i class="ti ti-at" style="color:#4A90E2;"></i> Minhas marcações</span>
+              <strong id="dash-marcacoes">—</strong>
+            </div>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-head">
+              <div class="ttl"><i class="ti ti-cake"></i> Aniversariantes</div>
+              <button class="dash-cfg-btn" onclick="anivAbrirConfig()" title="Configurar mensagem"><i class="ti ti-settings"></i></button>
+            </div>
+            <div id="dash-aniversariantes">
+              <div class="dash-vazio">Carregando…</div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- 7 + 8: Ranking do mês + Vitórias dos pacientes -->
+      <div class="op-lower">
+        <div class="dash-card op-lower-card">
+          <span class="em-constr">em construção</span>
+          <div class="dash-card-head"><div class="ttl"><i class="ti ti-trophy" style="color:#e3b341"></i> Ranking do mês</div></div>
+          <div class="op-lower-empty">O ranking entra quando o motor de pontos por evento existir (Sprint 3). Ponto manual quebra a confiança do time — por isso ainda não vai ao ar.</div>
+        </div>
+        <div class="dash-card op-lower-card">
+          <span class="em-constr">em construção</span>
+          <div class="dash-card-head"><div class="ttl"><i class="ti ti-confetti" style="color:#3fb950"></i> Vitórias dos pacientes</div></div>
+          <div class="op-lower-empty">Marcos clínicos automáticos (kg eliminados, meses de adesão, saída de platô) aparecem aqui assim que o motor de eventos estiver ligado.</div>
+        </div>
+      </div>
+
     </div>
 
-    <div class="section-card">
-      <div class="section-card-title"><i class="ti ti-building-hospital"></i> Suas unidades</div>
-      <div class="unit-list" id="unit-list">
-        <div style="color: var(--tx3b); font-size: 12px; padding: 12px 0;">Carregando…</div>
+    <!-- ===== HOME GESTOR (Sprint 2 — em construção) ===== -->
+    <div id="home-gestor" style="display:none">
+      <div class="gestor-constr">
+        <div class="em-constr" style="position:static;display:inline-block;margin-bottom:10px">em construção</div>
+        <h2 style="margin:0 0 6px;font-size:18px;color:var(--tx1)">Home Gestor</h2>
+        <p style="margin:0 auto;color:var(--tx3);font-size:13px;max-width:520px;line-height:1.6">Faturamento do mês, ritmo da meta, renovações com R$ potencial, funil e resumo das unidades. Entra na Sprint 2 do briefing — depende dos dados financeiros e do CRM estarem no sistema.</p>
       </div>
     </div>
 
@@ -8633,14 +8715,13 @@ function aplicarUI() {
   const horas = agora.getHours();
   const saud = horas < 12 ? 'Bom dia' : horas < 18 ? 'Boa tarde' : 'Boa noite';
   document.getElementById('hero-saudacao').textContent = `${saud}, ${(authUser.nome || authUser.email || 'Usuário').split(' ')[0]}`;
-  document.getElementById('hero-sub').textContent = 'Sistema Clínico · Fundação ativa, demais módulos chegando por etapas';
+  const _sub = document.getElementById('hero-sub');
+  if (_sub) _sub.innerHTML = `<span style="color:var(--ac)">${esc(authUser.role || '')}</span> · o que precisa de ação hoje`;
 
-  // Hero chips
-  document.getElementById('hero-role-txt').textContent = authUser.role;
-  document.getElementById('hero-unidades-txt').textContent =
-    `${meData.unidades.length} ${meData.unidades.length === 1 ? 'unidade' : 'unidades'}`;
-  const caps = Object.keys(meData.capabilities || {}).filter(k => meData.capabilities[k]).length;
-  document.getElementById('hero-caps-txt').textContent = `${caps} capabilities`;
+  // Hero chips (removidos na home nova) -- guardas p/ não quebrar se ausentes
+  const _hr = document.getElementById('hero-role-txt'); if (_hr) _hr.textContent = authUser.role;
+  const _hu = document.getElementById('hero-unidades-txt'); if (_hu) _hu.textContent = `${meData.unidades.length} ${meData.unidades.length === 1 ? 'unidade' : 'unidades'}`;
+  const _hc = document.getElementById('hero-caps-txt'); if (_hc) { const caps = Object.keys(meData.capabilities || {}).filter(k => meData.capabilities[k]).length; _hc.textContent = `${caps} capabilities`; }
 
   // Mostra sidebar Admin se tem permissão de admin ou dev
   const podeAdmin = temPermissao('admin.gerenciar_permissoes')
@@ -8669,23 +8750,29 @@ function aplicarUI() {
     subEl.textContent = `${principal.nome} (${principal.cidade}/${principal.uf})`;
   }
 
-  // Lista de unidades no painel
+  // Lista de unidades no painel (removida na home nova) -- guarda p/ compat
   const listEl = document.getElementById('unit-list');
-  if (meData.unidades.length === 0) {
-    listEl.innerHTML = '<div style="color:var(--tx3b); font-size:12px; padding:12px 0;">' +
-      'Você ainda não está vinculado a nenhuma unidade. Peça pra gerência te incluir em Ituiutaba ou Uberlândia.</div>';
-  } else {
-    listEl.innerHTML = meData.unidades.map(u => `
-      <div class="unit-row">
-        <div class="ico"><i class="ti ti-building-hospital"></i></div>
-        <div class="info">
-          <div class="nome">${u.nome}</div>
-          <div class="meta">${u.cidade}/${u.uf} · ${u.slug}</div>
+  if (listEl) {
+    if (meData.unidades.length === 0) {
+      listEl.innerHTML = '<div style="color:var(--tx3b); font-size:12px; padding:12px 0;">' +
+        'Você ainda não está vinculado a nenhuma unidade. Peça pra gerência te incluir em Ituiutaba ou Uberlândia.</div>';
+    } else {
+      listEl.innerHTML = meData.unidades.map(u => `
+        <div class="unit-row">
+          <div class="ico"><i class="ti ti-building-hospital"></i></div>
+          <div class="info">
+            <div class="nome">${u.nome}</div>
+            <div class="meta">${u.cidade}/${u.uf} · ${u.slug}</div>
+          </div>
+          ${u.primaria ? '<span class="tag-primaria">primária</span>' : ''}
         </div>
-        ${u.primaria ? '<span class="tag-primaria">primária</span>' : ''}
-      </div>
-    `).join('');
+      `).join('');
+    }
   }
+
+  // Home nova: preenche filtro de unidades + restaura modo (op/gestor) salvo
+  homePreencherUnidades();
+  try { const m = localStorage.getItem('aplic_home_mode'); if (m === 'gestor') homeSetMode('gestor'); } catch (e) {}
 }
 
 // Atualiza o relógio do hero a cada segundo
@@ -8709,22 +8796,22 @@ async function carregarStatus() {
     });
     const data = await resp.json();
     if (data.ok) {
-      document.getElementById('stat-unidades').textContent = data.counts.units;
-      document.getElementById('stat-pacientes').textContent = data.counts.patients;
-      document.getElementById('stat-appts').textContent = data.counts.appointments;
-      document.getElementById('stat-apps').textContent = data.counts.applications;
+      homeCounts = data.counts; // guardado p/ fallback do hero de impacto
     }
   } catch (e) { /* silencioso */ }
   dashCarregar();
 }
+let homeCounts = null;
 
 // ============================================================
 // DASHBOARD OPERACIONAL (Visão Geral)
 // ============================================================
 async function dashCarregar() {
-  const r = await pacApi('/api/clinico/dashboard/resumo');
+  const q = (typeof homeUnit !== 'undefined' && homeUnit) ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
+  const r = await pacApi('/api/clinico/dashboard/resumo' + q);
   if (!r.ok) return;
   const d = r.data;
+  window.homeResumo = d;
 
   // Agenda de hoje
   const agWrap = document.getElementById('dash-agenda-lista');
@@ -8754,6 +8841,135 @@ async function dashCarregar() {
   // Aniversariantes
   dashState.aniversariantes = d.aniversariantes || [];
   dashRenderAniversariantes();
+
+  // Home nova: card "Agenda hoje" + foco do dia + nota de amanhã + hero de impacto
+  const ov = document.getElementById('op-agenda-val'); if (ov) ov.textContent = d.hoje.total;
+  const oe = document.getElementById('op-agenda-ext');
+  if (oe) { const conf = (d.hoje.agendamentos || []).filter(a => a.status === 'CONFIRMADO').length; oe.textContent = `${d.hoje.total} consulta${d.hoje.total === 1 ? '' : 's'} · ${conf} confirmada${conf === 1 ? '' : 's'}`; }
+  const am = document.getElementById('home-amanha');
+  if (am) am.innerHTML = '<div style="font-size:11px;color:var(--tx4);padding:9px 2px 2px;border-top:1px dashed var(--bd1);margin-top:8px"><i class="ti ti-clock"></i> Confirmações de amanhã via WhatsApp <span class="em-constr-inline">em construção</span></div>';
+  homeFocoRender(d);
+  homeImpactoCarregar();
+}
+
+// ============================================================
+// HOME OPERACIONAL / GESTOR (reformulação — briefing v3)
+// ============================================================
+let homeMode = 'op';
+let homeUnit = '';
+let homeFocoAcao = () => {};
+
+function homeSetMode(mode) {
+  homeMode = mode;
+  const op = document.getElementById('home-operacional');
+  const ge = document.getElementById('home-gestor');
+  if (op) op.style.display = (mode === 'op') ? '' : 'none';
+  if (ge) ge.style.display = (mode === 'gestor') ? '' : 'none';
+  const tOp = document.getElementById('home-tab-op');
+  const tGe = document.getElementById('home-tab-gestor');
+  if (tOp) tOp.classList.toggle('on', mode === 'op');
+  if (tGe) tGe.classList.toggle('on', mode === 'gestor');
+  try { localStorage.setItem('aplic_home_mode', mode); } catch (e) {}
+}
+
+function homeUnidadeMudou(unitId) {
+  homeUnit = unitId || '';
+  dashCarregar(); // recarrega agenda/foco/impacto já com o filtro
+}
+
+function homePreencherUnidades() {
+  const sel = document.getElementById('home-unit-filter');
+  if (!sel || !meData || !meData.unidades) return;
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todas as unidades</option>' +
+    meData.unidades.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+  sel.value = atual;
+}
+
+// Hero de impacto clínico -- agregados reais. Regra do briefing: slot sem dado
+// some (nunca zero falso). Slots que dependem de motor futuro ficam "em construção".
+async function homeImpactoCarregar() {
+  const wrap = document.getElementById('home-impacto');
+  if (!wrap) return;
+  let d = null;
+  try {
+    const q = homeUnit ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
+    const r = await pacApi('/api/clinico/dashboard/impacto' + q);
+    if (r.ok) d = r.data;
+  } catch (e) {}
+  // Fallback enquanto o endpoint não existe: pacientes ativos vem do /resumo.
+  if (!d && window.homeResumo && window.homeResumo.pacientes) {
+    d = { pacientes_ativos: window.homeResumo.pacientes.ativos };
+  }
+  d = d || {};
+  const fmt = n => Number(n).toLocaleString('pt-BR');
+  const metrics = [];
+  if (d.pacientes_ativos != null) metrics.push({ num: fmt(d.pacientes_ativos), lbl: 'pacientes ativos em acompanhamento' });
+  if (d.kg_eliminados != null && d.kg_eliminados > 0) metrics.push({ num: fmt(Math.round(d.kg_eliminados)), unit: ' kg', hl: true, lbl: 'totais eliminados (placar da missão)' });
+  if (d.perda_media_pct != null) metrics.push({ num: '-' + Math.abs(d.perda_media_pct).toFixed(1), unit: '%', lbl: 'perda média por protocolo' });
+  if (d.massa_preservada_pct != null) metrics.push({ num: Math.round(d.massa_preservada_pct), unit: '%', lbl: 'massa muscular preservada' });
+  if (d.adesao_aplicacoes_pct != null) metrics.push({ num: Math.round(d.adesao_aplicacoes_pct), unit: '%', lbl: 'adesão média às aplicações no mês' });
+  if (d.marcos_mes != null) metrics.push({ num: fmt(d.marcos_mes), lbl: 'pacientes atingiram marco no mês' });
+
+  // Blocos que ainda dependem de dado/motor -> em construção (escolha do Matheus)
+  const constr = [];
+  if (d.massa_preservada_pct == null) constr.push('massa muscular preservada');
+  if (d.adesao_aplicacoes_pct == null) constr.push('adesão média às aplicações');
+  if (d.marcos_mes == null) constr.push('pacientes que atingiram marco no mês');
+  if (d.kg_eliminados == null) constr.push('kg totais eliminados');
+  if (d.perda_media_pct == null) constr.push('perda média por protocolo');
+
+  let html = metrics.map(m => `
+    <div class="impacto-metric">
+      <div class="num ${m.hl ? 'hl' : ''}">${m.num}${m.unit ? `<small>${m.unit}</small>` : ''}</div>
+      <div class="lbl">${m.lbl}</div>
+    </div>`).join('');
+  html += constr.map(c => `
+    <div class="impacto-metric constr">
+      <div class="num">—</div>
+      <div class="lbl">${c} <span class="em-constr-inline">em construção</span></div>
+    </div>`).join('');
+  if (!html) html = '<div class="impacto-metric"><div class="num">—</div><div class="lbl">sem agregados ainda</div></div>';
+  wrap.innerHTML = html;
+}
+
+// Foco do dia (v1 determinístico, com os sinais que já temos hoje).
+// Ordem-alvo do briefing: agenda amanhã não confirmada > em atenção >
+// renovações sem abordagem > tarefas vencidas. Enquanto esses eventos não
+// existem, usamos: hoje não confirmados > onboarding em aberto > marcações.
+function homeFocoRender(d) {
+  const box = document.getElementById('home-foco');
+  const txt = document.getElementById('home-foco-txt');
+  const btn = document.getElementById('home-foco-btn');
+  if (!box || !txt) return;
+  const CONF = ['CONFIRMADO', 'REALIZADO', 'ATENDIDO', 'CONCLUIDO'];
+  const naoConf = (d.hoje && d.hoje.agendamentos || []).filter(a => a.status && !CONF.includes(a.status)).length;
+  let foco = null;
+  if (naoConf > 0) foco = { txt: `<strong>${naoConf} agendamento${naoConf > 1 ? 's' : ''} de hoje</strong> ainda não confirmado${naoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
+  else if (d.pendencias_onboarding > 0) foco = { txt: `<strong>${d.pendencias_onboarding} onboarding${d.pendencias_onboarding > 1 ? 's' : ''}</strong> em aberto para finalizar`, acao: () => trocarView('pendencias'), btn: 'Ver pendências' };
+  else if (d.minhas_marcacoes > 0) foco = { txt: `<strong>${d.minhas_marcacoes} marcaç${d.minhas_marcacoes > 1 ? 'ões' : 'ão'}</strong> aguardando você`, acao: () => marcAbrir(), btn: 'Abrir' };
+  if (!foco) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  txt.innerHTML = foco.txt;
+  homeFocoAcao = foco.acao;
+  if (btn) btn.textContent = foco.btn;
+}
+
+function homeCardClick(tipo) {
+  homeToast('Esse bloco entra no roadmap: regras de atenção, renovações e tarefas com prazo/dono ainda não têm evento no sistema (Sprint 1–3 do briefing).');
+}
+function homeToast(msg) {
+  let t = document.getElementById('home-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'home-toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--bg3);color:var(--tx1b);border:1px solid var(--bd2);border-radius:10px;padding:12px 18px;font-size:13px;max-width:440px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);line-height:1.5';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._to);
+  t._to = setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; }, 4200);
 }
 
 let dashState = { aniversariantes: [] };
