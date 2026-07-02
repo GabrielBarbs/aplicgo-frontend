@@ -5633,6 +5633,14 @@
   .op-lower-card{position:relative;min-height:120px}
   .op-lower-empty{font-size:12px;color:var(--tx4);line-height:1.5;padding:6px 2px}
   .gestor-constr{background:var(--bg2);border:1px dashed var(--bd2);border-radius:14px;padding:34px 24px;text-align:center}
+  .gst-bar{height:5px;background:var(--bg3);border-radius:20px;margin-top:9px;overflow:hidden}
+  .gst-bar-fill{height:100%;background:#3fb950;border-radius:20px;width:0%;transition:width .4s}
+  .gst-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+  .gst-table th{text-align:left;color:var(--tx3);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:8px 10px;border-bottom:1px solid var(--bg2)}
+  .gst-table td{padding:9px 10px;border-bottom:1px solid var(--bg2);color:var(--tx1b)}
+  .gst-table tr:last-child td{border-bottom:0}
+  .gst-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .gst-table .gst-vazio{color:var(--tx4);text-align:center;padding:16px}
   .tk-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--bd2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px}
   .tk-check:hover{border-color:var(--ac);color:var(--ac)}
   .tk-sub{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;padding:10px 18px 4px}
@@ -5837,10 +5845,67 @@
 
     <!-- ===== HOME GESTOR (Sprint 2 — em construção) ===== -->
     <div id="home-gestor" style="display:none">
-      <div class="gestor-constr">
-        <div class="em-constr" style="position:static;display:inline-block;margin-bottom:10px">em construção</div>
-        <h2 style="margin:0 0 6px;font-size:18px;color:var(--tx1)">Home Gestor</h2>
-        <p style="margin:0 auto;color:var(--tx3);font-size:13px;max-width:520px;line-height:1.6">Faturamento do mês, ritmo da meta, renovações com R$ potencial, funil e resumo das unidades. Entra na Sprint 2 do briefing — depende dos dados financeiros e do CRM estarem no sistema.</p>
+      <!-- Foco do dia administrativo -->
+      <div class="foco" id="gst-foco" style="display:none;border-left-color:#3fb950">
+        <div><div class="foco-tag" style="color:#56d364">Foco do dia</div><div class="foco-txt" id="gst-foco-txt">—</div></div>
+        <button class="foco-btn" id="gst-foco-btn" onclick="gstFocoAcao()">Ver</button>
+      </div>
+
+      <!-- Cards de gestão -->
+      <div class="op-cards">
+        <div class="op-card">
+          <div class="op-card-head"><span>Faturamento do mês</span><i class="ti ti-cash" style="color:#3fb950"></i></div>
+          <div class="op-card-val" id="gst-fat-val">—</div>
+          <div class="op-card-ext" id="gst-fat-ext">carregando…</div>
+          <div class="gst-bar"><div class="gst-bar-fill" id="gst-fat-bar"></div></div>
+        </div>
+        <div class="op-card">
+          <div class="op-card-head"><span>Ritmo p/ meta</span><i class="ti ti-trending-up" id="gst-ritmo-ico" style="color:#e3b341"></i></div>
+          <div class="op-card-val" id="gst-ritmo-val">—</div>
+          <div class="op-card-ext" id="gst-ritmo-ext">projeção do mês</div>
+        </div>
+        <div class="op-card" onclick="homeRenovAbrir()">
+          <div class="op-card-head"><span>Renovações em risco</span><i class="ti ti-refresh-alert" style="color:#d29922"></i></div>
+          <div class="op-card-val" id="gst-renov-val">—</div>
+          <div class="op-card-ext">vencendo ≤14d · <span style="color:var(--tx4)">R$ em construção</span></div>
+        </div>
+        <div class="op-card">
+          <span class="em-constr">em construção</span>
+          <div class="op-card-head"><span>A receber / vencidos</span><i class="ti ti-receipt" style="color:var(--tx3)"></i></div>
+          <div class="op-card-val">—</div>
+          <div class="op-card-ext">precisa do módulo de contratos</div>
+        </div>
+      </div>
+
+      <!-- Funil + Confirmações de amanhã -->
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dash-card-head"><div class="ttl"><i class="ti ti-filter"></i> Funil do mês <span style="font-size:10px;color:var(--tx4);font-weight:400">· comercial (geral)</span></div></div>
+          <div id="gst-funil"><div class="dash-vazio">Carregando…</div></div>
+        </div>
+        <div class="dash-side">
+          <div class="dash-card">
+            <div class="dash-card-head"><div class="ttl"><i class="ti ti-calendar-check"></i> Confirmações de amanhã</div></div>
+            <div class="dash-mini"><span>Total amanhã</span><strong id="gst-am-total">—</strong></div>
+            <div class="dash-mini"><span style="color:#e3b341">Não confirmados</span><strong id="gst-am-naoconf" style="color:#e3b341">—</strong></div>
+            <div class="dash-mini" onclick="homeSetMode('op')" style="cursor:pointer"><span style="color:var(--ac)"><i class="ti ti-arrow-right"></i> Ir pra Operacional</span><strong></strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumo das unidades -->
+      <div class="dash-card" style="margin-top:16px">
+        <div class="dash-card-head"><div class="ttl"><i class="ti ti-building-hospital"></i> Resumo das unidades</div></div>
+        <table class="gst-table" id="gst-unidades"><tbody><tr><td class="gst-vazio">Carregando…</td></tr></tbody></table>
+      </div>
+
+      <!-- Ranking (Sprint 3) -->
+      <div class="op-lower" style="grid-template-columns:1fr">
+        <div class="dash-card op-lower-card">
+          <span class="em-constr">em construção</span>
+          <div class="dash-card-head"><div class="ttl"><i class="ti ti-trophy" style="color:#e3b341"></i> Ranking do mês</div></div>
+          <div class="op-lower-empty">Entra na Sprint 3, junto do motor de pontos por evento.</div>
+        </div>
       </div>
     </div>
 
@@ -8804,9 +8869,15 @@ function aplicarUI() {
     }
   }
 
-  // Home nova: preenche filtro de unidades + restaura modo (op/gestor) salvo
+  // Home nova: preenche filtro de unidades + roteia por cargo.
   homePreencherUnidades();
-  try { const m = localStorage.getItem('aplic_home_mode'); if (m === 'gestor') homeSetMode('gestor'); } catch (e) {}
+  // Só quem tem financeiro.ver enxerga a Home Gestor; dual-role cai nela por padrão (briefing).
+  const podeGestor = temPermissao('financeiro.ver');
+  const tabGestor = document.getElementById('home-tab-gestor');
+  if (tabGestor) tabGestor.style.display = podeGestor ? '' : 'none';
+  let modo = 'op';
+  if (podeGestor) { let salvo = null; try { salvo = localStorage.getItem('aplic_home_mode'); } catch (e) {} modo = salvo || 'gestor'; }
+  homeSetMode(modo);
 }
 
 // Atualiza o relógio do hero a cada segundo
@@ -8886,6 +8957,7 @@ async function dashCarregar() {
   homeAtencaoCarregar();
   homeRenovCarregar();
   homeTarefasCarregar();
+  if (homeMode === 'gestor') homeGestorCarregar();
 }
 
 // ============================================================
@@ -8906,6 +8978,9 @@ function homeSetMode(mode) {
   if (tOp) tOp.classList.toggle('on', mode === 'op');
   if (tGe) tGe.classList.toggle('on', mode === 'gestor');
   try { localStorage.setItem('aplic_home_mode', mode); } catch (e) {}
+  // No boot, dashCarregar é a fonte única (evita fetch /gestor duplicado + flash de '—').
+  // Numa troca manual de aba, homeResumo já existe -> recarrega o financeiro.
+  if (mode === 'gestor' && window.homeResumo) homeGestorCarregar();
 }
 
 function homeUnidadeMudou(unitId) {
@@ -9122,6 +9197,9 @@ async function homeRenovCarregar() {
   homeRenovTotal = d.total || 0;
   homeRenovAtualizaCard();
   if (window.homeResumo) homeFocoRender(window.homeResumo);
+  // Reflete no Gestor (card + foco administrativo) quando a contagem chega async.
+  const grv = document.getElementById('gst-renov-val'); if (grv) grv.textContent = homeRenovTotal;
+  if (homeMode === 'gestor' && window.gstData) gstFocoRender(window.gstData);
 }
 
 function homeRenovAbrir() {
@@ -9282,6 +9360,81 @@ async function homeTarefaSalvar(btnEl) {
   homeAtencaoFechar();
   homeToast('Tarefa criada.');
   homeTarefasCarregar();
+}
+
+// ===== HOME GESTOR (Sprint 2) =====
+let gstFocoAcao = () => {};
+function homeGestorFmtBRL(cents) {
+  return (Number(cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+}
+async function homeGestorCarregar() {
+  // Blocos compartilhados com a operacional (amanhã + contagem de renovações)
+  const am = (window.homeResumo && window.homeResumo.amanha) || null;
+  const amT = document.getElementById('gst-am-total'); if (amT) amT.textContent = am ? am.total : '—';
+  const amN = document.getElementById('gst-am-naoconf'); if (amN) amN.textContent = am ? am.nao_confirmados : '—';
+  const rv = document.getElementById('gst-renov-val'); if (rv) rv.textContent = (homeRenovTotal == null ? '—' : homeRenovTotal);
+
+  let d = null;
+  try { const r = await pacApi('/api/clinico/dashboard/gestor'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { // 403 (sem financeiro.ver) ou erro
+    const fv = document.getElementById('gst-fat-val'); if (fv) fv.textContent = '—';
+    const fe = document.getElementById('gst-fat-ext'); if (fe) fe.textContent = 'sem acesso ao financeiro';
+    return;
+  }
+  window.gstData = d; // guarda p/ re-render do foco quando renovações chegarem
+  const corMap = { verde: '#3fb950', amarelo: '#e3b341', vermelho: '#f85149', cinza: 'var(--tx3)' };
+
+  // Faturamento do mês + % meta + vs mês anterior
+  const f = d.faturamento;
+  const fatVal = document.getElementById('gst-fat-val'); if (fatVal) fatVal.textContent = homeGestorFmtBRL(f.cents);
+  const dif = f.cents - f.anterior_cents;
+  const difTxt = f.anterior_cents > 0 ? `${dif >= 0 ? '+' : ''}${Math.round(dif / f.anterior_cents * 100)}% vs mês passado` : 'sem base do mês passado';
+  const fatExt = document.getElementById('gst-fat-ext'); if (fatExt) fatExt.textContent = (f.pct_meta != null ? `${f.pct_meta}% da meta · ` : '') + difTxt;
+  const bar = document.getElementById('gst-fat-bar'); if (bar) bar.style.width = Math.min(100, f.pct_meta || 0) + '%';
+
+  // Ritmo p/ meta
+  const rt = d.ritmo;
+  const ritVal = document.getElementById('gst-ritmo-val');
+  if (ritVal) {
+    ritVal.textContent = rt.ritmo_necessario_dia_cents > 0 ? homeGestorFmtBRL(rt.ritmo_necessario_dia_cents) + '/dia' : (rt.pct_projecao != null && rt.pct_projecao >= 100 ? 'meta batida' : '—');
+    ritVal.style.color = corMap[rt.cor] || 'var(--tx1)';
+  }
+  const ritExt = document.getElementById('gst-ritmo-ext');
+  if (ritExt) ritExt.textContent = (rt.pct_projecao != null ? `projeção ${rt.pct_projecao}% da meta` : 'defina as metas dos vendedores') + (rt.uteis_restantes ? ` · ${rt.uteis_restantes} dias úteis` : '');
+  const ritIco = document.getElementById('gst-ritmo-ico'); if (ritIco) ritIco.style.color = corMap[rt.cor] || '#e3b341';
+
+  // Funil do mês
+  const fu = d.funil;
+  const funEl = document.getElementById('gst-funil');
+  if (funEl) funEl.innerHTML =
+    `<div class="dash-mini"><span><i class="ti ti-users" style="color:#4A90E2"></i> Leads no mês</span><strong>${fu.leads}</strong></div>`
+    + `<div class="dash-mini"><span><i class="ti ti-check" style="color:#3fb950"></i> Ganhos</span><strong style="color:#3fb950">${fu.ganhos}</strong></div>`
+    + `<div class="dash-mini"><span><i class="ti ti-x" style="color:#f85149"></i> Perdidos</span><strong>${fu.perdidos}</strong></div>`
+    + `<div class="dash-mini"><span><i class="ti ti-percentage"></i> Fechamento</span><strong>${fu.fechamento_pct != null ? fu.fechamento_pct + '%' : '—'}</strong></div>`
+    + `<div class="dash-mini"><span style="color:var(--tx3)">Pipeline aberto</span><strong>${fu.pipeline_aberto}</strong></div>`
+    + (fu.maior_perda ? `<div style="font-size:11px;color:var(--tx4);padding:8px 2px 2px;border-top:1px dashed var(--bd1)">Maior perda: ${esc(fu.maior_perda.motivo)} (${fu.maior_perda.total})</div>` : '');
+
+  // Resumo das unidades (ativos/novos reais; renov/faturamento em construção)
+  const un = d.unidades || [];
+  const unEl = document.getElementById('gst-unidades');
+  if (unEl) unEl.innerHTML = un.length
+    ? `<thead><tr><th>Unidade</th><th style="text-align:right">Ativos</th><th style="text-align:right">Novos no mês</th><th style="text-align:right">Renov. risco</th><th style="text-align:right">Faturamento</th></tr></thead>`
+      + `<tbody>${un.map(u => `<tr><td>${esc(u.nome)}</td><td class="num">${u.ativos}</td><td class="num">${u.novos_mes}</td><td class="num" style="color:var(--tx4)">—</td><td class="num" style="color:var(--tx4)">—</td></tr>`).join('')}</tbody>`
+    : '<tbody><tr><td class="gst-vazio">Sem unidades.</td></tr></tbody>';
+
+  gstFocoRender(d);
+}
+
+function gstFocoRender(d) {
+  const box = document.getElementById('gst-foco'), txt = document.getElementById('gst-foco-txt'), btn = document.getElementById('gst-foco-btn');
+  if (!box || !txt) return;
+  const am = (window.homeResumo && window.homeResumo.amanha) || { nao_confirmados: 0 };
+  let foco = null;
+  if (d.ritmo && d.ritmo.pct_projecao != null && d.ritmo.pct_projecao < 90) foco = { txt: `Ritmo do mês em <strong>${d.ritmo.pct_projecao}% da meta</strong> — falta ${homeGestorFmtBRL(d.ritmo.ritmo_necessario_dia_cents)}/dia útil`, acao: () => {}, btn: 'Entendi' };
+  else if (am.nao_confirmados > 0) foco = { txt: `<strong>${am.nao_confirmados} confirmaç${am.nao_confirmados > 1 ? 'ões' : 'ão'} de amanhã</strong> pendente${am.nao_confirmados > 1 ? 's' : ''}`, acao: () => homeSetMode('op'), btn: 'Operacional' };
+  else if (homeRenovTotal > 0) foco = { txt: `<strong>${homeRenovTotal} renovaç${homeRenovTotal > 1 ? 'ões' : 'ão'}</strong> em risco sem abordagem`, acao: () => homeRenovAbrir(), btn: 'Ver lista' };
+  if (!foco) { box.style.display = 'none'; return; }
+  box.style.display = ''; txt.innerHTML = foco.txt; gstFocoAcao = foco.acao; if (btn) btn.textContent = foco.btn;
 }
 
 function homeCardClick(tipo) {
