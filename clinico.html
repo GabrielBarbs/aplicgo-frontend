@@ -5633,6 +5633,19 @@
   .op-lower-card{position:relative;min-height:120px}
   .op-lower-empty{font-size:12px;color:var(--tx4);line-height:1.5;padding:6px 2px}
   .gestor-constr{background:var(--bg2);border:1px dashed var(--bd2);border-radius:14px;padding:34px 24px;text-align:center}
+  .tk-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--bd2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px}
+  .tk-check:hover{border-color:var(--ac);color:var(--ac)}
+  .tk-sub{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;padding:10px 18px 4px}
+  .tk-badge{font-size:10px;font-weight:500;border-radius:20px;padding:2px 8px;white-space:nowrap;margin-left:6px}
+  .tk-form label{display:block;font-size:11px;color:var(--tx3);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.3px}
+  .tk-form input,.tk-form select,.tk-form textarea{width:100%;background:var(--bg2);border:1px solid var(--bd1);border-radius:8px;color:var(--tx1b);font-size:13px;padding:9px 10px;font-family:inherit;outline:none}
+  .tk-form input:focus,.tk-form select:focus,.tk-form textarea:focus{border-color:var(--ac)}
+  .tk-form-row{display:flex;gap:10px}
+  .tk-form-row>div{flex:1;min-width:0}
+  .tk-form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+  .tk-btn{border:0;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
+  .tk-btn.primary{background:var(--ac);color:#2a1608}
+  .tk-btn.ghost{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd1)}
   .amanha-head{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:9px 2px 4px;border-top:1px dashed var(--bd1);margin-top:8px;display:flex;align-items:center;gap:6px}
   .amanha-head .n{color:#e3b341}
   .amanha-item{display:flex;align-items:center;gap:10px;padding:7px 2px}
@@ -5713,11 +5726,11 @@
           <div class="sub">selecione o paciente</div>
         </div>
       </button>
-      <button class="quick-btn" onclick="homeCardClick('tarefas')">
+      <button class="quick-btn" onclick="homeTarefaNova()">
         <div class="ico"><i class="ti ti-checklist"></i></div>
         <div class="txt">
           <div class="ttl">Nova tarefa</div>
-          <div class="sub">em construção</div>
+          <div class="sub">criar e atribuir</div>
         </div>
       </button>
     </div>
@@ -5759,11 +5772,10 @@
           <div class="op-card-val" id="op-agenda-val">—</div>
           <div class="op-card-ext" id="op-agenda-ext">consultas de hoje</div>
         </div>
-        <div class="op-card" onclick="homeCardClick('tarefas')">
-          <span class="em-constr">em construção</span>
+        <div class="op-card" onclick="homeTarefasAbrir()">
           <div class="op-card-head"><span>Minhas tarefas</span><i class="ti ti-checklist" style="color:var(--ac)"></i></div>
           <div class="op-card-val" id="op-tarefas-val">—</div>
-          <div class="op-card-ext">vencidas · hoje · próximas</div>
+          <div class="op-card-ext" id="op-tarefas-ext">vencidas · hoje · próximas</div>
         </div>
       </div>
 
@@ -8873,6 +8885,7 @@ async function dashCarregar() {
   homeImpactoCarregar();
   homeAtencaoCarregar();
   homeRenovCarregar();
+  homeTarefasCarregar();
 }
 
 // ============================================================
@@ -8961,6 +8974,8 @@ let homeAtencaoItens = [];
 let homeAtencaoTotal = null;
 let homeRenovItens = [];
 let homeRenovTotal = null;
+let homeTarefasItens = [];
+let homeTarefasVencidas = null;
 
 // Foco do dia (v1 determinístico, na ordem do briefing com os sinais que já temos):
 // amanhã não confirmada > em atenção > hoje não confirmada > onboarding > marcações.
@@ -8977,6 +8992,7 @@ function homeFocoRender(d) {
   if (amNaoConf > 0) foco = { txt: `<strong>${amNaoConf} agendamento${amNaoConf > 1 ? 's' : ''} de amanhã</strong> ainda não confirmado${amNaoConf > 1 ? 's' : ''}`, acao: () => { const el = document.getElementById('home-amanha'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, btn: 'Confirmar' };
   else if (homeAtencaoTotal > 0) foco = { txt: `<strong>${homeAtencaoTotal} paciente${homeAtencaoTotal > 1 ? 's' : ''} em atenção</strong> precisa${homeAtencaoTotal > 1 ? 'm' : ''} de ação`, acao: () => homeAtencaoAbrir(), btn: 'Ver lista' };
   else if (homeRenovTotal > 0) foco = { txt: `<strong>${homeRenovTotal} renovaç${homeRenovTotal > 1 ? 'ões' : 'ão'}</strong> em risco sem abordagem`, acao: () => homeRenovAbrir(), btn: 'Ver lista' };
+  else if (homeTarefasVencidas > 0) foco = { txt: `<strong>${homeTarefasVencidas} tarefa${homeTarefasVencidas > 1 ? 's' : ''} vencida${homeTarefasVencidas > 1 ? 's' : ''}</strong> aguardando você`, acao: () => homeTarefasAbrir(), btn: 'Ver tarefas' };
   else if (hojeNaoConf > 0) foco = { txt: `<strong>${hojeNaoConf} agendamento${hojeNaoConf > 1 ? 's' : ''} de hoje</strong> ainda não confirmado${hojeNaoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
   else if (d.pendencias_onboarding > 0) foco = { txt: `<strong>${d.pendencias_onboarding} onboarding${d.pendencias_onboarding > 1 ? 's' : ''}</strong> em aberto para finalizar`, acao: () => trocarView('pendencias'), btn: 'Ver pendências' };
   else if (d.minhas_marcacoes > 0) foco = { txt: `<strong>${d.minhas_marcacoes} marcaç${d.minhas_marcacoes > 1 ? 'ões' : 'ão'}</strong> aguardando você`, acao: () => marcAbrir(), btn: 'Abrir' };
@@ -9154,6 +9170,118 @@ async function homeRenovWa(pid) {
   const primeiro = (i.nome || '').split(' ')[0];
   const msg = `Olá ${primeiro}! Aqui é da Aplic & Go. Seu protocolo está chegando ao fim — vamos conversar sobre a renovação pra manter seus resultados? 💚`;
   window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ===== Card "Minhas tarefas" + Nova tarefa =====
+function homeTarefasExtText(vencidas, hoje, total) {
+  if (total === 0) return 'nenhuma tarefa aberta';
+  const p = [];
+  if (vencidas) p.push(`${vencidas} vencida${vencidas > 1 ? 's' : ''}`);
+  if (hoje) p.push(`${hoje} pra hoje`);
+  if (!p.length) p.push(`${total} aberta${total > 1 ? 's' : ''}`);
+  return p.join(' · ');
+}
+async function homeTarefasCarregar() {
+  const val = document.getElementById('op-tarefas-val');
+  const ext = document.getElementById('op-tarefas-ext');
+  let d = null;
+  try {
+    const r = await pacApi('/api/clinico/tarefas/minhas');
+    if (r.ok) d = r.data;
+  } catch (e) {}
+  if (!d) { homeTarefasItens = []; homeTarefasVencidas = 0; if (val) val.textContent = '—'; if (window.homeResumo) homeFocoRender(window.homeResumo); return; }
+  homeTarefasItens = d.itens || [];
+  homeTarefasVencidas = d.vencidas || 0;
+  if (val) { val.textContent = d.total; val.style.color = d.vencidas > 0 ? '#f85149' : 'var(--tx1)'; }
+  if (ext) ext.textContent = homeTarefasExtText(d.vencidas, d.hoje, d.total);
+  if (window.homeResumo) homeFocoRender(window.homeResumo);
+}
+
+function homeTarefaBadge(i) {
+  if (i.prazo_dias == null) return '';
+  if (i.vencida) return `<span class="tk-badge" style="background:rgba(248,81,73,.15);color:#f85149">vencida há ${Math.abs(i.prazo_dias)}d</span>`;
+  if (i.hoje) return `<span class="tk-badge" style="background:rgba(210,153,34,.15);color:#e3b341">hoje</span>`;
+  return `<span class="tk-badge" style="background:var(--bg3);color:var(--tx3)">em ${i.prazo_dias}d</span>`;
+}
+
+function homeTarefasAbrir() {
+  const itens = homeTarefasItens || [];
+  let ov = document.getElementById('atn-overlay'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
+  ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
+  const rows = itens.length ? itens.map((i) => {
+    const prioCor = i.prioridade === 'alta' ? '#f85149' : (i.prioridade === 'baixa' ? 'var(--tx4)' : '#e3b341');
+    const pac = i.paciente_nome ? ` · <i class="ti ti-user" style="font-size:11px"></i> ${esc(i.paciente_nome)}` : '';
+    return `<div class="atn-row">
+      <button class="tk-check" onclick="homeTarefaConcluir('${i.id}', this)" title="Concluir"><i class="ti ti-check"></i></button>
+      <div style="min-width:0"><div class="nome">${esc(i.titulo)} ${homeTarefaBadge(i)}</div>
+      <div class="meta"><span style="color:${prioCor}">●</span> ${esc(i.prioridade)}${pac}${i.descricao ? ' · ' + esc(i.descricao.slice(0, 60)) : ''}</div></div>
+    </div>`;
+  }).join('') : '<div class="atn-empty">Nenhuma tarefa aberta. 🎉</div>';
+  ov.innerHTML = `<div class="atn-modal">
+    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-checklist" style="color:var(--ac)"></i> Minhas tarefas</div>
+      <div style="display:flex;gap:8px;align-items:center"><button class="tk-btn primary" style="padding:6px 12px" onclick="homeTarefaNova()"><i class="ti ti-plus"></i> Nova</button><button class="x" onclick="homeAtencaoFechar()">×</button></div></div>
+    <div class="atn-modal-body">${rows}</div></div>`;
+  document.body.appendChild(ov);
+}
+
+async function homeTarefaConcluir(id, btnEl) {
+  if (btnEl) { btnEl.disabled = true; btnEl.style.color = 'var(--ac)'; }
+  const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
+  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
+  homeTarefasItens = (homeTarefasItens || []).filter(x => x.id !== id);
+  homeTarefasVencidas = homeTarefasItens.filter(x => x.vencida).length;
+  const val = document.getElementById('op-tarefas-val'); if (val) { val.textContent = homeTarefasItens.length; val.style.color = homeTarefasVencidas > 0 ? '#f85149' : 'var(--tx1)'; }
+  const ext = document.getElementById('op-tarefas-ext'); if (ext) ext.textContent = homeTarefasExtText(homeTarefasVencidas, homeTarefasItens.filter(x => x.hoje).length, homeTarefasItens.length);
+  homeTarefasAbrir();
+  if (window.homeResumo) homeFocoRender(window.homeResumo);
+}
+
+async function homeTarefaNova() {
+  let usuarios = [];
+  try { const r = await pacApi('/api/clinico/mentions/usuarios'); if (r.ok) usuarios = r.data.usuarios || []; } catch (e) {}
+  const opts = '<option value="">Eu (você)</option>' + usuarios.map(u => `<option value="${u.id}">${esc(u.nome)}${u.cargo ? ' (' + esc(u.cargo) + ')' : ''}</option>`).join('');
+  let ov = document.getElementById('atn-overlay'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
+  ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
+  ov.innerHTML = `<div class="atn-modal">
+    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-plus" style="color:var(--ac)"></i> Nova tarefa</div><button class="x" onclick="homeAtencaoFechar()">×</button></div>
+    <div class="atn-modal-body tk-form" style="padding:6px 18px 18px">
+      <label>Título</label>
+      <input id="tk-titulo" type="text" placeholder="Ex: ligar pra paciente confirmar exame" maxlength="200">
+      <label>Descrição (opcional)</label>
+      <textarea id="tk-desc" rows="2" placeholder="Detalhes…" maxlength="2000"></textarea>
+      <div class="tk-form-row">
+        <div><label>Prazo</label><input id="tk-prazo" type="date"></div>
+        <div><label>Prioridade</label><select id="tk-prio"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select></div>
+      </div>
+      <label>Responsável</label>
+      <select id="tk-dono">${opts}</select>
+      <div class="tk-form-actions">
+        <button class="tk-btn ghost" onclick="homeAtencaoFechar()">Cancelar</button>
+        <button class="tk-btn primary" id="tk-salvar" onclick="homeTarefaSalvar(this)"><i class="ti ti-check"></i> Criar tarefa</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const t = document.getElementById('tk-titulo'); if (t) t.focus();
+}
+
+async function homeTarefaSalvar(btnEl) {
+  const titulo = (document.getElementById('tk-titulo').value || '').trim();
+  if (titulo.length < 2) { homeToast('Dê um título à tarefa.'); return; }
+  const body = {
+    titulo,
+    descricao: (document.getElementById('tk-desc').value || '').trim() || undefined,
+    prazo: document.getElementById('tk-prazo').value || undefined,
+    prioridade: document.getElementById('tk-prio').value || 'media',
+    donoId: document.getElementById('tk-dono').value || undefined,
+  };
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="ti ti-loader-2"></i> Criando…'; }
+  const r = await pacApi('/api/clinico/tarefas', { method: 'POST', body: JSON.stringify(body) });
+  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-check"></i> Criar tarefa'; } homeToast('Não consegui criar a tarefa.'); return; }
+  homeAtencaoFechar();
+  homeToast('Tarefa criada.');
+  homeTarefasCarregar();
 }
 
 function homeCardClick(tipo) {
