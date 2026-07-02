@@ -5633,6 +5633,30 @@
   .op-lower-card{position:relative;min-height:120px}
   .op-lower-empty{font-size:12px;color:var(--tx4);line-height:1.5;padding:6px 2px}
   .gestor-constr{background:var(--bg2);border:1px dashed var(--bd2);border-radius:14px;padding:34px 24px;text-align:center}
+  .amanha-head{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;padding:9px 2px 4px;border-top:1px dashed var(--bd1);margin-top:8px;display:flex;align-items:center;gap:6px}
+  .amanha-head .n{color:#e3b341}
+  .amanha-item{display:flex;align-items:center;gap:10px;padding:7px 2px}
+  .amanha-item .hora{font-size:12px;color:var(--tx3);width:42px;flex-shrink:0}
+  .amanha-item .info{flex:1;min-width:0}
+  .amanha-item .pac{font-size:12.5px;color:var(--tx1b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .amanha-item .det{font-size:10.5px;color:var(--tx4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .amanha-conf{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;border:0;border-radius:20px;padding:5px 11px;cursor:pointer;white-space:nowrap;font-family:inherit;background:#25D366;color:#08240f}
+  .amanha-conf.ok{background:rgba(63,185,80,.15);color:#3fb950;cursor:default}
+  .atn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px}
+  .atn-modal{background:var(--bg1);border:1px solid var(--bd1);border-radius:14px;max-width:580px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+  .atn-modal-head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--bg2)}
+  .atn-modal-head .ttl{font-size:15px;font-weight:500;color:var(--tx1);display:flex;align-items:center;gap:8px}
+  .atn-modal-head .x{background:transparent;border:0;color:var(--tx3);cursor:pointer;font-size:20px;line-height:1}
+  .atn-modal-body{overflow-y:auto;padding:2px 0}
+  .atn-row{display:flex;align-items:center;gap:11px;padding:11px 18px;border-bottom:1px solid var(--bg2)}
+  .atn-row:last-child{border-bottom:0}
+  .atn-badge{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .atn-row .nome{font-size:13px;color:var(--tx1b)}
+  .atn-row .meta{font-size:11px;color:var(--tx4)}
+  .atn-row .acao{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
+  .atn-mini-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;border:1px solid var(--bd1);background:var(--bg2);color:var(--tx2);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit}
+  .atn-mini-btn.wa{background:#25D366;color:#08240f;border-color:#25D366}
+  .atn-empty{padding:26px 18px;text-align:center;color:var(--tx4);font-size:13px}
   @media(max-width:720px){.op-lower{grid-template-columns:1fr}}
   </style>
 
@@ -5720,11 +5744,10 @@
 
       <!-- 5: Cards -->
       <div class="op-cards">
-        <div class="op-card" onclick="homeCardClick('atencao')">
-          <span class="em-constr">em construção</span>
+        <div class="op-card" onclick="homeAtencaoAbrir()">
           <div class="op-card-head"><span>Em atenção</span><i class="ti ti-alert-triangle" style="color:#f85149"></i></div>
           <div class="op-card-val" id="op-atencao-val">—</div>
-          <div class="op-card-ext">pacientes precisam de ação</div>
+          <div class="op-card-ext" id="op-atencao-ext">pacientes precisam de ação</div>
         </div>
         <div class="op-card" onclick="homeCardClick('renov')">
           <span class="em-constr">em construção</span>
@@ -8846,10 +8869,10 @@ async function dashCarregar() {
   const ov = document.getElementById('op-agenda-val'); if (ov) ov.textContent = d.hoje.total;
   const oe = document.getElementById('op-agenda-ext');
   if (oe) { const conf = (d.hoje.agendamentos || []).filter(a => a.status === 'CONFIRMADO').length; oe.textContent = `${d.hoje.total} consulta${d.hoje.total === 1 ? '' : 's'} · ${conf} confirmada${conf === 1 ? '' : 's'}`; }
-  const am = document.getElementById('home-amanha');
-  if (am) am.innerHTML = '<div style="font-size:11px;color:var(--tx4);padding:9px 2px 2px;border-top:1px dashed var(--bd1);margin-top:8px"><i class="ti ti-clock"></i> Confirmações de amanhã via WhatsApp <span class="em-constr-inline">em construção</span></div>';
+  homeRenderAmanha(d.amanha);
   homeFocoRender(d);
   homeImpactoCarregar();
+  homeAtencaoCarregar();
 }
 
 // ============================================================
@@ -8933,19 +8956,25 @@ async function homeImpactoCarregar() {
   wrap.innerHTML = html;
 }
 
-// Foco do dia (v1 determinístico, com os sinais que já temos hoje).
-// Ordem-alvo do briefing: agenda amanhã não confirmada > em atenção >
-// renovações sem abordagem > tarefas vencidas. Enquanto esses eventos não
-// existem, usamos: hoje não confirmados > onboarding em aberto > marcações.
+let homeAmanhaItens = [];
+let homeAtencaoItens = [];
+let homeAtencaoTotal = null;
+
+// Foco do dia (v1 determinístico, na ordem do briefing com os sinais que já temos):
+// amanhã não confirmada > em atenção > hoje não confirmada > onboarding > marcações.
+// (renovações e tarefas vencidas entram quando esses eventos existirem no sistema.)
 function homeFocoRender(d) {
   const box = document.getElementById('home-foco');
   const txt = document.getElementById('home-foco-txt');
   const btn = document.getElementById('home-foco-btn');
   if (!box || !txt) return;
   const CONF = ['CONFIRMADO', 'REALIZADO', 'ATENDIDO', 'CONCLUIDO'];
-  const naoConf = (d.hoje && d.hoje.agendamentos || []).filter(a => a.status && !CONF.includes(a.status)).length;
+  const amNaoConf = (d.amanha && d.amanha.nao_confirmados) || 0;
+  const hojeNaoConf = (d.hoje && d.hoje.agendamentos || []).filter(a => a.status && !CONF.includes(a.status)).length;
   let foco = null;
-  if (naoConf > 0) foco = { txt: `<strong>${naoConf} agendamento${naoConf > 1 ? 's' : ''} de hoje</strong> ainda não confirmado${naoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
+  if (amNaoConf > 0) foco = { txt: `<strong>${amNaoConf} agendamento${amNaoConf > 1 ? 's' : ''} de amanhã</strong> ainda não confirmado${amNaoConf > 1 ? 's' : ''}`, acao: () => { const el = document.getElementById('home-amanha'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, btn: 'Confirmar' };
+  else if (homeAtencaoTotal > 0) foco = { txt: `<strong>${homeAtencaoTotal} paciente${homeAtencaoTotal > 1 ? 's' : ''} em atenção</strong> precisa${homeAtencaoTotal > 1 ? 'm' : ''} de ação`, acao: () => homeAtencaoAbrir(), btn: 'Ver lista' };
+  else if (hojeNaoConf > 0) foco = { txt: `<strong>${hojeNaoConf} agendamento${hojeNaoConf > 1 ? 's' : ''} de hoje</strong> ainda não confirmado${hojeNaoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
   else if (d.pendencias_onboarding > 0) foco = { txt: `<strong>${d.pendencias_onboarding} onboarding${d.pendencias_onboarding > 1 ? 's' : ''}</strong> em aberto para finalizar`, acao: () => trocarView('pendencias'), btn: 'Ver pendências' };
   else if (d.minhas_marcacoes > 0) foco = { txt: `<strong>${d.minhas_marcacoes} marcaç${d.minhas_marcacoes > 1 ? 'ões' : 'ão'}</strong> aguardando você`, acao: () => marcAbrir(), btn: 'Abrir' };
   if (!foco) { box.style.display = 'none'; return; }
@@ -8953,6 +8982,95 @@ function homeFocoRender(d) {
   txt.innerHTML = foco.txt;
   homeFocoAcao = foco.acao;
   if (btn) btn.textContent = foco.btn;
+}
+
+// Agenda de AMANHÃ dentro do card de agenda -- não confirmados primeiro, com botão de confirmar.
+function homeRenderAmanha(am) {
+  const box = document.getElementById('home-amanha');
+  if (!box) return;
+  if (!am || !am.total) { box.innerHTML = '<div class="amanha-head"><i class="ti ti-clock"></i> Amanhã</div><div style="font-size:11.5px;color:var(--tx4);padding:2px 2px 4px">Nenhum agendamento amanhã.</div>'; homeAmanhaItens = []; return; }
+  const CONF = 'CONFIRMADO';
+  homeAmanhaItens = (am.agendamentos || []).slice().sort((a, b) => (a.status === CONF ? 1 : 0) - (b.status === CONF ? 1 : 0));
+  let html = `<div class="amanha-head"><i class="ti ti-clock"></i> Amanhã · <span class="n">${am.nao_confirmados} não confirmado${am.nao_confirmados === 1 ? '' : 's'}</span></div>`;
+  html += homeAmanhaItens.slice(0, 8).map((a, i) => {
+    const hora = new Date(a.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const det = esc((a.tipo || '') + (a.unidade ? ' · ' + a.unidade : ''));
+    const btn = a.status === CONF
+      ? '<span class="amanha-conf ok"><i class="ti ti-check"></i> confirmado</span>'
+      : `<button class="amanha-conf" onclick="homeConfirmarAmanha(${i}, this)"><i class="ti ti-brand-whatsapp"></i> Confirmar</button>`;
+    return `<div class="amanha-item"><span class="hora">${hora}</span><div class="info"><div class="pac">${esc(a.paciente || '')}</div><div class="det">${det}</div></div>${btn}</div>`;
+  }).join('');
+  box.innerHTML = html;
+}
+
+async function homeConfirmarAmanha(idx, btnEl) {
+  const a = homeAmanhaItens[idx];
+  if (!a) return;
+  const num = await confirmarEnvioWhatsapp(a.telefone || '', a.paciente);
+  if (!num) return;
+  const full = num.length <= 11 ? '55' + num : num;
+  const hora = new Date(a.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const primeiro = (a.paciente || '').split(' ')[0];
+  const msg = `Olá ${primeiro}! Aqui é da Aplic & Go. Passando pra confirmar seu horário amanhã às ${hora}. Podemos confirmar? 😊`;
+  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+  if (btnEl) { btnEl.classList.add('ok'); btnEl.innerHTML = '<i class="ti ti-check"></i> enviado'; btnEl.onclick = null; }
+}
+
+// Card "Em atenção" -> conta + lista (2 regras: no-show não reagendado, sem contato > X dias)
+async function homeAtencaoCarregar() {
+  const val = document.getElementById('op-atencao-val');
+  const ext = document.getElementById('op-atencao-ext');
+  let d = null;
+  try {
+    const q = homeUnit ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
+    const r = await pacApi('/api/clinico/dashboard/atencao' + q);
+    if (r.ok) d = r.data;
+  } catch (e) {}
+  if (!d) { if (val) val.textContent = '—'; return; }
+  homeAtencaoItens = d.itens || [];
+  homeAtencaoTotal = d.total || 0;
+  if (val) { val.textContent = d.total; val.style.color = d.total > 0 ? '#f85149' : 'var(--tx1)'; }
+  if (ext) {
+    const noShow = homeAtencaoItens.filter(i => i.tipo === 'no_show').length;
+    const semC = homeAtencaoItens.filter(i => i.tipo === 'sem_contato').length;
+    ext.textContent = d.total === 0 ? 'ninguém em atenção agora' : `${noShow} faltou · ${semC} sem contato`;
+  }
+  if (window.homeResumo) homeFocoRender(window.homeResumo); // reavalia o foco agora com "em atenção"
+}
+
+function homeAtencaoAbrir() {
+  const itens = homeAtencaoItens || [];
+  let ov = document.getElementById('atn-overlay'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
+  ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
+  const rows = itens.length ? itens.map((i, idx) => {
+    const cor = i.tipo === 'no_show' ? '#f85149' : '#e3b341';
+    return `<div class="atn-row">
+      <span class="atn-badge" style="background:${cor}"></span>
+      <div style="min-width:0"><div class="nome">${esc(i.nome)} <span style="color:var(--tx4);font-size:11px">${esc(i.codigo || '')}</span></div>
+      <div class="meta">${esc(i.motivo)} · resp: ${esc(i.responsavel || '—')}</div></div>
+      <div class="acao">
+        <button class="atn-mini-btn" onclick="homeAtencaoIrPront(${idx})"><i class="ti ti-user"></i> Prontuário</button>
+        ${i.telefone ? `<button class="atn-mini-btn wa" onclick="homeAtencaoWa(${idx})" title="Chamar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
+      </div></div>`;
+  }).join('') : '<div class="atn-empty">Ninguém em atenção agora. 🎉</div>';
+  ov.innerHTML = `<div class="atn-modal">
+    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-alert-triangle" style="color:#f85149"></i> Pacientes em atenção</div><button class="x" onclick="homeAtencaoFechar()">×</button></div>
+    <div class="atn-modal-body">${rows}</div></div>`;
+  document.body.appendChild(ov);
+}
+function homeAtencaoFechar() { const ov = document.getElementById('atn-overlay'); if (ov) ov.remove(); }
+function homeAtencaoIrPront(idx) { const i = homeAtencaoItens[idx]; if (!i) return; homeAtencaoFechar(); dashAbrirPaciente(i.patient_id, i.nome || ''); }
+async function homeAtencaoWa(idx) {
+  const i = homeAtencaoItens[idx]; if (!i) return;
+  const num = await confirmarEnvioWhatsapp(i.telefone || '', i.nome);
+  if (!num) return;
+  const full = num.length <= 11 ? '55' + num : num;
+  const primeiro = (i.nome || '').split(' ')[0];
+  const msg = i.tipo === 'no_show'
+    ? `Olá ${primeiro}! Aqui é da Aplic & Go. Sentimos sua falta no último horário — vamos remarcar seu acompanhamento? 😊`
+    : `Olá ${primeiro}! Aqui é da Aplic & Go. Faz um tempinho que não conversamos — como você está indo? 💚`;
+  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
 function homeCardClick(tipo) {
