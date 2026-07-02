@@ -5749,11 +5749,10 @@
           <div class="op-card-val" id="op-atencao-val">—</div>
           <div class="op-card-ext" id="op-atencao-ext">pacientes precisam de ação</div>
         </div>
-        <div class="op-card" onclick="homeCardClick('renov')">
-          <span class="em-constr">em construção</span>
+        <div class="op-card" onclick="homeRenovAbrir()">
           <div class="op-card-head"><span>Renovações em risco</span><i class="ti ti-refresh-alert" style="color:#d29922"></i></div>
           <div class="op-card-val" id="op-renov-val">—</div>
-          <div class="op-card-ext">vencem em ≤14 dias, sem abordagem</div>
+          <div class="op-card-ext" id="op-renov-ext">vencem em ≤14 dias, sem abordagem</div>
         </div>
         <div class="op-card" onclick="trocarView('agenda')">
           <div class="op-card-head"><span>Agenda hoje</span><i class="ti ti-calendar" style="color:#3fb950"></i></div>
@@ -8873,6 +8872,7 @@ async function dashCarregar() {
   homeFocoRender(d);
   homeImpactoCarregar();
   homeAtencaoCarregar();
+  homeRenovCarregar();
 }
 
 // ============================================================
@@ -8959,6 +8959,8 @@ async function homeImpactoCarregar() {
 let homeAmanhaItens = [];
 let homeAtencaoItens = [];
 let homeAtencaoTotal = null;
+let homeRenovItens = [];
+let homeRenovTotal = null;
 
 // Foco do dia (v1 determinístico, na ordem do briefing com os sinais que já temos):
 // amanhã não confirmada > em atenção > hoje não confirmada > onboarding > marcações.
@@ -8974,6 +8976,7 @@ function homeFocoRender(d) {
   let foco = null;
   if (amNaoConf > 0) foco = { txt: `<strong>${amNaoConf} agendamento${amNaoConf > 1 ? 's' : ''} de amanhã</strong> ainda não confirmado${amNaoConf > 1 ? 's' : ''}`, acao: () => { const el = document.getElementById('home-amanha'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, btn: 'Confirmar' };
   else if (homeAtencaoTotal > 0) foco = { txt: `<strong>${homeAtencaoTotal} paciente${homeAtencaoTotal > 1 ? 's' : ''} em atenção</strong> precisa${homeAtencaoTotal > 1 ? 'm' : ''} de ação`, acao: () => homeAtencaoAbrir(), btn: 'Ver lista' };
+  else if (homeRenovTotal > 0) foco = { txt: `<strong>${homeRenovTotal} renovaç${homeRenovTotal > 1 ? 'ões' : 'ão'}</strong> em risco sem abordagem`, acao: () => homeRenovAbrir(), btn: 'Ver lista' };
   else if (hojeNaoConf > 0) foco = { txt: `<strong>${hojeNaoConf} agendamento${hojeNaoConf > 1 ? 's' : ''} de hoje</strong> ainda não confirmado${hojeNaoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
   else if (d.pendencias_onboarding > 0) foco = { txt: `<strong>${d.pendencias_onboarding} onboarding${d.pendencias_onboarding > 1 ? 's' : ''}</strong> em aberto para finalizar`, acao: () => trocarView('pendencias'), btn: 'Ver pendências' };
   else if (d.minhas_marcacoes > 0) foco = { txt: `<strong>${d.minhas_marcacoes} marcaç${d.minhas_marcacoes > 1 ? 'ões' : 'ão'}</strong> aguardando você`, acao: () => marcAbrir(), btn: 'Abrir' };
@@ -9026,7 +9029,7 @@ async function homeAtencaoCarregar() {
     const r = await pacApi('/api/clinico/dashboard/atencao' + q);
     if (r.ok) d = r.data;
   } catch (e) {}
-  if (!d) { if (val) val.textContent = '—'; return; }
+  if (!d) { homeAtencaoItens = []; homeAtencaoTotal = 0; if (val) val.textContent = '—'; if (window.homeResumo) homeFocoRender(window.homeResumo); return; }
   homeAtencaoItens = d.itens || [];
   homeAtencaoTotal = d.total || 0;
   if (val) { val.textContent = d.total; val.style.color = d.total > 0 ? '#f85149' : 'var(--tx1)'; }
@@ -9070,6 +9073,86 @@ async function homeAtencaoWa(idx) {
   const msg = i.tipo === 'no_show'
     ? `Olá ${primeiro}! Aqui é da Aplic & Go. Sentimos sua falta no último horário — vamos remarcar seu acompanhamento? 😊`
     : `Olá ${primeiro}! Aqui é da Aplic & Go. Faz um tempinho que não conversamos — como você está indo? 💚`;
+  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// Card "Renovações em risco" -> conta (sem abordagem) + lista + registrar abordagem.
+function homeRenovExtText(total, janela) {
+  if (janela === 0) return 'nenhum protocolo vencendo';
+  if (total === 0) return `tudo abordado · ${janela} na janela`;
+  return `${total} sem abordagem · ${janela} na janela`;
+}
+function homeRenovAtualizaCard() {
+  const val = document.getElementById('op-renov-val');
+  const ext = document.getElementById('op-renov-ext');
+  if (val) { val.textContent = homeRenovTotal; val.style.color = homeRenovTotal > 0 ? '#e3b341' : 'var(--tx1)'; }
+  if (ext) ext.textContent = homeRenovExtText(homeRenovTotal, (homeRenovItens || []).length);
+}
+async function homeRenovCarregar() {
+  let d = null;
+  try {
+    const q = homeUnit ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
+    const r = await pacApi('/api/clinico/dashboard/renovacoes' + q);
+    if (r.ok) d = r.data;
+  } catch (e) {}
+  if (!d) {
+    // erro/sem dado: zera o estado pra não deixar contador de outra unidade preso
+    homeRenovItens = []; homeRenovTotal = 0;
+    const val = document.getElementById('op-renov-val'); if (val) val.textContent = '—';
+    if (window.homeResumo) homeFocoRender(window.homeResumo);
+    return;
+  }
+  homeRenovItens = d.itens || [];
+  homeRenovTotal = d.total || 0;
+  homeRenovAtualizaCard();
+  if (window.homeResumo) homeFocoRender(window.homeResumo);
+}
+
+function homeRenovAbrir() {
+  const itens = homeRenovItens || [];
+  let ov = document.getElementById('atn-overlay'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
+  ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
+  const rows = itens.length ? itens.map((i) => {
+    const venceTxt = i.dias < 0 ? `vencido há ${Math.abs(i.dias)}d` : (i.dias === 0 ? 'vence hoje' : `vence em ${i.dias}d`);
+    const cor = i.dias <= 3 ? '#f85149' : '#e3b341';
+    const acao = i.abordado
+      ? '<span class="amanha-conf ok" style="cursor:default"><i class="ti ti-check"></i> abordado</span>'
+      : `<button class="atn-mini-btn" onclick="homeRenovAbordar('${i.patient_id}', this)"><i class="ti ti-check"></i> Registrar abordagem</button>`;
+    return `<div class="atn-row">
+      <span class="atn-badge" style="background:${cor}"></span>
+      <div style="min-width:0"><div class="nome">${esc(i.nome)} <span style="color:var(--tx4);font-size:11px">${esc(i.codigo || '')}</span></div>
+      <div class="meta">${venceTxt} · resp: ${esc(i.responsavel || '—')}${i.abordado && i.abordado_por ? ' · abordado por ' + esc(i.abordado_por) : ''}</div></div>
+      <div class="acao">
+        ${acao}
+        ${i.telefone ? `<button class="atn-mini-btn wa" onclick="homeRenovWa('${i.patient_id}')" title="Chamar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
+      </div></div>`;
+  }).join('') : '<div class="atn-empty">Nenhum protocolo vencendo nos próximos 14 dias. 👍</div>';
+  ov.innerHTML = `<div class="atn-modal">
+    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-refresh-alert" style="color:#e3b341"></i> Renovações em risco</div><button class="x" onclick="homeAtencaoFechar()">×</button></div>
+    <div class="atn-modal-body">${rows}</div></div>`;
+  document.body.appendChild(ov);
+}
+
+async function homeRenovAbordar(pid, btnEl) {
+  const i = (homeRenovItens || []).find(x => x.patient_id === pid); if (!i) return;
+  if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="ti ti-loader-2"></i> ...'; }
+  const r = await pacApi('/api/clinico/dashboard/renovacoes/' + pid + '/abordagem', { method: 'POST', body: JSON.stringify({}) });
+  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-check"></i> Registrar abordagem'; } homeToast('Não consegui registrar a abordagem. Tente de novo.'); return; }
+  i.abordado = true; i.abordado_em = r.data.abordado_em; i.abordado_por = r.data.abordado_por;
+  homeRenovTotal = (homeRenovItens || []).filter(x => !x.abordado).length;
+  homeRenovAtualizaCard();
+  homeRenovAbrir(); // re-renderiza a lista com o status atualizado
+  if (window.homeResumo) homeFocoRender(window.homeResumo);
+}
+
+async function homeRenovWa(pid) {
+  const i = (homeRenovItens || []).find(x => x.patient_id === pid); if (!i) return;
+  const num = await confirmarEnvioWhatsapp(i.telefone || '', i.nome);
+  if (!num) return;
+  const full = num.length <= 11 ? '55' + num : num;
+  const primeiro = (i.nome || '').split(' ')[0];
+  const msg = `Olá ${primeiro}! Aqui é da Aplic & Go. Seu protocolo está chegando ao fim — vamos conversar sobre a renovação pra manter seus resultados? 💚`;
   window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
