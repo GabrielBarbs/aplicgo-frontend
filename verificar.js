@@ -100,9 +100,21 @@ function render(r) {
         ${i.observacoes ? `<div class="obs">${esc(i.observacoes)}</div>` : ''}
       </div>
     </div>`;
-  const itens = grupos.map((g) => `
+  // Prescrição em texto livre: impressa como escrita, com as linhas "USO…" em destaque
+  // Linha de via = CAIXA ALTA começando com USO (ou MANIPULADO sozinho) — igual
+  // ao PDF. "Uso: 1x/dia" e "Uso em clínica…" (caixa mista) não são via.
+  const ehLinhaVia = (t) => t === t.toUpperCase() && (/^\s*USO\b/.test(t) || /^\s*MANIPULADO\s*$/.test(t));
+  const textoLivre = (c.texto && String(c.texto).trim())
+    ? `<div class="texto-livre">${String(c.texto).replace(/\r\n/g, '\n').split('\n').map((ln) => {
+        const t = ln.trimEnd();
+        if (!t.trim()) return '<div class="tl-br"></div>';
+        return ehLinhaVia(t) ? `<div class="via-h">${esc(t)}</div>` : `<div class="tl-ln">${esc(t)}</div>`;
+      }).join('')}</div>`
+    : '';
+  const itensHtml = grupos.map((g) => `
     ${g.via ? `<div class="via-h">${esc(g.via)}</div>` : ''}
-    ${g.itens.map(medHtml).join('')}`).join('') || `<div class="med"><div class="c"><div class="pos">Sem itens.</div></div></div>`;
+    ${g.itens.map(medHtml).join('')}`).join('');
+  const itens = (textoLivre + itensHtml) || `<div class="med"><div class="c"><div class="pos">Sem itens.</div></div></div>`;
 
   // Área da farmácia — validade
   let validEl;

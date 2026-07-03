@@ -4364,6 +4364,48 @@
       margin-bottom: 14px;
     }
 
+    /* ===== Prescritor inline (estilo Prontuário Verde, tema escuro) ===== */
+    .rx-panel { background: var(--bg2); border: 1px solid var(--bg3); border-radius: 12px; padding: 16px 18px 18px; margin-bottom: 16px; }
+    .rx-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .rx-panel-head .t { font-size: 14px; font-weight: 650; color: var(--tx1); display: flex; align-items: center; gap: 8px; }
+    .rx-panel-head .t i { color: var(--ac); }
+    .rx-lbl { font-size: 11px; font-weight: 650; color: var(--tx2); margin: 14px 0 6px; }
+    .rx-lbl .req { color: #f85149; }
+    .rx-tipos { display: flex; flex-wrap: wrap; gap: 8px; }
+    .rx-doc-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 108px;
+      padding: 10px 12px; background: rgba(var(--bg3-rgb),0.4); border: 1px solid var(--bg3);
+      border-radius: 10px; color: var(--tx2); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer;
+      transition: border-color .12s, background .12s;
+    }
+    .rx-doc-btn i { font-size: 19px; }
+    .rx-doc-btn:hover { border-color: var(--ac); }
+    .rx-doc-btn.ativo { background: var(--ac); border-color: var(--ac); color: #fff; }
+    .rx-doc-btn.breve { opacity: 0.45; cursor: default; }
+    .rx-doc-btn.breve:hover { border-color: var(--bg3); }
+    .rx-doc-btn .mini { font-size: 8.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--tx3b); }
+    .rx-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .rx-row .cresce { flex: 1; min-width: 200px; }
+    .rx-panel select, .rx-panel input[type="text"], .rx-panel input[type="datetime-local"] {
+      width: 100%; background: rgba(var(--bg3-rgb),0.4); border: 1px solid var(--bg3); border-radius: 8px;
+      color: var(--tx1); font: inherit; font-size: 12.5px; padding: 9px 11px;
+    }
+    .rx-panel select:focus, .rx-panel input:focus, .rx-panel textarea:focus { outline: none; border-color: var(--ac); }
+    #rx-texto {
+      width: 100%; min-height: 240px; resize: vertical;
+      background: rgba(var(--bg3-rgb),0.35); border: 1px solid var(--bg3); border-radius: 10px;
+      color: var(--tx1); padding: 12px 14px; line-height: 1.55;
+      /* !important: o glow-up aplica Inter globalmente; o editor de receita é monospace como o PDF */
+      font-family: ui-monospace, 'Cascadia Code', Consolas, monospace !important; font-size: 12.5px;
+    }
+    .rx-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+    .rx-hint { font-size: 11px; color: var(--tx3b); margin-top: 8px; }
+    .rx-hint a { color: var(--ac); cursor: pointer; }
+    .rx-receita-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: rgba(var(--bg3-rgb),0.35); border: 1px solid var(--bg3); border-radius: 9px; margin-top: 6px; flex-wrap: wrap; }
+    .rx-receita-row .dt { font-size: 11px; color: var(--tx3b); white-space: nowrap; }
+    .rx-receita-row .res { flex: 1; min-width: 160px; font-size: 12.5px; color: var(--tx1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rx-receita-row .tp { font-size: 10px; color: var(--tx3b); text-transform: uppercase; letter-spacing: .4px; }
+
     /* ===== Protocolos injetáveis (modal de prescrição) ===== */
     .pro-grp { margin-top: 8px; }
     .pro-grp-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--tx3b); margin-bottom: 4px; font-weight: 600; }
@@ -13316,6 +13358,9 @@ async function prSelecionarPaciente(p) {
   prState.pacienteAtual = p;
   prState.documentos = [];   // anexos recarregam ao abrir o paciente
   prState.appMonitor = null; // monitoramento do app recarrega pro novo paciente
+  // Prescritor SEMPRE zera ao trocar de paciente — rascunho do paciente A jamais
+  // pode ser salvo (e auto-assinado) no prontuário do paciente B.
+  rxState = rxEstadoLimpo();
   // Esconde input, mostra placeholder enquanto carrega o header
   const sel = document.getElementById('pr-pat-selector');
   sel.innerHTML = `
@@ -15463,6 +15508,7 @@ async function prEnviarAnamnese(patientId) {
 function prLimparPaciente() {
   prState.pacienteAtual = null;
   prState.timeline = [];
+  rxState = rxEstadoLimpo(); // rascunho não migra de paciente
   document.getElementById('pr-pat-selector').innerHTML = `
     <div class="pr-pat-input-wrap">
       <input type="text" class="pr-pat-input" id="pr-pat-input" placeholder="🔍 Busca o paciente por nome, código ou telefone…">
@@ -15583,6 +15629,18 @@ function prRenderTimeline() {
     </div>
   `;
 
+  // Receitas: barra recolhível (mesmo estilo dos Anexos) só com as prescrições.
+  const nReceitas = items.filter(i => i.tipo === 'prescricao').length;
+  const receitasBar = `
+    <div class="pr-hist-section">
+      <button class="pr-hist-toggle" onclick="prToggleReceitas()">
+        <i class="ti ti-${prState.receitasAberto ? 'chevron-down' : 'chevron-right'}"></i>
+        <i class="ti ti-prescription"></i> Receitas${nReceitas ? ` (${nReceitas})` : ''}
+      </button>
+      <div id="pr-receitas-wrap" class="pr-hist-conteudo" style="display:${prState.receitasAberto ? 'block' : 'none'};">${prRenderReceitas()}</div>
+    </div>
+  `;
+
   // Ordem: header rico (termina na linha "Atividade") -> Scores (chips, logo
   //        abaixo de Atividade) -> cards por profissional -> Monitoramento no
   //        App (com Roda) -> ações -> Anexos -> histórico.
@@ -15591,8 +15649,10 @@ function prRenderTimeline() {
     + cardsHtml
     + `<div id="pr-app-monitor">${prRenderAppMonitor()}</div>`
     + actionsBar
+    + `<div id="pr-prescritor-section">${rxState.aberto ? prRenderPrescritor() : ''}</div>`
     + `<div id="pr-exames-section">${prRenderExamesSection()}</div>`
     + `<div id="pr-plano-section">${prRenderPlanoSection()}</div>`
+    + receitasBar
     + anexosBar
     + histHtml;
 
@@ -16611,7 +16671,10 @@ function prRenderItem(it) {
       const d = it.dados;
       const tipoMap = { BRANCA_COMUM: 'Branca comum', BRANCA_CONTROLADA: 'Branca controlada', AZUL_CONTROLADA: 'Azul controlada', ATESTADO: 'Atestado' };
       body = `<div style="font-size:11px; color:var(--tx3b); margin-bottom:6px;">${tipoMap[d.tipo_receita] || d.tipo_receita}</div>`;
-      body += '<div class="pr-itens-lista">' + d.itens.map(i => `
+      if (d.texto) {
+        body += `<pre style="font-family:ui-monospace,Consolas,monospace; font-size:11.5px; color:var(--tx1); background:rgba(var(--bg3-rgb),0.4); border:1px solid var(--bg3); border-radius:8px; padding:10px 12px; white-space:pre-wrap; word-break:break-word; max-height:260px; overflow-y:auto; margin:0 0 4px;">${prExEsc(d.texto)}</pre>`;
+      }
+      if (d.itens && d.itens.length) body += '<div class="pr-itens-lista">' + d.itens.map(i => `
         <div class="pr-item-medicamento">
           <div class="nome">${i.medicamento}${i.dose ? ' · ' + i.dose : ''}</div>
           <div class="uso">${[i.frequencia, i.duracao].filter(Boolean).join(' · ') || '—'}</div>
@@ -16619,7 +16682,9 @@ function prRenderItem(it) {
         </div>
       `).join('') + '</div>';
       if (d.observacoes) body += `<div style="font-size:11px; color:var(--tx3b); margin-top:8px; padding-top:8px; border-top:1px solid rgba(var(--bg3-rgb),0.6);">${d.observacoes}</div>`;
-      const _dj = JSON.stringify(d).replace(/'/g, "&apos;");
+      // & primeiro: o parser HTML decodifica entidades dentro do atributo — sem
+      // isso, um "&quot;" digitado no texto viraria aspas e quebraria o JSON.
+      const _dj = JSON.stringify(d).replace(/&/g, '&amp;').replace(/'/g, '&apos;');
       const _podeAssinar = typeof temPermissao === 'function' && temPermissao('prontuario.prescrever');
       const _assinaBtn = d.assinado
         ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prReceitaQR(${_dj})'><i class="ti ti-qrcode"></i> Receita verificável</button>`
@@ -16632,7 +16697,8 @@ function prRenderItem(it) {
         ? `<span class="rx-assinada-chip" style="background:rgba(29,158,117,.14);color:#1D9E75;border-color:rgba(29,158,117,.3);"><i class="ti ti-certificate-2"></i> ICP-Brasil${d.icp_assinante ? ' · ' + prExEsc(String(d.icp_assinante).split(':')[0]) : ''}</span>`
         : '';
       body += `<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prImprimirPrescricao(${_dj})'><i class="ti ti-printer"></i> Imprimir receita</button>
+        <button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick="rxAbrirPdfPresc('${d.id}', ${d.icp_assinada ? 'true' : 'false'})"><i class="ti ti-printer"></i> Imprimir receita</button>
+        <button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick="rxEnviarWhatsappPresc('${d.id}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar WhatsApp</button>
         ${_assinaBtn}
         ${_icpBtn}
         ${d.assinado ? '<span class="rx-assinada-chip"><i class="ti ti-rosette-discount-check"></i> Assinada</span>' : ''}
@@ -17054,7 +17120,11 @@ function prImprimirPrescricao(d, verifToken) {
   const unidade = h.unidade?.nome || 'Aplic & Go';
   const medico = (h.medico && (h.medico.name || h.medico.email)) || d.profissional || '________________';
 
-  const itensHtml = (d.itens || []).map((i, n) => `
+  // Prescrição em texto livre (fluxo novo): impressa como escrita, antes dos itens
+  const textoHtml = (d.texto && String(d.texto).trim())
+    ? `<div style="font-family:ui-monospace,Consolas,monospace; font-size:13px; white-space:pre-wrap; word-break:break-word; margin-bottom:16px;">${prExEsc(d.texto)}</div>`
+    : '';
+  const itensHtml = textoHtml + (d.itens || []).map((i, n) => `
     <div class="rx-item">
       <div class="rx-med">${n + 1}. ${i.medicamento || ''}${i.dose ? ' — ' + i.dose : ''}</div>
       ${(i.frequencia || i.duracao) ? `<div class="rx-uso">${[i.frequencia, i.duracao].filter(Boolean).join(' · ')}</div>` : ''}
@@ -17709,9 +17779,518 @@ async function memedConfigSalvar() {
   }
 }
 
+// ============================================================
+// PRESCRITOR INLINE (estilo Prontuário Verde): painel abaixo da barra de
+// ações com tipos de documento, modelos prontos, texto livre e ações
+// "Salvar e imprimir" / "Salvar e enviar (WhatsApp)".
+// ============================================================
+function rxEstadoLimpo(extra) { return Object.assign({ aberto: false, tipoDoc: 'receituario', texto: '', tipoRec: 'BRANCA_COMUM', data: '', med: '', pos: '', salvando: false }, extra || {}); }
+let rxState = rxEstadoLimpo();
+const rxEsc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+// Modelos prontos do Matheus (fonte: receituario.txt). Selecionar preenche o texto.
+const RX_MODELOS = {
+  'BIOMEDS': `60 ÁCIDO LIPÓICO 600mg/24ml FA
+8 ADEK2 100.000UI/1ml CX 5 amp
+8 COENZIMA Q10 (5%) 100mg/2ml CX 5 amp
+8 COMPLEXO COM B12 2ml CX 5 amp
+8 METILFOLATO (0,125%) 2,5mg/2ml CX 5 amp
+8 POOL AMINOÁCIDOS ESSENCIAIS 10ml CX 5 amp
+8 POOL COGNITIVO 2ml CX 5 amp
+8 POOL DE MINERAIS 2ml CX 5 amp
+8 VITAMINA C (Ácido Ascórbico) (20%) 5g/25ml FA`,
+
+  'CABELO PLUS': `USO ORAL MANIPULADO
+
+1. (CÁPSULA GASTRORESISTENTE)
+Biotina 10mg + Silício (Nutricolin®) 150mg + MSM (Metilsulfonilmetano) 350mg + Zinco quelado 30mg + Cobre quelado 1mg + Ferro quelado 25mg + L-Cisteína 200mg + Vitamina C (Ácido ascórbico) 200mg + Vitamina B1 (Tiamina) 50mg + Vitamina B2 (Riboflavina) 20mg + Vitamina B3 (Niacinamida) 100mg + Vitamina B5 (Ác. pantotênico) 200mg + Vitamina B6 (Piridoxina ativa - P5P) 25mg + Vitamina B12 (Metilcobalamina) 1.000mcg + Astaxantina 4mg + Vitamina D3 1.000UI + Saw Palmetto 200mg
+TOMAR 1 DOSE JUNTO COM ALMOÇO, POR 60 DIAS.
+
+2. Minoxidil oral 0,5 ou 2,5 (se mulher ou homem)
+Dutasterida 0,5mg (se homem)
+TOMAR 1 DOSE ANTES DE DORMIR, POR 60 DIAS.
+
+3. Espironolactona 25mg (se mulher)
+TOMAR 1 CP À NOITE AO DEITAR, por 30 dias. Depois aumentar para 50mg à noite por 60 dias.
+
+Fórmula tópica (frasco de 60mL, base lipossomada preferencial):
+Minoxidil lipossomado 5% + Finasterida lipossomada 0,1% + Melatonina 0,003% + Cafeína 2% + Vitamina B6 (Piridoxina) 1% + Biotina 0,2% + Copper Peptides (GHK-Cu) 1% + Veículo qsp 60mL (base lipossomada hidroalcoólica não oleosa)
+Posologia: Aplicar 1mL à noite no couro cabeludo seco, massageando suavemente por 1-2 minutos. Não enxaguar.`,
+
+  'COGNIÇÃO E MEMÓRIA': `USO ORAL MANIPULADO
+
+1. Citicolina (CDP-Colina) 200mg + L-Teanina 200mg + Ashwagandha KSM-66 200mg + Bacopa monnieri extrato 50% bacosídeos 200mg + Fosfatidilserina 150mg + Zinco bisglicinato 10mg + B1 10mg + B2 5mg + B3 30mg + B5 10mg + B6 10mg + B7 150mcg + B9 (metilfolato) 400mcg + B12 (metilcobalamina) 1000mcg
+Tomar 1 dose após café da manhã e outra dose após jantar, por 90 dias.`,
+
+  'COMPULSÃO': `USO ORAL MANIPULADO
+
+1. Bupropiona 100mg + naltrexona 6mg + ashwagandha 250mg + L-teanina 200mg + b6 20mg + picolinato de cromo 200mcg
+Tomar 1 dose pela manhã, por 15 dias. Caso não tenha colaterais aumentar para 1 dose de manhã e outra à tarde (até 15h), por 90 dias.
+
+ou
+
+2. Amato 50mg (caso o paciente não possa usar bupropiona) PREFERÊNCIA AOS QUE TÊM FOME NOTURNA OU DE MADRUGADA.
+Tomar 1 cp à noite (entre 19 e 20h).
+(obs: caso tenha tontura ou sonolência passar a tomar antes de dormir - pode aumentar a dose até 100mg 2x ao dia.)`,
+
+  'CONSTIPAÇÃO': `USO ORAL
+
+1. Muvinlax
+Tomar 1x ao dia até regular o intestino, depois manter usando dia sim, dia não, enquanto fizer uso da semaglutida.
+
+2. Prohn
+Tomar pela manhã em jejum por 30 dias.
+
+3. Psyllium
+Tomar 2 colheres de chá em um copo d'água 15min antes do almoço ou jantar, diariamente enquanto usar a semaglutida. Caso prefira pode misturar em iogurte ou na comida também.
+
+4. Orlistat 120mg
+Tomar 1 cp junto com almoço e jantar, enquanto estiver em tratamento.`,
+
+  'DISPOSIÇÃO': `USO ORAL MANIPULADO
+
+1. Rhodiola rosea 200mg + Ashwagandha 300mg + coenzima Q10 100mg + Teacrina 50mg + Panax Ginseng 100mg + Extrato de Camellia sinensis 200mg
+Tomar 1 dose pela manhã, após primeira refeição, por 60 dias.
+
+2. Ashwagandha 200mg + L-teanina 200mg + b6 20mg
+Tomar 1 dose no fim do dia, antes de anoitecer, por 60 dias.
+
+3. D-ribose
+Tomar 2,5g misturado com água 2x ao dia, por 60 dias.`,
+
+  'ENZIMAS DIGESTIVAS': `USO ORAL MANIPULADO
+
+1. Betacaina HCL 400mg + Pepsina 150mg + Bromelina 250mg + Papaína 100mg + Lipase 10.000 + Amilase 10.000UI + Protease 100mg + Bromoprida 8mg
+Tomar 1 dose 15-30min antes das maiores refeições (almoço e jantar principalmente).
+
+2. Pool de probióticos (contendo 20 bilhões - das cepas L. reuteri, L. rhamnosus, Bifidobactérias) + FOS 1g
+Tomar 1x ao dia antes de dormir.`,
+
+  'HOMEM — ESTIMULADOR HORMONAL E ANTI-INFLAMATÓRIO': `USO ORAL MANIPULADO
+
+1. DHEA 25mg - 90 cápsulas
+Uso: 1x/dia de manhã por 90 dias.
+
+2. Ácido D-Aspártico 1g + Boro quelado 6mg + Longjack 200mg + Zinco quelado 30mg + L-Tirosina 300mg + Iodo 150mcg + Selênio 200mcg - cápsula gastroresistente
+Uso: 1 dose ao dia, por 90 dias.
+
+3. Ácido alfa lipoico 300mg + NAC 200mg + b6 25mg + extrato gengibre 150mg + Ashwagandha 300mg - cápsulas gastrorresistentes
+Uso: 1 dose após primeira refeição do dia, e outra dose após café da tarde ou jantar, por 60 dias.
+
+4. Vitamina D3 7000UI + Vit K2 200mcg + Vitamina E 100mg + Vitamina A 5000UI + metilfolato 400mcg - 90 doses
+Uso: tomar 1 dose junto com almoço ou jantar, diariamente por 90 dias.`,
+
+  'INCHAÇO': `USO ORAL MANIPULADO
+
+1. Extrato seco de Cavalinha 200mg + Extrato seco de Hibisco 150mg + Extrato seco de Castanha-da-índia 150mg + Pycnogenol 50mg + Teacrina 50mg + Extrato de Camellia Sinensis 300mg
+Tomar 1 dose após café da manhã, por 60 dias.
+
+2. Curcumina fitossomada 150mg + zinco 20mg + vitamina C 250mg + NAC 300mg + b6 20mg
+Tomar 1 dose após almoço, por 60 dias.`,
+
+  'INÍCIO — PROTOCOLO ORAL': `USO ORAL
+
+1. Magnésio inositol - Relief 3.0 (marca Truesource - sabor maracujá) - comprar ONLINE ou lojas de produtos naturais
+Tomar 1 dose à noite antes de dormir, diariamente em uso contínuo.
+
+2. OmegaFOR PLUS - marca Vitafor
+Tomar 2-3 cp por dia (junto com as refeições - almoço e jantar).
+
+3. START
+Tomar no período da manhã ou início da tarde, em uso contínuo.
+
+4. BURN
+Tomar 2 cápsulas após primeira refeição e 1 cápsula após almoço, OU tomar a dose total após primeira refeição. (evitar tomar de estômago vazio)
+
+5. Orlistat 120mg
+Tomar 1 cp junto com almoço e outro com jantar. (caso o alimento seja gorduroso pode soltar um pouco o intestino)
+
+USO ORAL MANIPULADO
+
+1. Bupropiona 100mg + naltrexona 6mg + L-teanina 200mg + ashwagandha 250mg + NAC 250mg + b6 15mg - cápsula gastroresistente
+Tomar 1 dose após primeira refeição do dia, por 30 dias. Depois reavaliar se necessário ajuste de dose.`,
+
+  'INÍCIO PROGRAMA — PROTOCOLO ORAL': `USO ORAL
+
+1. Magnésio inositol - Relief 3.0 (marca Truesource - sabor maracujá) - comprar ONLINE ou lojas de produtos naturais
+Tomar 1 dose à noite antes de dormir, diariamente em uso contínuo.
+
+2. OmegaFOR PLUS - marca Vitafor
+Tomar 2-3 cp por dia (junto com as refeições - almoço e jantar).
+
+3. START
+Tomar no período da manhã ou início da tarde, em uso contínuo.
+
+4. BURN
+Tomar 2 cápsulas após primeira refeição. (evitar tomar de estômago vazio)
+
+5. Orlistat 120mg
+Tomar 1 cp junto com almoço e outro com jantar. (caso o alimento seja gorduroso pode soltar um pouco o intestino)
+
+USO ORAL MANIPULADO
+
+1. Bupropiona 100mg + naltrexona 6mg + L-teanina 200mg + ashwagandha 250mg + NAC 250mg + b6 15mg - cápsula gastroresistente
+Tomar 1 dose após primeira refeição do dia, por 30 dias. Depois reavaliar se necessário ajuste de dose.`,
+
+  'INJETÁVEIS': `6 ADEK2 100.000UI/1ML CX COM 5 AMP
+6 COENZIMA Q10 (5%) 50MG/1ML CX 5 AMP
+6 COMPLEXO COM B12 2ML CX 5 AMP
+6 L-GLUTATHION (12%) 600MG/5ML CX 5 AMP
+6 METILFOLATO (0,125%) 2,5MG/2ML CX 5 AMP
+6 POOL DE AMINOÁCIDOS 3,8% 10ML CX 5 AMP
+3 POOL COGNITIVO 2ML CX 5 AMP
+6 POOL DE MINERAIS 2ML CX 5 AMP
+6 VITAMINA C (ÁCIDO ASCÓRBICO) (20%) 5G/25ML FA`,
+
+  'KIT INÍCIO — PROGRAMA — SUPLEMENTOS': `USO ORAL
+
+1. Magnésio inositol - Relief 3.0 (marca Truesource - sabor maracujá) - comprar ONLINE ou lojas de produtos naturais
+Tomar 1 dose à noite antes de dormir, diariamente em uso contínuo.
+
+2. Creatina monohidratada (SE NÃO USA START)
+Tomar 5-6g diariamente (misturado com whey ou com o magnésio inositol).
+
+3. Whey protein concentrado ou isolado (marcas DUX ou Growth ou Tastywhey ou Topway)
+Tomar conforme orientações nutricionais.
+
+4. Palatinose (SE NÃO USA START)
+Tomar 10g misturado com whey ou suco, de manhã e antes de deitar.
+
+5. OmegaFOR PLUS - marca Vitafor
+Tomar 2-3 cp por dia (junto com as refeições - almoço e jantar).
+
+6. START
+Tomar no período da manhã ou início da tarde, em uso contínuo.
+
+7. BURN / BUILD
+Tomar 2 cápsulas após primeira refeição e 1 cápsula após almoço, OU tomar a dose total após primeira refeição. (evitar tomar de estômago vazio)`,
+
+  'LIPEDEMA ATUALIZADO': `USO ORAL
+
+1. OMEGAFOR Plus (Vitafor)
+Tomar 1 cápsula junto com almoço e 1 cápsula junto com o jantar.
+
+USO ORAL MANIPULADO
+
+1. Pycnogenol 50mg + Castanha da índia 125mg + Quercetina 125mg + Curcumina Fitossomada 250mg + Vitamina C 250mg + NAC 250mg + P5P 15mg + Metilfolato 400mcg + Metilcobalamina 500mg - cápsula gastroresistente - 60 doses
+Tomar 1 dose após café da manhã e 1 dose após almoço.
+
+ou
+
+USO ORAL MANIPULADO
+
+1. Dimpless 40mg + Resveratrol 70mg + Castanha da índia 250mg + Curcumina fitossomada 250mg + Vit C 300mg + NAC 300mg - cápsula gastroresistente - 30 doses
+Tomar 1 dose após o café da manhã.
+
+2. Pycnogenol 100mg + Quercetina 250mg + Rutina 50mg + P5P 25mg + Metilfolato 600mcg + Metilcobalamina 1mg - 30 doses
+Tomar 1 dose após o almoço.`,
+
+  'PROBIÓTICO E SONO': `USO ORAL
+
+1. OMEGAFOR PLUS - VITAFOR
+TOMAR 1 CP COM ALMOÇO E OUTRO COM JANTAR, POR 3 MESES.
+
+2. IMUNOMULTI - VITAFOR
+TOMAR 1 CP COM CAFÉ DA MANHÃ E OUTRO COM ALMOÇO, POR 3 MESES. PROVÁVEL USO CONTÍNUO.
+
+USO ORAL MANIPULADO
+
+1. Bifidobacterium lactis HN019 5 bilhões + Bifidobacterium longum BB536 5 bilhões + Lactobacillus plantarum LP299v 5 bilhões + Lactobacillus rhamnosus GG 5 bilhões + FOS curto (oligofrutose) 100mg
+Tomar à noite, de preferência de estômago mais vazio, por 30 dias contínuo, depois manter dia sim, dia não por 60 dias.
+
+2. Ashwagandha KSM-66 300mg + Magnésio L-treonato 150mg + L-Teanina 200mg + Passiflora Incarnata 200mg + Glicina 150mg + Melatonina 0,5mg
+Tomar à noite 30min antes de deitar, por 90 dias.`,
+
+  'SEMAGLUTIDA': `SEMAGLUTIDA 2,0 MG/ML 4 ML 3 FRASCOS.
+
+Uso em clínica, conforme orientação médica.`,
+
+  'SOLICITAÇÃO TIRZE': `PACIENTE DO SEXO FEMININO
+
+USO SC
+
+Tirzepatida 90mg/3,6ml - 3 frascos
+Aplicar 15mg semanalmente, por 12 semanas.`,
+
+  'TRH — MENOPAUSA': `USO TÓPICO MANIPULADO
+
+1. Estradiol bioidêntico 1mg - base pentravan
+Aplicar pela manhã, em regiões de glúteo ou coxa. Lavar a mão após. Por 60 dias, e depois reavaliar.
+
+2. Testosterona 1mg - base pentravan
+Aplicar à noite, da mesma forma que o estradiol.
+
+USO ORAL
+
+1. Utrogestan 100mg
+Tomar à noite antes de dormir.`,
+};
+
+// Botão "Nova prescrição" -> abre o prescritor inline (embaixo da barra de ações)
 function prAbrirNovaPresc() {
   if (!prState.pacienteAtual) return;
-  prState.prescItens = [{ medicamento: '', dose: '', frequencia: '', duracao: '', observacoes: '', via: 'USO ORAL' }];
+  rxState = rxEstadoLimpo({ aberto: true, data: rxAgoraLocal(), icpAtivo: rxState.icpAtivo });
+  rxRerender(true);
+  // Confere se o e-CPF A1 está no servidor — o hint do painel só promete o que existe.
+  if (rxState.icpAtivo === undefined) {
+    pacApi('/api/clinico/prontuario/prescricoes/icp-status').then(function (r) {
+      rxState.icpAtivo = !!(r.ok && r.data && r.data.configurado);
+      if (rxState.aberto) rxRerender(false);
+    }).catch(function () {});
+  }
+}
+function rxAgoraLocal() {
+  const a = new Date(); const pad = (x) => String(x).padStart(2, '0');
+  return `${a.getFullYear()}-${pad(a.getMonth() + 1)}-${pad(a.getDate())}T${pad(a.getHours())}:${pad(a.getMinutes())}`;
+}
+function rxFechar() { rxState.aberto = false; rxRerender(false); }
+function rxRerender(scroll) {
+  const sec = document.getElementById('pr-prescritor-section');
+  if (!sec) return;
+  sec.innerHTML = rxState.aberto ? prRenderPrescritor() : '';
+  if (scroll && rxState.aberto) setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+function rxSetTipoDoc(t) {
+  if (t === 'exames') { prAbrirNovoExam(); return; }
+  if (t === 'breve') { if (typeof homeToast === 'function') homeToast('Em construção — por enquanto: Receituário, Atestado e Exames.'); return; }
+  rxState.tipoDoc = t;
+  rxRerender(false);
+}
+function rxAplicarModelo(nome) {
+  if (!nome || !RX_MODELOS[nome]) return;
+  const base = RX_MODELOS[nome];
+  rxState.texto = (rxState.texto || '').trim() ? (rxState.texto.trimEnd() + '\n\n' + base) : base;
+  // Modelo com substância controlada (lista C1) e tipo ainda "Simples"?
+  // Ajusta pra Controle Especial COM AVISO (nunca silencioso) — o médico confere.
+  if (rxState.tipoRec === 'BRANCA_COMUM' && /\b(bupropiona|naltrexona|topiramato|amato)\b/i.test(base)) {
+    rxState.tipoRec = 'BRANCA_CONTROLADA';
+    if (typeof homeToast === 'function') homeToast('Modelo contém substância controlada — tipo ajustado pra "Controle Especial". Confira antes de salvar.');
+  }
+  rxRerender(false);
+}
+function rxAdicionarMed() {
+  const med = rxState.med || '';
+  const pos = rxState.pos || '';
+  if (!med.trim()) return;
+  // Numera pelo total de itens "N." já presentes no texto
+  const n = ((rxState.texto || '').match(/^\s*\d+\./gm) || []).length + 1;
+  const bloco = `${n}. ${med.trim()}${pos.trim() ? '\n' + pos.trim() : ''}`;
+  rxState.texto = (rxState.texto || '').trim() ? (rxState.texto.trimEnd() + '\n\n' + bloco) : bloco;
+  rxState.med = ''; rxState.pos = '';
+  rxRerender(false);
+  const m = document.getElementById('rx-med'); if (m) m.focus();
+}
+function rxLimparMed() {
+  rxState.med = ''; rxState.pos = '';
+  rxRerender(false);
+}
+
+function prRenderPrescritor() {
+  const ehAtestado = rxState.tipoDoc === 'atestado';
+  const docBtn = (id, label, icone, extra) => `
+    <button type="button" class="rx-doc-btn ${rxState.tipoDoc === id ? 'ativo' : ''} ${extra || ''}"
+      onclick="rxSetTipoDoc('${extra === 'breve' ? 'breve' : id}')">
+      <i class="ti ti-${icone}"></i> ${label}${extra === 'breve' ? '<span class="mini">em construção</span>' : ''}
+    </button>`;
+  const modelosOpts = Object.keys(RX_MODELOS).map((k) => `<option value="${rxEsc(k)}">${rxEsc(k)}</option>`).join('');
+  return `
+    <div class="rx-panel">
+      <div class="rx-panel-head">
+        <div class="t"><i class="ti ti-prescription"></i> Nova prescrição</div>
+        <button class="pac-modal-close" onclick="rxFechar()" title="Fechar"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="rx-lbl">Escolha um tipo:</div>
+      <div class="rx-tipos">
+        ${docBtn('receituario', 'Receituário', 'pill')}
+        ${docBtn('atestado', 'Atestado', 'file-certificate')}
+        ${docBtn('declaracao', 'Declaração', 'file-text', 'breve')}
+        ${docBtn('carta', 'Carta', 'mail', 'breve')}
+        ${docBtn('exames', 'Solicitação de Exames', 'flask')}
+        ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
+        ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
+      </div>
+      ${ehAtestado ? '' : `
+        <div class="rx-lbl">Selecione o modelo personalizado</div>
+        <select id="rx-modelo" onchange="rxAplicarModelo(this.value); this.value='';">
+          <option value="">Selecione</option>
+          ${modelosOpts}
+        </select>
+        <div class="rx-row" style="margin-top:12px;">
+          <div class="cresce">
+            <div class="rx-lbl" style="margin-top:0;">Adicionar medicamento</div>
+            <input type="text" id="rx-med" value="${rxEsc(rxState.med || '').replace(/"/g, '&quot;')}" oninput="rxState.med=this.value" placeholder="ex: Semaglutida 0,25mg">
+          </div>
+          <button class="pac-btn-secondary" onclick="rxLimparMed()" style="height:37px;"><i class="ti ti-x"></i> Remover</button>
+        </div>
+        <div class="rx-row" style="margin-top:10px;">
+          <div class="cresce">
+            <div class="rx-lbl" style="margin-top:0;">Posologia</div>
+            <input type="text" id="rx-pos" value="${rxEsc(rxState.pos || '').replace(/"/g, '&quot;')}" oninput="rxState.pos=this.value" placeholder="ex: Tomar 1 dose pela manhã, por 60 dias" onkeydown="if(event.key==='Enter'){event.preventDefault();rxAdicionarMed();}">
+          </div>
+          <button class="pac-btn-primary" onclick="rxAdicionarMed()" style="height:37px;"><i class="ti ti-plus"></i> Adicionar</button>
+        </div>
+      `}
+      <div class="rx-lbl">Escreva ${ehAtestado ? 'o atestado' : 'a prescrição'} <span class="req">*</span></div>
+      <textarea id="rx-texto" oninput="rxState.texto=this.value"
+        placeholder="${ehAtestado ? 'Escreva o atestado como sairá no documento.' : 'Utilize este espaço para escrever a prescrição como se fosse em um receituário tradicional.'}">${rxEsc(rxState.texto)}</textarea>
+      <div class="rx-row" style="margin-top:12px;">
+        ${ehAtestado ? '' : `
+        <div class="cresce">
+          <div class="rx-lbl" style="margin-top:0;">Tipo de Receituário <span class="req">*</span></div>
+          <select id="rx-tipo-receituario" onchange="rxState.tipoRec=this.value">
+            <option value="BRANCA_COMUM" ${rxState.tipoRec === 'BRANCA_COMUM' ? 'selected' : ''}>Simples Uma Via</option>
+            <option value="BRANCA_CONTROLADA" ${rxState.tipoRec === 'BRANCA_CONTROLADA' ? 'selected' : ''}>Controle Especial</option>
+            <option value="AZUL_CONTROLADA" ${rxState.tipoRec === 'AZUL_CONTROLADA' ? 'selected' : ''}>Azul (B)</option>
+          </select>
+        </div>`}
+        <div class="cresce">
+          <div class="rx-lbl" style="margin-top:0;">Data</div>
+          <input type="datetime-local" id="rx-data" value="${rxEsc(rxState.data)}" onchange="rxState.data=this.value">
+        </div>
+      </div>
+      <div class="rx-actions">
+        <button class="pac-btn-primary" id="rx-btn-imprimir" onclick="rxSalvar('imprimir', this)"><i class="ti ti-printer"></i> Salvar e imprimir</button>
+        <button class="pac-btn-primary" id="rx-btn-enviar" onclick="rxSalvar('enviar', this)"><i class="ti ti-brand-whatsapp"></i> Salvar e enviar</button>
+        <button class="pac-btn-secondary" onclick="rxSalvar('salvar', this)"><i class="ti ti-device-floppy"></i> Salvar</button>
+        <button class="pac-btn-secondary" onclick="rxFechar()">Cancelar</button>
+      </div>
+      <div class="rx-hint">${rxState.icpAtivo === false
+        ? '<i class="ti ti-alert-triangle"></i> Assinatura ICP-Brasil indisponível no servidor — o documento sai com QR verificável (sem assinatura qualificada).'
+        : (rxState.icpAtivo === true
+          ? 'A receita é assinada automaticamente em ICP-Brasil e sai com QR + chave de acesso pra farmácia conferir.'
+          : 'O documento sai com QR + chave de acesso pra farmácia conferir.')}
+        ${ehAtestado ? '' : 'Prefere o formulário por itens? <a onclick="prAbrirPrescModal()">Abrir modo estruturado</a>.'}</div>
+      <div id="rx-erro" style="display:none; color:#f85149; font-size:12px; margin-top:10px;"></div>
+    </div>`;
+}
+
+async function rxSalvar(acao, btn) {
+  if (rxState.salvando) return; // guarda: 2º clique (em qualquer botão) não cria receita duplicada
+  const erroEl = document.getElementById('rx-erro');
+  if (erroEl) erroEl.style.display = 'none';
+  const texto = (rxState.texto || '').trim();
+  if (!texto) {
+    if (erroEl) { erroEl.textContent = 'Escreva a prescrição (ou use um modelo).'; erroEl.style.display = 'block'; }
+    return;
+  }
+  const ehAtestado = rxState.tipoDoc === 'atestado';
+  const body = {
+    patient_id: prState.pacienteAtual.id,
+    tipo: ehAtestado ? 'ATESTADO' : (rxState.tipoRec || 'BRANCA_COMUM'),
+    texto,
+    itens: [],
+    observacoes: null,
+    data: rxState.data ? new Date(rxState.data).toISOString() : null,
+  };
+  rxState.salvando = true;
+  const botoes = Array.prototype.slice.call(document.querySelectorAll('.rx-actions button'));
+  botoes.forEach(function (b) { b.disabled = true; });
+  const original = btn ? btn.innerHTML : '';
+  if (btn) btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando...';
+  const liberar = function () {
+    rxState.salvando = false;
+    botoes.forEach(function (b) { b.disabled = false; });
+    if (btn) btn.innerHTML = original;
+  };
+  try {
+    const r = await pacApi('/api/clinico/prontuario/prescriptions', { method: 'POST', body: JSON.stringify(body) });
+    if (!r.ok) {
+      liberar();
+      if (erroEl) { erroEl.textContent = (r.data && r.data.erro) || 'Erro ao salvar.'; erroEl.style.display = 'block'; }
+      return;
+    }
+    const id = r.data.prescricao.id;
+    const assinada = !!r.data.assinada_icp;
+    if (typeof homeToast === 'function') homeToast(assinada ? (ehAtestado ? 'Atestado criado e assinado em ICP-Brasil ✓' : 'Receita criada e assinada em ICP-Brasil ✓') : 'Documento criado');
+    rxState.salvando = false;
+    rxState.aberto = false; rxState.texto = '';
+    prCarregarTimeline();
+    if (acao === 'imprimir') await rxAbrirPdfPresc(id, assinada);
+    if (acao === 'enviar') await rxEnviarWhatsappPresc(id);
+  } catch (e) {
+    liberar();
+    if (erroEl) { erroEl.textContent = 'Erro ao salvar.'; erroEl.style.display = 'block'; }
+  }
+}
+
+// Abre o PDF (assinado ICP se houver; senão o oficial) numa aba pra imprimir.
+async function rxAbrirPdfPresc(id, icp) {
+  try {
+    const path = icp ? '/receita-assinada' : '/pdf';
+    const resp = await fetch(API_BASE + '/api/clinico/prontuario/prescricoes/' + id + path, { headers: { Authorization: 'Bearer ' + getToken() } });
+    if (!resp.ok) { alert('Não foi possível abrir o PDF da receita.'); return; }
+    const blob = await resp.blob(); const url = URL.createObjectURL(blob);
+    // window.open pode voltar null (bloqueador de pop-up após awaits longos)
+    const w = window.open(url, '_blank');
+    if (!w) alert('O navegador bloqueou a aba do PDF. Permita pop-ups pro aplicgo.com e tente de novo pelo botão "Imprimir" na aba Receitas.');
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  } catch (e) { alert('Erro ao abrir o PDF.'); }
+}
+
+// Envia a receita no WhatsApp do paciente (confirma o número antes — SEMPRE).
+async function rxEnviarWhatsappPresc(id, btn) {
+  const pac = prState.pacienteAtual; if (!pac) return;
+  const numero = await confirmarEnvioWhatsapp(pac.telefone || '', pac.nome || '');
+  if (!numero) return;
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Enviando...'; }
+  try {
+    const r = await pacApi('/api/clinico/prontuario/prescricoes/' + id + '/whatsapp', { method: 'POST', body: JSON.stringify({ numero }) });
+    if (r.ok && r.data && r.data.ok) {
+      if (typeof homeToast === 'function') homeToast('Receita enviada no WhatsApp ✓');
+      if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Enviado!'; setTimeout(function () { btn.disabled = false; btn.innerHTML = original; }, 2500); }
+      return;
+    }
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    const erro = (r.data && r.data.erro) || 'falha';
+    const msg = (r.data && r.data.mensagem) || '';
+    const full = numero.length <= 11 ? '55' + numero : numero;
+    if (msg && confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
+      window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+    } else if (!msg) {
+      alert('Não foi possível enviar: ' + erro);
+    }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    alert('Erro ao enviar no WhatsApp.');
+  }
+}
+
+// ===== Aba "Receitas" (barra recolhível, só prescrições) =====
+function prToggleReceitas() {
+  prState.receitasAberto = !prState.receitasAberto;
+  prRenderTimeline();
+}
+function prRenderReceitas() {
+  const rx = (prState.timeline || []).filter((i) => i.tipo === 'prescricao');
+  if (!rx.length) return '<div class="pr-empty" style="padding:14px;"><i class="ti ti-prescription"></i>Nenhuma receita ainda.</div>';
+  const tipoMap = { BRANCA_COMUM: 'Simples', BRANCA_CONTROLADA: 'Controle especial', AZUL_CONTROLADA: 'Azul (B)', ATESTADO: 'Atestado' };
+  return rx.map((it) => {
+    const d = it.dados;
+    const dt = new Date(it.data);
+    const resumo = d.texto
+      ? (String(d.texto).split('\n').map((l) => l.trim()).filter((l) => l && !/^uso\b/i.test(l))[0] || 'Texto livre')
+      : ((d.itens && d.itens[0] && d.itens[0].medicamento) ? d.itens[0].medicamento + (d.itens.length > 1 ? ' +' + (d.itens.length - 1) : '') : '—');
+    const _dj = JSON.stringify(d).replace(/&/g, '&amp;').replace(/'/g, '&apos;');
+    const chipIcp = d.icp_assinada ? '<span class="rx-assinada-chip" style="background:rgba(29,158,117,.14);color:#1D9E75;border-color:rgba(29,158,117,.3);"><i class="ti ti-certificate-2"></i> ICP</span>' : '';
+    return `<div class="rx-receita-row">
+      <span class="dt">${isNaN(dt) ? '—' : dt.toLocaleDateString('pt-BR')}</span>
+      <span class="tp">${tipoMap[d.tipo_receita] || d.tipo_receita}</span>
+      <span class="res">${prExEsc(resumo)}</span>
+      ${chipIcp}
+      <button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick="rxAbrirPdfPresc('${d.id}', ${d.icp_assinada ? 'true' : 'false'})"><i class="ti ti-printer"></i> Imprimir</button>
+      ${d.assinado ? `<button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick='prReceitaQR(${_dj})'><i class="ti ti-qrcode"></i> QR</button>` : ''}
+      <button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick="rxEnviarWhatsappPresc('${d.id}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar</button>
+    </div>`;
+  }).join('');
+}
+
+// Modal ANTIGO por itens estruturados (medicamento/dose/frequência/via) —
+// acessível pelo link "modo estruturado" dentro do prescritor novo.
+function prAbrirPrescModal() {
+  if (!prState.pacienteAtual) return;
+  // via começa VAZIA — via de uso é dado clínico, não default inventado
+  prState.prescItens = [{ medicamento: '', dose: '', frequencia: '', duracao: '', observacoes: '', via: '' }];
   document.getElementById('pr-presc-tipo').value = 'BRANCA_COMUM';
   document.getElementById('pr-presc-obs').value = '';
   document.getElementById('pr-presc-erro').style.display = 'none';
@@ -17994,7 +18573,7 @@ async function pbaseCarregarLista(patientId) {
 
 function prAddItem() {
   // Novo item herda a via do anterior (prático ao prescrever vários manipulados em sequência)
-  const ultima = prState.prescItens.length ? (prState.prescItens[prState.prescItens.length - 1].via || 'USO ORAL') : 'USO ORAL';
+  const ultima = prState.prescItens.length ? (prState.prescItens[prState.prescItens.length - 1].via || '') : '';
   prState.prescItens.push({ medicamento: '', dose: '', frequencia: '', duracao: '', observacoes: '', via: ultima });
   prRenderItens();
 }
@@ -18032,8 +18611,9 @@ function prRenderItens() {
         ${ehAtestado ? '' : `<div class="pac-field">
           <label>Via de uso</label>
           <select onchange="prState.prescItens[${i}].via=this.value">
+            <option value="" ${!(it.via || '') ? 'selected' : ''}>— selecionar —</option>
             ${['USO ORAL', 'USO ORAL MANIPULADO', 'USO INJETÁVEL', 'USO TÓPICO', 'USO SUBLINGUAL', 'USO NASAL'].map(v =>
-              `<option value="${v}" ${(it.via || 'USO ORAL') === v ? 'selected' : ''}>${v.charAt(0) + v.slice(1).toLowerCase()}</option>`).join('')}
+              `<option value="${v}" ${(it.via || '') === v ? 'selected' : ''}>${v.charAt(0) + v.slice(1).toLowerCase()}</option>`).join('')}
           </select>
         </div>`}
         <div class="pac-field ${ehAtestado ? 'full' : 'pr-sp2'}">
