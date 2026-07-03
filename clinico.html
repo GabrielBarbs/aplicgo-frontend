@@ -8919,6 +8919,7 @@ async function dashCarregar() {
   window.homeResumo = d;
 
   // Agenda de hoje
+  window.dashAgHoje = d.hoje.agendamentos || []; // lookup p/ abrir sem interpolar nome no onclick
   const agWrap = document.getElementById('dash-agenda-lista');
   document.getElementById('dash-ag-count').textContent = d.hoje.total + (d.hoje.total === 1 ? ' hoje' : ' hoje');
   if (d.hoje.agendamentos.length === 0) {
@@ -8927,7 +8928,7 @@ async function dashCarregar() {
     agWrap.innerHTML = d.hoje.agendamentos.map(a => {
       const hora = new Date(a.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       return `
-        <div class="dash-ag-item" style="border-left-color:${a.cor || '#4A90E2'};" onclick="dashAbrirPaciente('${a.paciente_id}', '${(a.paciente||'').replace(/'/g,'&apos;')}')">
+        <div class="dash-ag-item" style="border-left-color:${a.cor || '#4A90E2'};" onclick="dashAbrirAgHoje('${a.paciente_id}')">
           <div class="hora">${hora}</div>
           <div class="info">
             <div class="pac">${esc(a.paciente)}</div>
@@ -9479,7 +9480,11 @@ function dashRenderAniversariantes() {
 
 function dashAbrirPaciente(id, nome) {
   trocarView('prontuario');
-  prSelecionarPaciente({ id, nome: nome.replace(/&apos;/g, "'"), codigo: '', telefone: '' });
+  prSelecionarPaciente({ id, nome: (nome || '').replace(/&apos;/g, "'"), codigo: '', telefone: '' });
+}
+function dashAbrirAgHoje(id) {
+  const a = (window.dashAgHoje || []).find(x => x.paciente_id === id);
+  dashAbrirPaciente(id, (a && a.paciente) || '');
 }
 
 async function dashEnviarAniversario(patientId) {
