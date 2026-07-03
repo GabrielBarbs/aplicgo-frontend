@@ -16625,7 +16625,7 @@ function prRenderItem(it) {
       body += `<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prImprimirPrescricao(${_dj})'><i class="ti ti-printer"></i> Imprimir receita</button>
         ${_assinaBtn}
-        ${_podeAssinar ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prAssinarIcp(${_dj}, this)' title="Assinatura digital ICP-Brasil com seu e-CPF (BirdID) — página da Lacuna"><i class="ti ti-certificate-2"></i> Assinar ICP-Brasil</button>` : ''}
+        ${_podeAssinar ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prAssinarIcp(${_dj}, this)' title="Assinatura digital ICP-Brasil (e-CPF A1) — a receita sai assinada na hora"><i class="ti ti-certificate-2"></i> Assinar ICP-Brasil</button>` : ''}
         ${d.assinado ? '<span class="rx-assinada-chip"><i class="ti ti-rosette-discount-check"></i> Assinada</span>' : ''}
       </div>`;
       break;
@@ -17469,38 +17469,26 @@ async function prAssinarReceita(d, btn) {
   prMostrarQRModal(d);
 }
 
-// ===== ASSINATURA ICP-BRASIL (Rest PKI Signature Sessions — página hospedada) =====
-// Inicia a sessão -> redireciona o médico pra Lacuna -> ele assina com o BirdID
-// (aprova no celular) -> volta pra cá com ?signatureSessionId=... (ver prIcpDetectarRetorno).
+// ===== ASSINATURA ICP-BRASIL (e-CPF A1 no servidor — 1 clique, sem app externo) =====
+// A receita é gerada, assinada em PAdES no backend e volta pronta. Sem redirect.
 async function prAssinarIcp(d, btn) {
   if (typeof d === 'string') { try { d = JSON.parse(d.replace(/&apos;/g, "'")); } catch { return; } }
-  if (!confirm('Você será levado à página de assinatura da Lacuna, onde assina com seu certificado (BirdID) aprovando no celular. Depois volta pra cá. Continuar?')) return;
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Abrindo...'; }
+  if (!confirm('Assinar esta receita com o e-CPF ICP-Brasil (A1)? Ela fica assinada e válida em gov.br/validar.')) return;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Assinando...'; }
   try {
-    const returnUrl = location.origin + location.pathname;
-    const r = await pacApi('/api/clinico/prontuario/prescricoes/' + d.id + '/assinar-icp/iniciar', { method: 'POST', body: JSON.stringify({ returnUrl }) });
-    if (r.ok && r.data && r.data.ok && r.data.redirectUrl) {
-      window.location.href = r.data.redirectUrl; // vai pra página de assinatura da Lacuna
+    const r = await pacApi('/api/clinico/prontuario/prescricoes/' + d.id + '/assinar-icp', { method: 'POST', body: JSON.stringify({}) });
+    if (r.ok && r.data && r.data.ok) {
+      prIcpResultadoModal(d.id, r.data.assinante);
+      if (typeof prCarregarPrescricoes === 'function') prCarregarPrescricoes();
+      else if (typeof prSelecionarPaciente === 'function' && window.prPacienteAtual) prSelecionarPaciente(window.prPacienteAtual);
       return;
     }
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-certificate-2"></i> Assinar ICP-Brasil'; }
-    alert((r.data && (r.data.erro || r.data.error)) || 'Não foi possível iniciar a assinatura ICP-Brasil.');
+    alert((r.data && (r.data.erro || r.data.error)) || 'Não foi possível assinar. Confirme se o e-CPF está configurado no servidor.');
   } catch (e) {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-certificate-2"></i> Assinar ICP-Brasil'; }
-    alert('Erro ao iniciar a assinatura ICP-Brasil.');
+    alert('Erro ao assinar a receita.');
   }
-}
-// Ao voltar da Lacuna (?signatureSessionId=...): finaliza e mostra o resultado.
-async function prIcpDetectarRetorno() {
-  const sid = new URLSearchParams(location.search).get('signatureSessionId');
-  if (!sid) return;
-  try { history.replaceState({}, '', location.origin + location.pathname); } catch (e) {}
-  try {
-    const r = await pacApi('/api/clinico/prontuario/prescricoes/assinar-icp/finalizar', { method: 'POST', body: JSON.stringify({ sessionId: sid }) });
-    if (r.ok && r.data && r.data.ok) { prIcpResultadoModal(r.data.prescricaoId, r.data.assinante); }
-    else if (r.data && r.data.cancelado) { alert('Assinatura cancelada — nada foi assinado.'); }
-    else { alert('Não foi possível concluir a assinatura ICP-Brasil: ' + ((r.data && (r.data.erro || r.data.error)) || '—')); }
-  } catch (e) { alert('Erro ao concluir a assinatura ICP-Brasil.'); }
 }
 async function prIcpBaixarAssinada(id) {
   try {
@@ -17523,15 +17511,6 @@ function prIcpResultadoModal(prescricaoId, assinante) {
     + '</div></div></div>';
   document.body.appendChild(ov);
 }
-window.addEventListener('DOMContentLoaded', function () {
-  if (!new URLSearchParams(location.search).get('signatureSessionId')) return;
-  var tent = 0;
-  var iv = setInterval(function () {
-    tent++;
-    if (typeof getToken === 'function' && getToken() && typeof pacApi === 'function') { clearInterval(iv); prIcpDetectarRetorno(); }
-    else if (tent > 40) clearInterval(iv);
-  }, 250);
-});
 
 // Já assinada: prescritor re-assina (idempotente, mesmo token, data preservada)
 // -> garante o hash canônico atualizado e auto-cura receitas da versão antiga.
