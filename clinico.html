@@ -901,8 +901,10 @@
     }
     .pac-form-grid.col-3 { grid-template-columns: repeat(3, 1fr); }
     .pac-form-grid .full { grid-column: 1 / -1; }
+    .pac-form-grid .pr-sp2 { grid-column: span 2; }
     @media (max-width: 580px) {
       .pac-form-grid, .pac-form-grid.col-3 { grid-template-columns: 1fr; }
+      .pac-form-grid .pr-sp2 { grid-column: auto; } /* span 2 numa grade de 1 coluna desalinha */
     }
     .pac-field { display: flex; flex-direction: column; gap: 4px; }
     .pac-field label {
@@ -7877,7 +7879,7 @@
       <div class="pac-form-grid">
         <div class="pac-field">
           <label>Tipo de receita <span class="req">*</span></label>
-          <select id="pr-presc-tipo" required>
+          <select id="pr-presc-tipo" required onchange="prRenderItens()">
             <option value="BRANCA_COMUM">Branca comum</option>
             <option value="BRANCA_CONTROLADA">Branca controlada</option>
             <option value="AZUL_CONTROLADA">Azul (controlada)</option>
@@ -17709,7 +17711,7 @@ async function memedConfigSalvar() {
 
 function prAbrirNovaPresc() {
   if (!prState.pacienteAtual) return;
-  prState.prescItens = [{ medicamento: '', dose: '', frequencia: '', duracao: '', observacoes: '' }];
+  prState.prescItens = [{ medicamento: '', dose: '', frequencia: '', duracao: '', observacoes: '', via: 'USO ORAL' }];
   document.getElementById('pr-presc-tipo').value = 'BRANCA_COMUM';
   document.getElementById('pr-presc-obs').value = '';
   document.getElementById('pr-presc-erro').style.display = 'none';
@@ -17991,7 +17993,9 @@ async function pbaseCarregarLista(patientId) {
 }
 
 function prAddItem() {
-  prState.prescItens.push({ medicamento: '', dose: '', frequencia: '', duracao: '', observacoes: '' });
+  // Novo item herda a via do anterior (prático ao prescrever vários manipulados em sequência)
+  const ultima = prState.prescItens.length ? (prState.prescItens[prState.prescItens.length - 1].via || 'USO ORAL') : 'USO ORAL';
+  prState.prescItens.push({ medicamento: '', dose: '', frequencia: '', duracao: '', observacoes: '', via: ultima });
   prRenderItens();
 }
 
@@ -18003,6 +18007,8 @@ function prRemoveItem(idx) {
 
 function prRenderItens() {
   const wrap = document.getElementById('pr-presc-itens');
+  // Atestado não tem "via de uso" — esconder o campo evita gravar "USO ORAL" falso.
+  const ehAtestado = (document.getElementById('pr-presc-tipo') || {}).value === 'ATESTADO';
   wrap.innerHTML = prState.prescItens.map((it, i) => `
     <div style="background:rgba(var(--bg3-rgb),0.4); border:1px solid var(--bg3); border-radius:8px; padding:10px; margin-top:6px; position:relative;">
       <button onclick="prRemoveItem(${i})" style="position:absolute; top:6px; right:6px; background:transparent; border:0; color:var(--tx3b); cursor:pointer;"><i class="ti ti-x"></i></button>
@@ -18023,7 +18029,14 @@ function prRenderItens() {
           <label>Duração</label>
           <input type="text" value="${(it.duracao||'').replace(/"/g,'&quot;')}" onchange="prState.prescItens[${i}].duracao=this.value" placeholder="3 meses">
         </div>
-        <div class="pac-field full">
+        ${ehAtestado ? '' : `<div class="pac-field">
+          <label>Via de uso</label>
+          <select onchange="prState.prescItens[${i}].via=this.value">
+            ${['USO ORAL', 'USO ORAL MANIPULADO', 'USO INJETÁVEL', 'USO TÓPICO', 'USO SUBLINGUAL', 'USO NASAL'].map(v =>
+              `<option value="${v}" ${(it.via || 'USO ORAL') === v ? 'selected' : ''}>${v.charAt(0) + v.slice(1).toLowerCase()}</option>`).join('')}
+          </select>
+        </div>`}
+        <div class="pac-field ${ehAtestado ? 'full' : 'pr-sp2'}">
           <label>Observações</label>
           <input type="text" value="${(it.observacoes||'').replace(/"/g,'&quot;')}" onchange="prState.prescItens[${i}].observacoes=this.value" placeholder="ex: aplicar no abdômen">
         </div>
@@ -18038,9 +18051,10 @@ async function prSalvarPresc() {
   const itens = prState.prescItens.filter(i => i.medicamento && i.medicamento.trim());
   if (itens.length === 0) { erroEl.textContent = 'Adiciona pelo menos 1 medicamento'; erroEl.style.display = 'block'; return; }
 
+  const tipoPresc = document.getElementById('pr-presc-tipo').value;
   const body = {
     patient_id: prState.pacienteAtual.id,
-    tipo: document.getElementById('pr-presc-tipo').value,
+    tipo: tipoPresc,
     observacoes: document.getElementById('pr-presc-obs').value.trim() || null,
     data: document.getElementById('pr-presc-data').value ? new Date(document.getElementById('pr-presc-data').value).toISOString() : null,
     itens: itens.map(i => ({
@@ -18049,6 +18063,7 @@ async function prSalvarPresc() {
       frequencia: i.frequencia?.trim() || null,
       duracao: i.duracao?.trim() || null,
       observacoes: i.observacoes?.trim() || null,
+      via: tipoPresc === 'ATESTADO' ? null : (i.via || null), // atestado não tem via
     })),
   };
 
