@@ -16622,11 +16622,19 @@ function prRenderItem(it) {
       const _assinaBtn = d.assinado
         ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prReceitaQR(${_dj})'><i class="ti ti-qrcode"></i> Receita verificável</button>`
         : (_podeAssinar ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prAssinarReceita(${_dj}, this)'><i class="ti ti-writing-sign"></i> Assinar + QR</button>` : '');
+      // ICP-Brasil A1: se já assinada (inclusive automática na criação) -> baixar; senão, botão de assinar.
+      const _icpBtn = d.icp_assinada
+        ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prIcpBaixarAssinada("${d.id}")'><i class="ti ti-download"></i> Baixar assinada (ICP)</button>`
+        : (_podeAssinar ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prAssinarIcp(${_dj}, this)' title="Assinatura digital ICP-Brasil (e-CPF A1)"><i class="ti ti-certificate-2"></i> Assinar ICP-Brasil</button>` : '');
+      const _icpChip = d.icp_assinada
+        ? `<span class="rx-assinada-chip" style="background:rgba(29,158,117,.14);color:#1D9E75;border-color:rgba(29,158,117,.3);"><i class="ti ti-certificate-2"></i> ICP-Brasil${d.icp_assinante ? ' · ' + prExEsc(String(d.icp_assinante).split(':')[0]) : ''}</span>`
+        : '';
       body += `<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prImprimirPrescricao(${_dj})'><i class="ti ti-printer"></i> Imprimir receita</button>
         ${_assinaBtn}
-        ${_podeAssinar ? `<button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick='prAssinarIcp(${_dj}, this)' title="Assinatura digital ICP-Brasil (e-CPF A1) — a receita sai assinada na hora"><i class="ti ti-certificate-2"></i> Assinar ICP-Brasil</button>` : ''}
+        ${_icpBtn}
         ${d.assinado ? '<span class="rx-assinada-chip"><i class="ti ti-rosette-discount-check"></i> Assinada</span>' : ''}
+        ${_icpChip}
       </div>`;
       break;
     }
@@ -18048,6 +18056,7 @@ async function prSalvarPresc() {
   if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
   prFecharPresc();
   prCarregarTimeline();
+  if (r.data && r.data.assinada_icp && typeof homeToast === 'function') homeToast('Receita criada e assinada em ICP-Brasil ✓');
 }
 
 // ===== EXAMES =====
