@@ -3,195 +3,300 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data:; connect-src 'self' https://srv.aplicgo.com; object-src 'none'; base-uri 'self'">
-  <title>Verificar receita · Aplic &amp; Go</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' https://srv.aplicgo.com data:; connect-src 'self' https://srv.aplicgo.com; object-src 'none'; base-uri 'self'">
+  <title>Receita Digital · Aplic &amp; Go</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --vd: #4F7A5E; --vd-deep: #3C6149; --sage: #8FA98C; --sage-soft: #E8EFE8;
-      --ok: #4F7A5E; --amber: #B8841F; --red: #C0392B;
-      --bg: #eef2ee; --card: #ffffff; --tx1: #1d2a22; --tx2: #54635a; --tx3: #93a097; --hair: #e6ece6;
-      --shadow: 0 18px 48px rgba(43,78,57,0.12), 0 2px 8px rgba(43,78,57,0.06);
+      --vd: #2E7D53; --vd-deep: #1E5B3B; --vd-soft: #E9F3EC;
+      --ok: #2E7D53; --amber: #B8841F; --red: #C0392B;
+      --bg: #eef2ee; --card: #ffffff; --tx1: #1d2a22; --tx2: #55635b; --tx3: #8b988f; --hair: #e6ece6;
+      --shadow: 0 16px 44px rgba(30,91,59,0.12), 0 2px 8px rgba(30,91,59,0.06);
     }
     html, body { min-height: 100%; }
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
-      color: var(--tx1); line-height: 1.5;
-      background:
-        radial-gradient(1100px 520px at 50% -10%, rgba(143,169,140,0.30), transparent 70%),
-        radial-gradient(800px 600px at 100% 100%, rgba(79,122,94,0.10), transparent 60%),
-        var(--bg);
-      padding: 34px 16px 70px;
+      color: var(--tx1); line-height: 1.5; background: var(--bg);
+      padding: 22px 14px 60px;
     }
-    .wrap { max-width: 540px; margin: 0 auto; }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    .card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
 
-    .brand { text-align: center; margin: 4px 0 26px; }
-    .brand img { height: 46px; width: auto; object-fit: contain; }
-    .brand .tag {
-      margin-top: 12px; display: inline-flex; align-items: center; gap: 7px;
-      font-size: 11px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 600;
-      color: var(--vd-deep); background: rgba(255,255,255,0.7); border: 1px solid var(--hair);
-      padding: 6px 13px; border-radius: 999px; backdrop-filter: blur(4px);
-    }
-    .brand .tag i { font-size: 14px; }
+    /* Header verde (estilo "prontuário verde") */
+    .head { background: linear-gradient(135deg, #2E7D53 0%, #1E5B3B 100%); color: #fff; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+    .head .logo { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .head .logo img { width: 26px; height: 26px; object-fit: contain; }
+    .head .logo i { font-size: 22px; }
+    .head .nm { font-size: 15px; font-weight: 750; letter-spacing: -0.2px; }
+    .head .sb { font-size: 11px; opacity: 0.9; letter-spacing: 0.4px; margin-top: 1px; }
 
-    .card { background: var(--card); border: 1px solid rgba(255,255,255,0.7); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; }
+    .body { padding: 20px 20px 22px; }
 
-    .banner { position: relative; padding: 34px 26px 30px; text-align: center; color: #fff; overflow: hidden; }
-    .banner::after { content: ''; position: absolute; inset: 0; background: radial-gradient(420px 180px at 50% -40%, rgba(255,255,255,0.28), transparent 70%); pointer-events: none; }
-    .banner .ring {
-      width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 14px;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.45);
-      box-shadow: 0 0 0 8px rgba(255,255,255,0.07);
-    }
-    .banner .ring i { font-size: 40px; line-height: 1; }
-    .banner .t { font-size: 21px; font-weight: 750; letter-spacing: -0.2px; }
-    .banner .d { font-size: 13.5px; opacity: 0.94; margin-top: 6px; max-width: 360px; margin-left: auto; margin-right: auto; }
-    .banner.ok   { background: linear-gradient(140deg, #5C9A72 0%, #3C6149 100%); }
-    .banner.warn { background: linear-gradient(140deg, #E0A340 0%, #B8841F 100%); }
-    .banner.bad  { background: linear-gradient(140deg, #E0685A 0%, #C0392B 100%); }
-    .banner.neutro { background: linear-gradient(140deg, #8A9A90 0%, #5C6B62 100%); }
+    .titrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+    .titrow h1 { font-size: 19px; font-weight: 750; color: var(--tx1); letter-spacing: -0.3px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+    .chip i { font-size: 14px; }
+    .chip.ok { background: var(--vd-soft); color: var(--vd-deep); }
+    .chip.warn { background: rgba(184,132,31,0.12); color: var(--amber); }
+    .chip.bad { background: rgba(192,57,43,0.10); color: var(--red); }
 
-    .corpo { padding: 24px 26px 26px; }
-    .sec-tit { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.3px; color: var(--vd); font-weight: 700; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--hair); }
-    .linha { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; padding: 6px 0; }
-    .linha .k { color: var(--tx3); }
-    .linha .v { color: var(--tx1); font-weight: 600; text-align: right; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+    .fld { background: #f6f9f6; border: 1px solid var(--hair); border-radius: 10px; padding: 9px 12px; }
+    .fld .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx3); font-weight: 700; }
+    .fld .v { font-size: 15px; font-weight: 700; color: var(--tx1); margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .fld .v.mono { font-family: ui-monospace, 'Cascadia Code', monospace; letter-spacing: 1px; }
 
-    .bloco { margin-top: 24px; }
-    .med {
-      position: relative; padding: 12px 14px 12px 16px; margin-bottom: 8px;
-      background: #f7faf7; border: 1px solid var(--hair); border-radius: 12px;
-    }
-    .med::before { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--sage); }
-    .med:last-child { margin-bottom: 0; }
-    .med .nome { font-size: 14.5px; font-weight: 650; color: var(--tx1); }
-    .med .uso { font-size: 12.5px; color: var(--tx2); margin-top: 3px; }
-    .med .obs { font-size: 12px; color: var(--tx3); font-style: italic; margin-top: 3px; }
+    /* Acordeão paciente/profissional */
+    .acc { border: 1px solid var(--hair); border-radius: 10px; margin-top: 10px; overflow: hidden; }
+    .acc > button { width: 100%; background: #fff; border: 0; text-align: left; padding: 12px 14px; display: flex; align-items: center; gap: 11px; cursor: pointer; font: inherit; }
+    .acc > button:hover { background: #fafcfa; }
+    .acc .ico { width: 30px; height: 30px; border-radius: 8px; background: var(--vd-soft); color: var(--vd); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .acc .ico i { font-size: 17px; }
+    .acc .lbl { flex: 1; min-width: 0; }
+    .acc .lbl .k { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx3); font-weight: 700; }
+    .acc .lbl .v { display: block; font-size: 14.5px; font-weight: 650; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+    .acc .caret { color: var(--tx3); transition: transform .18s; flex-shrink: 0; }
+    .acc.open .caret { transform: rotate(180deg); }
+    .acc .det { max-height: 0; overflow: hidden; transition: max-height .22s ease; background: #f8faf8; }
+    .acc.open .det { max-height: 240px; }
+    .acc .det .in { padding: 4px 14px 13px 55px; }
+    .acc .det .row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 4px 0; border-top: 1px dashed var(--hair); }
+    .acc .det .row:first-child { border-top: 0; }
+    .acc .det .row .rk { color: var(--tx3); }
+    .acc .det .row .rv { color: var(--tx1); font-weight: 600; text-align: right; }
 
-    .obs-box { font-size: 13px; color: var(--tx2); background: #f7faf7; border: 1px solid var(--hair); border-radius: 12px; padding: 13px 15px; }
+    /* Receituário */
+    .rx { margin-top: 20px; }
+    .rx .cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 9px; border-bottom: 2px solid var(--vd-soft); margin-bottom: 12px; }
+    .rx .cab .t { font-size: 13.5px; font-weight: 750; color: var(--vd-deep); }
+    .rx .cab .u { font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; color: var(--vd); background: var(--vd-soft); padding: 3px 9px; border-radius: 6px; }
+    .med { display: flex; gap: 11px; padding: 11px 0; border-bottom: 1px solid var(--hair); }
+    .med:last-child { border-bottom: 0; }
+    .med .n { width: 24px; height: 24px; border-radius: 7px; background: var(--vd); color: #fff; font-size: 12.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .med .c { flex: 1; min-width: 0; }
+    .med .c .nome { font-size: 14.5px; font-weight: 650; color: var(--tx1); }
+    .med .c .pos { font-size: 12.5px; color: var(--tx2); margin-top: 3px; }
+    .med .c .obs { font-size: 12px; color: var(--tx3); font-style: italic; margin-top: 2px; }
 
-    .selo { display: flex; align-items: flex-start; gap: 11px; padding: 13px 15px; border-radius: 12px; font-size: 12.5px; line-height: 1.5; }
-    .selo i { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
-    .selo.ok { background: rgba(79,122,94,0.09); color: var(--vd-deep); border: 1px solid rgba(79,122,94,0.25); }
-    .selo.warn { background: rgba(184,132,31,0.09); color: var(--amber); border: 1px solid rgba(184,132,31,0.26); }
-    .selo.bad { background: rgba(192,57,43,0.07); color: var(--red); border: 1px solid rgba(192,57,43,0.22); }
-    .hash { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 10px; color: var(--tx3); word-break: break-all; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--hair); }
+    .obs-box { font-size: 13px; color: var(--tx2); background: #f8faf8; border: 1px solid var(--hair); border-radius: 10px; padding: 12px 14px; margin-top: 14px; }
+    .obs-box .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx3); font-weight: 700; margin-bottom: 5px; }
 
-    .rodape { text-align: center; font-size: 11px; color: var(--tx3); margin-top: 24px; line-height: 1.7; }
-    .rodape img { height: 16px; opacity: 0.55; vertical-align: middle; margin-bottom: 2px; }
+    /* Área da farmácia */
+    .farm { margin-top: 22px; border: 1px solid var(--hair); border-radius: 12px; overflow: hidden; }
+    .farm .fh { background: #f6f9f6; padding: 9px 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; color: var(--vd-deep); border-bottom: 1px solid var(--hair); display: flex; align-items: center; gap: 7px; }
+    .farm .fb { padding: 15px; }
+    .valid { display: flex; align-items: center; gap: 12px; }
+    .valid .vi { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .valid .vi i { font-size: 24px; }
+    .valid.ok .vi { background: var(--vd-soft); color: var(--vd); }
+    .valid.exp .vi { background: rgba(192,57,43,0.10); color: var(--red); }
+    .valid .vt { font-size: 15px; font-weight: 750; }
+    .valid.ok .vt { color: var(--vd-deep); }
+    .valid.exp .vt { color: var(--red); }
+    .valid .vd { font-size: 12.5px; color: var(--tx2); margin-top: 1px; }
 
-    .loading { text-align: center; padding: 56px 0; color: var(--tx3); }
-    .loading i { font-size: 32px; animation: spin 1s linear infinite; color: var(--sage); }
-    .loading .skel { font-size: 13px; margin-top: 14px; }
+    .siginfo { margin-top: 13px; padding-top: 13px; border-top: 1px dashed var(--hair); font-size: 12.5px; color: var(--tx2); line-height: 1.6; display: flex; gap: 9px; }
+    .siginfo i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .siginfo.ok i { color: var(--vd); }
+    .siginfo.warn i { color: var(--amber); }
+    .siginfo.bad i { color: var(--red); }
+    .siginfo b { color: var(--tx1); }
+
+    .btn-dl { margin-top: 15px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 14px; background: var(--vd); color: #fff; border: 0; border-radius: 11px; font-size: 14.5px; font-weight: 700; text-decoration: none; cursor: pointer; box-shadow: 0 8px 20px rgba(46,125,83,0.28); transition: filter .15s, transform .1s; }
+    .btn-dl:hover { filter: brightness(1.05); }
+    .btn-dl:active { transform: translateY(1px); }
+    .btn-dl i { font-size: 19px; }
+
+    .hash { font-family: ui-monospace, 'Cascadia Code', monospace; font-size: 9.5px; color: var(--tx3); word-break: break-all; margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--hair); line-height: 1.6; }
+    .rodape { text-align: center; font-size: 11px; color: var(--tx3); margin-top: 18px; line-height: 1.7; }
+
+    /* Estados vazios / busca por chave */
+    .loading { text-align: center; padding: 54px 0; color: var(--tx3); }
+    .loading i { font-size: 30px; animation: spin 1s linear infinite; color: var(--vd); }
+    .loading .skel { font-size: 13px; margin-top: 13px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .empty { text-align: center; padding: 30px 22px 34px; }
+    .empty .ei { width: 66px; height: 66px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+    .empty .ei i { font-size: 34px; }
+    .empty.neutro .ei { background: #eef1ef; color: #8b988f; }
+    .empty.bad .ei { background: rgba(192,57,43,0.10); color: var(--red); }
+    .empty h2 { font-size: 18px; font-weight: 750; }
+    .empty p { font-size: 13.5px; color: var(--tx2); margin-top: 7px; }
+    .keyform { margin-top: 18px; display: flex; gap: 8px; }
+    .keyform input { flex: 1; padding: 12px 14px; border: 1.5px solid var(--hair); border-radius: 10px; font: inherit; font-size: 16px; letter-spacing: 2px; text-transform: uppercase; text-align: center; }
+    .keyform input:focus { outline: none; border-color: var(--vd); }
+    .keyform button { padding: 0 18px; background: var(--vd); color: #fff; border: 0; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; }
 
     @media (max-width: 440px) {
-      .banner .t { font-size: 19px; }
-      .corpo { padding: 20px 18px 22px; }
-      .banner { padding: 28px 18px 24px; }
+      .grid2 { grid-template-columns: 1fr; }
+      .body { padding: 18px 15px 20px; }
+      .titrow h1 { font-size: 17px; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="brand">
-      <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'">
-      <div class="tag"><i class="ti ti-shield-lock"></i> Verificação de autenticidade</div>
-    </div>
     <div id="alvo">
-      <div class="loading"><i class="ti ti-loader-2"></i><div class="skel">Verificando autenticidade…</div></div>
+      <div class="card"><div class="loading"><i class="ti ti-loader-2"></i><div class="skel">Carregando receita…</div></div></div>
     </div>
     <div class="rodape">
-      <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'"><br>
-      Página oficial de verificação de receitas do Sistema Clínico Aplic &amp; Go.<br>
+      Página oficial de verificação de receitas · Aplic &amp; Go<br>
       Em caso de dúvida sobre a validade legal, contate a clínica emissora.
     </div>
   </div>
 
   <script>
     const API_BASE = 'https://srv.aplicgo.com';
-    const TIPO = { BRANCA_COMUM: 'Receituário (branca comum)', BRANCA_CONTROLADA: 'Receituário de Controle Especial', AZUL_CONTROLADA: 'Receituário Azul (B)', ATESTADO: 'Atestado' };
+    const TIPO = { BRANCA_COMUM: 'Receituário Simples', BRANCA_CONTROLADA: 'Receituário de Controle Especial', AZUL_CONTROLADA: 'Receituário B (Azul)', ATESTADO: 'Atestado' };
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const fmtData = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString('pt-BR'); };
-    const fmtDataCurta = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleDateString('pt-BR'); };
+    const fmtDataHora = (iso) => { if (!iso) return '—'; const d = new Date(iso); if (isNaN(d)) return esc(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
+    const fmtData = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleDateString('pt-BR'); };
 
     function getToken() {
       const u = new URLSearchParams(location.search);
-      return u.get('t') || u.get('token') || location.hash.replace(/^#\/?/, '') || '';
+      return u.get('t') || u.get('token') || u.get('c') || location.hash.replace(/^#\/?/, '') || '';
     }
 
-    function banner(cls, icon, titulo, desc) {
-      return `<div class="banner ${cls}"><div class="ring"><i class="ti ${icon}"></i></div><div class="t">${titulo}</div>${desc ? `<div class="d">${desc}</div>` : ''}</div>`;
+    function headerHtml() {
+      return `<div class="head">
+        <div class="logo"><img src="logo.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'ti ti-heartbeat'}))"></div>
+        <div><div class="nm">Aplic &amp; Go</div><div class="sb">Emagrecimento · Performance · Longevidade</div></div>
+      </div>`;
+    }
+
+    function emptyCard(cls, icon, titulo, desc, comBusca) {
+      return `<div class="card">${headerHtml()}
+        <div class="empty ${cls}">
+          <div class="ei"><i class="ti ${icon}"></i></div>
+          <h2>${titulo}</h2><p>${desc}</p>
+          ${comBusca ? `<form class="keyform" onsubmit="return irChave(event)">
+            <input id="chave" maxlength="6" placeholder="Chave de acesso" autocomplete="off">
+            <button type="submit">Abrir</button>
+          </form>` : ''}
+        </div>
+      </div>`;
+    }
+    function irChave(ev) {
+      ev.preventDefault();
+      const v = (document.getElementById('chave').value || '').trim().toUpperCase();
+      if (v) location.href = location.pathname + '?t=' + encodeURIComponent(v);
+      return false;
     }
 
     function render(r) {
       const alvo = document.getElementById('alvo');
-      if (!r || !r.ok) {
-        alvo.innerHTML = `<div class="card">${banner('neutro', 'ti-cloud-off', 'Não foi possível verificar', 'Tente novamente em instantes.')}</div>`;
-        return;
-      }
-      if (!r.encontrada) {
-        alvo.innerHTML = `<div class="card">${banner('neutro', 'ti-search-off', 'Receita não encontrada', 'O código pode estar incorreto ou a receita foi removida.')}</div>`;
-        return;
-      }
+      if (!r || !r.ok) { alvo.innerHTML = emptyCard('neutro', 'ti-cloud-off', 'Não foi possível verificar', 'Tente novamente em instantes.', false); return; }
+      if (!r.encontrada) { alvo.innerHTML = emptyCard('neutro', 'ti-search-off', 'Receita não encontrada', 'Confira o código ou digite a chave de acesso impressa na receita.', true); return; }
+
       const c = r.conteudo || {};
       const sig = r.assinatura || {};
       const integro = r.hash_confere;
-      const assinada = sig.valida;
+      const val = r.validade || {};
 
-      let bn;
-      if (!integro) {
-        bn = banner('bad', 'ti-alert-triangle', 'Conteúdo adulterado', 'O conteúdo não confere com o registro original. Não aceite.');
-      } else if (assinada) {
-        bn = banner('ok', 'ti-rosette-discount-check', 'Receita autêntica', 'Assinatura digital Aplic verificada.');
-      } else {
-        bn = banner('warn', 'ti-shield-check', 'Conteúdo íntegro', 'Sem assinatura criptográfica — confere a integridade do conteúdo.');
-      }
+      // Chip de autenticidade (canto do título)
+      let chip;
+      if (!integro) chip = `<span class="chip bad"><i class="ti ti-alert-triangle"></i> Adulterada</span>`;
+      else if (sig.icp) chip = `<span class="chip ok"><i class="ti ti-rosette-discount-check"></i> Assinada ICP-Brasil</span>`;
+      else if (sig.valida) chip = `<span class="chip ok"><i class="ti ti-shield-check"></i> Autêntica</span>`;
+      else chip = `<span class="chip warn"><i class="ti ti-shield-half"></i> Íntegra</span>`;
 
-      const itens = (c.itens || []).map((i) => `
+      // Receituário
+      const uso = c.tipo === 'ATESTADO' ? '' : `<span class="u">USO ORAL / CONFORME PRESCRITO</span>`;
+      const itens = (c.itens || []).map((i, n) => `
         <div class="med">
-          <div class="nome">${esc(i.medicamento)}${i.dose ? ' — ' + esc(i.dose) : ''}</div>
-          ${(i.frequencia || i.duracao) ? `<div class="uso">${[i.frequencia, i.duracao].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
-          ${i.observacoes ? `<div class="obs">${esc(i.observacoes)}</div>` : ''}
-        </div>`).join('') || '<div class="med"><div class="uso">Sem itens.</div></div>';
+          <div class="n">${n + 1}</div>
+          <div class="c">
+            <div class="nome">${esc(i.medicamento)}${i.dose ? ' — ' + esc(i.dose) : ''}</div>
+            ${(i.frequencia || i.duracao) ? `<div class="pos">${[i.frequencia, i.duracao].filter(Boolean).map(esc).join(' · ')}</div>` : ''}
+            ${i.observacoes ? `<div class="obs">${esc(i.observacoes)}</div>` : ''}
+          </div>
+        </div>`).join('') || `<div class="med"><div class="c"><div class="pos">Sem itens.</div></div></div>`;
 
-      let selo;
-      if (assinada) {
-        selo = `<div class="selo ok"><i class="ti ti-certificate"></i><div><strong>Assinatura digital Aplic</strong> — verificada criptograficamente (Ed25519). O documento não foi alterado desde a emissão.</div></div>`;
-      } else if (integro) {
-        selo = `<div class="selo warn"><i class="ti ti-shield-half"></i><div>O conteúdo confere com o registro, mas <strong>sem assinatura criptográfica</strong>. Para validade legal de medicamentos controlados, exija assinatura ICP-Brasil.</div></div>`;
+      // Área da farmácia — validade
+      let validEl;
+      if (val.valida_ate == null) {
+        validEl = `<div class="valid ok"><div class="vi"><i class="ti ti-file-check"></i></div><div><div class="vt">Documento válido</div><div class="vd">Sem prazo de dispensação aplicável.</div></div></div>`;
+      } else if (val.expirada) {
+        validEl = `<div class="valid exp"><div class="vi"><i class="ti ti-clock-x"></i></div><div><div class="vt">Receita expirada</div><div class="vd">Validade para dispensação: ${val.dias} dias · venceu em ${fmtData(val.valida_ate)}.</div></div></div>`;
       } else {
-        selo = `<div class="selo bad"><i class="ti ti-x"></i><div>Verificação falhou — não confie neste documento.</div></div>`;
+        validEl = `<div class="valid ok"><div class="vi"><i class="ti ti-clock-check"></i></div><div><div class="vt">Receita válida</div><div class="vd">Válida para dispensação até ${fmtData(val.valida_ate)} (${val.dias} dias).</div></div></div>`;
       }
+
+      // Linha de assinatura (honesta)
+      let sigEl;
+      if (!integro) {
+        sigEl = `<div class="siginfo bad"><i class="ti ti-x"></i><div>Verificação de integridade <b>falhou</b>. O conteúdo não confere com o registro original — <b>não dispense</b>.</div></div>`;
+      } else if (sig.icp) {
+        sigEl = `<div class="siginfo ok"><i class="ti ti-certificate-2"></i><div>Assinada digitalmente em <b>ICP-Brasil</b>${sig.icp_assinante ? ' por <b>' + esc(sig.icp_assinante) + '</b>' : ''}. Baixe o PDF e valide também em <b>validar.iti.gov.br</b>.</div></div>`;
+      } else if (sig.valida) {
+        sigEl = `<div class="siginfo ok"><i class="ti ti-shield-check"></i><div>Conteúdo íntegro e com <b>assinatura digital Aplic</b> (Ed25519) verificada.</div></div>`;
+      } else {
+        sigEl = `<div class="siginfo warn"><i class="ti ti-shield-half"></i><div>Conteúdo íntegro, mas <b>sem assinatura criptográfica</b>. Para medicamentos controlados, exija assinatura ICP-Brasil.</div></div>`;
+      }
+
+      const dlUrl = API_BASE + (r.pdf_url || ('/api/verificar/' + encodeURIComponent(r.token) + '/receita.pdf'));
 
       alvo.innerHTML = `
         <div class="card">
-          ${bn}
-          <div class="corpo">
-            <div class="sec-tit">${esc(TIPO[c.tipo] || 'Receituário')}</div>
-            <div class="linha"><span class="k">Paciente</span><span class="v">${esc(c.paciente && c.paciente.nome || '—')}${c.paciente && c.paciente.codigo ? ' (' + esc(c.paciente.codigo) + ')' : ''}</span></div>
-            <div class="linha"><span class="k">Profissional</span><span class="v">${esc(c.profissional && c.profissional.nome || r.assinante || '—')}</span></div>
-            <div class="linha"><span class="k">Emitida em</span><span class="v">${fmtDataCurta(c.data)}</span></div>
-            <div class="linha"><span class="k">Assinada em</span><span class="v">${fmtData(r.criado_em)}</span></div>
+          ${headerHtml()}
+          <div class="body">
+            <div class="titrow"><h1>Receita Digital</h1>${chip}</div>
 
-            <div class="bloco">
-              <div class="sec-tit">${c.tipo === 'ATESTADO' ? 'Atestado' : 'Medicamentos'}</div>
+            <div class="grid2">
+              <div class="fld"><div class="k">Código da receita</div><div class="v mono">${esc(r.chave || (r.token || '').slice(0, 6).toUpperCase())}</div></div>
+              <div class="fld"><div class="k">Data</div><div class="v">${fmtDataHora(c.data || r.criado_em)}</div></div>
+            </div>
+
+            <div class="acc" id="accPac">
+              <button type="button" onclick="document.getElementById('accPac').classList.toggle('open')">
+                <span class="ico"><i class="ti ti-user"></i></span>
+                <span class="lbl"><span class="k">Paciente</span><span class="v">${esc(c.paciente && c.paciente.nome || '—')}</span></span>
+                <i class="ti ti-chevron-down caret"></i>
+              </button>
+              <div class="det"><div class="in">
+                <div class="row"><span class="rk">Nome</span><span class="rv">${esc(c.paciente && c.paciente.nome || '—')}</span></div>
+                ${c.paciente && c.paciente.codigo ? `<div class="row"><span class="rk">Código do paciente</span><span class="rv">${esc(c.paciente.codigo)}</span></div>` : ''}
+              </div></div>
+            </div>
+
+            <div class="acc" id="accProf">
+              <button type="button" onclick="document.getElementById('accProf').classList.toggle('open')">
+                <span class="ico"><i class="ti ti-stethoscope"></i></span>
+                <span class="lbl"><span class="k">Profissional</span><span class="v">${esc(c.profissional && c.profissional.nome || r.assinante || '—')}${r.crm ? ' (' + esc(r.crm) + ')' : ''}</span></span>
+                <i class="ti ti-chevron-down caret"></i>
+              </button>
+              <div class="det"><div class="in">
+                <div class="row"><span class="rk">Nome</span><span class="rv">${esc(c.profissional && c.profissional.nome || '—')}</span></div>
+                ${r.crm ? `<div class="row"><span class="rk">Registro</span><span class="rv">${esc(r.crm)}</span></div>` : ''}
+                ${sig.icp_em ? `<div class="row"><span class="rk">Assinado em</span><span class="rv">${fmtDataHora(sig.icp_em)}</span></div>` : ''}
+                ${r.clinica && r.clinica.cnpj ? `<div class="row"><span class="rk">CNPJ</span><span class="rv">${esc(r.clinica.cnpj)}</span></div>` : ''}
+              </div></div>
+            </div>
+
+            <div class="rx">
+              <div class="cab"><span class="t">${esc(TIPO[c.tipo] || 'Receituário')}</span>${uso}</div>
               ${itens}
             </div>
 
-            ${c.observacoes ? `<div class="bloco"><div class="sec-tit">Observações</div><div class="obs-box">${esc(c.observacoes)}</div></div>` : ''}
+            ${c.observacoes ? `<div class="obs-box"><div class="k">Observações</div>${esc(c.observacoes)}</div>` : ''}
 
-            <div class="bloco">
-              <div class="sec-tit">Autenticidade</div>
-              ${selo}
-              <div class="hash">SHA-256: ${esc(r.hash)}</div>
+            <div class="farm">
+              <div class="fh"><i class="ti ti-building-store"></i> Área da farmácia</div>
+              <div class="fb">
+                ${validEl}
+                ${sigEl}
+                <a class="btn-dl" href="${dlUrl}" target="_blank" rel="noopener"><i class="ti ti-download"></i> Baixar receita</a>
+              </div>
             </div>
+
+            <div class="hash">Verificação de integridade (SHA-256):<br>${esc(r.hash || '—')}</div>
           </div>
         </div>`;
+
+      // Abre o paciente por padrão (como no print)
+      const ap = document.getElementById('accPac'); if (ap) ap.classList.add('open');
     }
 
     (async () => {
@@ -202,9 +307,7 @@
         let data = null;
         try { data = await resp.json(); } catch (e) { data = null; }
         render(data || { ok: false });
-      } catch (e) {
-        render({ ok: false });
-      }
+      } catch (e) { render({ ok: false }); }
     })();
   </script>
 </body>
