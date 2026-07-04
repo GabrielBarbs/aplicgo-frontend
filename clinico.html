@@ -2784,6 +2784,75 @@
     .ci-msg.mine .bolha { background:rgba(29,158,117,0.18); border-color:rgba(29,158,117,0.4); color:#eafff5; }
     .ci-msg .hora { font-size:9px; color:var(--tx4); margin-top:2px; padding:0 4px; }
     .ci-msg.mine .hora { text-align:right; }
+
+    /* ===== Mídia nas bolhas (áudio/imagem/vídeo/documento) ===== */
+    .wa-audio { display:flex; align-items:center; gap:9px; min-width:170px; }
+    .wa-audio-play { width:34px; height:34px; border-radius:50%; border:0; background:#1D9E75; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+    .wa-audio-play:hover { filter:brightness(1.1); }
+    .wa-audio-lbl { font-size:12px; color:var(--tx2); display:flex; align-items:center; gap:5px; }
+    .wa-media-btn { background:rgba(var(--bg3-rgb),0.6); border:1px solid var(--bd1); color:var(--tx2); border-radius:8px; padding:7px 11px; font:inherit; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+    .wa-media-btn:hover { border-color:var(--ac); color:var(--tx1); }
+    .wa-media-load { font-size:11.5px; color:var(--tx3b); padding:6px 4px; }
+    .wa-dia { display:flex; justify-content:center; margin:10px 0 6px; }
+    .wa-dia span { font-size:10.5px; color:var(--tx3b); background:rgba(var(--bg3-rgb),0.55); border:1px solid var(--hair); border-radius:999px; padding:3px 12px; letter-spacing:.3px; }
+
+    /* ===== Página "Conversas" (view WhatsApp, estilo Clint: 2 painéis) ===== */
+    .wv-tabs { display:flex; gap:8px; margin-bottom:12px; }
+    .wv-tab { background:rgba(var(--bg3-rgb),0.4); border:1px solid var(--bg3); color:var(--tx2); border-radius:10px; padding:8px 16px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+    .wv-tab.ativo { background:var(--ac); border-color:var(--ac); color:#fff; }
+    .wv-chat { display:flex; gap:0; height:calc(100vh - 170px); min-height:420px; background:var(--bg2); border:1px solid var(--card-bd); border-radius:16px; overflow:hidden; }
+    .wv-lista-pane { width:330px; min-width:260px; border-right:1px solid var(--hair); display:flex; flex-direction:column; background:var(--bg1); }
+    .wv-busca { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--hair); }
+    .wv-busca i { color:var(--tx3b); font-size:15px; }
+    .wv-busca input { flex:1; background:rgba(var(--bg3-rgb),0.4); border:1px solid var(--bg3); border-radius:9px; color:var(--tx1); font:inherit; font-size:12.5px; padding:8px 11px; }
+    .wv-busca input:focus { outline:none; border-color:var(--ac); }
+    .wv-banner { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--tx2); padding:9px 12px; border-bottom:1px solid var(--hair); background:rgba(240,133,127,.06); }
+    .wv-convs { flex:1; overflow-y:auto; }
+    .wv-vazio { padding:26px 16px; text-align:center; font-size:12.5px; color:var(--tx3b); }
+    .wv-vazio i { display:block; font-size:20px; margin-bottom:6px; }
+    .wv-conv { display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--hair); transition:background .12s; }
+    .wv-conv:hover { background:rgba(var(--bg3-rgb),0.4); }
+    .wv-conv.ativa { background:rgba(var(--ac-rgb),0.10); box-shadow:inset 3px 0 0 var(--ac); }
+    .wv-av, .wv-av-img { width:42px; height:42px; border-radius:50%; flex-shrink:0; }
+    .wv-av { background:#25D36622; color:#25D366; border:1px solid #25D36655; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; }
+    .wv-av-img { object-fit:cover; }
+    .wv-conv-info { flex:1; min-width:0; }
+    .wv-conv-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .wv-conv-top .nm { font-size:13px; font-weight:600; color:var(--tx1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .wv-conv-top .hr { font-size:10px; color:var(--tx3b); white-space:nowrap; }
+    .wv-conv-bot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px; }
+    .wv-conv-bot .prev { font-size:11.5px; color:var(--tx3b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .wv-badge { background:#25D366; color:#06281a; font-size:10px; font-weight:800; border-radius:999px; min-width:19px; height:19px; display:inline-flex; align-items:center; justify-content:center; padding:0 6px; flex-shrink:0; }
+    .wv-thread-pane { flex:1; min-width:0; display:flex; flex-direction:column; }
+    .wv-thread-vazio { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--tx4); font-size:13px; }
+    .wv-thread-vazio i { font-size:44px; color:rgba(37,211,102,.35); }
+    .wv-thread { flex:1; display:flex; flex-direction:column; min-height:0; }
+    .wv-head { display:flex; align-items:center; gap:11px; padding:10px 16px; border-bottom:1px solid var(--hair); background:rgba(var(--bg3-rgb),0.25); }
+    .wv-head-nm { font-size:13.5px; font-weight:650; color:var(--tx1); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .wv-head-sub { font-size:11px; color:var(--tx3b); }
+    .wv-msgs { flex:1; overflow-y:auto; padding:14px 18px; display:flex; flex-direction:column; gap:6px; }
+    .wv-composer { display:flex; align-items:flex-end; gap:9px; padding:10px 14px; border-top:1px solid var(--hair); }
+    .wv-composer textarea { flex:1; background:rgba(var(--bg3-rgb),0.4); border:1px solid var(--bg3); border-radius:11px; color:var(--tx1); font:inherit; font-size:13px; padding:10px 13px; resize:none; max-height:120px; line-height:1.4; }
+    .wv-composer textarea:focus { outline:none; border-color:var(--ac); }
+    .wv-send { width:40px; height:40px; border-radius:50%; border:0; background:#1D9E75; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .wv-send:hover { filter:brightness(1.1); }
+    .wv-send:disabled { opacity:.5; cursor:default; }
+    .wv-clip { width:38px; height:38px; border-radius:50%; border:1px solid var(--bd1); background:transparent; color:var(--tx3); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .wv-clip:hover { color:var(--tx1); border-color:var(--ac); }
+    .wv-clip:disabled { opacity:.4; cursor:default; }
+    .wv-nova-btn { width:34px; height:34px; border-radius:9px; border:1px solid var(--bg3); background:rgba(var(--bg3-rgb),0.4); color:var(--tx2); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .wv-nova-btn:hover { background:var(--ac); border-color:var(--ac); color:#fff; }
+    .wv-nova { border-bottom:1px solid var(--hair); background:rgba(var(--ac-rgb),0.05); padding:10px 12px; }
+    .wv-nova input { width:100%; background:rgba(var(--bg3-rgb),0.4); border:1px solid var(--bg3); border-radius:9px; color:var(--tx1); font:inherit; font-size:12.5px; padding:8px 11px; }
+    .wv-nova input:focus { outline:none; border-color:var(--ac); }
+    #wv-nova-res { max-height:230px; overflow-y:auto; margin-top:6px; }
+    @media (max-width: 900px) {
+      /* altura CONTIDA no mobile: sem ela o scroll interno morre e o composer vai pro fim da página */
+      .wv-chat { flex-direction:column; height:calc(100dvh - 150px); }
+      .wv-lista-pane { width:100%; max-height:38%; border-right:0; border-bottom:1px solid var(--hair); }
+      .wv-thread-pane { flex:1; min-height:0; }
+    }
+    .ci-msg.mine .hora { text-align:right; }
     .ci-msg .autor { font-size:10px; color:var(--tx3b); font-weight:500; margin:0 0 2px 4px; }
     .ci-input-bar { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--bd1); align-items:flex-end; }
     .ci-input-bar textarea { flex:1; background:var(--bg2); border:1px solid var(--bd1); border-radius:10px; padding:9px 12px; color:var(--tx1); font-size:13px; resize:none; max-height:120px; font-family:inherit; }
@@ -5575,6 +5644,9 @@
       <button class="sidebar-item" data-view="pendencias" data-perm="onboarding.ver_pendencias">
         <i class="ti ti-alert-square"></i> Pendências
       </button>
+      <button class="sidebar-item" data-view="whatsapp">
+        <i class="ti ti-brand-whatsapp"></i> WhatsApp
+      </button>
     </div>
 
     <div class="sidebar-group" data-grupo-clinico>
@@ -5599,9 +5671,6 @@
 
     <div class="sidebar-group" data-grupo-sistema>
       <div class="sidebar-group-label"><i class="ti ti-settings"></i> Sistema</div>
-      <button class="sidebar-item" data-view="whatsapp" data-perm="whatsapp.gerenciar">
-        <i class="ti ti-brand-whatsapp"></i> WhatsApp
-      </button>
       <button class="sidebar-item" data-view="auditoria" data-perm="admin.ver_auditoria">
         <i class="ti ti-shield-check"></i> Auditoria
       </button>
@@ -6549,16 +6618,60 @@
 
   <!-- VIEW: WhatsApp (dispositivos / canais) -->
   <div class="view" id="view-whatsapp">
-    <div class="dev-toolbar">
-      <div class="dev-info">
-        <strong>Dispositivos WhatsApp:</strong> conecte um ou vários números por QR code. Conectou, já fica disponível. Trocou de celular? Só reconectar e ler de novo.
-      </div>
-      <div class="dev-acoes">
-        <button class="pac-btn-secondary" onclick="wdCarregar()" title="Atualizar"><i class="ti ti-refresh"></i> Atualizar</button>
-      </div>
+    <!-- Abas: Conversas (chat estilo Clint) | Aparelhos (gestão de números) -->
+    <div class="wv-tabs">
+      <button class="wv-tab ativo" id="wv-tab-conv" onclick="wvTab('conv')"><i class="ti ti-messages"></i> Conversas</button>
+      <button class="wv-tab" id="wv-tab-disp" onclick="wvTab('disp')"><i class="ti ti-device-mobile"></i> Aparelhos</button>
     </div>
-    <div id="wd-body" style="max-width: 780px;">
-      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando dispositivos...</div>
+
+    <!-- ===== CHAT (2 painéis) ===== -->
+    <div class="wv-chat" id="wv-chat">
+      <aside class="wv-lista-pane">
+        <div class="wv-busca">
+          <i class="ti ti-search"></i>
+          <input type="text" id="wv-busca-input" placeholder="Buscar por nome ou telefone…" oninput="wvBusca(this.value)">
+          <button class="wv-nova-btn" onclick="wvNovaToggle()" title="Nova conversa com paciente"><i class="ti ti-plus"></i></button>
+        </div>
+        <div class="wv-nova" id="wv-nova" style="display:none;">
+          <input type="text" id="wv-nova-input" placeholder="Paciente: nome, código ou telefone…" oninput="wvNovaBusca(this.value)">
+          <div id="wv-nova-res"></div>
+        </div>
+        <div class="wv-banner" id="wv-banner" style="display:none;"></div>
+        <div class="wv-convs" id="wv-convs">
+          <div class="wv-vazio"><i class="ti ti-loader"></i> Carregando conversas…</div>
+        </div>
+      </aside>
+      <section class="wv-thread-pane">
+        <div class="wv-thread-vazio" id="wv-thread-vazio">
+          <i class="ti ti-brand-whatsapp"></i>
+          <div>Selecione uma conversa ao lado</div>
+        </div>
+        <div class="wv-thread" id="wv-thread" style="display:none;">
+          <header class="wv-head" id="wv-head"></header>
+          <div class="wv-msgs" id="wv-msgs"></div>
+          <div class="wv-composer">
+            <button class="wv-clip" id="wv-clip" onclick="wvAnexarClique()" title="Anexar imagem ou PDF"><i class="ti ti-paperclip"></i></button>
+            <input type="file" id="wv-file" accept="image/*,application/pdf" style="display:none;" onchange="wvAnexarArquivo(this)">
+            <textarea id="wv-input" rows="1" placeholder="Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)" onkeydown="wvInputKey(event)" oninput="wvAutoGrow(this)"></textarea>
+            <button class="wv-send" id="wv-send" onclick="wvEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== APARELHOS (gestão, era a view inteira) ===== -->
+    <div id="wv-disp" style="display:none;">
+      <div class="dev-toolbar">
+        <div class="dev-info">
+          <strong>Dispositivos WhatsApp:</strong> conecte um ou vários números por QR code. Conectou, já fica disponível. Trocou de celular? Só reconectar e ler de novo.
+        </div>
+        <div class="dev-acoes">
+          <button class="pac-btn-secondary" onclick="wdCarregar()" title="Atualizar"><i class="ti ti-refresh"></i> Atualizar</button>
+        </div>
+      </div>
+      <div id="wd-body" style="max-width: 780px;">
+        <div class="pac-empty"><i class="ti ti-loader"></i>Carregando dispositivos...</div>
+      </div>
     </div>
   </div>
 
@@ -9910,7 +10023,7 @@ const VIEW_TITLES = {
   prontuario: { titulo: 'Prontuário', sub: 'Evoluções multiprofissionais' },
   aplicacoes: { titulo: 'Aplicações', sub: 'Injetáveis e bioimpedância' },
   estoque: { titulo: 'Estoque', sub: 'Produtos, lotes e validades' },
-  whatsapp: { titulo: 'WhatsApp', sub: 'Dispositivos e conexão' },
+  whatsapp: { titulo: 'WhatsApp', sub: 'Conversas e aparelhos' },
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
   financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
@@ -11987,6 +12100,171 @@ function ligarParaPaciente(telefone) {
   window.location.href = 'tel:' + num;
 }
 
+// ============================================================
+// NÚCLEO COMPARTILHADO DO CHAT WHATSAPP (popup + página Conversas)
+// ============================================================
+// Trunca por PONTO DE CÓDIGO (nunca corta emoji no meio -> era o "emoji bugado")
+function waTrunc(s, n) {
+  const arr = Array.from(String(s == null ? '' : s));
+  return arr.length > n ? arr.slice(0, n).join('') + '…' : arr.join('');
+}
+// Inicial segura (nome começando com emoji não vira caractere quebrado)
+function waIni(nome) {
+  const ch = Array.from(String(nome || '?').trim())[0] || '?';
+  return /[a-zà-ú0-9]/i.test(ch) ? ch.toUpperCase() : ch;
+}
+function waDur(seg) {
+  if (!seg && seg !== 0) return '';
+  const m = Math.floor(seg / 60), s = String(Math.round(seg % 60)).padStart(2, '0');
+  return m + ':' + s;
+}
+// Ícone de preview por tipo (pra lista)
+function waPreviewTxt(c) {
+  return c.ultima ? String(c.ultima) : (c.numero ? wdFmtTel(c.numero) : '');
+}
+// ---- Mídia: cache LRU + carregamento sob demanda ----
+const waMediaCache = new Map(); // msgId -> dataURL (LRU, cap 30 — áudio/imagem)
+const WA_MEDIA_CACHE_MAX = 30;
+// mime só passa se tiver formato de mime DE VERDADE (vem do remetente — sem
+// sanitizar seria injeção dentro do data: URL)
+function waMimeSeguro(m, fallback) {
+  const s = String(m || '').trim();
+  return /^[\w.+-]+\/[\w.+-]+(;\s*codecs=[\w.+\-,= ]+)?$/i.test(s) ? s : (fallback || 'application/octet-stream');
+}
+async function waMediaFetch(jid, msgId, mimeHint, semCache) {
+  if (waMediaCache.has(msgId)) { const v = waMediaCache.get(msgId); waMediaCache.delete(msgId); waMediaCache.set(msgId, v); return v; }
+  let r = null;
+  try {
+    r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/media/' + encodeURIComponent(msgId));
+  } catch (e) { return null; }
+  if (!(r && r.ok && r.data && r.data.base64)) return null;
+  const mime = waMimeSeguro(r.data.mimetype, waMimeSeguro(mimeHint, 'application/octet-stream'));
+  const b64 = String(r.data.base64).replace(/[^A-Za-z0-9+/=]/g, '');
+  const url = 'data:' + mime + ';base64,' + b64;
+  if (!semCache) {
+    waMediaCache.set(msgId, url);
+    while (waMediaCache.size > WA_MEDIA_CACHE_MAX) waMediaCache.delete(waMediaCache.keys().next().value);
+  }
+  return url;
+}
+// Player de áudio: busca a mídia e troca o placeholder pelo <audio> (e toca)
+async function waAudioCarregar(btn) {
+  const box = btn.closest('.wa-audio');
+  if (!box || box.dataset.carregando) return;
+  box.dataset.carregando = '1';
+  btn.innerHTML = '<i class="ti ti-loader-2"></i>';
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'audio/ogg; codecs=opus');
+  delete box.dataset.carregando;
+  if (!url) { btn.innerHTML = '<i class="ti ti-player-play"></i>'; if (typeof homeToast === 'function') homeToast('Não consegui baixar esse áudio — toque de novo pra tentar.'); return; }
+  box.innerHTML = '<audio controls autoplay style="height:34px; max-width:230px;"></audio>';
+  box.querySelector('audio').src = url;
+  box.dataset.pronta = '1'; // marca "mídia viva" pro re-render preservar
+}
+// Imagem: busca e mostra inline (clique amplia)
+async function waImgCarregar(el) {
+  const box = el.closest('.wa-img');
+  if (!box || box.dataset.carregando) return;
+  box.dataset.carregando = '1';
+  const anterior = box.innerHTML;
+  box.innerHTML = '<div class="wa-media-load"><i class="ti ti-loader-2"></i> carregando…</div>';
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'image/jpeg');
+  delete box.dataset.carregando;
+  if (!url) { box.innerHTML = anterior; if (typeof homeToast === 'function') homeToast('Imagem indisponível — tente de novo.'); return; }
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'max-width:230px; max-height:260px; border-radius:10px; display:block; cursor:zoom-in;';
+  img.onclick = function () { waImgAmpliar(url); };
+  box.innerHTML = ''; box.appendChild(img);
+  box.dataset.pronta = '1';
+}
+// Amplia num overlay próprio (sem document.write / sem popup bloqueável)
+function waImgAmpliar(src) {
+  let ov = document.getElementById('wa-img-zoom'); if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'wa-img-zoom';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10000;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+  const img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = 'max-width:94vw;max-height:94vh;border-radius:8px;';
+  ov.appendChild(img);
+  ov.onclick = function () { ov.remove(); };
+  document.body.appendChild(ov);
+}
+async function waVideoCarregar(el) {
+  const box = el.closest('.wa-video');
+  if (!box || box.dataset.carregando) return;
+  box.dataset.carregando = '1';
+  const anterior = box.innerHTML;
+  box.innerHTML = '<div class="wa-media-load"><i class="ti ti-loader-2"></i> carregando…</div>';
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'video/mp4', true); // vídeo não entra no cache (pesado)
+  delete box.dataset.carregando;
+  if (!url) { box.innerHTML = anterior; if (typeof homeToast === 'function') homeToast('Vídeo indisponível — tente de novo.'); return; }
+  box.innerHTML = '<video controls autoplay style="max-width:240px; max-height:280px; border-radius:10px;"></video>';
+  box.querySelector('video').src = url;
+  box.dataset.pronta = '1';
+}
+async function waDocBaixar(el) {
+  const box = el.closest('.wa-doc');
+  if (!box || box.dataset.carregando) return;
+  box.dataset.carregando = '1';
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'application/octet-stream', true);
+  delete box.dataset.carregando;
+  if (!url) { if (typeof homeToast === 'function') homeToast('Não consegui baixar o documento — tente de novo.'); return; }
+  const a = document.createElement('a');
+  a.href = url; a.download = box.dataset.nome || 'documento'; a.click();
+}
+// Re-render sem matar mídia em uso: transplanta os players/imagens já
+// carregados (data-pronta) de volta pros mesmos data-mid após o innerHTML.
+function waRenderPreservandoMidia(wrap, html) {
+  const vivas = new Map();
+  wrap.querySelectorAll('[data-mid][data-pronta]').forEach(function (el) { vivas.set(el.dataset.mid, el); });
+  wrap.innerHTML = html;
+  vivas.forEach(function (el, mid) {
+    const ph = wrap.querySelector('[data-mid="' + (window.CSS && CSS.escape ? CSS.escape(mid) : mid) + '"]');
+    if (ph) ph.replaceWith(el);
+  });
+}
+// Corpo da bolha por tipo de mensagem (compartilhado popup/página)
+function waBolhaCorpo(m, jid) {
+  const t = esc(m.texto || '').replace(/\n/g, '<br>');
+  const attr = 'data-jid="' + esc(jid) + '" data-mid="' + esc(m.id || '') + '" data-mime="' + esc(m.mime || '') + '"';
+  if (m.tipo === 'audio' && m.id) {
+    return '<div class="wa-audio" ' + attr + '><button class="wa-audio-play" onclick="waAudioCarregar(this)"><i class="ti ti-player-play"></i></button><span class="wa-audio-lbl"><i class="ti ti-microphone"></i> Áudio' + (m.dur ? ' · ' + waDur(m.dur) : '') + '</span></div>';
+  }
+  if (m.tipo === 'imagem' && m.id) {
+    return '<div class="wa-img" ' + attr + '><button class="wa-media-btn" onclick="waImgCarregar(this)"><i class="ti ti-photo"></i> Ver imagem</button></div>' + (t ? '<div style="margin-top:5px;">' + t + '</div>' : '');
+  }
+  if (m.tipo === 'sticker' && m.id) {
+    return '<div class="wa-img" ' + attr + ' data-mime="image/webp"><button class="wa-media-btn" onclick="waImgCarregar(this)"><i class="ti ti-sticker"></i> Ver figurinha</button></div>';
+  }
+  if (m.tipo === 'video' && m.id) {
+    return '<div class="wa-video" ' + attr + '><button class="wa-media-btn" onclick="waVideoCarregar(this)"><i class="ti ti-video"></i> Ver vídeo' + (m.dur ? ' · ' + waDur(m.dur) : '') + '</button></div>' + (t ? '<div style="margin-top:5px;">' + t + '</div>' : '');
+  }
+  if (m.tipo === 'documento' && m.id) {
+    return '<div class="wa-doc" ' + attr + ' data-nome="' + esc(m.arquivo || 'documento') + '"><button class="wa-media-btn" onclick="waDocBaixar(this)"><i class="ti ti-file-download"></i> ' + esc(waTrunc(m.arquivo || 'Documento', 34)) + '</button></div>';
+  }
+  return t || '<span style="opacity:.6;">[mensagem]</span>';
+}
+// Separador de data (Hoje / Ontem / 12 de junho)
+function waDiaLabel(iso) {
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const hoje = new Date(); const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
+  if (d.toDateString() === hoje.toDateString()) return 'Hoje';
+  if (d.toDateString() === ontem.toDateString()) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }) + (d.getFullYear() !== hoje.getFullYear() ? ' de ' + d.getFullYear() : '');
+}
+// Thread completa (bolhas + separadores) — usada pelo popup e pela página
+function waThreadHtml(msgs, jid) {
+  let html = '', diaAtual = '';
+  for (const m of msgs) {
+    const dia = new Date(m.data).toDateString();
+    if (dia !== diaAtual) { diaAtual = dia; html += '<div class="wa-dia"><span>' + waDiaLabel(m.data) + '</span></div>'; }
+    // ✓ simples = "enviada" (não afirmamos entrega/leitura — o Evolution não nos dá o ack aqui)
+    html += '<div class="ci-msg ' + (m.de_mim ? 'mine' : '') + '"><div class="bolha">' + waBolhaCorpo(m, jid) + '</div><div class="hora">' + (m.de_mim ? '<i class="ti ti-check" style="font-size:12px;vertical-align:-2px;"></i> ' : '') + ciFmtHora(m.data) + '</div></div>';
+  }
+  return html;
+}
+
 // ============== POPUP DE CHAT UNIFICADO (WhatsApp + Interno) ==============
 let cpState = {
   aberto: false, modo: 'whatsapp', vista: 'lista', filtro: '',
@@ -12073,18 +12351,19 @@ function chatPopRenderLista() {
     if (!lista.length) { wrap.innerHTML = '<div class="ci-loading">Nenhuma conversa ainda. Abra um paciente (na aba Pacientes) e mande a primeira mensagem.</div>'; return; }
     wrap.innerHTML = lista.map(c => {
       const nome = c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato');
-      const ini = String(nome || '?').charAt(0).toUpperCase();
+      const ini = waIni(nome);
       const tick = (c.ultima && c.ultima_de_mim) ? '<i class="ti ti-checks" style="font-size:13px; vertical-align:-2px; color:var(--tx3b);"></i> ' : '';
-      const txt = c.ultima ? String(c.ultima).replace(/</g, '&lt;') : (c.numero ? wdFmtTel(c.numero) : '');
-      const txtCap = txt.length > 46 ? txt.slice(0, 46) + '…' : txt;
+      // waTrunc: corta por ponto de código (emoji nunca quebra no meio)
+      const txtCap = esc(waTrunc(waPreviewTxt(c), 46));
       const prev = c.ultima ? (tick + txtCap) : ('<span style="color:var(--tx4);">' + txtCap + '</span>');
       const keyEsc = String(c.id).replace(/'/g, '');
       const nomeAttr = String(c.nome || '').replace(/'/g, '');
       const numAttr = String(c.numero || '');
+      const altAttr = String(c.jid_alt || '').replace(/'/g, '');
       const av = c.foto
         ? `<img src="${esc(c.foto)}" class="cp-av-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="ci-av cp-av-ini" style="display:none; background:#25D36622; color:#25D366; border-color:#25D36655;">${esc(ini)}</div>`
         : `<div class="ci-av cp-av-ini" style="background:#25D36622; color:#25D366; border-color:#25D36655;">${ini}</div>`;
-      return `<div class="ci-conv" onclick="cpAbrirConversaWa('${keyEsc}','${nomeAttr}','${numAttr}')">
+      return `<div class="ci-conv" onclick="cpAbrirConversaWa('${keyEsc}','${nomeAttr}','${numAttr}','${altAttr}')">
         <div class="cp-av">${av}<span class="cp-av-wa"><i class="ti ti-brand-whatsapp"></i></span></div>
         <div class="ci-conv-info">
           <div class="ci-conv-nome">${String(nome).replace(/</g, '&lt;')}</div>
@@ -12111,16 +12390,16 @@ function chatPopRenderLista() {
     const eqPrev = eq.ultima ? eq.ultima : 'Canal de toda a equipe';
     let html = `<div class="ci-conv" onclick="chatPopAbrirInt('equipe')">
       <div class="ci-av" style="background:#1D9E7522; color:#1D9E75; border-color:#1D9E7555;"><i class="ti ti-users-group"></i></div>
-      <div class="ci-conv-info"><div class="ci-conv-nome">Equipe</div><div class="ci-conv-prev">${String(eqPrev).slice(0, 40).replace(/</g, '&lt;')}</div></div>
+      <div class="ci-conv-info"><div class="ci-conv-nome">Equipe</div><div class="ci-conv-prev">${esc(waTrunc(eqPrev, 40))}</div></div>
       ${eq.nao_lidas > 0 ? `<span class="ci-conv-badge">${eq.nao_lidas}</span>` : ''}
     </div>`;
     html += lista.map(u => {
       const cor = u.cor || 'var(--tx3b)';
       const ini = (u.nome || '?').charAt(0).toUpperCase();
-      const prev = u.ultima ? ((u.de_mim ? 'Voc&ecirc;: ' : '') + u.ultima) : (u.cargo || u.email || '');
+      const prev = u.ultima ? ((u.de_mim ? 'Você: ' : '') + u.ultima) : (u.cargo || u.email || '');
       return `<div class="ci-conv" onclick="chatPopAbrirInt('${u.id}')">
         <div class="ci-av" style="background:${cor}22; color:${cor}; border-color:${cor}55;">${ini}</div>
-        <div class="ci-conv-info"><div class="ci-conv-nome">${(u.nome || '').replace(/</g, '&lt;')}</div><div class="ci-conv-prev">${String(prev).slice(0, 40).replace(/</g, '&lt;')}</div></div>
+        <div class="ci-conv-info"><div class="ci-conv-nome">${(u.nome || '').replace(/</g, '&lt;')}</div><div class="ci-conv-prev">${esc(waTrunc(prev, 40))}</div></div>
         ${u.nao_lidas > 0 ? `<span class="ci-conv-badge">${u.nao_lidas}</span>` : ''}
       </div>`;
     }).join('');
@@ -12151,13 +12430,14 @@ function cpMostrarConversaWa(nome, telefone) {
   cpAbrirConversaWa(num, nome, num); // chave = numero (backend monta o jid), numero real = num
 }
 // chave: jid completo (da lista) OU numero (paciente). numero: telefone real p/ exibir/ligar (pode ser '')
-async function cpAbrirConversaWa(chave, nome, numero) {
+async function cpAbrirConversaWa(chave, nome, numero, alt) {
   if (!cpState.aberto) { cpState.aberto = true; document.getElementById('chat-pop').style.display = 'flex'; }
   cpState.modo = 'whatsapp';
   chatPopPararPoll();
   document.getElementById('cp-tab-wa').classList.add('ativo');
   document.getElementById('cp-tab-int').classList.remove('ativo');
   cpState.waJid = chave;
+  cpState.waAlt = (alt && String(alt).includes('@')) ? alt : null;
   let numReal = (numero && String(numero).replace(/\D/g, '')) || (String(chave).includes('@') ? '' : String(chave).replace(/\D/g, ''));
   if (!(numReal.length >= 10 && numReal.length <= 13)) numReal = ''; // descarta @lid (14+ digitos)
   cpState.waContato = { nome: nome || null, telefone: numReal || null };
@@ -12185,9 +12465,12 @@ async function cpAbrirConversaWa(chave, nome, numero) {
 async function cpCarregarMsgsWa(scroll) {
   if (!cpState.waJid) return;
   const jid = cpState.waJid;
-  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages');
+  const alt = cpState.waAlt ? '&alt=' + encodeURIComponent(cpState.waAlt) : '';
+  let r = null;
+  try { r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages?full=1' + alt); } catch (e) { r = null; }
   if (cpState.waJid !== jid) return; // trocou de conversa durante o fetch
-  cpState.waMsgs = (r.ok && r.data.mensagens) ? r.data.mensagens : [];
+  if (!r || !r.ok) { if (!(cpState.waMsgs || []).length) document.getElementById('cp-msgs').innerHTML = '<div class="ci-loading">Falha ao carregar — tentando de novo…</div>'; return; }
+  cpState.waMsgs = r.data.mensagens || [];
   // Nome vindo das mensagens (pushName): preenche o header E o item da lista.
   if (r.ok && r.data.contato_nome) {
     if (cpState.waContato && !cpState.waContato.nome) {
@@ -12204,41 +12487,54 @@ async function cpCarregarMsgsWa(scroll) {
 async function cpMarcarLido(chave) {
   const ch = (cpState.waChats || []).find(c => c.id === chave);
   if (ch) ch.nao_lidas = 0;
-  try { await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(chave) + '/read', { method: 'POST', body: JSON.stringify({}) }); } catch (e) {}
+  try { await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(chave) + '/read', { method: 'POST', body: JSON.stringify({ alt: cpState.waAlt || null }) }); } catch (e) {}
 }
 function cpRenderMsgsWa(scroll) {
   const wrap = document.getElementById('cp-msgs');
   if (!wrap) return;
   const msgs = cpState.waMsgs || [];
   if (!msgs.length) { wrap.innerHTML = '<div class="ci-loading">Sem mensagens ainda. Mande a primeira!</div>'; return; }
-  wrap.innerHTML = msgs.map(m => `
-    <div class="ci-msg ${m.de_mim ? 'mine' : ''}">
-      <div class="bolha">${(m.texto || '').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
-      <div class="hora">${ciFmtHora(m.data)}</div>
-    </div>`).join('');
+  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, cpState.waJid));
   if (scroll) wrap.scrollTop = wrap.scrollHeight;
 }
 async function cpEnviarWa() {
+  if (cpState.waEnviando) return; // guarda anti-duplo-envio (Enter repetido / clique + Enter)
   const inp = document.getElementById('cp-input');
   const texto = inp.value.trim();
   if (!texto || !cpState.waJid) return;
+  cpState.waEnviando = true;
+  const btn = document.getElementById('cp-send');
+  if (btn) btn.disabled = true;
   inp.value = '';
-  const numeroReal = (cpState.waContato && cpState.waContato.telefone) || '';
-  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto, numero: numeroReal }) });
-  if (!r.ok) { alert('Erro ao enviar: ' + (r.data.erro || '--')); inp.value = texto; return; }
-  cpState.waMsgs.push(r.data.mensagem);
-  cpRenderMsgsWa(true);
-  // reflete no item da lista
-  const ch = (cpState.waChats || []).find(c => c.id === cpState.waJid);
-  if (ch) { ch.ultima = texto; ch.ultima_em = r.data.mensagem.data; ch.ultima_de_mim = true; }
+  // restaura SEM apagar o que foi digitado durante o envio
+  const restaurar = function () { inp.value = texto + (inp.value ? '\n' + inp.value : ''); };
+  try {
+    const numeroReal = (cpState.waContato && cpState.waContato.telefone) || '';
+    const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto, numero: numeroReal }) });
+    if (!r.ok) { alert('Falha ao enviar — verifique a conexão do WhatsApp. (' + ((r.data && r.data.erro) || 'sem resposta') + ')'); restaurar(); return; }
+    cpState.waMsgs.push(Object.assign({ tipo: 'texto' }, r.data.mensagem));
+    cpRenderMsgsWa(true);
+    // reflete no item da lista
+    const ch = (cpState.waChats || []).find(c => c.id === cpState.waJid);
+    if (ch) { ch.ultima = texto; ch.ultima_em = r.data.mensagem.data; ch.ultima_de_mim = true; }
+  } catch (e) {
+    restaurar();
+    alert('Sem conexão — a mensagem NÃO foi enviada.');
+  } finally {
+    cpState.waEnviando = false;
+    if (btn) btn.disabled = false;
+    inp.focus();
+  }
 }
 function cpIniciarPollWa() { cpPararPollWa(); cpState.waPoll = setInterval(cpPollWa, 4000); }
 function cpPararPollWa() { if (cpState.waPoll) { clearInterval(cpState.waPoll); cpState.waPoll = null; } }
 async function cpPollWa() {
   if (cpState.modo !== 'whatsapp' || !cpState.waJid) return;
   const jid = cpState.waJid;
-  const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages');
-  if (!(r.ok && r.data.mensagens) || cpState.waJid !== jid) return; // ignora resposta tardia de outra conversa
+  const alt = cpState.waAlt ? '&alt=' + encodeURIComponent(cpState.waAlt) : '';
+  let r = null;
+  try { r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages?full=1' + alt); } catch (e) { return; }
+  if (!(r && r.ok && r.data.mensagens) || cpState.waJid !== jid) return; // ignora resposta tardia de outra conversa
   const serv = r.data.mensagens;
   // mantem mensagens otimistas locais (sem id) que ainda nao apareceram no servidor
   const pendentes = (cpState.waMsgs || []).filter(m => !m.id && m.de_mim && !serv.some(s => s.de_mim && s.texto === m.texto));
@@ -12279,6 +12575,318 @@ function cpWaWeb() {
   const l = String(c.telefone).replace(/\D/g, '');
   if (!l) return;
   window.open('https://wa.me/' + (l.length <= 11 ? '55' + l : l), '_blank');
+}
+
+// ============================================================
+// PÁGINA "CONVERSAS" (view WhatsApp) — estilo Clint: 2 painéis fixos,
+// lista à esquerda + thread à direita. Mesmo backend do popup.
+// ============================================================
+let wvState = { tab: 'conv', chats: [], vis: [], filtro: '', jid: null, contato: null, msgs: [], enviando: false, poll: null, listaPoll: null, semDevice: false };
+
+function wvAtiva() { const v = document.getElementById('view-whatsapp'); return !!(v && v.classList.contains('active')); }
+function wvParar() {
+  if (wvState.poll) { clearInterval(wvState.poll); wvState.poll = null; }
+  if (wvState.listaPoll) { clearInterval(wvState.listaPoll); wvState.listaPoll = null; }
+}
+function wvInit() {
+  // Conversas é de TODO o time (recepção usa o dia inteiro); só a GESTÃO de
+  // aparelhos fica atrás de whatsapp.gerenciar.
+  const td = document.getElementById('wv-tab-disp');
+  const pode = typeof temPermissao === 'function' && temPermissao('whatsapp.gerenciar');
+  if (td) td.style.display = pode ? '' : 'none';
+  if (!pode && wvState.tab === 'disp') wvState.tab = 'conv';
+  wvTab(wvState.tab || 'conv');
+}
+function wvTab(t) {
+  wvState.tab = t;
+  const tc = document.getElementById('wv-tab-conv'), td = document.getElementById('wv-tab-disp');
+  if (tc) tc.classList.toggle('ativo', t === 'conv');
+  if (td) td.classList.toggle('ativo', t === 'disp');
+  const chat = document.getElementById('wv-chat'), disp = document.getElementById('wv-disp');
+  if (chat) chat.style.display = t === 'conv' ? 'flex' : 'none';
+  if (disp) disp.style.display = t === 'disp' ? 'block' : 'none';
+  wvParar();
+  if (t === 'conv') {
+    wvCarregarChats();
+    wvState.listaPoll = setInterval(function () { if (wvAtiva() && wvState.tab === 'conv') wvCarregarChats(true); }, 6000);
+    if (wvState.jid) wvIniciarPollThread();
+  } else {
+    wdCarregar();
+  }
+}
+async function wvCarregarChats(silent) {
+  const wrap = document.getElementById('wv-convs');
+  if (!silent && wrap) wrap.innerHTML = '<div class="wv-vazio"><i class="ti ti-loader"></i> Carregando conversas…</div>';
+  let r = null;
+  try { r = await pacApi('/api/clinico/whatsapp/chats'); } catch (e) { r = null; }
+  // ERRO ≠ "sem WhatsApp": em falha transitória mantém a lista que já está na
+  // tela e avisa discreto (antes o 502 virava banner falso de desconectado).
+  if (!r || !r.ok) {
+    if (!silent && wrap && !(wvState.chats || []).length) wrap.innerHTML = '<div class="wv-vazio">Falha ao carregar — tentando de novo…</div>';
+    const banner = document.getElementById('wv-banner');
+    if (banner && (wvState.chats || []).length) { banner.style.display = 'flex'; banner.innerHTML = '<i class="ti ti-wifi-off" style="color:#e3b341;"></i><span style="flex:1;">Falha ao atualizar — tentando de novo…</span>'; }
+    return;
+  }
+  wvState.semDevice = !!(r.data.sem_device || r.data.configurado === false);
+  const novos = r.data.chats || [];
+  // preserva o zero de não-lidas da conversa aberta (o servidor pode demorar a refletir o read)
+  if (wvState.jid) { const aberto = novos.find(c => c.id === wvState.jid); if (aberto) aberto.nao_lidas = 0; }
+  // só re-renderiza quando a lista MUDOU (itens não somem sob o cursor a cada 6s)
+  const sig = arr => (arr || []).map(c => c.id + '|' + (c.ultima_em || '') + '|' + (c.nao_lidas || 0) + '|' + (c.nome || '')).join(';');
+  const mudou = sig(novos) !== sig(wvState.chats) || !silent;
+  wvState.chats = novos;
+  if (mudou) wvRenderLista();
+}
+function wvBusca(v) { wvState.filtro = v; wvRenderLista(); }
+function wvRenderLista() {
+  const wrap = document.getElementById('wv-convs');
+  const banner = document.getElementById('wv-banner');
+  if (!wrap) return;
+  if (wvState.semDevice) {
+    const podeGerenciar = temPermissao('whatsapp.gerenciar');
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.innerHTML = '<i class="ti ti-plug-connected-x" style="color:#f0857f;"></i><span style="flex:1;">Nenhum WhatsApp conectado.</span>' +
+        (podeGerenciar ? '<button class="pac-btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="wvTab(\'disp\')">Conectar</button>' : '');
+    }
+    wrap.innerHTML = '<div class="wv-vazio">' + (podeGerenciar ? 'Conecte um número na aba Aparelhos.' : 'Peça pro gestor conectar um número.') + '</div>';
+    return;
+  }
+  if (banner) banner.style.display = 'none';
+  const f = (wvState.filtro || '').trim().toLowerCase();
+  wvState.vis = (wvState.chats || []).filter(c =>
+    !f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(f.replace(/\D/g, '') || f));
+  if (!wvState.vis.length) { wrap.innerHTML = '<div class="wv-vazio">Nenhuma conversa' + (f ? ' pra essa busca' : ' ainda') + '.</div>'; return; }
+  wrap.innerHTML = wvState.vis.map((c, i) => {
+    const nome = c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato');
+    const tick = (c.ultima && c.ultima_de_mim) ? '<i class="ti ti-checks" style="font-size:13px;vertical-align:-2px;color:var(--tx3b);"></i> ' : '';
+    const prev = esc(waTrunc(waPreviewTxt(c), 42));
+    const av = c.foto
+      ? '<img src="' + esc(c.foto) + '" class="wv-av-img" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="wv-av" style="display:none;">' + esc(waIni(nome)) + '</div>'
+      : '<div class="wv-av">' + esc(waIni(nome)) + '</div>';
+    return '<div class="wv-conv' + (c.id === wvState.jid ? ' ativa' : '') + '" onclick="wvAbrirIdx(' + i + ')">'
+      + av
+      + '<div class="wv-conv-info"><div class="wv-conv-top"><span class="nm">' + esc(waTrunc(nome, 28)) + '</span><span class="hr">' + cpHora(c.ultima_em) + '</span></div>'
+      + '<div class="wv-conv-bot"><span class="prev">' + (c.ultima ? tick + prev : '<span style="color:var(--tx4);">' + prev + '</span>') + '</span>'
+      + (c.nao_lidas > 0 ? '<span class="wv-badge">' + (c.nao_lidas > 99 ? '99+' : c.nao_lidas) + '</span>' : '') + '</div></div></div>';
+  }).join('');
+}
+function wvAbrirIdx(i) {
+  const c = wvState.vis[i];
+  if (c) wvAbrirConversa(c);
+}
+async function wvAbrirConversa(c) {
+  wvState.jid = c.id;
+  wvState.alt = c.jid_alt || null; // jid alternativo (@lid <-> telefone): une o histórico
+  let num = String(c.numero || '').replace(/\D/g, '');
+  if (!(num.length >= 10 && num.length <= 13)) num = '';
+  wvState.contato = { nome: c.nome || null, telefone: num || null, paciente_id: c.paciente_id || null };
+  wvState.msgs = [];
+  c.nao_lidas = 0;
+  wvRenderLista();
+  document.getElementById('wv-thread-vazio').style.display = 'none';
+  document.getElementById('wv-thread').style.display = 'flex';
+  wvRenderHead();
+  wvComposerAtivo(true);
+  const inp = document.getElementById('wv-input');
+  if (inp) { inp.value = ''; inp.style.height = 'auto'; inp.focus(); }
+  document.getElementById('wv-msgs').innerHTML = '<div class="wv-vazio"><i class="ti ti-loader"></i> Carregando conversa…</div>';
+  await wvCarregarMsgs(true);
+  wvMarcarLida();
+  wvIniciarPollThread();
+}
+function wvAltQuery() { return wvState.alt ? '&alt=' + encodeURIComponent(wvState.alt) : ''; }
+function wvMarcarLida() {
+  pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(wvState.jid) + '/read?x=1' + wvAltQuery(), { method: 'POST', body: JSON.stringify({}) }).catch(function () {});
+}
+function wvComposerAtivo(ativo) {
+  const inp = document.getElementById('wv-input');
+  const btn = document.getElementById('wv-send');
+  const clip = document.getElementById('wv-clip');
+  if (inp) { inp.disabled = !ativo; inp.placeholder = ativo ? 'Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)' : 'WhatsApp desconectado — reconecte na aba Aparelhos'; }
+  if (btn) btn.disabled = !ativo;
+  if (clip) clip.disabled = !ativo;
+}
+function wvRenderHead() {
+  const ct = wvState.contato || {};
+  const nome = ct.nome || (ct.telefone ? wdFmtTel(ct.telefone) : 'Contato');
+  const acoes = [
+    ct.paciente_id ? '<button class="cp-acao" title="Abrir prontuário" onclick="wvIrProntuario()"><i class="ti ti-clipboard-text"></i></button>' : '',
+    ct.telefone ? '<button class="cp-acao" title="Ligar" onclick="wvLigar()"><i class="ti ti-phone"></i></button>' : '',
+  ].join('');
+  document.getElementById('wv-head').innerHTML =
+    '<div class="wv-av" style="width:38px;height:38px;font-size:15px;">' + esc(waIni(nome)) + '</div>'
+    + '<div style="flex:1;min-width:0;"><div class="wv-head-nm">' + esc(nome) + '</div><div class="wv-head-sub">' + (ct.telefone ? wdFmtTel(ct.telefone) : 'via WhatsApp') + (ct.paciente_id ? ' · paciente' : '') + '</div></div>'
+    + acoes;
+}
+function wvIrProntuario() {
+  const ct = wvState.contato;
+  if (ct && ct.paciente_id) dashAbrirPaciente(ct.paciente_id, ct.nome || '');
+}
+function wvLigar() {
+  const t = wvState.contato && wvState.contato.telefone;
+  if (!t) return;
+  const l = String(t).replace(/\D/g, '');
+  window.location.href = 'tel:+' + (l.length <= 11 ? '55' + l : l);
+}
+async function wvCarregarMsgs(scroll) {
+  const jid = wvState.jid;
+  if (!jid) return;
+  let r = null;
+  try { r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages?full=1' + wvAltQuery()); } catch (e) { r = null; }
+  if (wvState.jid !== jid) return; // trocou de conversa no meio do fetch
+  // Falha ou device caiu: NÃO apaga a thread — avisa e mantém o que está na tela
+  if (!r || !r.ok) {
+    if (!(wvState.msgs || []).length) document.getElementById('wv-msgs').innerHTML = '<div class="wv-vazio">Falha ao carregar a conversa — tentando de novo…</div>';
+    return;
+  }
+  if (r.data.sem_device) { wvComposerAtivo(false); return; }
+  wvComposerAtivo(true);
+  const novas = r.data.mensagens || [];
+  // resposta parcial menor que o que já temos? mantém a maior (nunca encolhe)
+  if (r.data.parcial && novas.length < (wvState.msgs || []).length) return;
+  wvState.msgs = novas;
+  if (r.data.contato_nome && wvState.contato && !wvState.contato.nome) {
+    wvState.contato.nome = r.data.contato_nome;
+    wvRenderHead();
+    const ch = (wvState.chats || []).find(c => c.id === jid);
+    if (ch && !ch.nome) { ch.nome = r.data.contato_nome; wvRenderLista(); }
+  }
+  wvRenderMsgs(scroll);
+}
+function wvRenderMsgs(scroll) {
+  const wrap = document.getElementById('wv-msgs');
+  if (!wrap) return;
+  const msgs = wvState.msgs || [];
+  if (!msgs.length) { wrap.innerHTML = '<div class="wv-vazio">Sem mensagens ainda. Mande a primeira!</div>'; return; }
+  const noFim = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 60;
+  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, wvState.jid));
+  if (scroll || noFim) wrap.scrollTop = wrap.scrollHeight;
+}
+function wvInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.repeat) return; wvEnviar(); }
+}
+function wvAutoGrow(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; }
+async function wvEnviar() {
+  if (wvState.enviando) return; // anti-duplo-envio
+  const inp = document.getElementById('wv-input');
+  const texto = (inp.value || '').trim();
+  if (!texto || !wvState.jid) return;
+  wvState.enviando = true;
+  const btn = document.getElementById('wv-send');
+  if (btn) btn.disabled = true;
+  inp.value = ''; inp.style.height = 'auto';
+  // restaura SEM apagar o que foi digitado durante o envio
+  const restaurar = function () { inp.value = texto + (inp.value ? '\n' + inp.value : ''); };
+  try {
+    const numeroReal = (wvState.contato && wvState.contato.telefone) || '';
+    const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(wvState.jid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto, numero: numeroReal }) });
+    if (!r.ok) { if (typeof homeToast === 'function') homeToast('Falha ao enviar — verifique a conexão do WhatsApp.'); restaurar(); return; }
+    wvState.msgs.push(Object.assign({ tipo: 'texto' }, r.data.mensagem));
+    wvRenderMsgs(true);
+    const ch = (wvState.chats || []).find(c => c.id === wvState.jid);
+    if (ch) { ch.ultima = texto; ch.ultima_em = r.data.mensagem.data; ch.ultima_de_mim = true; wvRenderLista(); }
+  } catch (e) {
+    restaurar();
+    if (typeof homeToast === 'function') homeToast('Sem conexão — a mensagem NÃO foi enviada.');
+  } finally {
+    wvState.enviando = false;
+    if (btn) btn.disabled = false;
+    inp.focus();
+  }
+}
+// ---- Anexo (imagem/PDF) ----
+function wvAnexarClique() { const f = document.getElementById('wv-file'); if (f) { f.value = ''; f.click(); } }
+async function wvAnexarArquivo(input) {
+  const file = input.files && input.files[0];
+  if (!file || !wvState.jid) return;
+  if (file.size > 10 * 1024 * 1024) { if (typeof homeToast === 'function') homeToast('Arquivo grande demais (máx 10MB).'); return; }
+  if (wvState.enviando) return;
+  wvState.enviando = true;
+  const btn = document.getElementById('wv-send');
+  if (btn) btn.disabled = true;
+  if (typeof homeToast === 'function') homeToast('Enviando ' + waTrunc(file.name, 30) + '…');
+  try {
+    const dataUrl = await new Promise(function (res, rej) { const fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(file); });
+    const base64 = String(dataUrl).split(',')[1] || '';
+    const numeroReal = (wvState.contato && wvState.contato.telefone) || '';
+    const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(wvState.jid) + '/media', {
+      method: 'POST',
+      body: JSON.stringify({ base64, mimetype: file.type || 'application/octet-stream', fileName: file.name, numero: numeroReal }),
+    });
+    if (!r.ok) { if (typeof homeToast === 'function') homeToast('Falha ao enviar o arquivo: ' + ((r.data && r.data.erro) || 'verifique a conexão')); return; }
+    wvState.msgs.push(r.data.mensagem);
+    wvRenderMsgs(true);
+    const ch = (wvState.chats || []).find(c => c.id === wvState.jid);
+    if (ch) { ch.ultima = r.data.mensagem.texto; ch.ultima_em = r.data.mensagem.data; ch.ultima_de_mim = true; wvRenderLista(); }
+  } catch (e) {
+    if (typeof homeToast === 'function') homeToast('Sem conexão — o arquivo NÃO foi enviado.');
+  } finally {
+    wvState.enviando = false;
+    if (btn) btn.disabled = false;
+  }
+}
+// ---- Nova conversa (paciente que ainda não tem chat) ----
+function wvNovaToggle() {
+  const box = document.getElementById('wv-nova');
+  if (!box) return;
+  const aberto = box.style.display !== 'none';
+  box.style.display = aberto ? 'none' : 'block';
+  if (!aberto) { const i = document.getElementById('wv-nova-input'); if (i) { i.value = ''; i.focus(); } document.getElementById('wv-nova-res').innerHTML = '<div class="wv-vazio" style="padding:10px;">Digite o nome, código ou telefone do paciente.</div>'; }
+}
+let _wvNovaTimer = null;
+function wvNovaBusca(q) {
+  clearTimeout(_wvNovaTimer);
+  _wvNovaTimer = setTimeout(async function () {
+    const wrap = document.getElementById('wv-nova-res');
+    if (!wrap) return;
+    if ((q || '').trim().length < 2) { wrap.innerHTML = '<div class="wv-vazio" style="padding:10px;">Digite pelo menos 2 letras.</div>'; return; }
+    let r = null;
+    try { r = await pacApi('/api/clinico/patients?limit=8&q=' + encodeURIComponent(q.trim())); } catch (e) { r = null; }
+    const pacientes = (r && r.ok && r.data.pacientes) || [];
+    window._wvNovaPacs = pacientes;
+    if (!pacientes.length) { wrap.innerHTML = '<div class="wv-vazio" style="padding:10px;">Nenhum paciente encontrado.</div>'; return; }
+    wrap.innerHTML = pacientes.map(function (p, i) {
+      const tel = p.telefone1 ? wdFmtTel(p.telefone1) : 'sem telefone';
+      return '<div class="wv-conv" onclick="wvNovaAbrir(' + i + ')"><div class="wv-av">' + esc(waIni(p.nome_completo)) + '</div>'
+        + '<div class="wv-conv-info"><div class="wv-conv-top"><span class="nm">' + esc(waTrunc(p.nome_completo || '', 26)) + '</span></div>'
+        + '<div class="wv-conv-bot"><span class="prev">' + esc(p.codigo || '') + ' · ' + esc(tel) + '</span></div></div></div>';
+    }).join('');
+  }, 300);
+}
+function wvNovaAbrir(i) {
+  const p = (window._wvNovaPacs || [])[i];
+  if (!p) return;
+  let num = String(p.telefone1 || '').replace(/\D/g, '');
+  if (!num) { if (typeof homeToast === 'function') homeToast('Esse paciente não tem telefone no cadastro.'); return; }
+  if (num.length <= 11) num = '55' + num;
+  wvNovaToggle();
+  wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: p.nome_completo, paciente_id: p.id });
+}
+function wvIniciarPollThread() {
+  if (wvState.poll) clearInterval(wvState.poll);
+  wvState.poll = setInterval(wvPollThread, 4000);
+}
+async function wvPollThread() {
+  if (!wvAtiva() || wvState.tab !== 'conv' || !wvState.jid) return;
+  const jid = wvState.jid;
+  let r = null;
+  // poll leve: só a página mais recente (rapido=1) — e MERGE por id, nunca substitui
+  try { r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages?rapido=1' + wvAltQuery()); } catch (e) { return; }
+  if (!r || !r.ok || wvState.jid !== jid) return;
+  if (r.data.sem_device) { wvComposerAtivo(false); return; }
+  wvComposerAtivo(true);
+  const serv = r.data.mensagens || [];
+  const ids = new Set((wvState.msgs || []).map(m => m.id).filter(Boolean));
+  const novas = serv.filter(m => !m.id || !ids.has(m.id));
+  if (!novas.length) return;
+  wvState.msgs = (wvState.msgs || []).concat(novas).sort((a, b) => new Date(a.data) - new Date(b.data));
+  wvRenderMsgs(false);
+  const last = wvState.msgs[wvState.msgs.length - 1];
+  const ch = (wvState.chats || []).find(c => c.id === jid);
+  if (ch && last) { ch.ultima = last.texto; ch.ultima_em = last.data; ch.ultima_de_mim = last.de_mim; ch.nao_lidas = 0; wvRenderLista(); }
+  // chegou mensagem do contato com a conversa aberta -> marca lida no aparelho também
+  if (novas.some(m => !m.de_mim)) wvMarcarLida();
 }
 
 // ---- Interno (chat da equipe, reaproveita os endpoints /chat/*) ----
@@ -12337,7 +12945,7 @@ async function chatPopEnviar() {
   chatPopRenderMsgs(true);
 }
 function chatPopEnviarAtual() { if (cpState.modo === 'whatsapp') cpEnviarWa(); else chatPopEnviar(); }
-function chatPopInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatPopEnviarAtual(); } }
+function chatPopInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.repeat) return; chatPopEnviarAtual(); } }
 function chatPopIniciarPoll() { chatPopPararPoll(); cpState.poll = setInterval(chatPopPoll, 4000); }
 function chatPopPararPoll() { if (cpState.poll) { clearInterval(cpState.poll); cpState.poll = null; } }
 async function chatPopPoll() {
@@ -19618,7 +20226,7 @@ trocarView = function(v) {
   _origTrocarView(v);
   if (v === 'comunicacao') ciCarregar();
   else ciPararPoll();
-  if (v === 'whatsapp') wdCarregar();
+  if (v === 'whatsapp') wvInit(); else wvParar();
   if (v === 'pacientes') pacInit();
   if (v === 'agenda') {
     if (!agJaInicializou) { agJaInicializou = true; agInit(); }
