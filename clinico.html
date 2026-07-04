@@ -5852,6 +5852,25 @@
   .op-lower{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
   .op-lower-card{position:relative;min-height:120px}
   .op-lower-empty{font-size:12px;color:var(--tx4);line-height:1.5;padding:6px 2px}
+  /* Ranking do mês (motor de pontos por evento) */
+  .rk-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--hair)}
+  .rk-row:last-of-type{border-bottom:0}
+  .rk-medal{width:26px;text-align:center;font-size:15px;flex-shrink:0}
+  .rk-pos{font-size:11px;color:var(--tx3b);font-weight:700}
+  .rk-nome{font-size:12.5px;color:var(--tx1);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38%}
+  .rk-brk{flex:1;font-size:10.5px;color:var(--tx3b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rk-pts{font-size:12.5px;color:var(--ac);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rk-legenda{font-size:9.5px;color:var(--tx4);margin-top:8px;line-height:1.5}
+  /* Vitórias dos pacientes (marcos automáticos) */
+  .vt-row{display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--hair);cursor:pointer;border-radius:8px;transition:background .12s}
+  .vt-row:hover{background:rgba(var(--bg3-rgb),0.4)}
+  .vt-row:last-of-type{border-bottom:0}
+  .vt-ico{font-size:15px;flex-shrink:0}
+  .vt-txt{flex:1;font-size:12px;color:var(--tx2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vt-txt b{color:var(--tx1)}
+  .vt-marco{color:#3fb950}
+  .vt-det{color:var(--tx3b);font-size:11px}
+  .vt-quando{font-size:10.5px;color:var(--tx3b);white-space:nowrap;flex-shrink:0}
   .gestor-constr{background:var(--bg2);border:1px dashed var(--bd2);border-radius:14px;padding:34px 24px;text-align:center}
   .gst-bar{height:5px;background:var(--bg3);border-radius:20px;margin-top:9px;overflow:hidden}
   .gst-bar-fill{height:100%;background:#3fb950;border-radius:20px;width:0%;transition:width .4s}
@@ -6047,17 +6066,15 @@
         </div>
       </div>
 
-      <!-- 7 + 8: Ranking do mês + Vitórias dos pacientes -->
+      <!-- 7 + 8: Ranking do mês + Vitórias dos pacientes (motor de pontos por evento) -->
       <div class="op-lower">
         <div class="dash-card op-lower-card">
-          <span class="em-constr">em construção</span>
           <div class="dash-card-head"><div class="ttl"><i class="ti ti-trophy" style="color:#e3b341"></i> Ranking do mês</div></div>
-          <div class="op-lower-empty">O ranking entra quando o motor de pontos por evento existir (Sprint 3). Ponto manual quebra a confiança do time — por isso ainda não vai ao ar.</div>
+          <div id="home-ranking-body"><div class="op-lower-empty">Carregando…</div></div>
         </div>
         <div class="dash-card op-lower-card">
-          <span class="em-constr">em construção</span>
           <div class="dash-card-head"><div class="ttl"><i class="ti ti-confetti" style="color:#3fb950"></i> Vitórias dos pacientes</div></div>
-          <div class="op-lower-empty">Marcos clínicos automáticos (kg eliminados, meses de adesão, saída de platô) aparecem aqui assim que o motor de eventos estiver ligado.</div>
+          <div id="home-vitorias-body"><div class="op-lower-empty">Carregando…</div></div>
         </div>
       </div>
 
@@ -6119,12 +6136,11 @@
         <table class="gst-table" id="gst-unidades"><tbody><tr><td class="gst-vazio">Carregando…</td></tr></tbody></table>
       </div>
 
-      <!-- Ranking (Sprint 3) -->
+      <!-- Ranking do mês (mesmo motor de pontos da Operacional) -->
       <div class="op-lower" style="grid-template-columns:1fr">
         <div class="dash-card op-lower-card">
-          <span class="em-constr">em construção</span>
           <div class="dash-card-head"><div class="ttl"><i class="ti ti-trophy" style="color:#e3b341"></i> Ranking do mês</div></div>
-          <div class="op-lower-empty">Entra na Sprint 3, junto do motor de pontos por evento.</div>
+          <div id="gst-ranking-body"><div class="op-lower-empty">Carregando…</div></div>
         </div>
       </div>
     </div>
@@ -9178,6 +9194,8 @@ async function dashCarregar() {
   homeAtencaoCarregar();
   homeRenovCarregar();
   homeTarefasCarregar();
+  homeRankingCarregar();   // preenche Operacional E Gestor (mesmo motor)
+  homeVitoriasCarregar();
   if (homeMode === 'gestor') homeGestorCarregar();
 }
 
@@ -9240,7 +9258,7 @@ async function homeImpactoCarregar() {
   if (d.kg_eliminados != null && d.kg_eliminados > 0) metrics.push({ num: fmt(Math.round(d.kg_eliminados)), unit: ' kg', hl: true, lbl: 'totais eliminados (placar da missão)' });
   if (d.perda_media_pct != null) metrics.push({ num: '-' + Math.abs(d.perda_media_pct).toFixed(1), unit: '%', lbl: 'perda média por protocolo' });
   if (d.massa_preservada_pct != null) metrics.push({ num: Math.round(d.massa_preservada_pct), unit: '%', lbl: 'massa muscular preservada' });
-  if (d.adesao_aplicacoes_pct != null) metrics.push({ num: Math.round(d.adesao_aplicacoes_pct), unit: '%', lbl: 'adesão média às aplicações no mês' });
+  if (d.adesao_aplicacoes_pct != null) metrics.push({ num: Math.round(d.adesao_aplicacoes_pct), unit: '%', lbl: 'adesão média às aplicações (protocolos vigentes, pela cadência)' });
   if (d.marcos_mes != null) metrics.push({ num: fmt(d.marcos_mes), lbl: 'pacientes atingiram marco no mês' });
 
   // Blocos que ainda dependem de dado/motor -> em construção (escolha do Matheus)
@@ -9263,6 +9281,84 @@ async function homeImpactoCarregar() {
     </div>`).join('');
   if (!html) html = '<div class="impacto-metric"><div class="num">—</div><div class="lbl">sem agregados ainda</div></div>';
   wrap.innerHTML = html;
+}
+
+// ============================================================
+// RANKING DO MÊS — motor de pontos por evento (nada manual; o breakdown
+// e os pesos vêm do backend pra qualquer um auditar a conta).
+// Ranking é da equipe toda (eventos não têm todos unidade) -> rotulado "geral".
+// ============================================================
+const rkEsc = s => esc(String(s == null ? '' : s)); // esc() completo da casa (attribute-safe)
+async function homeRankingCarregar() {
+  const op = document.getElementById('home-ranking-body');
+  const gst = document.getElementById('gst-ranking-body');
+  if (!op && !gst) return;
+  let d = null;
+  try { const r = await pacApi('/api/clinico/dashboard/ranking'); if (r.ok) d = r.data; } catch (e) {}
+  const html = homeRankingHtml(d);
+  if (op) op.innerHTML = html;
+  if (gst) gst.innerHTML = html;
+}
+function homeRankingHtml(d) {
+  if (!d || !d.ok) return '<div class="op-lower-empty">Não foi possível carregar o ranking agora.</div>';
+  if (!d.itens || !d.itens.length) {
+    return '<div class="op-lower-empty">Nenhum evento pontuável neste mês ainda. Os pontos nascem sozinhos dos atendimentos, evoluções, aplicações, receitas e tarefas concluídas.</div>';
+  }
+  const medal = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="rk-pos">${i + 1}º</span>`;
+  const rows = d.itens.slice(0, 5).map((it, i) => {
+    const b = it.breakdown || {};
+    const partes = [];
+    if (b.atendimentos) partes.push(b.atendimentos + ' atend.');
+    if (b.evolucoes) partes.push(b.evolucoes + ' evol.');
+    if (b.aplicacoes) partes.push(b.aplicacoes + ' aplic.');
+    if (b.prescricoes) partes.push(b.prescricoes + ' receita' + (b.prescricoes > 1 ? 's' : ''));
+    if (b.tarefas) partes.push(b.tarefas + ' tarefa' + (b.tarefas > 1 ? 's' : ''));
+    return `<div class="rk-row">
+      <span class="rk-medal">${medal(i)}</span>
+      <span class="rk-nome">${rkEsc(it.nome)}</span>
+      <span class="rk-brk">${partes.join(' · ')}</span>
+      <strong class="rk-pts">${it.pontos} pts</strong>
+    </div>`;
+  }).join('');
+  const p = d.pesos || {};
+  return rows + `<div class="rk-legenda">pontos automáticos por evento — atendimento ${p.atendimento} · evolução ${p.evolucao} · aplicação ${p.aplicacao} · receita ${p.prescricao} · tarefa ${p.tarefa} · equipe geral (todas as unidades)</div>`;
+}
+
+// ============================================================
+// VITÓRIAS DOS PACIENTES — marcos clínicos automáticos derivados das medições
+// (cruzou múltiplo de 5 kg eliminados ou -10% do peso inicial, últimos 30d).
+// ============================================================
+async function homeVitoriasCarregar() {
+  const wrap = document.getElementById('home-vitorias-body');
+  if (!wrap) return;
+  let d = null;
+  try {
+    const q = homeUnit ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
+    const r = await pacApi('/api/clinico/dashboard/vitorias' + q);
+    if (r.ok) d = r.data;
+  } catch (e) {}
+  if (!d || !d.ok) { wrap.innerHTML = '<div class="op-lower-empty">Não foi possível carregar as vitórias agora.</div>'; return; }
+  if (!d.itens || !d.itens.length) {
+    wrap.innerHTML = '<div class="op-lower-empty">Nenhum marco cruzado nos últimos 30 dias. Eles aparecem sozinhos quando a balança registra: múltiplos de 5 kg eliminados ou -10% do peso inicial.</div>';
+    return;
+  }
+  const DIA = 86400000;
+  homeVitoriasItens = d.itens.slice(0, 6);
+  wrap.innerHTML = homeVitoriasItens.map((it, idx) => {
+    const dias = Math.max(0, Math.floor((Date.now() - new Date(it.data).getTime()) / DIA));
+    const quando = dias === 0 ? 'hoje' : (dias === 1 ? 'ontem' : 'há ' + dias + 'd');
+    // índice no onclick (nunca interpolar nome — padrão do fix de segurança da agenda)
+    return `<div class="vt-row" onclick="homeVitoriaAbrir(${idx})" title="Abrir prontuário">
+      <span class="vt-ico">🎉</span>
+      <span class="vt-txt"><b>${rkEsc(it.nome)}</b> cruzou <b class="vt-marco">${rkEsc(it.marco)}</b><span class="vt-det"> · ${rkEsc(it.detalhe)}</span></span>
+      <span class="vt-quando">${quando}</span>
+    </div>`;
+  }).join('');
+}
+let homeVitoriasItens = [];
+function homeVitoriaAbrir(idx) {
+  const i = homeVitoriasItens[idx];
+  if (i) dashAbrirPaciente(i.patient_id, i.nome || '');
 }
 
 let homeAmanhaItens = [];
@@ -9688,7 +9784,7 @@ function dashRenderAniversariantes() {
     <div class="dash-aniv-item ${a.eh_hoje ? 'hoje' : ''}">
       <div class="bolo"><i class="ti ti-cake"></i></div>
       <div class="info">
-        <div class="nome">${a.nome}</div>
+        <div class="nome">${esc(a.nome)}</div>
         <div class="quando ${a.eh_hoje ? 'hoje' : ''}">${a.eh_hoje ? 'Hoje! ' + a.faz_anos + ' anos' : `${String(a.dia).padStart(2,'0')}/${String(a.mes).padStart(2,'0')} · ${a.faz_anos} anos`}</div>
       </div>
       <button class="enviar ${a.ja_enviado ? 'enviado' : ''}" onclick="dashEnviarAniversario('${a.id}')">
