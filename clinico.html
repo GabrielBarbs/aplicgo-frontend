@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- CSP: trava o destino de exfiltracao (connect-src) e injecao de script externo. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://*.memed.com.br; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https:; connect-src 'self' https://srv.aplicgo.com https://*.memed.com.br; frame-src https://*.memed.com.br; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://srv.aplicgo.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Aplic &amp; Go · Sistema Clínico</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
@@ -4447,46 +4447,8 @@
     .pro-estoque-ok { font-size: 12px; color: #1D9E75; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
     .pro-estoque-warn { font-size: 12px; color: #EF9F27; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
 
-    /* ===== Organizar cards do prontuário (botão de engrenagem) ===== */
-    /* slot some no modo normal (display:contents) -> zero impacto no layout */
+    /* slot dos cards do prontuário (display:contents) -> zero impacto no layout */
     .pr-card-slot { display: contents; }
-    .pr-org-hint {
-      font-size: 12px; color: var(--tx2);
-      background: rgba(var(--ac-rgb), .08);
-      border: 1px solid rgba(var(--ac-rgb), .28);
-      border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .pr-org-hint i { color: var(--ac); }
-    .pr-cards-profissionais.organizando .pr-card-slot {
-      display: flex; flex-direction: column; min-width: 0;
-      border: 1.5px dashed var(--bd1); border-radius: 12px; padding: 6px;
-      background: rgba(var(--bg3-rgb), .35); cursor: grab;
-    }
-    .pr-cards-profissionais.organizando .pr-card-slot:hover { border-color: var(--ac); }
-    .pr-cards-profissionais.organizando .pr-card-slot.arrastando {
-      opacity: .45; cursor: grabbing; outline: 2px solid var(--ac); outline-offset: 1px;
-    }
-    /* enquanto organiza, o conteúdo do card não é clicável (só a barrinha e o arrasto) */
-    .pr-cards-profissionais.organizando .pr-card-slot > :not(.pr-card-org-bar) {
-      pointer-events: none; user-select: none;
-    }
-    .pr-card-org-bar {
-      display: flex; align-items: center; justify-content: space-between; gap: 6px;
-      margin-bottom: 6px;
-    }
-    .pr-org-grip {
-      font-size: 10.5px; color: var(--tx3); display: flex; align-items: center; gap: 4px;
-      font-weight: 700; text-transform: uppercase; letter-spacing: .04em; overflow: hidden;
-      white-space: nowrap; text-overflow: ellipsis;
-    }
-    .pr-org-btn {
-      flex: 0 0 auto; width: 28px; height: 28px; border-radius: 7px; cursor: pointer;
-      background: var(--bg3); border: 1px solid var(--bd1); color: var(--tx2);
-      display: inline-flex; align-items: center; justify-content: center; font-size: 15px;
-    }
-    .pr-org-btn:hover { background: var(--ac); color: #fff; border-color: var(--ac); }
-    .pr-org-btn:active { transform: scale(.92); }
 
     .pr-empty {
       padding: 60px 30px; text-align: center;
@@ -6498,7 +6460,7 @@
     </div>
     <!-- Auditoria de Segurança (Ferramenta 3: botão de status) -->
     <div class="dev-toolbar" style="margin-bottom:12px;">
-      <div class="dev-info"><strong><i class="ti ti-shield-lock"></i> Auditoria de Segurança:</strong> checagens reais do estado atual (sessão, CORS, convites, Memed, etc.).</div>
+      <div class="dev-info"><strong><i class="ti ti-shield-lock"></i> Auditoria de Segurança:</strong> checagens reais do estado atual (sessão, CORS, convites, etc.).</div>
       <div class="dev-acoes">
         <span class="dev-ts" id="seg-ts">--</span>
         <button class="pac-btn-primary" onclick="segRodarAuditoria()"><i class="ti ti-shield-check"></i> Rodar auditoria</button>
@@ -8001,106 +7963,6 @@
   </div>
 </div>
 
-<!-- ============== MODAL PRESCRIÇÃO ============== -->
-<div class="ag-modal-overlay" id="memed-cfg-modal" onclick="if(event.target.id==='memed-cfg-modal') memedFecharConfig()">
-  <div class="ag-modal" style="max-width: 560px;">
-    <div class="ag-modal-header">
-      <div class="ttl"><i class="ti ti-file-certificate"></i> Configurar prescritor (Memed)</div>
-      <button class="pac-modal-close" onclick="memedFecharConfig()"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="ag-modal-body">
-      <div class="pac-modal-erro" id="memed-cfg-erro"></div>
-      <p style="font-size:12px; color:var(--tx3); margin:0 0 14px;">Esses dados vão pra Memed assinar suas receitas com seu certificado ICP-Brasil. Preenche só uma vez.</p>
-      <div class="pac-form-grid">
-        <div class="pac-field">
-          <label>Nome <span class="req">*</span></label>
-          <input type="text" id="memed-cfg-nome" placeholder="João">
-        </div>
-        <div class="pac-field">
-          <label>Sobrenome</label>
-          <input type="text" id="memed-cfg-sobrenome" placeholder="Silva">
-        </div>
-        <div class="pac-field">
-          <label>CRM (só números) <span class="req">*</span></label>
-          <input type="text" id="memed-cfg-crm" inputmode="numeric" placeholder="123456">
-        </div>
-        <div class="pac-field">
-          <label>UF do CRM <span class="req">*</span></label>
-          <input type="text" id="memed-cfg-uf" maxlength="2" style="text-transform:uppercase" placeholder="SP">
-        </div>
-        <div class="pac-field">
-          <label>CPF</label>
-          <input type="text" id="memed-cfg-cpf" inputmode="numeric" placeholder="000.000.000-00">
-        </div>
-        <div class="pac-field">
-          <label>Telefone</label>
-          <input type="text" id="memed-cfg-tel" inputmode="numeric" placeholder="(11) 99999-9999">
-        </div>
-        <div class="pac-field full">
-          <label>E-mail</label>
-          <input type="email" id="memed-cfg-email" placeholder="medico@clinica.com">
-        </div>
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
-        <button class="pac-btn-secondary" onclick="memedFecharConfig()">Cancelar</button>
-        <button class="pac-btn-primary" onclick="memedConfigSalvar()"><i class="ti ti-device-floppy"></i> Salvar e abrir receita</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="ag-modal-overlay" id="pr-presc-modal" onclick="if(event.target.id==='pr-presc-modal') prFecharPresc()">
-  <div class="ag-modal" style="max-width: 720px;">
-    <div class="ag-modal-header">
-      <div class="ttl"><i class="ti ti-pill"></i> Nova prescrição</div>
-      <button class="pac-modal-close" onclick="prFecharPresc()"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="ag-modal-body">
-      <div class="pac-modal-erro" id="pr-presc-erro"></div>
-      <div class="pac-form-grid">
-        <div class="pac-field">
-          <label>Tipo de receita <span class="req">*</span></label>
-          <select id="pr-presc-tipo" required onchange="prRenderItens()">
-            <option value="BRANCA_COMUM">Branca comum</option>
-            <option value="BRANCA_CONTROLADA">Branca controlada</option>
-            <option value="AZUL_CONTROLADA">Azul (controlada)</option>
-            <option value="ATESTADO">Atestado</option>
-          </select>
-        </div>
-        <div class="pac-field">
-          <label>Data</label>
-          <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="pr-presc-data" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="pr-presc-data">
-        </div>
-      </div>
-      <div class="pac-form-section" style="margin-top:14px;">
-        <div class="pac-form-section-title" style="display:flex; justify-content:space-between; align-items:center;">
-          <span><i class="ti ti-list"></i> Medicamentos / itens</span>
-          <button class="pac-btn-secondary" onclick="prAddItem()" style="font-size:10px; padding:4px 8px;">
-            <i class="ti ti-plus"></i> Adicionar item
-          </button>
-        </div>
-        <div id="pr-presc-itens"></div>
-      </div>
-      <div class="pac-field">
-        <label>Observações gerais</label>
-        <textarea id="pr-presc-obs" placeholder="Notas adicionais da prescrição"></textarea>
-      </div>
-      <div style="background: rgba(239,159,39,0.06); border:1px solid rgba(239,159,39,0.25); border-radius:8px; padding:8px 12px; font-size:11px; color:#EF9F27; margin-top:8px;">
-        <i class="ti ti-info-circle"></i> Geração de PDF assinado digitalmente vem na Onda 2 (precisa de certificado ICP-Brasil). Por enquanto fica registrado no prontuário.
-      </div>
-    </div>
-    <div class="ag-modal-footer">
-      <div></div>
-      <div class="ag-modal-actions-right">
-        <button class="pac-btn-secondary" onclick="prFecharPresc()">Cancelar</button>
-        <button class="pac-btn-primary" onclick="prSalvarPresc()">
-          <i class="ti ti-device-floppy"></i> Salvar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ============== MODAL PROTOCOLO INJETÁVEL ============== -->
 <div class="ag-modal-overlay" id="pro-modal" onclick="if(event.target.id==='pro-modal') proFechar()">
   <div class="ag-modal" style="max-width: 640px;">
@@ -9022,7 +8884,6 @@ async function carregarMe() {
     authUser = data.user;
     meData = data;
     aplicarUI();
-    prCarregarPrefs();   // carrega preferências do usuário (ordem dos cards do prontuário)
     await carregarStatus();
   } catch (e) {
     document.getElementById('status-text').textContent = 'Offline';
@@ -15779,8 +15640,8 @@ function prRenderTimeline() {
   const headerHtml = prRenderHeaderRico();
 
   const _podePresc = temPermissao('prontuario.prescrever');
-  const _podeExam = temPermissao('prontuario.solicitar_exames');
   // Botões "secundários". Nova evolução por setor fica nos cards.
+  // Solicitar exames vive DENTRO do prescritor (Nova prescrição -> Solicitação de Exames).
   const nAnexos = (prState.documentos || []).length;
   const actionsBar = `
     <div class="pr-actions-bar">
@@ -15790,26 +15651,17 @@ function prRenderTimeline() {
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
         <i class="ti ti-pill"></i> Nova prescrição
       </button>` : ''}
-      ${_podePresc ? `<button class="pac-btn-secondary" onclick="memedAbrir()" title="Emitir receita com assinatura digital ICP-Brasil (Memed)">
-        <i class="ti ti-file-certificate"></i> Receita (Memed)
-      </button>` : ''}
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="proAbrirModal(prState.pacienteAtual.id)" title="Prescrever protocolo injetável (pacotes adjuvantes)">
         <i class="ti ti-vaccine"></i> Protocolo injetável
       </button>` : ''}
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="pbaseAbrirModal(prState.pacienteAtual.id)" title="Prescrever medicamento-base GLP-1/GIP (semaglutida/tirzepatida)">
         <i class="ti ti-syringe"></i> Medicamento base (GLP-1)
       </button>` : ''}
-      ${_podeExam ? `<button class="pac-btn-secondary" onclick="prAbrirNovoExam()">
-        <i class="ti ti-flask"></i> Solicitar exames
-      </button>` : ''}
       <button class="pac-btn-secondary" onclick="prAbrirExames()" title="Tabela de exames (analitos por data) + laudos, exportável em PDF">
         <i class="ti ti-table"></i> Exames
       </button>
       <button class="pac-btn-secondary" onclick="prAbrirPlano()" title="Plano alimentar personalizado por IA + envio no WhatsApp">
         <i class="ti ti-salad"></i> Plano alimentar
-      </button>
-      <button class="pac-btn-secondary ${prOrganizando ? 'ativo' : ''}" id="pr-organizar-btn" onclick="prToggleOrganizar()" title="Organizar a posição dos cards do prontuário (fica salvo no seu usuário)">
-        <i class="ti ti-${prOrganizando ? 'check' : 'settings'}"></i> ${prOrganizando ? 'Concluir' : 'Organizar cards'}
       </button>
     </div>
   `;
@@ -16367,98 +16219,8 @@ const PROF_TIPOS = [
   { tipo: 'ENFERMAGEM',  num: '3', label: 'Enfermagem',  icone: 'vaccine',     cor: '#E8945A', permCriar: 'prontuario.evolucao_enfermagem.criar' },
 ];
 
-// ===== Organização (ordem) dos cards do prontuário — salva por usuário =====
+// ===== Cards do prontuário (ordem fixa) =====
 const PR_CARDS_DEFAULT = ['MEDICA', 'NUTRICIONAL', 'ENFERMAGEM', 'RODA'];
-const PR_CARD_LABELS = { MEDICA: 'Médica', NUTRICIONAL: 'Nutricional', ENFERMAGEM: 'Enfermagem', RODA: 'Roda da vida' };
-let prCardOrder = null;     // ordem preferida do usuário (carregada das prefs)
-let prOrganizando = false;  // modo "organizar cards" ligado/desligado
-let prDragTipo = null;
-
-function prCardOrderNormalizar(order) {
-  const valid = (Array.isArray(order) ? order : []).filter((t, i, a) => PR_CARDS_DEFAULT.includes(t) && a.indexOf(t) === i);
-  const faltando = PR_CARDS_DEFAULT.filter(t => !valid.includes(t));
-  return [...valid, ...faltando];
-}
-function prCardOrderEfetiva() { return prCardOrderNormalizar(prCardOrder); }
-
-function prCardSlot(tipo, inner) {
-  if (!prOrganizando) return `<div class="pr-card-slot" data-card-tipo="${tipo}">${inner}</div>`;
-  return `<div class="pr-card-slot organizando" data-card-tipo="${tipo}" draggable="true" ondragstart="prDragStart(event)" ondragend="prDragEnd(event)">
-    <div class="pr-card-org-bar">
-      <button class="pr-org-btn" title="Mover para trás" onclick="prMoverCard('${tipo}',-1)"><i class="ti ti-chevron-left"></i></button>
-      <span class="pr-org-grip"><i class="ti ti-grip-vertical"></i> ${PR_CARD_LABELS[tipo] || tipo}</span>
-      <button class="pr-org-btn" title="Mover para frente" onclick="prMoverCard('${tipo}',1)"><i class="ti ti-chevron-right"></i></button>
-    </div>
-    ${inner}
-  </div>`;
-}
-
-function prToggleOrganizar() { prOrganizando = !prOrganizando; prRenderTimeline(); }
-
-function prMoverCard(tipo, dir) {
-  const order = prCardOrderEfetiva();
-  const i = order.indexOf(tipo); if (i < 0) return;
-  const j = i + dir; if (j < 0 || j >= order.length) return;
-  order.splice(i, 1); order.splice(j, 0, tipo);
-  prSalvarCardOrder(order);
-}
-
-function prSalvarCardOrder(order) {
-  prCardOrder = prCardOrderNormalizar(order);
-  if (meData) { meData.prefs = meData.prefs || {}; meData.prefs.prontCardOrder = prCardOrder; }
-  prRenderTimeline();
-  prPersistirPrefs({ prontCardOrder: prCardOrder });
-}
-
-async function prPersistirPrefs(patch) {
-  try { await pacApi('/api/clinico/me/prefs', { method: 'PUT', body: JSON.stringify(patch) }); }
-  catch (e) { /* já aplicado localmente; falha de rede é silenciosa */ }
-}
-
-async function prCarregarPrefs() {
-  try {
-    const r = await pacApi('/api/clinico/me/prefs');
-    const prefs = (r && r.data && r.data.prefs) || {};
-    if (meData) meData.prefs = prefs;
-    if (Array.isArray(prefs.prontCardOrder)) prCardOrder = prCardOrderNormalizar(prefs.prontCardOrder);
-  } catch (e) { /* silencioso */ }
-}
-
-// arrastar-e-soltar (reordena ao vivo; salva ao soltar)
-function prDragStart(e) {
-  const slot = e.target.closest('.pr-card-slot'); if (!slot) return;
-  prDragTipo = slot.dataset.cardTipo; slot.classList.add('arrastando');
-  if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', prDragTipo); } catch (_) {} }
-}
-function prDragEnd(e) {
-  const slot = e.target.closest('.pr-card-slot'); if (slot) slot.classList.remove('arrastando');
-  const grid = document.getElementById('pr-cards-grid');
-  prDragTipo = null;
-  if (!grid) return;
-  const nova = [...grid.querySelectorAll('.pr-card-slot')].map(s => s.dataset.cardTipo);
-  prSalvarCardOrder(nova);
-}
-function prDragOver(e) {
-  if (!prDragTipo) return;
-  e.preventDefault();
-  const grid = document.getElementById('pr-cards-grid'); if (!grid) return;
-  const dragging = grid.querySelector('.pr-card-slot.arrastando'); if (!dragging) return;
-  const ref = prDragAfter(grid, e.clientX, e.clientY);
-  if (ref == null) grid.appendChild(dragging);
-  else if (ref !== dragging) grid.insertBefore(dragging, ref);
-}
-function prDragDrop(e) { e.preventDefault(); }
-function prDragAfter(grid, x, y) {
-  const slots = [...grid.querySelectorAll('.pr-card-slot:not(.arrastando)')];
-  let best = null, bestDist = Infinity;
-  for (const s of slots) {
-    const r = s.getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    const depois = (y < cy - 6) || (Math.abs(y - cy) <= r.height / 2 && x < cx);
-    if (depois) { const d = Math.hypot(x - cx, y - cy); if (d < bestDist) { bestDist = d; best = s; } }
-  }
-  return best;
-}
 
 function prRenderCardsPorProfissional() {
   const items = prState.timeline.filter(t => t.tipo === 'evolucao');
@@ -16472,12 +16234,8 @@ function prRenderCardsPorProfissional() {
     html[p.tipo] = prRenderCardProfissional(p, atual, anterior, podeCriar, recolhido);
   });
   html['RODA'] = prRenderRodaVida();
-  const slots = prCardOrderEfetiva().map(t => prCardSlot(t, html[t] || '')).join('');
-  const hint = prOrganizando
-    ? `<div class="pr-org-hint"><i class="ti ti-info-circle"></i> Arraste os cards ou use as setas para mudar a ordem. Sua organização fica salva no seu usuário.</div>`
-    : '';
-  const dnd = prOrganizando ? ' ondragover="prDragOver(event)" ondrop="prDragDrop(event)"' : '';
-  return `${hint}<div class="pr-cards-profissionais${prOrganizando ? ' organizando' : ''}" id="pr-cards-grid"${dnd}>${slots}</div>`;
+  const slots = PR_CARDS_DEFAULT.map(t => `<div class="pr-card-slot" data-card-tipo="${t}">${html[t] || ''}</div>`).join('');
+  return `<div class="pr-cards-profissionais" id="pr-cards-grid">${slots}</div>`;
 }
 
 function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
@@ -17858,146 +17616,6 @@ function prMostrarQRModal(d) {
   document.body.appendChild(ov);
 }
 
-// ===== MEMED — receita com assinatura digital ICP-Brasil =====
-const MEMED_SDK_URL = 'https://integrations.memed.com.br/modulos/plataforma.sinapse-prescricao/build/sinapse-prescricao.min.js';
-let memedModuloPronto = false;
-
-function memedSexoMemed(s) {
-  if (!s) return '';
-  const u = String(s).trim().toUpperCase();
-  if (u === 'M' || u.startsWith('MAS')) return 'M';
-  if (u === 'F' || u.startsWith('FEM')) return 'F';
-  return '';
-}
-function memedDataBR(iso) {
-  if (!iso || typeof iso !== 'string') return '';
-  const m = iso.slice(0, 10).split('-');
-  return (m.length === 3) ? `${m[2]}/${m[1]}/${m[0]}` : '';
-}
-
-// Abre a receita Memed pro paciente atual (pede config do prescritor se faltar)
-async function memedAbrir() {
-  if (!prState.pacienteAtual) { alert('Abra um paciente primeiro.'); return; }
-  let resp;
-  try { resp = await pacApi('/api/clinico/memed/token', { method: 'POST' }); }
-  catch (e) { alert('Erro ao falar com o servidor: ' + e.message); return; }
-  if (!resp.data || !resp.data.ok || !resp.data.token) {
-    if (resp.data && resp.data.precisaConfig) { memedConfigAbrir(); return; }
-    alert('Não consegui iniciar a Memed: ' + ((resp.data && resp.data.erro) || 'erro desconhecido'));
-    return;
-  }
-  await memedAbrirComToken(resp.data.token);
-}
-
-async function memedAbrirComToken(token) {
-  try {
-    if (!window.MdSinapsePrescricao) {
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.type = 'text/javascript';
-        s.src = MEMED_SDK_URL;
-        s.dataset.token = token;
-        s.onload = () => window.MdSinapsePrescricao ? res() : rej(new Error('SDK da Memed não inicializou'));
-        s.onerror = () => rej(new Error('Falha ao carregar a Memed'));
-        document.body.appendChild(s);
-      });
-      await new Promise((res, rej) => {
-        const to = setTimeout(() => rej(new Error('A Memed demorou a responder')), 25000);
-        MdSinapsePrescricao.event.add('core:moduleInit', function (mod) {
-          if (mod && mod.name === 'plataforma.prescricao') {
-            memedModuloPronto = true;
-            try { MdHub.event.add('prescricaoImpressa', memedOnPrescricao); } catch (e) {}
-            clearTimeout(to);
-            res();
-          }
-        });
-      });
-    }
-    const h = prState.headerData || {};
-    const paciente = { idExterno: String(prState.pacienteAtual), nome: h.nome_completo || 'Paciente' };
-    const sx = memedSexoMemed(h.sexo); if (sx) paciente.sexo = sx;
-    const dn = memedDataBR(h.data_nascimento); if (dn) paciente.data_nascimento = dn;
-    if (h.telefone1) paciente.telefone = String(h.telefone1).replace(/\D/g, '');
-    if (h.cpf) paciente.cpf = String(h.cpf).replace(/\D/g, '');
-    await MdHub.command.send('plataforma.prescricao', 'setPaciente', paciente);
-    MdHub.module.show('plataforma.prescricao');
-  } catch (e) {
-    alert('Memed: ' + (e && e.message ? e.message : 'erro ao abrir'));
-  }
-}
-
-// Quando o médico emite a receita, guarda a referência no nosso prontuário
-async function memedOnPrescricao(p) {
-  try {
-    const docs = (p && Array.isArray(p.documents)) ? p.documents : [];
-    const pdf = docs.find(d => d && d.type === 'full') || docs[0] || null;
-    await pacApi('/api/clinico/memed/prescricao', {
-      method: 'POST',
-      body: JSON.stringify({
-        pacienteId: prState.pacienteAtual,
-        uuid: (p && (p.prescriptionUuid || p.id)) || null,
-        data: (p && p.prescriptionDate) || null,
-        medico: (p && p.nome_medico) || (authUser && authUser.nome) || null,
-        itens: (p && Array.isArray(p.medicamentos)) ? p.medicamentos.map(m => (m && (m.nome || m.descricao)) || '').filter(Boolean) : [],
-        pdf: pdf ? (pdf.file_name || pdf.uuid || null) : null,
-      }),
-    });
-  } catch (e) { /* não bloqueia a emissão da receita */ }
-  if (typeof prCarregarTimeline === 'function') { try { prCarregarTimeline(); } catch (e) {} }
-}
-
-function memedConfigAbrir() {
-  const erro = document.getElementById('memed-cfg-erro');
-  if (erro) erro.style.display = 'none';
-  const partes = ((authUser && authUser.nome) || '').split(' ').filter(Boolean);
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-  pacApi('/api/clinico/memed/config').then(r => {
-    const p = (r.data && r.data.perfil) || {};
-    set('memed-cfg-nome', p.nome || partes[0] || '');
-    set('memed-cfg-sobrenome', p.sobrenome || partes.slice(1).join(' '));
-    set('memed-cfg-crm', p.crm);
-    set('memed-cfg-uf', p.uf);
-    set('memed-cfg-cpf', p.cpf);
-    set('memed-cfg-tel', p.telefone);
-    set('memed-cfg-email', p.email || (authUser && authUser.email) || '');
-  }).catch(() => {
-    set('memed-cfg-nome', partes[0] || '');
-    set('memed-cfg-sobrenome', partes.slice(1).join(' '));
-    set('memed-cfg-email', (authUser && authUser.email) || '');
-  });
-  document.getElementById('memed-cfg-modal').classList.add('aberto');
-}
-function memedFecharConfig() { document.getElementById('memed-cfg-modal').classList.remove('aberto'); }
-
-async function memedConfigSalvar() {
-  const erro = document.getElementById('memed-cfg-erro');
-  const val = id => ((document.getElementById(id) || {}).value || '');
-  const perfil = {
-    nome: val('memed-cfg-nome').trim(),
-    sobrenome: val('memed-cfg-sobrenome').trim(),
-    crm: val('memed-cfg-crm').trim(),
-    uf: val('memed-cfg-uf').trim(),
-    cpf: val('memed-cfg-cpf').trim(),
-    telefone: val('memed-cfg-tel').trim(),
-    email: val('memed-cfg-email').trim(),
-  };
-  if (!perfil.nome || !perfil.crm || !perfil.uf) {
-    if (erro) { erro.textContent = 'Preencha Nome, CRM e UF.'; erro.style.display = 'block'; }
-    return;
-  }
-  try {
-    const r = await pacApi('/api/clinico/memed/config', { method: 'PUT', body: JSON.stringify(perfil) });
-    if (!r.data || !r.data.ok) {
-      if (erro) { erro.textContent = (r.data && r.data.erro) || 'Erro ao salvar.'; erro.style.display = 'block'; }
-      return;
-    }
-    memedFecharConfig();
-    memedAbrir();
-  } catch (e) {
-    if (erro) { erro.textContent = e.message; erro.style.display = 'block'; }
-  }
-}
-
 // ============================================================
 // PRESCRITOR INLINE (estilo Prontuário Verde): painel abaixo da barra de
 // ações com tipos de documento, modelos prontos, texto livre e ações
@@ -18270,7 +17888,14 @@ function rxRerender(scroll) {
   if (scroll && rxState.aberto) setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
 function rxSetTipoDoc(t) {
-  if (t === 'exames') { prAbrirNovoExam(); return; }
+  if (t === 'exames') {
+    // gate que antes ficava no botão da barra (removido de lá — exames vive aqui)
+    if (typeof temPermissao === 'function' && !temPermissao('prontuario.solicitar_exames')) {
+      if (typeof homeToast === 'function') homeToast('Você não tem permissão pra solicitar exames.');
+      return;
+    }
+    prAbrirNovoExam(); return;
+  }
   if (t === 'breve') { if (typeof homeToast === 'function') homeToast('Em construção — por enquanto: Receituário, Atestado e Exames.'); return; }
   rxState.tipoDoc = t;
   rxRerender(false);
