@@ -17621,7 +17621,7 @@ function prMostrarQRModal(d) {
 // ações com tipos de documento, modelos prontos, texto livre e ações
 // "Salvar e imprimir" / "Salvar e enviar (WhatsApp)".
 // ============================================================
-function rxEstadoLimpo(extra) { return Object.assign({ aberto: false, tipoDoc: 'receituario', texto: '', tipoRec: 'BRANCA_COMUM', data: '', med: '', pos: '', salvando: false, atestadoDias: 1 }, extra || {}); }
+function rxEstadoLimpo(extra) { return Object.assign({ aberto: false, tipoDoc: 'receituario', texto: '', tipoRec: 'BRANCA_COMUM', data: '', med: '', pos: '', salvando: false, atestadoDias: 1, modeloBase: '', tipoAuto: false }, extra || {}); }
 let rxState = rxEstadoLimpo();
 const rxEsc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
@@ -17903,12 +17903,26 @@ function rxSetTipoDoc(t) {
 function rxAplicarModelo(nome) {
   if (!nome || !RX_MODELOS[nome]) return;
   const base = RX_MODELOS[nome];
-  rxState.texto = (rxState.texto || '').trim() ? (rxState.texto.trimEnd() + '\n\n' + base) : base;
-  // Modelo com substância controlada (lista C1) e tipo ainda "Simples"?
-  // Ajusta pra Controle Especial COM AVISO (nunca silencioso) — o médico confere.
-  if (rxState.tipoRec === 'BRANCA_COMUM' && /\b(bupropiona|naltrexona|topiramato|amato)\b/i.test(base)) {
+  // Trocar de modelo SUBSTITUI (igual ao atestado). Só pede confirmação se o
+  // texto atual foi editado à mão (diferente do último modelo aplicado) —
+  // trocar entre modelos intocados é liso.
+  const atual = (rxState.texto || '').trim();
+  const intocado = !atual || atual === (rxState.modeloBase || '').trim();
+  if (!intocado && !confirm('Substituir o texto atual pelo modelo "' + nome + '"?')) return;
+  rxState.texto = base;
+  rxState.modeloBase = base;
+  // Tipo acompanha o modelo: controlado (lista C1) sobe pra "Controle Especial"
+  // COM AVISO; trocar pra um modelo sem controlado desfaz o ajuste AUTOMÁTICO
+  // (nunca mexe se foi você que escolheu o tipo na mão).
+  const temControlado = /\b(bupropiona|naltrexona|topiramato|amato)\b/i.test(base);
+  if (temControlado && rxState.tipoRec === 'BRANCA_COMUM') {
     rxState.tipoRec = 'BRANCA_CONTROLADA';
+    rxState.tipoAuto = true;
     if (typeof homeToast === 'function') homeToast('Modelo contém substância controlada — tipo ajustado pra "Controle Especial". Confira antes de salvar.');
+  } else if (!temControlado && rxState.tipoAuto && rxState.tipoRec === 'BRANCA_CONTROLADA') {
+    rxState.tipoRec = 'BRANCA_COMUM';
+    rxState.tipoAuto = false;
+    if (typeof homeToast === 'function') homeToast('Modelo sem controlado — tipo voltou pra "Simples Uma Via".');
   }
   rxRerender(false);
 }
@@ -17954,9 +17968,13 @@ function rxAtestadoModelo(v) {
     rxState.atestadoDias = dias;
   }
   dias = Math.min(365, Math.max(1, dias));
-  // Substitui o texto atual (com confirmação se já tem coisa escrita)
-  if ((rxState.texto || '').trim() && !confirm('Substituir o texto atual do atestado pelo modelo?')) return;
+  // Mesma regra do receituário: trocar entre modelos intocados é liso;
+  // só pede confirmação se o texto foi editado à mão.
+  const atual = (rxState.texto || '').trim();
+  const intocado = !atual || atual === (rxState.modeloBase || '').trim();
+  if (!intocado && !confirm('Substituir o texto atual do atestado pelo modelo?')) return;
   rxState.texto = rxAtestadoTexto(dias);
+  rxState.modeloBase = rxState.texto;
   rxRerender(false);
 }
 
@@ -18048,7 +18066,7 @@ function prRenderPrescritor() {
         ${ehAtestado ? '' : `
         <div class="cresce">
           <div class="rx-lbl" style="margin-top:0;">Tipo de Receituário <span class="req">*</span></div>
-          <select id="rx-tipo-receituario" onchange="rxState.tipoRec=this.value">
+          <select id="rx-tipo-receituario" onchange="rxState.tipoRec=this.value; rxState.tipoAuto=false;">
             <option value="BRANCA_COMUM" ${rxState.tipoRec === 'BRANCA_COMUM' ? 'selected' : ''}>Simples Uma Via</option>
             <option value="BRANCA_CONTROLADA" ${rxState.tipoRec === 'BRANCA_CONTROLADA' ? 'selected' : ''}>Controle Especial</option>
             <option value="AZUL_CONTROLADA" ${rxState.tipoRec === 'AZUL_CONTROLADA' ? 'selected' : ''}>Azul (B)</option>
