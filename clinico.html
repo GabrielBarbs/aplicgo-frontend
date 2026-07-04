@@ -17621,7 +17621,7 @@ function prMostrarQRModal(d) {
 // ações com tipos de documento, modelos prontos, texto livre e ações
 // "Salvar e imprimir" / "Salvar e enviar (WhatsApp)".
 // ============================================================
-function rxEstadoLimpo(extra) { return Object.assign({ aberto: false, tipoDoc: 'receituario', texto: '', tipoRec: 'BRANCA_COMUM', data: '', med: '', pos: '', salvando: false }, extra || {}); }
+function rxEstadoLimpo(extra) { return Object.assign({ aberto: false, tipoDoc: 'receituario', texto: '', tipoRec: 'BRANCA_COMUM', data: '', med: '', pos: '', salvando: false, atestadoDias: 1 }, extra || {}); }
 let rxState = rxEstadoLimpo();
 const rxEsc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
@@ -17912,6 +17912,54 @@ function rxAplicarModelo(nome) {
   }
   rxRerender(false);
 }
+// ===== Modelos de ATESTADO (X/1/2/3/4 dias) — preenchidos com os dados reais =====
+const RX_EXTENSO = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez',
+  'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove', 'vinte',
+  'vinte e um', 'vinte e dois', 'vinte e três', 'vinte e quatro', 'vinte e cinco', 'vinte e seis',
+  'vinte e sete', 'vinte e oito', 'vinte e nove', 'trinta'];
+function rxCpfFmt(cpf) {
+  const d = String(cpf || '').replace(/\D/g, '');
+  return d.length === 11 ? d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9) : '';
+}
+function rxAtestadoTexto(dias) {
+  const h = prState.headerData || {};
+  const nome = h.nome_social || h.nome_completo || (prState.pacienteAtual && prState.pacienteAtual.nome) || '____________________';
+  const cpf = rxCpfFmt(h.cpf);
+  const cod = h.codigo || (prState.pacienteAtual && prState.pacienteAtual.codigo) || '';
+  const inicio = rxState.data ? new Date(rxState.data) : new Date();
+  const dataFmt = isNaN(inicio) ? new Date().toLocaleDateString('pt-BR') : inicio.toLocaleDateString('pt-BR');
+  const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const hoje = isNaN(inicio) ? new Date() : inicio;
+  const cidade = (h.unidade && h.unidade.cidade) || 'Ituiutaba';
+  const extenso = RX_EXTENSO[dias] || String(dias);
+  const idParte = [cpf ? 'CPF ' + cpf : '', cod ? 'prontuário ' + cod : ''].filter(Boolean).join(', ');
+  return `ATESTADO MÉDICO
+
+Atesto, para os devidos fins, que o(a) paciente ${nome}${idParte ? ' (' + idParte + ')' : ''} esteve sob meus cuidados profissionais nesta data, necessitando de afastamento de suas atividades por ${dias} (${extenso}) dia${dias === 1 ? '' : 's'}, a partir de ${dataFmt}.
+
+${cidade}, ${hoje.getDate()} de ${MESES[hoje.getMonth()]} de ${hoje.getFullYear()}.`;
+}
+function rxAtestadoModelo(v) {
+  if (!v) return;
+  let dias;
+  if (v === 'X') {
+    dias = parseInt(rxState.atestadoDias, 10);
+    if (!dias || dias < 1) {
+      if (typeof homeToast === 'function') homeToast('Informe o número de dias no campo ao lado e selecione de novo.');
+      const el = document.getElementById('rx-atestado-dias'); if (el) el.focus();
+      return;
+    }
+  } else {
+    dias = parseInt(v, 10);
+    rxState.atestadoDias = dias;
+  }
+  dias = Math.min(365, Math.max(1, dias));
+  // Substitui o texto atual (com confirmação se já tem coisa escrita)
+  if ((rxState.texto || '').trim() && !confirm('Substituir o texto atual do atestado pelo modelo?')) return;
+  rxState.texto = rxAtestadoTexto(dias);
+  rxRerender(false);
+}
+
 function rxAdicionarMed() {
   const med = rxState.med || '';
   const pos = rxState.pos || '';
@@ -17953,7 +18001,26 @@ function prRenderPrescritor() {
         ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
         ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
       </div>
-      ${ehAtestado ? '' : `
+      ${ehAtestado ? `
+        <div class="rx-lbl">Selecione o modelo de atestado</div>
+        <div class="rx-row">
+          <div class="cresce">
+            <select id="rx-atestado-modelo" onchange="rxAtestadoModelo(this.value); this.value='';">
+              <option value="">Selecione</option>
+              <option value="X">Atestado X dias (usa o campo ao lado)</option>
+              <option value="1">Atestado 1 dia</option>
+              <option value="2">Atestado 2 dias</option>
+              <option value="3">Atestado 3 dias</option>
+              <option value="4">Atestado 4 dias</option>
+            </select>
+          </div>
+          <div style="width:120px;">
+            <input type="number" id="rx-atestado-dias" min="1" max="365" value="${parseInt(rxState.atestadoDias, 10) || 1}"
+              oninput="rxState.atestadoDias=this.value" title="Dias de afastamento (pro modelo X dias)" placeholder="dias">
+          </div>
+        </div>
+        <div class="rx-hint" style="margin-top:6px;">O modelo entra com nome, CPF, prontuário e datas do paciente preenchidos — revise e ajuste à vontade antes de salvar.</div>
+      ` : `
         <div class="rx-lbl">Selecione o modelo personalizado</div>
         <select id="rx-modelo" onchange="rxAplicarModelo(this.value); this.value='';">
           <option value="">Selecione</option>
