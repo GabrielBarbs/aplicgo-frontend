@@ -5397,55 +5397,178 @@
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap">
   <style id="glowup">
   /* ================================================================
-     GLOW-UP — refino visual global (aditivo, reversível: remova este
-     bloco e o <link> da fonte pra voltar ao anterior). Fonte Inter +
-     paleta charcoal mais quente + superfícies mais macias. Só toca
-     propriedade visual; nada de layout/estrutura/lógica. Vem por
-     último no <head>, então ganha na cascata.
+     REDESIGN "VIVO" — identidade visual própria do clínico (aditivo,
+     reversível: remova este bloco e o <link> das fontes pra voltar).
+     Grafite-espresso quente + terracota (primário) + sage da marca
+     (secundário) + Sora nos números/títulos + luz ambiente + micro-
+     animações. Só propriedade visual; zero layout/estrutura/lógica.
+     Vem por último no <head>, então ganha na cascata.
      ================================================================ */
   :root {
-    /* paleta dark mais rica e acolhedora (charcoal levemente quente, mais contraste) */
-    --bg0:#0b0c10; --bg1:#13151b; --bg2:#1a1d24; --bg3:#242832; --bg4:#1b2230;
-    --bd1:#2a2e38; --bd2:#3b414d;
-    --tx1:#f6f8fb; --tx1b:#e9edf3; --tx2:#c6cdd8; --tx3:#8d95a3; --tx3b:#7b8390; --tx4:#646c79;
-    --bg1-rgb:19,21,27; --bg2-rgb:26,29,36; --bg3-rgb:36,40,50; --bd1-rgb:42,46,56; --tx3b-rgb:123,131,144;
-    --radius:14px;
+    /* paleta espresso: grafite QUENTE (o charcoal azulado virou terra) */
+    --bg0:#0F0D0A; --bg1:#171411; --bg2:#1E1B17; --bg3:#2A2620; --bg4:#221E19;
+    --bd1:#332E27; --bd2:#463F35;
+    --tx1:#F8F5F0; --tx1b:#EDE9E2; --tx2:#CFC9BF; --tx3:#968F82; --tx3b:#847D71; --tx4:#6B6459;
+    --bg1-rgb:23,20,17; --bg2-rgb:30,27,23; --bg3-rgb:42,38,32; --bd1-rgb:51,46,39; --tx3b-rgb:132,125,113;
+    /* sage da marca (Prontuário Verde) como acento secundário de "vida" */
+    --sage:#8FAF8C; --sage-rgb:143,175,140;
+    --hair: rgba(255,240,220,.07);
+    --hair-2: rgba(255,240,220,.11);
+    --card-bd: rgba(255,240,220,.09);
+    --radius:16px;
+    --font-display:'Sora','Inter',system-ui,sans-serif;
   }
-  html, body { background: var(--bg0); }
   body, input, button, select, textarea {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
   }
   body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; letter-spacing: -.05px; }
+  ::selection { background: rgba(var(--ac-rgb),.32); color: var(--tx1); }
 
-  /* Superfícies mais macias (cantos mais suaves, sensação premium) */
-  .stat-card, .dash-card, .quick-btn, .op-card, .section-card, .met-card { border-radius: var(--radius); }
-  .hero, .impacto { border-radius: 16px; }
+  /* ---- Luz ambiente: terracota no alto, sage embaixo (bem sutil, dá vida) ---- */
+  body:not(.tema-claro) {
+    background:
+      radial-gradient(1000px 540px at 88% -12%, rgba(var(--ac-rgb),.055), transparent 62%),
+      radial-gradient(900px 620px at -12% 112%, rgba(var(--sage-rgb),.05), transparent 62%),
+      var(--bg0);
+    background-attachment: fixed;
+  }
+  html { background: var(--bg0); }
+
+  /* ---- Scrollbars finas e arredondadas (a barra grossa cinza morreu) ---- */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 8px; border: 3px solid var(--bg0); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--bd2); }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .app-sidebar::-webkit-scrollbar { width: 4px; }
+  .app-sidebar::-webkit-scrollbar-thumb { border: 0; }
+
+  /* ---- Tipografia display: números e títulos com personalidade ---- */
+  .stat-card .val, .hero-title, .hero-clock .hora, .pr-roda-resumo .big,
+  .auth-brand, .impacto .num, .met-card .val {
+    font-family: var(--font-display) !important; font-weight: 700; letter-spacing: -.5px;
+  }
+  .stat-card .val { font-size: 25px; }
+  .hero-title { font-size: 21px; }
+  .section-card-title, .dash-card-head .ttl, .sidebar-group-label { letter-spacing: .7px; }
+
+  /* ---- Superfícies: cantos generosos + brilho de topo (premium, macio) ---- */
+  .stat-card, .dash-card, .quick-btn, .op-card, .section-card, .met-card, .rx-panel { border-radius: var(--radius); }
+  .hero, .impacto { border-radius: 18px; }
   .pac-modal, .ag-modal, .auth-card, .atn-modal, .ex-panel, .ex-modal, .pac-table-card { border-radius: 18px; }
+  .stat-card, .dash-card, .section-card, .quick-btn, .hero {
+    background-image: linear-gradient(180deg, rgba(255,244,230,.025), transparent 42%);
+    border-color: var(--card-bd);
+  }
+  .hero {
+    background-image:
+      radial-gradient(560px 220px at 0% 0%, rgba(var(--ac-rgb),.08), transparent 65%),
+      linear-gradient(180deg, rgba(255,244,230,.025), transparent 42%);
+  }
 
-  /* Topbar com profundidade (leve blur + hairline) */
+  /* ---- Entrada de view: fade + subida (a troca de tela ganhou vida) ---- */
+  @keyframes viewIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+  .view.active { animation: viewIn .26s var(--ease); }
+
+  /* ---- Topbar: vidro de verdade ---- */
   .app-topbar {
-    background: rgba(var(--bg1-rgb), .9);
-    backdrop-filter: saturate(1.35) blur(10px); -webkit-backdrop-filter: saturate(1.35) blur(10px);
+    background: rgba(var(--bg1-rgb), .82);
+    backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px);
     border-bottom: 1px solid var(--hair);
   }
-  /* Sidebar com um respiro de gradiente + item ativo com brilho do accent */
-  .app-sidebar { background: linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 100%); }
-  .sidebar-item.active { background: linear-gradient(90deg, rgba(var(--ac-rgb),.16), rgba(var(--ac-rgb),.02)); }
 
-  /* Botão primário com brilho sutil do accent (mesmo comportamento) */
-  .pac-btn-primary, .foco-btn, .tk-btn.primary { background-image: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0)); }
-
-  /* Reação de hover em mais cartões clicáveis (consistente com os stat-cards) */
-  .dash-card:hover, .op-card:hover, .section-card:hover {
-    transform: translateY(-1px); box-shadow: var(--card-hi), var(--sh-2); border-color: rgba(var(--ac-rgb),.16);
+  /* ---- Sidebar: painel com respiro + item ativo em PILL terracota ---- */
+  .app-sidebar {
+    background: linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 100%);
+    border-right: 1px solid var(--hair);
+  }
+  .sidebar-brand { background: transparent; border-bottom: 1px solid var(--hair); }
+  .sidebar-brand img { filter: brightness(1.12) drop-shadow(0 2px 10px rgba(var(--ac-rgb),.25)); }
+  .sidebar-group-label i { color: rgba(var(--ac-rgb),.75); }
+  .sidebar-item { border-radius: 10px; transition: background .16s var(--ease), color .16s var(--ease), box-shadow .16s var(--ease), transform .16s var(--ease); }
+  .sidebar-item:hover { box-shadow: inset 0 0 0 1px var(--hair-2); transform: translateX(2px); }
+  .sidebar-item.active {
+    background: linear-gradient(120deg, var(--ac-d) 0%, var(--ac) 100%);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(var(--ac-rgb),.28), inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  .sidebar-item.active i { color: #fff; }
+  .sidebar-item.active:hover { transform: none; }
+  .sidebar-context {
+    background: linear-gradient(135deg, rgba(var(--ac-rgb),.13) 0%, rgba(var(--sage-rgb),.06) 100%);
+    border-color: rgba(var(--ac-rgb),.22);
   }
 
-  /* Foco visível global — acabamento + acessibilidade */
+  /* ---- Cards com reação: levantam e acendem a borda ---- */
+  .dash-card:hover, .op-card:hover, .section-card:hover {
+    transform: translateY(-1px); box-shadow: var(--card-hi), var(--sh-2); border-color: rgba(var(--ac-rgb),.18);
+  }
+  .stat-card::before { width: 3px; background: linear-gradient(180deg, var(--ac), rgba(var(--ac-rgb),.25)); }
+  .stat-card-ico { border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(var(--ac-rgb),.16); }
+  .quick-btn:hover { border-color: rgba(var(--ac-rgb),.30); transform: translateY(-1px); }
+  .quick-btn:hover i { transform: scale(1.08); }
+  .quick-btn i { transition: transform .16s var(--ease); }
+
+  /* ---- Botões: primário com gradiente + glow; secundário ghost limpo ---- */
+  .pac-btn-primary, .foco-btn, .tk-btn.primary {
+    background-image: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0));
+    border-radius: 10px;
+  }
+  .pac-btn-secondary, .pac-btn-mini { border-radius: 10px; }
+
+  /* ---- Tabelas: cabeçalho discreto, linhas com tinta terracota no hover ---- */
+  .pac-table thead th { letter-spacing: .55px; color: var(--tx3b); }
+  .pac-table tbody tr { transition: background .12s var(--ease); }
+
+  /* ---- Inputs mais macios ---- */
+  .pac-search, .pac-select, .pac-field input, .pac-field select, .pac-field textarea, .auth-input { border-radius: 9px; }
+
+  /* ---- Modais: fundo com blur (foco no que importa) ---- */
+  .ag-modal-overlay, .pac-modal-overlay, .modal-overlay, .pr-modal-overlay, .auth-overlay {
+    backdrop-filter: blur(7px) saturate(1.15); -webkit-backdrop-filter: blur(7px) saturate(1.15);
+  }
+
+  /* ---- Login: cartão com anel e brilho da marca ---- */
+  .auth-card {
+    border-color: rgba(var(--ac-rgb),.20);
+    box-shadow: 0 24px 80px rgba(0,0,0,.6), 0 0 0 1px var(--hair), 0 0 90px rgba(var(--ac-rgb),.08);
+  }
+
+  /* ---- Toast central com cara de produto (vence o estilo inline) ---- */
+  #home-toast {
+    background: linear-gradient(180deg, rgba(255,244,230,.04), transparent 50%), var(--bg2) !important;
+    border: 1px solid rgba(var(--ac-rgb),.32) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 24px rgba(var(--ac-rgb),.10) !important;
+  }
+
+  /* ---- Chips/badges arredondados ---- */
+  .rx-assinada-chip, .badge-mini { border-radius: 999px; }
+
+  /* ---- Estados vazios com um toque de cor (nada de cinza morto) ---- */
+  .pr-empty i { color: rgba(var(--ac-rgb),.55); }
+
+  /* ---- Menus flutuantes ---- */
+  .user-menu, .topbar-search-results { border-radius: 14px; border-color: var(--card-bd); box-shadow: var(--sh-3); }
+
+  /* ---- Foco visível global — acabamento + acessibilidade ---- */
   a:focus-visible, button:focus-visible, [role="button"]:focus-visible, .quick-btn:focus-visible {
     outline: 2px solid rgba(var(--ac-rgb),.5); outline-offset: 2px;
+  }
+
+  /* ---- Tema claro: mantém tudo funcional (vars redefinem; sem luz ambiente) ---- */
+  body.tema-claro { --hair: rgba(16,24,40,.07); --hair-2: rgba(16,24,40,.11); --card-bd: rgba(16,24,40,.10); --sage:#5F8F6B; --sage-rgb:95,143,107; }
+  body.tema-claro .sidebar-item.active { color: #fff; box-shadow: 0 6px 18px rgba(var(--ac-rgb),.30); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .view.active { animation: none; }
+    .sidebar-item, .quick-btn i { transition: none; }
+  }
+  /* Mobile: background fixo causa jank de repaint — rola junto */
+  @media (max-width: 768px) {
+    body:not(.tema-claro) { background-attachment: scroll; }
   }
   </style>
 </head>
