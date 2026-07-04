@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- CSP: trava o destino de exfiltracao (connect-src) e injecao de script externo. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://srv.aplicgo.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob:; connect-src 'self' https://srv.aplicgo.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Aplic &amp; Go · Sistema Clínico</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
@@ -12131,34 +12131,58 @@ function waMimeSeguro(m, fallback) {
   const s = String(m || '').trim();
   return /^[\w.+-]+\/[\w.+-]+(;\s*codecs=[\w.+\-,= ]+)?$/i.test(s) ? s : (fallback || 'application/octet-stream');
 }
-async function waMediaFetch(jid, msgId, mimeHint, semCache) {
-  if (waMediaCache.has(msgId)) { const v = waMediaCache.get(msgId); waMediaCache.delete(msgId); waMediaCache.set(msgId, v); return v; }
+// extra: { mjid, fromMe, mp4 } — key exata + transcodificação p/ Safari
+async function waMediaFetch(jid, msgId, mimeHint, semCache, extra) {
+  const ex = extra || {};
+  const cacheKey = msgId + (ex.mp4 ? '|mp4' : '');
+  if (waMediaCache.has(cacheKey)) { const v = waMediaCache.get(cacheKey); waMediaCache.delete(cacheKey); waMediaCache.set(cacheKey, v); return v; }
+  let q = '?x=1';
+  if (ex.mjid && String(ex.mjid).includes('@')) q += '&jid=' + encodeURIComponent(ex.mjid);
+  if (ex.fromMe === '1' || ex.fromMe === '0') q += '&fromMe=' + ex.fromMe;
+  if (ex.mp4) q += '&mp4=1';
   let r = null;
   try {
-    r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/media/' + encodeURIComponent(msgId));
+    r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/media/' + encodeURIComponent(msgId) + q);
   } catch (e) { return null; }
   if (!(r && r.ok && r.data && r.data.base64)) return null;
   const mime = waMimeSeguro(r.data.mimetype, waMimeSeguro(mimeHint, 'application/octet-stream'));
-  const b64 = String(r.data.base64).replace(/[^A-Za-z0-9+/=]/g, '');
+  const b64 = String(r.data.base64).replace(/^data:[^,]*,/, '').replace(/[^A-Za-z0-9+/=]/g, '');
   const url = 'data:' + mime + ';base64,' + b64;
   if (!semCache) {
-    waMediaCache.set(msgId, url);
+    waMediaCache.set(cacheKey, url);
     while (waMediaCache.size > WA_MEDIA_CACHE_MAX) waMediaCache.delete(waMediaCache.keys().next().value);
   }
   return url;
 }
-// Player de áudio: busca a mídia e troca o placeholder pelo <audio> (e toca)
+function waExtraDe(box, mp4) { return { mjid: box.dataset.mjid || '', fromMe: box.dataset.fromme || '', mp4: !!mp4 }; }
+// O navegador toca ogg/opus (voz do WhatsApp)? Safari/iPhone não -> pede mp4.
+function waPrecisaMp4() {
+  try { return !(new Audio().canPlayType('audio/ogg; codecs=opus')); } catch (e) { return false; }
+}
+// Player de áudio: busca a mídia e troca o placeholder pelo <audio> (e toca).
+// Se o <audio> falhar ao decodificar (codec), tenta 1x transcodificado em mp4.
 async function waAudioCarregar(btn) {
   const box = btn.closest('.wa-audio');
   if (!box || box.dataset.carregando) return;
   box.dataset.carregando = '1';
   btn.innerHTML = '<i class="ti ti-loader-2"></i>';
-  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'audio/ogg; codecs=opus');
+  const querMp4 = waPrecisaMp4();
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'audio/ogg; codecs=opus', false, waExtraDe(box, querMp4));
   delete box.dataset.carregando;
   if (!url) { btn.innerHTML = '<i class="ti ti-player-play"></i>'; if (typeof homeToast === 'function') homeToast('Não consegui baixar esse áudio — toque de novo pra tentar.'); return; }
   box.innerHTML = '<audio controls autoplay style="height:34px; max-width:230px;"></audio>';
-  box.querySelector('audio').src = url;
+  const audio = box.querySelector('audio');
+  audio.src = url;
   box.dataset.pronta = '1'; // marca "mídia viva" pro re-render preservar
+  if (!querMp4) {
+    // decodificação falhou (codec/arquivo)? tenta transcodificado uma vez
+    audio.onerror = async function () {
+      audio.onerror = null;
+      const url2 = await waMediaFetch(box.dataset.jid, box.dataset.mid, 'audio/mp4', false, waExtraDe(box, true));
+      if (url2) { audio.src = url2; audio.play().catch(function () {}); }
+      else if (typeof homeToast === 'function') homeToast('Esse áudio não pôde ser reproduzido.');
+    };
+  }
 }
 // Imagem: busca e mostra inline (clique amplia)
 async function waImgCarregar(el) {
@@ -12167,7 +12191,7 @@ async function waImgCarregar(el) {
   box.dataset.carregando = '1';
   const anterior = box.innerHTML;
   box.innerHTML = '<div class="wa-media-load"><i class="ti ti-loader-2"></i> carregando…</div>';
-  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'image/jpeg');
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'image/jpeg', false, waExtraDe(box));
   delete box.dataset.carregando;
   if (!url) { box.innerHTML = anterior; if (typeof homeToast === 'function') homeToast('Imagem indisponível — tente de novo.'); return; }
   const img = document.createElement('img');
@@ -12196,7 +12220,7 @@ async function waVideoCarregar(el) {
   box.dataset.carregando = '1';
   const anterior = box.innerHTML;
   box.innerHTML = '<div class="wa-media-load"><i class="ti ti-loader-2"></i> carregando…</div>';
-  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'video/mp4', true); // vídeo não entra no cache (pesado)
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'video/mp4', true, waExtraDe(box)); // vídeo não entra no cache (pesado)
   delete box.dataset.carregando;
   if (!url) { box.innerHTML = anterior; if (typeof homeToast === 'function') homeToast('Vídeo indisponível — tente de novo.'); return; }
   box.innerHTML = '<video controls autoplay style="max-width:240px; max-height:280px; border-radius:10px;"></video>';
@@ -12207,7 +12231,7 @@ async function waDocBaixar(el) {
   const box = el.closest('.wa-doc');
   if (!box || box.dataset.carregando) return;
   box.dataset.carregando = '1';
-  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'application/octet-stream', true);
+  const url = await waMediaFetch(box.dataset.jid, box.dataset.mid, box.dataset.mime || 'application/octet-stream', true, waExtraDe(box));
   delete box.dataset.carregando;
   if (!url) { if (typeof homeToast === 'function') homeToast('Não consegui baixar o documento — tente de novo.'); return; }
   const a = document.createElement('a');
@@ -12224,10 +12248,12 @@ function waRenderPreservandoMidia(wrap, html) {
     if (ph) ph.replaceWith(el);
   });
 }
-// Corpo da bolha por tipo de mensagem (compartilhado popup/página)
+// Corpo da bolha por tipo de mensagem (compartilhado popup/página).
+// data-jid = jid da CONVERSA (rota); data-mjid = jid de ORIGEM da mensagem
+// (pode ser o alt @lid) — a key exata que o Evolution precisa pra achar a mídia.
 function waBolhaCorpo(m, jid) {
   const t = esc(m.texto || '').replace(/\n/g, '<br>');
-  const attr = 'data-jid="' + esc(jid) + '" data-mid="' + esc(m.id || '') + '" data-mime="' + esc(m.mime || '') + '"';
+  const attr = 'data-jid="' + esc(jid) + '" data-mjid="' + esc(m.jid || '') + '" data-fromme="' + (m.de_mim ? '1' : '0') + '" data-mid="' + esc(m.id || '') + '" data-mime="' + esc(m.mime || '') + '"';
   if (m.tipo === 'audio' && m.id) {
     return '<div class="wa-audio" ' + attr + '><button class="wa-audio-play" onclick="waAudioCarregar(this)"><i class="ti ti-player-play"></i></button><span class="wa-audio-lbl"><i class="ti ti-microphone"></i> Áudio' + (m.dur ? ' · ' + waDur(m.dur) : '') + '</span></div>';
   }
