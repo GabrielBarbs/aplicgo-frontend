@@ -4474,6 +4474,10 @@
     .rx-receita-row .dt { font-size: 11px; color: var(--tx3b); white-space: nowrap; }
     .rx-receita-row .res { flex: 1; min-width: 160px; font-size: 12.5px; color: var(--tx1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .rx-receita-row .tp { font-size: 10px; color: var(--tx3b); text-transform: uppercase; letter-spacing: .4px; }
+    /* Botão excluir receita (danger discreto — só acende no hover) */
+    .pr-rx-del { font-size: 11px; padding: 5px 9px; border-radius: 8px; cursor: pointer; background: transparent; border: 1px solid var(--bd1); color: var(--tx3b); display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: background .12s, border-color .12s, color .12s; }
+    .pr-rx-del:hover { background: rgba(192,57,43,.12); border-color: rgba(192,57,43,.5); color: #e0685a; }
+    .pr-rx-del:disabled { opacity: .55; cursor: default; }
 
     /* ===== Protocolos injetáveis (modal de prescrição) ===== */
     .pro-grp { margin-top: 8px; }
@@ -17314,6 +17318,7 @@ function prRenderItem(it) {
         ${_icpBtn}
         ${d.assinado ? '<span class="rx-assinada-chip"><i class="ti ti-rosette-discount-check"></i> Assinada</span>' : ''}
         ${_icpChip}
+        ${_podeAssinar ? `<button class="pr-rx-del" style="margin-left:auto;" onclick="rxExcluirPresc('${d.id}', this)" title="Excluir receita"><i class="ti ti-trash"></i> Excluir</button>` : ''}
       </div>`;
       break;
     }
@@ -18790,6 +18795,27 @@ async function rxAbrirPdfPresc(id, icp) {
   } catch (e) { alert('Erro ao abrir o PDF.'); }
 }
 
+// Exclui a receita (e o QR/chave/PDF assinado ligados). Ação irreversível.
+async function rxExcluirPresc(id, btn) {
+  if (!confirm('Excluir esta receita?\n\nO documento e o QR de verificação da farmácia deixam de existir. Não dá pra desfazer.')) return;
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i>'; }
+  try {
+    const r = await pacApi('/api/clinico/prontuario/prescricoes/' + id, { method: 'DELETE' });
+    if (!r.ok) {
+      if (btn) { btn.disabled = false; btn.innerHTML = original; }
+      if (typeof homeToast === 'function') homeToast('Não foi possível excluir: ' + ((r.data && r.data.erro) || 'erro'));
+      else alert('Não foi possível excluir a receita.');
+      return;
+    }
+    if (typeof homeToast === 'function') homeToast('Receita excluída.');
+    prCarregarTimeline();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    alert('Erro ao excluir a receita.');
+  }
+}
+
 // Envia a receita no WhatsApp do paciente (confirma o número antes — SEMPRE).
 async function rxEnviarWhatsappPresc(id, btn) {
   const pac = prState.pacienteAtual; if (!pac) return;
@@ -18828,6 +18854,7 @@ function prRenderReceitas() {
   const rx = (prState.timeline || []).filter((i) => i.tipo === 'prescricao');
   if (!rx.length) return '<div class="pr-empty" style="padding:14px;"><i class="ti ti-prescription"></i>Nenhuma receita ainda.</div>';
   const tipoMap = { BRANCA_COMUM: 'Simples', BRANCA_CONTROLADA: 'Controle especial', AZUL_CONTROLADA: 'Azul (B)', ATESTADO: 'Atestado' };
+  const _podeExcluir = typeof temPermissao === 'function' && temPermissao('prontuario.prescrever');
   return rx.map((it) => {
     const d = it.dados;
     const dt = new Date(it.data);
@@ -18844,6 +18871,7 @@ function prRenderReceitas() {
       <button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick="rxAbrirPdfPresc('${d.id}', ${d.icp_assinada ? 'true' : 'false'})"><i class="ti ti-printer"></i> Imprimir</button>
       ${d.assinado ? `<button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick='prReceitaQR(${_dj})'><i class="ti ti-qrcode"></i> QR</button>` : ''}
       <button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick="rxEnviarWhatsappPresc('${d.id}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar</button>
+      ${_podeExcluir ? `<button class="pr-rx-del" onclick="rxExcluirPresc('${d.id}', this)" title="Excluir receita"><i class="ti ti-trash"></i></button>` : ''}
     </div>`;
   }).join('');
 }
