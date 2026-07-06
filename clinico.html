@@ -6212,6 +6212,32 @@
         <select class="pac-select" id="pac-filter-nutri">
           <option value="">Todos nutris</option>
         </select>
+        <select class="pac-select" id="pac-filter-sexo">
+          <option value="">Ambos sexos</option>
+          <option value="F">Feminino</option>
+          <option value="M">Masculino</option>
+          <option value="O">Outro</option>
+        </select>
+        <select class="pac-select" id="pac-filter-idade">
+          <option value="">Toda idade</option>
+          <option value="ate29">Até 29 anos</option>
+          <option value="30a44">30–44 anos</option>
+          <option value="45a59">45–59 anos</option>
+          <option value="60mais">60+ anos</option>
+        </select>
+        <select class="pac-select" id="pac-filter-origem">
+          <option value="">Toda origem</option>
+          <option value="comercial">Veio do comercial</option>
+          <option value="direto">Cadastro direto</option>
+        </select>
+        <select class="pac-select" id="pac-filter-sem" title="Quem ainda não tem responsável atribuído">
+          <option value="">Com/sem responsável</option>
+          <option value="medico">Sem médico atribuído</option>
+          <option value="nutri">Sem nutri atribuído</option>
+        </select>
+        <button class="pac-btn-secondary" id="pac-filter-limpar" onclick="pacLimparFiltros()" title="Limpar filtros" style="display:none;">
+          <i class="ti ti-filter-off"></i> Limpar
+        </button>
         <button class="pac-btn-secondary" onclick="pacCarregarLista()" title="Atualizar">
           <i class="ti ti-refresh"></i>
         </button>
@@ -10216,6 +10242,10 @@ let pacState = {
   programa: '',
   medico: '',
   nutri: '',
+  sexo: '',
+  idade: '',
+  origem: '',
+  sem: '',
   pacientes: [],
   unidades: [],
   profissionais: [],
@@ -10299,6 +10329,10 @@ async function pacCarregarLista() {
   pacState.programa = document.getElementById('pac-filter-programa').value;
   pacState.medico = document.getElementById('pac-filter-medico').value;
   pacState.nutri = document.getElementById('pac-filter-nutri').value;
+  pacState.sexo = document.getElementById('pac-filter-sexo').value;
+  pacState.idade = document.getElementById('pac-filter-idade').value;
+  pacState.origem = document.getElementById('pac-filter-origem').value;
+  pacState.sem = document.getElementById('pac-filter-sem').value;
 
   const params = new URLSearchParams();
   if (pacState.q) params.set('q', pacState.q);
@@ -10307,8 +10341,17 @@ async function pacCarregarLista() {
   if (pacState.programa) params.set('programa', pacState.programa);
   if (pacState.medico) params.set('medico', pacState.medico);
   if (pacState.nutri) params.set('nutri', pacState.nutri);
+  if (pacState.sexo) params.set('sexo', pacState.sexo);
+  if (pacState.idade) params.set('idade', pacState.idade);
+  if (pacState.origem) params.set('origem', pacState.origem);
+  if (pacState.sem) params.set('sem', pacState.sem);
   params.set('page', pacState.page);
   params.set('limit', pacState.limit);
+
+  // "Limpar" só aparece quando há algum filtro/busca ativo
+  const algumFiltro = !!(pacState.q || pacState.unit || pacState.status || pacState.programa || pacState.medico || pacState.nutri || pacState.sexo || pacState.idade || pacState.origem || pacState.sem);
+  const btnLimpar = document.getElementById('pac-filter-limpar');
+  if (btnLimpar) btnLimpar.style.display = algumFiltro ? '' : 'none';
 
   const r = await pacApi('/api/clinico/patients?' + params.toString());
   if (!r.ok) {
@@ -10470,6 +10513,20 @@ function pacBindToolbar() {
   document.getElementById('pac-filter-programa').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
   document.getElementById('pac-filter-medico').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
   document.getElementById('pac-filter-nutri').addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
+  ['pac-filter-sexo', 'pac-filter-idade', 'pac-filter-origem', 'pac-filter-sem'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => { pacState.page = 1; pacCarregarLista(); });
+  });
+}
+
+// Zera todos os filtros e a busca, e recarrega a lista.
+function pacLimparFiltros() {
+  const s = document.getElementById('pac-search-input'); if (s) s.value = '';
+  ['pac-filter-unit', 'pac-filter-status', 'pac-filter-programa', 'pac-filter-medico', 'pac-filter-nutri', 'pac-filter-sexo', 'pac-filter-idade', 'pac-filter-origem', 'pac-filter-sem'].forEach((id) => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  pacState.page = 1;
+  pacCarregarLista();
 }
 
 // ===== MODAL CRIAR / EDITAR =====
