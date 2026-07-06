@@ -5952,7 +5952,52 @@
   .atn-mini-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;border:1px solid var(--bd1);background:var(--bg2);color:var(--tx2);border-radius:7px;padding:5px 10px;cursor:pointer;font-family:inherit}
   .atn-mini-btn.wa{background:#25D366;color:#08240f;border-color:#25D366}
   .atn-empty{padding:26px 18px;text-align:center;color:var(--tx4);font-size:13px}
-  @media(max-width:720px){.op-lower{grid-template-columns:1fr}}
+  /* ===== Tarefas: abas + detalhe + chat ===== */
+  .tk-tabs{display:flex;gap:2px;padding:8px 14px 0;border-bottom:1px solid var(--bg2)}
+  .tk-tab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--tx3);font-size:13px;font-weight:500;padding:9px 12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;margin-bottom:-1px}
+  .tk-tab.ativo{color:var(--tx1);border-bottom-color:var(--ac)}
+  .tk-tab .cnt{background:var(--bg3);color:var(--tx3);border-radius:20px;font-size:10px;font-weight:600;padding:1px 7px;min-width:17px;text-align:center}
+  .tk-tab.ativo .cnt{background:var(--ac);color:#2a1608}
+  .tk-tab .cnt.alerta{background:#f85149;color:#fff}
+  .tk-divisor{font-size:10px;color:var(--tx4);text-transform:uppercase;letter-spacing:.4px;padding:12px 18px 4px;border-top:1px solid var(--bg2);margin-top:4px}
+  .atn-row.click{cursor:pointer;transition:background .12s}
+  .atn-row.click:hover{background:var(--bg2)}
+  .tk-badge.pend{background:rgba(210,153,34,.16);color:#e3b341}
+  .tk-badge.rec{background:rgba(248,81,73,.15);color:#f85149}
+  .tk-badge.ace{background:rgba(63,185,80,.15);color:#3fb950}
+  .tk-badge.done{background:var(--bg3);color:var(--tx3)}
+  .tk-badge.chat{background:var(--bg3);color:var(--tx3)}
+  .tkd-back{background:transparent;border:0;color:var(--tx3);cursor:pointer;font-size:19px;line-height:1;margin-right:4px;padding:0}
+  .tkd-badges{display:flex;flex-wrap:wrap;gap:6px;padding:12px 18px 2px}
+  .tkd-meta{display:grid;grid-template-columns:1fr 1fr;gap:11px 16px;padding:12px 18px 6px}
+  .tkd-meta .k{font-size:10px;color:var(--tx4);text-transform:uppercase;letter-spacing:.3px}
+  .tkd-meta .v{font-size:13px;color:var(--tx1b);margin-top:2px}
+  .tkd-desc{margin:8px 18px 4px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:11px 13px;font-size:13px;color:var(--tx2);white-space:pre-wrap;line-height:1.5}
+  .tkd-accept{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 18px 4px;padding:12px 14px;background:rgba(210,153,34,.09);border:1px solid rgba(210,153,34,.25);border-radius:12px}
+  .tkd-accept .lbl{font-size:12px;color:var(--tx2);flex:1;min-width:120px}
+  .tkd-actions{display:flex;flex-wrap:wrap;gap:7px;padding:10px 18px 4px}
+  .tkd-actions .tk-btn{padding:7px 12px;font-size:12px}
+  .tkd-chat-h{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:.4px;padding:14px 18px 4px}
+  .tkd-chat{padding:2px 16px 12px;display:flex;flex-direction:column;gap:9px}
+  .tkc-evento{align-self:center;font-size:11px;color:var(--tx4);text-align:center;padding:1px 10px;line-height:1.4}
+  .tkc-msg{max-width:80%;padding:8px 11px;border-radius:13px}
+  .tkc-msg .au{font-size:10px;font-weight:600;margin-bottom:2px}
+  .tkc-msg .tt{font-size:13px;line-height:1.42;white-space:pre-wrap;word-break:break-word}
+  .tkc-msg .hr{font-size:9px;text-align:right;margin-top:3px}
+  .tkc-msg.eu{align-self:flex-end;background:var(--ac)}
+  .tkc-msg.eu .tt{color:#2a1608}
+  .tkc-msg.eu .au,.tkc-msg.eu .hr{color:rgba(42,22,8,.6)}
+  .tkc-msg.outro{align-self:flex-start;background:var(--bg2);border:1px solid var(--bd1)}
+  .tkc-msg.outro .au{color:var(--ac)}
+  .tkc-msg.outro .tt{color:var(--tx1b)}
+  .tkc-msg.outro .hr{color:var(--tx4)}
+  .tkc-vazio{align-self:center;color:var(--tx4);font-size:12px;padding:10px}
+  .tkd-composer{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--bg2);align-items:flex-end;flex-shrink:0}
+  .tkd-composer textarea{flex:1;background:var(--bg2);border:1px solid var(--bd1);border-radius:11px;color:var(--tx1b);font-size:13px;padding:9px 12px;font-family:inherit;resize:none;outline:none;line-height:1.4}
+  .tkd-composer textarea:focus{border-color:var(--ac)}
+  .tkd-send{background:var(--ac);color:#2a1608;border:0;border-radius:11px;width:39px;height:39px;min-width:39px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+  .tkd-send:disabled{opacity:.5;cursor:default}
+  @media(max-width:720px){.op-lower{grid-template-columns:1fr}.tkc-msg{max-width:88%}.tkd-meta{grid-template-columns:1fr}}
   </style>
 
   <div class="view active" id="view-painel">
@@ -9597,49 +9642,287 @@ async function homeTarefasCarregar() {
 }
 
 function homeTarefaBadge(i) {
-  if (i.prazo_dias == null) return '';
-  if (i.vencida) return `<span class="tk-badge" style="background:rgba(248,81,73,.15);color:#f85149">vencida há ${Math.abs(i.prazo_dias)}d</span>`;
-  if (i.hoje) return `<span class="tk-badge" style="background:rgba(210,153,34,.15);color:#e3b341">hoje</span>`;
-  return `<span class="tk-badge" style="background:var(--bg3);color:var(--tx3)">em ${i.prazo_dias}d</span>`;
+  if (i.status === 'concluida' || i.prazo_dias == null) return '';
+  if (i.vencida) return `<span class="tk-badge rec">vencida há ${Math.abs(i.prazo_dias)}d</span>`;
+  if (i.hoje) return `<span class="tk-badge pend">hoje</span>`;
+  return `<span class="tk-badge done">em ${i.prazo_dias}d</span>`;
+}
+function homeTarefaAceiteBadge(i) {
+  if (i.status === 'concluida') return '';
+  if (i.aceite === 'pendente') return `<span class="tk-badge pend">${i.sou_dono ? 'aceite pendente' : 'aguardando aceite'}</span>`;
+  if (i.aceite === 'recusada') return '<span class="tk-badge rec">recusada</span>';
+  if (i.aceite === 'aceita' && !i.sou_dono) return '<span class="tk-badge ace">aceita</span>';
+  return '';
+}
+function homeTkHora(iso) {
+  try { return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; }
+}
+function homeTkDataBR(iso) { const p = String(iso).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso; }
+
+// ===== estado de navegação do modal de tarefas =====
+let homeTkData = null;   // payload do GET /tarefas (recebidas/deleguei/resumo)
+let homeTkBox = 'recebidas';
+let homeTkDet = null;    // {tarefa, comentarios} do detalhe aberto
+
+function homeTkOverlay() {
+  let ov = document.getElementById('atn-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay'; document.body.appendChild(ov); }
+  ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
+  return ov;
 }
 
-function homeTarefasAbrir() {
-  const itens = homeTarefasItens || [];
-  let ov = document.getElementById('atn-overlay'); if (ov) ov.remove();
-  ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
-  ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
-  const rows = itens.length ? itens.map((i) => {
-    const prioCor = i.prioridade === 'alta' ? '#f85149' : (i.prioridade === 'baixa' ? 'var(--tx4)' : '#e3b341');
-    const pac = i.paciente_nome ? ` · <i class="ti ti-user" style="font-size:11px"></i> ${esc(i.paciente_nome)}` : '';
-    return `<div class="atn-row">
-      <button class="tk-check" onclick="homeTarefaConcluir('${i.id}', this)" title="Concluir"><i class="ti ti-check"></i></button>
-      <div style="min-width:0"><div class="nome">${esc(i.titulo)} ${homeTarefaBadge(i)}</div>
-      <div class="meta"><span style="color:${prioCor}">●</span> ${esc(i.prioridade)}${pac}${i.descricao ? ' · ' + esc(i.descricao.slice(0, 60)) : ''}</div></div>
-    </div>`;
-  }).join('') : '<div class="atn-empty">Nenhuma tarefa aberta. 🎉</div>';
+// ---- LISTA (abas Recebidas / Deleguei) ----
+async function homeTarefasAbrir() {
+  homeTkDet = null;
+  const ov = homeTkOverlay();
+  ov.innerHTML = `<div class="atn-modal"><div class="atn-modal-head"><div class="ttl"><i class="ti ti-checklist" style="color:var(--ac)"></i> Tarefas</div><button class="x" onclick="homeAtencaoFechar()">×</button></div><div class="atn-modal-body"><div class="atn-empty">Carregando…</div></div></div>`;
+  let d = null;
+  try { const r = await pacApi('/api/clinico/tarefas'); if (r.ok) d = r.data; } catch (e) {}
+  if (!document.getElementById('atn-overlay')) return; // fechou enquanto carregava
+  if (!d || !d.ok) { const b = document.querySelector('#atn-overlay .atn-modal-body'); if (b) b.innerHTML = '<div class="atn-empty">Não consegui carregar as tarefas.</div>'; return; }
+  homeTkData = d;
+  homeTkRenderLista();
+}
+function homeTkTab(box) { homeTkBox = box; homeTkRenderLista(); }
+function homeTkRenderLista() {
+  const ov = document.getElementById('atn-overlay'); if (!ov || !homeTkData) return;
+  const rec = homeTkData.recebidas || [];
+  const del = homeTkData.deleguei || [];
+  // contadores das abas = itens ABERTOS (o que bate com o card da home); casam com a seção ativa da lista.
+  const cntRec = rec.filter(i => i.status === 'aberta').length;
+  const cntDel = del.filter(i => i.status === 'aberta').length;
+  const pend = rec.some(i => i.aceite_pendente);
+  const lista = homeTkBox === 'deleguei' ? del : rec;
+  const abertas = lista.filter(i => i.status !== 'concluida');
+  const concluidas = lista.filter(i => i.status === 'concluida');
+  let rows;
+  if (!lista.length) {
+    rows = `<div class="atn-empty">${homeTkBox === 'deleguei' ? 'Você ainda não delegou tarefas.' : 'Nenhuma tarefa por aqui. 🎉'}</div>`;
+  } else {
+    rows = abertas.map(homeTkRow).join('');
+    if (!abertas.length) rows += `<div class="atn-empty" style="padding:16px">Nada em aberto por aqui. 🎉</div>`;
+    if (concluidas.length) rows += `<div class="tk-divisor">Concluídas (${concluidas.length})</div>` + concluidas.map(homeTkRow).join('');
+  }
   ov.innerHTML = `<div class="atn-modal">
-    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-checklist" style="color:var(--ac)"></i> Minhas tarefas</div>
+    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-checklist" style="color:var(--ac)"></i> Tarefas</div>
       <div style="display:flex;gap:8px;align-items:center"><button class="tk-btn primary" style="padding:6px 12px" onclick="homeTarefaNova()"><i class="ti ti-plus"></i> Nova</button><button class="x" onclick="homeAtencaoFechar()">×</button></div></div>
+    <div class="tk-tabs">
+      <button class="tk-tab ${homeTkBox === 'recebidas' ? 'ativo' : ''}" onclick="homeTkTab('recebidas')">Recebidas <span class="cnt ${pend ? 'alerta' : ''}">${cntRec}</span></button>
+      <button class="tk-tab ${homeTkBox === 'deleguei' ? 'ativo' : ''}" onclick="homeTkTab('deleguei')">Deleguei <span class="cnt">${cntDel}</span></button>
+    </div>
     <div class="atn-modal-body">${rows}</div></div>`;
-  document.body.appendChild(ov);
+}
+function homeTkRow(i) {
+  const prioCor = i.prioridade === 'alta' ? '#f85149' : (i.prioridade === 'baixa' ? 'var(--tx4)' : '#e3b341');
+  const concl = i.status === 'concluida';
+  const check = (i.sou_dono && !concl && i.aceite !== 'recusada')
+    ? `<button class="tk-check" onclick="event.stopPropagation();homeTarefaConcluir('${i.id}', this)" title="Concluir"><i class="ti ti-check"></i></button>`
+    : `<span class="tk-check" style="border-color:transparent;color:${concl ? '#3fb950' : 'var(--tx4)'};cursor:default"><i class="ti ti-${concl ? 'circle-check' : 'point'}"></i></span>`;
+  const badges = homeTarefaBadge(i) + homeTarefaAceiteBadge(i)
+    + (concl ? '<span class="tk-badge done">concluída</span>' : '')
+    + (i.coment_count ? `<span class="tk-badge chat"><i class="ti ti-message-circle" style="font-size:10px"></i> ${i.coment_count}</span>` : '');
+  const quem = homeTkBox === 'deleguei'
+    ? `<i class="ti ti-arrow-right" style="font-size:11px"></i> ${esc(i.dono_nome)}`
+    : `<i class="ti ti-user-plus" style="font-size:11px"></i> ${esc(i.criador_nome)}`;
+  const pac = i.paciente_nome ? ` · <i class="ti ti-user" style="font-size:11px"></i> ${esc(i.paciente_nome)}` : '';
+  return `<div class="atn-row click" onclick="homeTarefaDetalhe('${i.id}')">
+    ${check}
+    <div style="min-width:0;flex:1"><div class="nome" style="opacity:${concl ? '.6' : '1'}">${esc(i.titulo)} ${badges}</div>
+    <div class="meta"><span style="color:${prioCor}">●</span> ${quem}${pac}</div></div>
+    <i class="ti ti-chevron-right" style="color:var(--tx4);flex-shrink:0"></i>
+  </div>`;
+}
+
+// ---- DETALHE + CHAT ----
+async function homeTarefaDetalhe(id) {
+  const ov = homeTkOverlay();
+  ov.innerHTML = `<div class="atn-modal"><div class="atn-modal-head"><div class="ttl"><button class="tkd-back" onclick="homeTarefasAbrir()">←</button> Tarefa</div><button class="x" onclick="homeAtencaoFechar()">×</button></div><div class="atn-modal-body"><div class="atn-empty">Carregando…</div></div></div>`;
+  let d = null;
+  try { const r = await pacApi('/api/clinico/tarefas/' + id); if (r.ok) d = r.data; } catch (e) {}
+  if (!document.getElementById('atn-overlay')) return;
+  if (!d || !d.ok) { const b = document.querySelector('#atn-overlay .atn-modal-body'); if (b) b.innerHTML = '<div class="atn-empty">Não consegui abrir a tarefa.</div>'; return; }
+  homeTkDet = d;
+  homeTkRenderDetalhe();
+}
+function homeTkRenderDetalhe() {
+  const ov = document.getElementById('atn-overlay'); if (!ov || !homeTkDet) return;
+  const t = homeTkDet.tarefa;
+  const coms = homeTkDet.comentarios || [];
+  const concl = t.status === 'concluida';
+  const badges = [];
+  if (concl) badges.push('<span class="tk-badge ace">✓ concluída</span>');
+  else badges.push('<span class="tk-badge done">aberta</span>');
+  if (!concl && t.prazo_dias != null) {
+    if (t.vencida) badges.push(`<span class="tk-badge rec">vencida há ${Math.abs(t.prazo_dias)}d</span>`);
+    else if (t.hoje) badges.push('<span class="tk-badge pend">vence hoje</span>');
+    else badges.push(`<span class="tk-badge done">em ${t.prazo_dias}d</span>`);
+  }
+  if (t.aceite === 'pendente') badges.push('<span class="tk-badge pend">aceite pendente</span>');
+  else if (t.aceite === 'aceita') badges.push('<span class="tk-badge ace">aceita</span>');
+  else if (t.aceite === 'recusada') badges.push('<span class="tk-badge rec">recusada</span>');
+  const prioCor = t.prioridade === 'alta' ? '#f85149' : (t.prioridade === 'baixa' ? 'var(--tx4)' : '#e3b341');
+
+  let accept = '';
+  if (t.pode_aceitar) {
+    accept = `<div class="tkd-accept" id="tkd-accept">
+      <div class="lbl"><strong>${esc(t.criador_nome)}</strong> atribuiu esta tarefa a você. Você aceita?</div>
+      <button class="tk-btn primary" onclick="homeTarefaAceite('${t.id}', true)"><i class="ti ti-check"></i> Aceitar</button>
+      <button class="tk-btn ghost" onclick="homeTarefaRecusarPrompt('${t.id}')"><i class="ti ti-x"></i> Recusar</button>
+    </div>`;
+  }
+
+  const acts = [];
+  // recusada "quicou" pro criador: ele resolve via Reatribuir/Cancelar, não Concluir direto.
+  if (!concl && t.aceite !== 'recusada' && (t.sou_dono || t.sou_criador)) acts.push(`<button class="tk-btn primary" onclick="homeTarefaConcluir('${t.id}', this)"><i class="ti ti-check"></i> Concluir</button>`);
+  if (concl && (t.sou_dono || t.sou_criador)) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReabrir('${t.id}')"><i class="ti ti-refresh"></i> Reabrir</button>`);
+  acts.push(`<button class="tk-btn ghost" onclick="homeTarefaEditar('${t.id}')"><i class="ti ti-pencil"></i> Editar</button>`);
+  if (t.sou_criador) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReatribuir('${t.id}')"><i class="ti ti-user-plus"></i> Reatribuir</button>`);
+  if (t.sou_criador && !concl) acts.push(`<button class="tk-btn ghost" style="color:#f85149" onclick="homeTarefaCancelar('${t.id}')"><i class="ti ti-trash"></i> Cancelar</button>`);
+
+  const metaItems = [
+    ['Responsável', esc(t.dono_nome) + (t.sou_dono ? ' <span style="color:var(--tx4)">(você)</span>' : '')],
+    ['Criado por', esc(t.criador_nome) + (t.sou_criador ? ' <span style="color:var(--tx4)">(você)</span>' : '')],
+    ['Prazo', t.prazo ? homeTkDataBR(t.prazo) : '<span style="color:var(--tx4)">sem prazo</span>'],
+    ['Prioridade', `<span style="color:${prioCor}">●</span> ${esc(t.prioridade)}`],
+  ];
+  if (t.paciente_nome) metaItems.push(['Paciente', `<i class="ti ti-user" style="font-size:12px"></i> ${esc(t.paciente_nome)}${t.paciente_codigo ? ' · ' + esc(t.paciente_codigo) : ''}`]);
+  if (t.aceite === 'recusada' && t.motivo_recusa) metaItems.push(['Motivo da recusa', esc(t.motivo_recusa)]);
+  const meta = metaItems.map(kv => `<div><div class="k">${kv[0]}</div><div class="v">${kv[1]}</div></div>`).join('');
+  const desc = t.descricao ? `<div class="tkd-desc">${esc(t.descricao)}</div>` : '';
+
+  ov.innerHTML = `<div class="atn-modal" style="max-width:600px">
+    <div class="atn-modal-head"><div class="ttl" style="min-width:0"><button class="tkd-back" onclick="homeTarefasAbrir()" title="Voltar">←</button> <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo)}</span></div><button class="x" onclick="homeAtencaoFechar()">×</button></div>
+    <div class="atn-modal-body" id="tkd-scroll">
+      <div class="tkd-badges">${badges.join('')}</div>
+      <div class="tkd-meta">${meta}</div>
+      ${desc}
+      ${accept}
+      <div class="tkd-actions">${acts.join('')}</div>
+      <div class="tkd-chat-h">Conversa e atividade</div>
+      <div class="tkd-chat" id="tkd-chat">${homeTkChatHtml(coms)}</div>
+    </div>
+    <div class="tkd-composer">
+      <textarea id="tkd-input" rows="1" placeholder="Escreva uma mensagem…" oninput="homeTkAutoGrow(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();homeTarefaComentar('${t.id}', this);}"></textarea>
+      <button class="tkd-send" onclick="homeTarefaComentar('${t.id}', document.getElementById('tkd-input'))" title="Enviar"><i class="ti ti-send"></i></button>
+    </div>
+  </div>`;
+  homeTkScrollChat();
+}
+function homeTkChatHtml(coms) {
+  if (!coms.length) return '<div class="tkc-vazio">Nenhuma mensagem ainda. Comece a conversa 👇</div>';
+  return coms.map(c => {
+    if (c.tipo === 'evento') return `<div class="tkc-evento"><i class="ti ti-circle-dot" style="font-size:10px"></i> <strong>${esc(c.sou_eu ? 'Você' : c.autor_nome)}</strong> ${esc(c.texto)} · ${homeTkHora(c.created_at)}</div>`;
+    return `<div class="tkc-msg ${c.sou_eu ? 'eu' : 'outro'}">${c.sou_eu ? '' : `<div class="au">${esc(c.autor_nome)}</div>`}<div class="tt">${esc(c.texto)}</div><div class="hr">${homeTkHora(c.created_at)}</div></div>`;
+  }).join('');
+}
+function homeTkScrollChat() { const s = document.getElementById('tkd-scroll'); if (s) s.scrollTop = s.scrollHeight; }
+function homeTkAutoGrow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+
+async function homeTarefaComentar(id, inputEl) {
+  const texto = (inputEl && inputEl.value || '').trim();
+  if (!texto) return;
+  inputEl.disabled = true;
+  const r = await pacApi('/api/clinico/tarefas/' + id + '/comentarios', { method: 'POST', body: JSON.stringify({ texto }) });
+  inputEl.disabled = false;
+  if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui enviar a mensagem.'); return; }
+  inputEl.value = ''; homeTkAutoGrow(inputEl); inputEl.focus();
+  if (homeTkDet && homeTkDet.tarefa && homeTkDet.tarefa.id === id) {
+    homeTkDet.comentarios.push(r.data.comentario);
+    homeTkDet.tarefa.coment_count = (homeTkDet.tarefa.coment_count || 0) + 1;
+    const chat = document.getElementById('tkd-chat'); if (chat) chat.innerHTML = homeTkChatHtml(homeTkDet.comentarios);
+    homeTkScrollChat();
+  }
+}
+
+async function homeTarefaAceite(id, aceita, motivo) {
+  const body = { aceita: !!aceita }; if (motivo) body.motivo = motivo;
+  const r = await pacApi('/api/clinico/tarefas/' + id + '/aceite', { method: 'POST', body: JSON.stringify(body) });
+  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui registrar.'); return; }
+  homeToast(aceita ? 'Tarefa aceita. ✓' : 'Tarefa recusada.');
+  homeTarefasCarregar();
+  homeTarefaDetalhe(id);
+}
+function homeTarefaRecusarPrompt(id) {
+  const box = document.getElementById('tkd-accept'); if (!box) return;
+  box.innerHTML = `<div class="lbl" style="flex:1 1 100%">Por que está recusando? <span style="color:var(--tx4)">(opcional — o criador verá)</span></div>
+    <input id="tkd-motivo" type="text" maxlength="500" placeholder="Ex: já foi resolvido / não é comigo" style="flex:1 1 100%;background:var(--bg2);border:1px solid var(--bd1);border-radius:8px;color:var(--tx1b);font-size:13px;padding:8px 10px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();homeTarefaAceite('${id}', false, (document.getElementById('tkd-motivo').value||'').trim());}">
+    <button class="tk-btn ghost" onclick="homeTarefaDetalhe('${id}')">Voltar</button>
+    <button class="tk-btn primary" style="background:#f85149;color:#fff" onclick="homeTarefaAceite('${id}', false, (document.getElementById('tkd-motivo').value||'').trim())"><i class="ti ti-x"></i> Confirmar recusa</button>`;
+  const mi = document.getElementById('tkd-motivo'); if (mi) mi.focus();
 }
 
 async function homeTarefaConcluir(id, btnEl) {
-  if (btnEl) { btnEl.disabled = true; btnEl.style.color = 'var(--ac)'; }
+  if (btnEl) btnEl.disabled = true;
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
   if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
-  homeTarefasItens = (homeTarefasItens || []).filter(x => x.id !== id);
-  homeTarefasVencidas = homeTarefasItens.filter(x => x.vencida).length;
-  const val = document.getElementById('op-tarefas-val'); if (val) { val.textContent = homeTarefasItens.length; val.style.color = homeTarefasVencidas > 0 ? '#f85149' : 'var(--tx1)'; }
-  const ext = document.getElementById('op-tarefas-ext'); if (ext) ext.textContent = homeTarefasExtText(homeTarefasVencidas, homeTarefasItens.filter(x => x.hoje).length, homeTarefasItens.length);
-  homeTarefasAbrir();
-  if (window.homeResumo) homeFocoRender(window.homeResumo);
+  homeToast('Tarefa concluída. ✓');
+  homeTarefasCarregar();
+  if (homeTkDet && homeTkDet.tarefa && homeTkDet.tarefa.id === id) homeTarefaDetalhe(id);
+  else homeTarefasAbrir();
+}
+async function homeTarefaReabrir(id) {
+  const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'aberta' }) });
+  if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui reabrir.'); return; }
+  homeToast('Tarefa reaberta.'); homeTarefasCarregar(); homeTarefaDetalhe(id);
+}
+async function homeTarefaCancelar(id) {
+  if (!confirm('Cancelar esta tarefa? Ela sai das listas de todos os envolvidos.')) return;
+  const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'cancelada' }) });
+  if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui cancelar.'); return; }
+  homeToast('Tarefa cancelada.'); homeTarefasCarregar(); homeTarefasAbrir();
+}
+async function homeTarefaReatribuir(id) {
+  let usuarios = [];
+  try { const r = await pacApi('/api/clinico/mentions/usuarios'); if (r.ok) usuarios = r.data.usuarios || []; } catch (e) {}
+  const cur = homeTkDet && homeTkDet.tarefa ? homeTkDet.tarefa.dono_id : '';
+  const opts = usuarios.map(u => `<option value="${u.id}" ${u.id === cur ? 'selected' : ''}>${esc(u.nome)}${u.cargo ? ' (' + esc(u.cargo) + ')' : ''}</option>`).join('');
+  const box = document.querySelector('#atn-overlay .tkd-actions'); if (!box) return;
+  box.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;align-items:center">
+    <span style="font-size:12px;color:var(--tx3)">Novo responsável:</span>
+    <select id="tkd-dono" style="flex:1;min-width:150px;background:var(--bg2);border:1px solid var(--bd1);border-radius:8px;color:var(--tx1b);font-size:13px;padding:7px 9px;font-family:inherit;outline:none">${opts}</select>
+    <button class="tk-btn ghost" onclick="homeTarefaDetalhe('${id}')">Cancelar</button>
+    <button class="tk-btn primary" onclick="homeTarefaReatribuirConfirmar('${id}')"><i class="ti ti-check"></i> Reatribuir</button>
+  </div>`;
+}
+async function homeTarefaReatribuirConfirmar(id) {
+  const sel = document.getElementById('tkd-dono'); if (!sel || !sel.value) return;
+  if (homeTkDet && homeTkDet.tarefa && sel.value === homeTkDet.tarefa.dono_id) { homeToast('Escolha um responsável diferente do atual.'); return; }
+  const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ donoId: sel.value }) });
+  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui reatribuir.'); return; }
+  homeToast('Tarefa reatribuída.'); homeTarefasCarregar(); homeTarefaDetalhe(id);
+}
+function homeTarefaEditar(id) {
+  const t = homeTkDet && homeTkDet.tarefa; if (!t || t.id !== id) return;
+  const ov = document.getElementById('atn-overlay'); if (!ov) return;
+  const body = ov.querySelector('.atn-modal-body'); if (!body) return;
+  const comp = ov.querySelector('.tkd-composer'); if (comp) comp.style.display = 'none';
+  body.innerHTML = `<div class="tk-form" style="padding:14px 18px 18px">
+    <label>Título</label><input id="tke-titulo" type="text" maxlength="200" value="${esc(t.titulo).replace(/"/g, '&quot;')}">
+    <label>Descrição</label><textarea id="tke-desc" rows="3" maxlength="2000">${esc(t.descricao || '')}</textarea>
+    <div class="tk-form-row"><div><label>Prazo</label><input id="tke-prazo" type="date" value="${t.prazo || ''}"></div>
+    <div><label>Prioridade</label><select id="tke-prio"><option value="baixa" ${t.prioridade === 'baixa' ? 'selected' : ''}>Baixa</option><option value="media" ${t.prioridade === 'media' ? 'selected' : ''}>Média</option><option value="alta" ${t.prioridade === 'alta' ? 'selected' : ''}>Alta</option></select></div></div>
+    <div class="tk-form-actions"><button class="tk-btn ghost" onclick="homeTarefaDetalhe('${id}')">Cancelar</button><button class="tk-btn primary" onclick="homeTarefaEditarSalvar('${id}')"><i class="ti ti-check"></i> Salvar</button></div>
+  </div>`;
+}
+async function homeTarefaEditarSalvar(id) {
+  const titulo = (document.getElementById('tke-titulo').value || '').trim();
+  if (titulo.length < 2) { homeToast('Dê um título à tarefa.'); return; }
+  const body = {
+    titulo,
+    descricao: (document.getElementById('tke-desc').value || '').trim() || null,
+    prazo: document.getElementById('tke-prazo').value || null,
+    prioridade: document.getElementById('tke-prio').value || 'media',
+  };
+  const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify(body) });
+  if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui salvar.'); return; }
+  homeToast('Tarefa atualizada.'); homeTarefasCarregar(); homeTarefaDetalhe(id);
 }
 
 async function homeTarefaNova() {
   let usuarios = [];
   try { const r = await pacApi('/api/clinico/mentions/usuarios'); if (r.ok) usuarios = r.data.usuarios || []; } catch (e) {}
-  const opts = '<option value="">Eu (você)</option>' + usuarios.map(u => `<option value="${u.id}">${esc(u.nome)}${u.cargo ? ' (' + esc(u.cargo) + ')' : ''}</option>`).join('');
+  const meuId = authUser && authUser.id;
+  const opts = '<option value="">Eu (você)</option>' + usuarios.filter(u => u.id !== meuId).map(u => `<option value="${u.id}">${esc(u.nome)}${u.cargo ? ' (' + esc(u.cargo) + ')' : ''}</option>`).join('');
   let ov = document.getElementById('atn-overlay'); if (ov) ov.remove();
   ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
   ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
@@ -9678,9 +9961,10 @@ async function homeTarefaSalvar(btnEl) {
   if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="ti ti-loader-2"></i> Criando…'; }
   const r = await pacApi('/api/clinico/tarefas', { method: 'POST', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-check"></i> Criar tarefa'; } homeToast('Não consegui criar a tarefa.'); return; }
-  homeAtencaoFechar();
   homeToast('Tarefa criada.');
   homeTarefasCarregar();
+  homeTkBox = (r.data && r.data.delegada) ? 'deleguei' : 'recebidas'; // flag do backend (não infere pelo donoId)
+  homeTarefasAbrir();
 }
 
 // ===== HOME GESTOR (Sprint 2) =====
