@@ -5676,6 +5676,13 @@
       </button>
     </div>
 
+    <div class="sidebar-group" data-grupo-equipe>
+      <div class="sidebar-group-label"><i class="ti ti-trophy"></i> Equipe</div>
+      <button class="sidebar-item" data-view="pontuacao" data-perm="pontuacao.ver">
+        <i class="ti ti-trophy"></i> Pontuação
+      </button>
+    </div>
+
     <div class="sidebar-group" id="sidebar-group-admin" style="display:none;">
       <div class="sidebar-group-label"><i class="ti ti-shield-lock"></i> Administração</div>
       <button class="sidebar-item" data-view="admin">
@@ -6828,6 +6835,61 @@
   </div>
 
  </div>
+
+  <!-- VIEW: Pontuação (Onda 1) -->
+  <div class="view" id="view-pontuacao">
+    <style>
+      #view-pontuacao .pt-wrap{max-width:1000px}
+      #view-pontuacao .pt-tabs{display:flex;gap:4px;border-bottom:1px solid var(--bd1);margin-bottom:20px;flex-wrap:wrap}
+      #view-pontuacao .pt-tab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--tx3);font:inherit;font-size:14px;font-weight:500;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:-1px}
+      #view-pontuacao .pt-tab.active{color:var(--tx1);border-bottom-color:var(--ac)}
+      #view-pontuacao .pt-badge{background:#f85149;color:#fff;font-size:10px;font-weight:700;border-radius:20px;padding:1px 7px;min-width:17px;text-align:center}
+      #view-pontuacao .pt-empty{padding:40px;text-align:center;color:var(--tx4);font-size:14px}
+      #view-pontuacao .pt-card{background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;padding:20px;margin-bottom:16px}
+      #view-pontuacao .pt-form label{display:block;font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin:14px 0 5px}
+      #view-pontuacao .pt-form input,#view-pontuacao .pt-form select,#view-pontuacao .pt-form textarea{width:100%;background:var(--bg1);border:1px solid var(--bd1);border-radius:9px;color:var(--tx1);font:inherit;font-size:14px;padding:10px 12px;outline:none}
+      #view-pontuacao .pt-form input:focus,#view-pontuacao .pt-form select:focus,#view-pontuacao .pt-form textarea:focus{border-color:var(--ac)}
+      #view-pontuacao .pt-row{display:flex;gap:12px;flex-wrap:wrap}
+      #view-pontuacao .pt-row>div{flex:1;min-width:150px}
+      #view-pontuacao .pt-preview{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(var(--ac-rgb),.08);border:1px solid rgba(var(--ac-rgb),.3);border-radius:12px;padding:14px 18px;margin-top:20px}
+      #view-pontuacao .pt-preview .n{font-size:30px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums;line-height:1}
+      #view-pontuacao .pt-preview .l{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px}
+      #view-pontuacao .pt-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+      #view-pontuacao .pt-btn{border:0;border-radius:9px;padding:10px 18px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+      #view-pontuacao .pt-btn.primary{background:var(--ac);color:#2a1608}
+      #view-pontuacao .pt-btn.ok{background:#3fb950;color:#04260d}
+      #view-pontuacao .pt-btn.no{background:transparent;color:#f85149;border:1px solid rgba(248,81,73,.4)}
+      #view-pontuacao .pt-btn:disabled{opacity:.5;cursor:default}
+      #view-pontuacao .pt-pick{position:relative}
+      #view-pontuacao .pt-pick-list{position:absolute;top:100%;left:0;right:0;z-index:20;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;margin-top:4px;max-height:230px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+      #view-pontuacao .pt-pick-item{padding:9px 12px;cursor:pointer;font-size:13px;color:var(--tx2);border-bottom:1px solid var(--bg3)}
+      #view-pontuacao .pt-pick-item:hover{background:var(--bg3);color:var(--tx1)}
+      #view-pontuacao .pt-chip{display:inline-flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--bd1);border-radius:8px;padding:7px 11px;font-size:13px;color:var(--tx1);margin-top:6px}
+      #view-pontuacao .pt-chip button{background:transparent;border:0;color:var(--tx3);cursor:pointer;font-size:16px;line-height:1}
+      #view-pontuacao .pt-list-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--bg2)}
+      #view-pontuacao .pt-list-row:last-child{border-bottom:0}
+      #view-pontuacao .pt-st{font-size:10px;font-weight:600;border-radius:20px;padding:2px 9px;white-space:nowrap;flex-shrink:0}
+      #view-pontuacao .pt-st.enviado{background:rgba(210,153,34,.16);color:#e3b341}
+      #view-pontuacao .pt-st.aprovado{background:rgba(63,185,80,.16);color:#3fb950}
+      #view-pontuacao .pt-st.rejeitado{background:rgba(248,81,73,.16);color:#f85149}
+      #view-pontuacao .pt-rank{display:flex;align-items:center;gap:14px;padding:12px 8px;border-bottom:1px solid var(--bg2)}
+      #view-pontuacao .pt-rank:last-child{border-bottom:0}
+      #view-pontuacao .pt-rank .pos{font-size:16px;font-weight:700;color:var(--tx3);width:34px;text-align:center;font-variant-numeric:tabular-nums;flex-shrink:0}
+      #view-pontuacao .pt-rank .pts{margin-left:auto;font-size:18px;font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums}
+      #view-pontuacao .pt-seg{display:inline-flex;background:var(--bg3);border:1px solid var(--bd1);border-radius:9px;padding:3px;gap:2px}
+      #view-pontuacao .pt-seg button{background:transparent;border:0;color:var(--tx3);font:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;cursor:pointer}
+      #view-pontuacao .pt-seg button.active{background:var(--ac);color:#2a1608}
+    </style>
+    <div class="pt-wrap">
+      <div class="pt-tabs">
+        <button class="pt-tab active" data-tab="registrar" onclick="pontTab('registrar')"><i class="ti ti-plus"></i> Registrar</button>
+        <button class="pt-tab" data-tab="extrato" onclick="pontTab('extrato')"><i class="ti ti-list-details"></i> Meu extrato</button>
+        <button class="pt-tab" data-tab="ranking" onclick="pontTab('ranking')"><i class="ti ti-trophy"></i> Ranking</button>
+        <button class="pt-tab" data-tab="validacao" data-perm="pontuacao.aprovar" onclick="pontTab('validacao')"><i class="ti ti-checklist"></i> Validação <span class="pt-badge" id="pt-val-badge" style="display:none">0</span></button>
+      </div>
+      <div id="pt-body"><div class="pt-empty">Carregando…</div></div>
+    </div>
+  </div>
 </main>
 
 <!-- ============== MODAL DE PACIENTE (criar/editar) ============== -->
@@ -10006,6 +10068,225 @@ async function homeTarefaSalvar(btnEl) {
   homeTarefasAbrir();
 }
 
+// ============================================================
+// PONTUAÇÃO / RANKINGS (Onda 1) — Registrar · Extrato · Ranking · Validação
+// ============================================================
+let pontTabAtual = 'registrar';
+let pontCiclo = null;
+let pontReg = null;
+let pontRankTrilha = 'operacional';
+let pontPickTimer = null;
+let pontPickResults = [];
+
+const PONT_TIPOS = [['venda', 'Venda'], ['agendamento', 'Agendamento'], ['indicacao', 'Indicação'], ['depoimento_video', 'Depoimento em vídeo'], ['depoimento_texto', 'Depoimento em texto'], ['avaliacao_google', 'Avaliação no Google']];
+const PONT_PRODUTOS = [['performa', 'Performa'], ['burn_build', 'Burn & Build'], ['club', 'Club'], ['lipedema', 'Lipedema Control'], ['tecnologia', 'Tecnologia/protocolo'], ['suplemento', 'Suplemento'], ['consulta', 'Consulta médica'], ['consultoria', 'Consultoria']];
+const PONT_FIXOS = { agendamento: 25, indicacao: 20, depoimento_video: 40, depoimento_texto: 15, avaliacao_google: 10 };
+
+// Régua (espelha pontuacao-regua.ts do backend — o backend é a autoridade; aqui é só preview).
+function pontPontosVenda(v) { v = Math.max(0, v || 0); let a; if (v <= 500) a = .10; else if (v <= 2000) a = .08; else if (v <= 5000) a = .04; else if (v <= 15000) a = .025; else a = .02; return Math.round(v * a / 5) * 5; }
+function pontCalcPontos(tipo, valorReais) { return tipo === 'venda' ? pontPontosVenda(valorReais) : (PONT_FIXOS[tipo] || 0); }
+function pontAttr(s) { return esc(String(s || '')).replace(/"/g, '&quot;'); }
+function pontLabelTipo(t) { const x = PONT_TIPOS.find(p => p[0] === t); return x ? x[1] : t; }
+function pontLabelProd(p) { const x = PONT_PRODUTOS.find(q => q[0] === p); return x ? x[1] : (p || ''); }
+function pontBRL(cents) { return (Number(cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function pontData(iso) { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } }
+function pontStLabel(s) { return s === 'aprovado' ? 'aprovado' : s === 'rejeitado' ? 'rejeitado' : s === 'enviado' ? 'em análise' : s; }
+
+async function pontInit() {
+  try { const r = await pacApi('/api/clinico/pontuacao/ciclo/atual'); if (r.ok) pontCiclo = r.data.ciclo; } catch (e) {}
+  if (temPermissao('pontuacao.aprovar')) pontValBadge();
+  pontTab(pontTabAtual);
+}
+function pontTab(t) {
+  if (t === 'validacao' && !temPermissao('pontuacao.aprovar')) t = 'registrar';
+  pontTabAtual = t;
+  document.querySelectorAll('#view-pontuacao .pt-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  if (t === 'registrar') pontRenderRegistrar();
+  else if (t === 'extrato') pontRenderExtrato();
+  else if (t === 'ranking') pontRenderRanking();
+  else if (t === 'validacao') pontRenderValidacao();
+}
+async function pontValBadge() {
+  try { const r = await pacApi('/api/clinico/pontuacao/validacao'); if (r.ok) { const n = r.data.total || 0; const b = document.getElementById('pt-val-badge'); if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; } } } catch (e) {}
+}
+
+// ---- REGISTRAR ----
+function pontRegInit() { if (!pontReg) pontReg = { trilha: 'operacional', tipo: 'venda', produto: 'performa', valorReais: '', patientId: null, patientNome: '', indicadoNome: '', indicadoTel: '', link: '', anexoId: null, anexoNome: '', observacao: '' }; }
+function pontPickerHtml() {
+  const r = pontReg;
+  if (r.patientId) return `<label>Paciente</label><div class="pt-chip"><i class="ti ti-user"></i> ${esc(r.patientNome)} <button onclick="pontReg.patientId=null;pontReg.patientNome='';pontRenderRegistrar()" title="Remover">×</button></div>`;
+  return `<label>Paciente (opcional)</label><div class="pt-pick"><input id="pt-pac-inp" placeholder="buscar por nome ou código" oninput="pontPickBuscar(this.value)" autocomplete="off"><div id="pt-pac-list"></div></div>`;
+}
+async function pontPickBuscar(q) {
+  clearTimeout(pontPickTimer);
+  q = (q || '').trim();
+  const box = document.getElementById('pt-pac-list');
+  if (q.length < 2) { if (box) box.innerHTML = ''; return; }
+  pontPickTimer = setTimeout(async () => {
+    let d = null; try { const r = await pacApi('/api/clinico/patients?q=' + encodeURIComponent(q) + '&limit=8'); if (r.ok) d = r.data; } catch (e) {}
+    const box2 = document.getElementById('pt-pac-list'); if (!box2) return;
+    pontPickResults = (d && d.pacientes) || [];
+    box2.innerHTML = pontPickResults.length ? `<div class="pt-pick-list">${pontPickResults.map((p, idx) => `<div class="pt-pick-item" onclick="pontPickEscolher(${idx})">${esc(p.nomeCompleto)} <span style="color:var(--tx4)">${esc(p.codigo || '')}</span></div>`).join('')}</div>` : '';
+  }, 250);
+}
+function pontPickEscolher(idx) { const p = pontPickResults[idx]; if (!p) return; pontReg.patientId = p.id; pontReg.patientNome = p.nomeCompleto; pontRenderRegistrar(); }
+function pontAnexoHtml() {
+  const r = pontReg;
+  if (r.anexoId) return `<div class="pt-chip"><i class="ti ti-paperclip"></i> ${esc(r.anexoNome || 'comprovante')} <button onclick="pontReg.anexoId=null;pontReg.anexoNome='';pontRenderRegistrar()" title="Remover">×</button></div>`;
+  return `<div><input type="file" id="pt-anexo-inp" accept="image/*,application/pdf" onchange="pontAnexoUpload(this)"></div>`;
+}
+async function pontAnexoUpload(input) {
+  const f = input.files && input.files[0]; if (!f) return;
+  if (f.size > 25 * 1024 * 1024) { homeToast('Arquivo maior que 25 MB.'); input.value = ''; return; }
+  const fd = new FormData(); fd.append('file', f);
+  try {
+    const resp = await fetch(API_BASE + '/api/clinico/pontuacao/anexo', { method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }, body: fd });
+    const d = await resp.json().catch(() => null);
+    if (!resp.ok || !d || !d.ok) { homeToast((d && d.erro) || 'Falha no upload.'); return; }
+    pontReg.anexoId = d.anexo_id; pontReg.anexoNome = f.name; pontRenderRegistrar();
+  } catch (e) { homeToast('Falha no upload.'); }
+}
+function pontPreview() { const el = document.getElementById('pt-preview-n'); if (!el || !pontReg) return; el.textContent = pontCalcPontos(pontReg.tipo, parseFloat(pontReg.valorReais) || 0); }
+function pontRenderRegistrar() {
+  const body = document.getElementById('pt-body'); if (!body) return;
+  if (!pontCiclo) { body.innerHTML = '<div class="pt-card"><div class="pt-empty">Nenhum ciclo de pontuação aberto agora. Fale com a gestão para abrir o ciclo.</div></div>'; return; }
+  pontRegInit();
+  const r = pontReg;
+  const podePac = temPermissao('paciente.ver_lista');
+  let dyn = '';
+  if (r.tipo === 'venda') {
+    dyn = `<div class="pt-row"><div><label>Produto</label><select onchange="pontReg.produto=this.value;pontPreview()">${PONT_PRODUTOS.map(p => `<option value="${p[0]}" ${r.produto === p[0] ? 'selected' : ''}>${esc(p[1])}</option>`).join('')}</select></div>
+      <div><label>Valor da venda (R$)</label><input type="number" min="0" step="0.01" value="${pontAttr(r.valorReais)}" oninput="pontReg.valorReais=this.value;pontPreview()" placeholder="ex: 12000"></div></div>
+      ${podePac ? pontPickerHtml() : ''}`;
+  } else if (r.tipo === 'agendamento') {
+    dyn = podePac ? pontPickerHtml() : '<div style="font-size:12px;color:var(--tx4);margin-top:12px">Sem permissão para vincular paciente — descreva na observação.</div>';
+  } else if (r.tipo === 'indicacao') {
+    dyn = `<label>Nome do indicado</label><input value="${pontAttr(r.indicadoNome)}" oninput="pontReg.indicadoNome=this.value" placeholder="quem foi indicado">
+      <label>Telefone do indicado (opcional)</label><input value="${pontAttr(r.indicadoTel)}" oninput="pontReg.indicadoTel=this.value" placeholder="(34) 9...">`;
+  } else if (r.tipo === 'depoimento_video' || r.tipo === 'depoimento_texto') {
+    dyn = `${podePac ? pontPickerHtml() : ''}<label>Comprovante ${r.tipo === 'depoimento_video' ? '(ou cole o link abaixo)' : ''}</label>${pontAnexoHtml()}`;
+    if (r.tipo === 'depoimento_video') dyn += `<label>Link do vídeo (opcional)</label><input value="${pontAttr(r.link)}" oninput="pontReg.link=this.value" placeholder="cole o link do vídeo">`;
+  } else if (r.tipo === 'avaliacao_google') {
+    dyn = `<label>Nome do avaliador</label><input value="${pontAttr(r.indicadoNome)}" oninput="pontReg.indicadoNome=this.value" placeholder="quem avaliou">
+      <label>Link da avaliação</label><input value="${pontAttr(r.link)}" oninput="pontReg.link=this.value" placeholder="link da avaliação 5★">`;
+  }
+  const pts = pontCalcPontos(r.tipo, parseFloat(r.valorReais) || 0);
+  body.innerHTML = `<div class="pt-card pt-form">
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:2px">Ciclo <b style="color:var(--tx1)">${esc(pontCiclo.nome)}</b></div>
+    <div class="pt-row"><div><label>Trilha</label><select onchange="pontReg.trilha=this.value"><option value="operacional" ${r.trilha === 'operacional' ? 'selected' : ''}>Operacional</option><option value="comercial" ${r.trilha === 'comercial' ? 'selected' : ''}>Comercial</option></select></div>
+    <div><label>Tipo de ação</label><select onchange="pontReg.tipo=this.value;pontRenderRegistrar()">${PONT_TIPOS.map(t => `<option value="${t[0]}" ${r.tipo === t[0] ? 'selected' : ''}>${esc(t[1])}</option>`).join('')}</select></div></div>
+    ${dyn}
+    <label>Observação (opcional)</label><textarea rows="2" oninput="pontReg.observacao=this.value" placeholder="algum detalhe para o RH">${esc(r.observacao)}</textarea>
+    <div class="pt-preview"><div><div class="l">Pontos desta ação</div><div class="n" id="pt-preview-n">${pts}</div></div><div style="font-size:11px;color:var(--tx4);max-width:210px;text-align:right">calculado pela régua · confirmado na aprovação do RH</div></div>
+    <div class="pt-actions"><button class="pt-btn primary" id="pt-salvar" onclick="pontRegistrarSalvar(this)"><i class="ti ti-send"></i> Enviar para validação</button></div>
+  </div>`;
+}
+async function pontRegistrarSalvar(btn) {
+  const r = pontReg; if (!r) return;
+  const body = { trilha: r.trilha, tipo_acao: r.tipo };
+  if (r.tipo === 'venda') {
+    if (!r.produto) { homeToast('Escolha o produto.'); return; }
+    const v = parseFloat(r.valorReais); if (!v || v <= 0) { homeToast('Informe o valor da venda.'); return; }
+    body.produto = r.produto; body.valor_venda_cents = Math.round(v * 100);
+  }
+  if (r.tipo === 'indicacao' && !(r.indicadoNome || '').trim()) { homeToast('Informe quem foi indicado.'); return; }
+  if (r.tipo === 'avaliacao_google') {
+    if (!(r.indicadoNome || '').trim()) { homeToast('Informe o nome do avaliador.'); return; }
+    if (!(r.link || '').trim()) { homeToast('Cole o link da avaliação.'); return; }
+  }
+  if (r.patientId) body.patient_id = r.patientId;
+  if ((r.indicadoNome || '').trim()) body.indicado_nome = r.indicadoNome.trim();
+  if ((r.indicadoTel || '').trim()) body.indicado_tel = r.indicadoTel.trim();
+  if (r.anexoId) body.anexo_id = r.anexoId;
+  const obs = [(r.link || '').trim(), (r.observacao || '').trim()].filter(Boolean).join(' · ');
+  if (obs) body.observacao = obs.slice(0, 1000);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Enviando…'; }
+  const resp = await pacApi('/api/clinico/pontuacao/registros', { method: 'POST', body: JSON.stringify(body) });
+  if (!resp.ok || !resp.data || !resp.data.ok) { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Enviar para validação'; } homeToast((resp.data && resp.data.erro) || 'Não consegui registrar.'); return; }
+  homeToast('Registrado! Aguardando validação (' + resp.data.pontos + ' pts).');
+  pontReg = null;
+  pontTab('extrato');
+}
+
+// ---- EXTRATO ----
+async function pontRenderExtrato() {
+  const body = document.getElementById('pt-body'); if (!body) return;
+  body.innerHTML = '<div class="pt-empty">Carregando…</div>';
+  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/registros/meus'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { body.innerHTML = '<div class="pt-empty">Não consegui carregar.</div>'; return; }
+  const rs = d.resumo || {};
+  const rows = (d.itens || []).map(pontExtratoRow).join('') || '<div class="pt-empty">Você ainda não registrou nada.</div>';
+  body.innerHTML = `<div class="pt-card" style="display:flex;gap:28px;flex-wrap:wrap">
+    <div><div style="font-size:26px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums">${rs.pontos_aprovados || 0}</div><div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px">pontos aprovados</div></div>
+    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.pendentes || 0}</div><div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px">aguardando</div></div>
+    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.aprovados || 0}/${rs.total || 0}</div><div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px">aprovados</div></div>
+  </div><div class="pt-card">${rows}</div>`;
+}
+function pontExtratoRow(i) {
+  const det = i.tipo_acao === 'venda' ? `${esc(pontLabelProd(i.produto))} · ${pontBRL(i.valor_venda_cents)}` : (i.paciente_nome ? esc(i.paciente_nome) : (i.indicado_nome ? esc(i.indicado_nome) : ''));
+  return `<div class="pt-list-row">
+    <div style="min-width:0;flex:1"><div style="font-size:14px;color:var(--tx1)">${esc(pontLabelTipo(i.tipo_acao))} <span style="color:var(--tx4);font-size:12px">${det}</span></div>
+    <div style="font-size:11px;color:var(--tx4)">${pontData(i.created_at)}${i.status === 'rejeitado' && i.motivo_rejeicao ? ' · ' + esc(i.motivo_rejeicao) : ''}</div></div>
+    <div style="font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums">${i.pontos}</div>
+    <span class="pt-st ${esc(i.status)}">${pontStLabel(i.status)}</span>
+  </div>`;
+}
+
+// ---- RANKING ----
+async function pontRenderRanking() {
+  const body = document.getElementById('pt-body'); if (!body) return;
+  body.innerHTML = `<div class="pt-card"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <div class="pt-seg"><button class="${pontRankTrilha === 'operacional' ? 'active' : ''}" onclick="pontRankTrilha='operacional';pontRenderRanking()">Operacional</button><button class="${pontRankTrilha === 'comercial' ? 'active' : ''}" onclick="pontRankTrilha='comercial';pontRenderRanking()">Comercial</button></div>
+    <div id="pt-rank-ciclo" style="font-size:12px;color:var(--tx3)"></div></div>
+    <div id="pt-rank-list"><div class="pt-empty">Carregando…</div></div></div>`;
+  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/ranking?trilha=' + pontRankTrilha); if (r.ok) d = r.data; } catch (e) {}
+  const list = document.getElementById('pt-rank-list'); if (!list) return;
+  if (!d) { list.innerHTML = '<div class="pt-empty">Não consegui carregar.</div>'; return; }
+  const cic = document.getElementById('pt-rank-ciclo'); if (cic) cic.textContent = d.ciclo ? d.ciclo.nome : 'sem ciclo aberto';
+  const medal = ['🥇', '🥈', '🥉'];
+  list.innerHTML = (d.itens || []).map((i) => `<div class="pt-rank"><div class="pos">${i.posicao <= 3 ? medal[i.posicao - 1] : i.posicao}</div>
+    <div style="min-width:0"><div style="font-size:14px;color:var(--tx1)">${esc(i.colaborador_nome)}</div><div style="font-size:11px;color:var(--tx4)">${i.unidade_nome ? esc(i.unidade_nome) : '—'}</div></div>
+    <div class="pts">${i.pontos}</div></div>`).join('') || '<div class="pt-empty">Sem pontos aprovados neste ciclo ainda.</div>';
+}
+
+// ---- VALIDAÇÃO (RH) ----
+async function pontRenderValidacao() {
+  const body = document.getElementById('pt-body'); if (!body) return;
+  body.innerHTML = '<div class="pt-empty">Carregando…</div>';
+  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/validacao'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { body.innerHTML = '<div class="pt-empty">Não consegui carregar.</div>'; return; }
+  const rows = (d.itens || []).map(pontValRow).join('') || '<div class="pt-empty">Nada na fila de validação. 🎉</div>';
+  body.innerHTML = `<div class="pt-card">${rows}</div>`;
+}
+function pontValRow(i) {
+  const det = i.tipo_acao === 'venda' ? `${esc(pontLabelProd(i.produto))} · ${pontBRL(i.valor_venda_cents)}` : '';
+  const who = i.paciente_nome ? (' · ' + esc(i.paciente_nome)) : (i.indicado_nome ? (' · ' + esc(i.indicado_nome)) : '');
+  const anexo = i.tem_anexo ? ` · <a href="#" onclick="pontAbrirAnexo('${i.anexo_id}');return false;" style="color:var(--ac)">ver comprovante</a>` : '';
+  return `<div class="pt-list-row" id="pt-val-${i.id}">
+    <div style="min-width:0;flex:1"><div style="font-size:14px;color:var(--tx1)">${esc(i.colaborador_nome)} <span style="color:var(--tx4);font-size:12px">${esc(pontLabelTipo(i.tipo_acao))} ${det}${who}</span></div>
+    <div style="font-size:11px;color:var(--tx4)">${esc(i.trilha)} · ${pontData(i.created_at)}${i.observacao ? ' · ' + esc(i.observacao) : ''}${anexo}</div></div>
+    <div style="font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums">${i.pontos}</div>
+    <div style="display:flex;gap:6px;flex-shrink:0"><button class="pt-btn ok" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','aprovar')">Aprovar</button><button class="pt-btn no" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','rejeitar')">Rejeitar</button></div>
+  </div>`;
+}
+async function pontValidar(id, acao) {
+  let motivo = '';
+  if (acao === 'rejeitar') { motivo = prompt('Motivo da rejeição (opcional):') || ''; }
+  const r = await pacApi('/api/clinico/pontuacao/registros/' + id, { method: 'PATCH', body: JSON.stringify({ acao, motivo }) });
+  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui validar.'); return; }
+  homeToast(acao === 'aprovar' ? 'Aprovado. ✓' : 'Rejeitado.');
+  const row = document.getElementById('pt-val-' + id); if (row) row.remove();
+  pontValBadge();
+}
+async function pontAbrirAnexo(id) {
+  try {
+    const resp = await fetch(API_BASE + '/api/clinico/pontuacao/anexo/' + id, { headers: { 'Authorization': 'Bearer ' + getToken() } });
+    if (!resp.ok) { homeToast('Não consegui abrir o comprovante.'); return; }
+    const blob = await resp.blob(); const url = URL.createObjectURL(blob); window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) { homeToast('Não consegui abrir o comprovante.'); }
+}
+
 // ===== HOME GESTOR (Sprint 2) =====
 let gstFocoAcao = () => {};
 function homeGestorFmtBRL(cents) {
@@ -10380,6 +10661,7 @@ const VIEW_TITLES = {
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
   financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
+  pontuacao: { titulo: 'Pontuação', sub: 'Rankings e premiação da equipe' },
   admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' },
   pendencias: { titulo: 'Pendências', sub: 'Onboarding administrativo em aberto' },
   dev: { titulo: 'Desenvolvedor', sub: 'Painel técnico: DB, audit, env, métricas' }
@@ -10410,6 +10692,7 @@ function trocarView(v) {
   if (v === 'admin') adminTrocarTab('cargos');
   else if (v === 'pendencias') pendCarregar();
   else if (v === 'dev') devCarregar();
+  else if (v === 'pontuacao') pontInit();
   fecharSidebar(); // no mobile, fecha o drawer após escolher uma seção
 }
 
