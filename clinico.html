@@ -1337,6 +1337,19 @@
     }
     .ag-day-header.hoje .num { color: var(--ac); }
     .ag-day-header.hoje { background: rgba(var(--ac-rgb),0.06); }
+    /* Chips de PRAZO de tarefa no cabeçalho do dia (all-day) */
+    .ag-day-tasks { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+    .ag-task-chip {
+      font-size: 9px; line-height: 1.3; padding: 2px 5px; border-radius: 4px;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-align: left; display: flex; align-items: center; gap: 3px; font-weight: 500;
+    }
+    .ag-task-chip.ok   { background: rgba(var(--ac-rgb),0.13); color: var(--ac); }
+    .ag-task-chip.atn  { background: rgba(210,153,34,0.16); color: #e3b341; }
+    .ag-task-chip.venc { background: rgba(248,81,73,0.16); color: #f85149; }
+    .ag-task-chip:hover { filter: brightness(1.18); }
+    .ag-task-chip i { flex-shrink: 0; }
+    .ag-task-chip .txt { overflow: hidden; text-overflow: ellipsis; }
 
     .ag-hour-cell {
       background: var(--bg2);
@@ -9431,7 +9444,7 @@ function homeFocoRender(d) {
   const hojeNaoConf = (d.hoje && d.hoje.agendamentos || []).filter(a => a.status && !CONF.includes(a.status)).length;
   let foco = null;
   if (amNaoConf > 0) foco = { txt: `<strong>${amNaoConf} agendamento${amNaoConf > 1 ? 's' : ''} de amanhã</strong> ainda não confirmado${amNaoConf > 1 ? 's' : ''}`, acao: () => { const el = document.getElementById('home-amanha'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, btn: 'Confirmar' };
-  else if (homeAtencaoTotal > 0) foco = { txt: `<strong>${homeAtencaoTotal} paciente${homeAtencaoTotal > 1 ? 's' : ''} em atenção</strong> precisa${homeAtencaoTotal > 1 ? 'm' : ''} de ação`, acao: () => homeAtencaoAbrir(), btn: 'Ver lista' };
+  else if (homeAtencaoTotal > 0) foco = { txt: `<strong>${homeAtencaoTotal} ${homeAtencaoTotal > 1 ? 'itens' : 'item'} em atenção</strong> ${homeAtencaoTotal > 1 ? 'precisam' : 'precisa'} de ação`, acao: () => homeAtencaoAbrir(), btn: 'Ver lista' };
   else if (homeRenovTotal > 0) foco = { txt: `<strong>${homeRenovTotal} renovaç${homeRenovTotal > 1 ? 'ões' : 'ão'}</strong> em risco sem abordagem`, acao: () => homeRenovAbrir(), btn: 'Ver lista' };
   else if (homeTarefasVencidas > 0) foco = { txt: `<strong>${homeTarefasVencidas} tarefa${homeTarefasVencidas > 1 ? 's' : ''} vencida${homeTarefasVencidas > 1 ? 's' : ''}</strong> aguardando você`, acao: () => homeTarefasAbrir(), btn: 'Ver tarefas' };
   else if (hojeNaoConf > 0) foco = { txt: `<strong>${hojeNaoConf} agendamento${hojeNaoConf > 1 ? 's' : ''} de hoje</strong> ainda não confirmado${hojeNaoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
@@ -9480,20 +9493,34 @@ async function homeConfirmarAmanha(idx, btnEl) {
 async function homeAtencaoCarregar() {
   const val = document.getElementById('op-atencao-val');
   const ext = document.getElementById('op-atencao-ext');
-  let d = null;
+  let pac = [], tks = [];
+  // Pacientes em atenção (gated por paciente.ver_lista) — pode vir 403 pra quem não tem
   try {
     const q = homeUnit ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
     const r = await pacApi('/api/clinico/dashboard/atencao' + q);
-    if (r.ok) d = r.data;
+    if (r.ok && r.data && r.data.itens) pac = r.data.itens;
   } catch (e) {}
-  if (!d) { homeAtencaoItens = []; homeAtencaoTotal = 0; if (val) val.textContent = '—'; if (window.homeResumo) homeFocoRender(window.homeResumo); return; }
-  homeAtencaoItens = d.itens || [];
-  homeAtencaoTotal = d.total || 0;
-  if (val) { val.textContent = d.total; val.style.color = d.total > 0 ? '#f85149' : 'var(--tx1)'; }
+  // Tarefas com prazo se aproximando: "a partir de 7 dias faltantes" + vencidas
+  try {
+    const rt = await pacApi('/api/clinico/tarefas/agenda');
+    if (rt.ok && rt.data && rt.data.itens) {
+      tks = rt.data.itens
+        .filter(t => t.prazo_dias <= 7)
+        .sort((a, b) => a.prazo_dias - b.prazo_dias)
+        .map(t => ({ ...t, tipo: 'tarefa' }));
+    }
+  } catch (e) {}
+  homeAtencaoItens = [...pac, ...tks];
+  homeAtencaoTotal = homeAtencaoItens.length;
+  if (val) { val.textContent = homeAtencaoTotal; val.style.color = homeAtencaoTotal > 0 ? '#f85149' : 'var(--tx1)'; }
   if (ext) {
-    const noShow = homeAtencaoItens.filter(i => i.tipo === 'no_show').length;
-    const semC = homeAtencaoItens.filter(i => i.tipo === 'sem_contato').length;
-    ext.textContent = d.total === 0 ? 'ninguém em atenção agora' : `${noShow} faltou · ${semC} sem contato`;
+    if (homeAtencaoTotal === 0) ext.textContent = 'nada em atenção agora';
+    else {
+      const p = [];
+      if (pac.length) p.push(`${pac.length} paciente${pac.length > 1 ? 's' : ''}`);
+      if (tks.length) p.push(`${tks.length} tarefa${tks.length > 1 ? 's' : ''}`);
+      ext.textContent = p.join(' · ');
+    }
   }
   if (window.homeResumo) homeFocoRender(window.homeResumo); // reavalia o foco agora com "em atenção"
 }
@@ -9504,6 +9531,17 @@ function homeAtencaoAbrir() {
   ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
   ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
   const rows = itens.length ? itens.map((i, idx) => {
+    if (i.tipo === 'tarefa') {
+      const cor = i.vencida ? '#f85149' : '#e3b341';
+      const cont = i.vencida ? `atrasada ${Math.abs(i.prazo_dias)}d` : (i.hoje ? 'vence hoje' : `faltam ${i.prazo_dias}d`);
+      const quem = i.delegada ? (i.sou_criador ? 'delegada p/ ' + esc(i.dono_nome) : 'delegada por ' + esc(i.criador_nome)) : 'sua tarefa';
+      return `<div class="atn-row">
+        <span class="atn-badge" style="background:${cor}"></span>
+        <div style="min-width:0"><div class="nome"><i class="ti ti-checklist" style="font-size:12px;color:${cor}"></i> ${esc(i.titulo)} <span class="tk-badge ${i.vencida ? 'rec' : 'pend'}">${cont}</span></div>
+        <div class="meta">tarefa · ${quem}${i.paciente_nome ? ' · ' + esc(i.paciente_nome) : ''}</div></div>
+        <div class="acao"><button class="atn-mini-btn" onclick="homeAtencaoAbrirTarefa(${idx})"><i class="ti ti-external-link"></i> Abrir</button></div>
+      </div>`;
+    }
     const cor = i.tipo === 'no_show' ? '#f85149' : '#e3b341';
     return `<div class="atn-row">
       <span class="atn-badge" style="background:${cor}"></span>
@@ -9513,12 +9551,13 @@ function homeAtencaoAbrir() {
         <button class="atn-mini-btn" onclick="homeAtencaoIrPront(${idx})"><i class="ti ti-user"></i> Prontuário</button>
         ${i.telefone ? `<button class="atn-mini-btn wa" onclick="homeAtencaoWa(${idx})" title="Chamar no WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>` : ''}
       </div></div>`;
-  }).join('') : '<div class="atn-empty">Ninguém em atenção agora. 🎉</div>';
+  }).join('') : '<div class="atn-empty">Nada em atenção agora. 🎉</div>';
   ov.innerHTML = `<div class="atn-modal">
-    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-alert-triangle" style="color:#f85149"></i> Pacientes em atenção</div><button class="x" onclick="homeAtencaoFechar()">×</button></div>
+    <div class="atn-modal-head"><div class="ttl"><i class="ti ti-alert-triangle" style="color:#f85149"></i> Em atenção</div><button class="x" onclick="homeAtencaoFechar()">×</button></div>
     <div class="atn-modal-body">${rows}</div></div>`;
   document.body.appendChild(ov);
 }
+function homeAtencaoAbrirTarefa(idx) { const i = homeAtencaoItens[idx]; if (!i) return; homeAtencaoFechar(); homeTarefaDetalhe(i.id); }
 function homeAtencaoFechar() { const ov = document.getElementById('atn-overlay'); if (ov) ov.remove(); }
 function homeAtencaoIrPront(idx) { const i = homeAtencaoItens[idx]; if (!i) return; homeAtencaoFechar(); dashAbrirPaciente(i.patient_id, i.nome || ''); }
 async function homeAtencaoWa(idx) {
@@ -11314,6 +11353,7 @@ let agState = {
   tipos: [],
   agendamentos: [],
   bloqueios: [],                  // schedule blocks
+  tarefas: [],                    // prazos de tarefa (dono ou criador) que caem na janela
   pacienteSelecionado: null,      // { id, codigo, nome, telefone }
   pacientesSearchResults: [],
   recurCancelTarget: null,        // { id, statusAlvo, motivo, origem } para modal de escolha
@@ -11557,9 +11597,10 @@ async function agCarregar() {
   if (agState.unidade) params.set('unit', agState.unidade);
   if (agState.prof) params.set('prof', agState.prof);
 
-  const [r, rb] = await Promise.all([
+  const [r, rb, rt] = await Promise.all([
     pacApi('/api/clinico/appointments?' + params.toString()),
     pacApi('/api/clinico/appointments/blocks/list?' + params.toString()),
+    pacApi('/api/clinico/tarefas/agenda'),
   ]);
   if (!r.ok) {
     document.getElementById('ag-grid').innerHTML =
@@ -11568,6 +11609,7 @@ async function agCarregar() {
   }
   agState.agendamentos = r.data.agendamentos;
   agState.bloqueios = (rb.ok && rb.data.blocos) ? rb.data.blocos : [];
+  agState.tarefas = (rt.ok && rt.data.itens) ? rt.data.itens : [];
   agRender();
 }
 
@@ -11597,6 +11639,31 @@ function agJanelaPeriodo() {
       ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'][ini.getMonth()].toString()
   };
 }
+
+// ===== Marcadores de PRAZO de tarefa na agenda =====
+function agDayKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function agTarefasDoDia(dayKey) {
+  return (agState.tarefas || []).filter(t => t.prazo === dayKey);
+}
+function agTarefaContagem(t) {
+  if (t.vencida) return `atrasada ${Math.abs(t.prazo_dias)}d`;
+  if (t.hoje) return 'vence hoje';
+  return `faltam ${t.prazo_dias}d`;
+}
+function agTarefaChip(t) {
+  const cls = t.vencida ? 'venc' : (t.prazo_dias <= 7 ? 'atn' : 'ok');
+  const ico = t.delegada ? 'ti-user-share' : 'ti-flag-3';
+  const tip = agEscAttr(`${t.titulo} — ${agTarefaContagem(t)}${t.delegada ? (t.sou_criador ? ' · você delegou p/ ' + t.dono_nome : ' · delegada por ' + t.criador_nome) : ''}`);
+  return `<div class="ag-task-chip ${cls}" title="${tip}" onclick="event.stopPropagation();homeTarefaDetalhe('${t.id}')"><i class="ti ${ico}"></i><span class="txt">${esc(t.titulo)}</span></div>`;
+}
+function agTarefaChipsHtml(dayKey) {
+  const list = agTarefasDoDia(dayKey);
+  if (!list.length) return '';
+  return '<div class="ag-day-tasks">' + list.map(agTarefaChip).join('') + '</div>';
+}
+function agEscAttr(s) { return esc(String(s || '')).replace(/"/g, '&quot;'); }
 
 function agRender() {
   const grid = document.getElementById('ag-grid');
@@ -11641,6 +11708,7 @@ function agRender() {
     html += `<div class="ag-day-header${ehHoje ? ' hoje' : ''}">
       <div class="dow">${AG_DIAS_SEMANA[dowIdx]}</div>
       <div class="num">${d.getDate()}</div>
+      ${agTarefaChipsHtml(agDayKey(d))}
     </div>`;
   }
   const numSlots = ((AG_HORA_FIM - AG_HORA_INICIO) * 60) / AG_SLOT_MIN;
@@ -11708,9 +11776,10 @@ function agRenderMes() {
     html += `<div class="ag-slot${ehHoje ? ' hoje' : ''}" style="min-height:90px; align-items:flex-start; padding:6px 8px;" onclick="agClicarDia('${key}')">
       <div style="font-size:11px; font-weight:500; color:${ehHoje ? 'var(--ac)' : 'var(--tx1)'}; margin-bottom:4px;">${dia}</div>
       ${events.slice(0, 3).map(a => `
-        <div style="font-size:9px; padding:2px 5px; margin-bottom:2px; border-radius:3px; background:${agStatusCor(a.status, a.cancelado_por_origem)}30; color:${agStatusCor(a.status, a.cancelado_por_origem)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agFmtHora(new Date(a.start_at))} ${a.patient.nomeCompleto.split(' ')[0]}</div>
+        <div style="font-size:9px; padding:2px 5px; margin-bottom:2px; border-radius:3px; background:${agStatusCor(a.status, a.cancelado_por_origem)}30; color:${agStatusCor(a.status, a.cancelado_por_origem)}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${agFmtHora(new Date(a.start_at))} ${esc(a.patient.nomeCompleto.split(' ')[0])}</div>
       `).join('')}
       ${events.length > 3 ? `<div style="font-size:9px; color:var(--tx3b);">+${events.length - 3}</div>` : ''}
+      ${agTarefaChipsHtml(key)}
     </div>`;
   }
   grid.innerHTML = html;
@@ -11720,27 +11789,56 @@ function agRenderMes() {
 function agRenderLista() {
   const grid = document.getElementById('ag-grid');
   grid.style.gridTemplateColumns = '1fr';
-  if (agState.agendamentos.length === 0) {
-    grid.innerHTML = '<div style="padding:30px; text-align:center; color:var(--tx3b);">Sem agendamentos no período.</div>';
+  const range = agJanelaPeriodo();
+  // prazos de tarefa dentro da janela visível (all-day)
+  const tks = (agState.tarefas || []).filter(t => {
+    const d = new Date(t.prazo + 'T00:00:00');
+    return d >= range.ini && d <= range.fim;
+  });
+  const items = [
+    ...agState.agendamentos.map(a => ({ kind: 'ag', ts: new Date(a.start_at).getTime(), a })),
+    ...tks.map(t => ({ kind: 'tk', ts: new Date(t.prazo + 'T00:00:00').getTime(), tk: t })),
+  ].sort((x, y) => x.ts - y.ts);
+  if (!items.length) {
+    grid.innerHTML = '<div style="padding:30px; text-align:center; color:var(--tx3b);">Sem agendamentos nem prazos no período.</div>';
     return;
   }
-  const ordenados = [...agState.agendamentos].sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
-  grid.innerHTML = ordenados.map(a => {
-    const dt = new Date(a.start_at);
-    const cor = agStatusCor(a.status, a.cancelado_por_origem);
-    return `<div style="padding:12px 14px; border-bottom:1px solid rgba(var(--bg3-rgb),0.5); cursor:pointer; display:flex; align-items:center; gap:14px;" onclick="agAbrirEditarModal('${a.id}')">
-      <div style="text-align:center; min-width:60px;">
-        <div style="font-size:11px; color:var(--tx3b); text-transform:uppercase;">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()]}</div>
-        <div style="font-size:18px; font-weight:500; color:var(--tx1);">${dt.getDate()}</div>
-        <div style="font-size:10px; color:var(--tx3b);">${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][dt.getMonth()]}</div>
-      </div>
-      <div style="border-left:3px solid ${cor}; padding-left:12px; flex:1;">
-        <div style="font-size:13px; color:var(--tx1); font-weight:500;">${a.patient.nomeCompleto}</div>
-        <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">${agFmtHora(dt)} · ${a.type.nome} · ${a.professional.name || a.professional.email}</div>
-      </div>
-      <span style="font-size:10px; padding:3px 10px; border-radius:5px; background:${cor}25; color:${cor}; font-weight:600;">${agStatusLabel(a.status, a.cancelado_por_origem)}</span>
-    </div>`;
-  }).join('');
+  grid.innerHTML = items.map(it => it.kind === 'ag' ? agListaRowAgendamento(it.a) : agListaRowTarefa(it.tk)).join('');
+}
+function agListaRowAgendamento(a) {
+  const dt = new Date(a.start_at);
+  const cor = agStatusCor(a.status, a.cancelado_por_origem);
+  return `<div style="padding:12px 14px; border-bottom:1px solid rgba(var(--bg3-rgb),0.5); cursor:pointer; display:flex; align-items:center; gap:14px;" onclick="agAbrirEditarModal('${a.id}')">
+    <div style="text-align:center; min-width:60px;">
+      <div style="font-size:11px; color:var(--tx3b); text-transform:uppercase;">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()]}</div>
+      <div style="font-size:18px; font-weight:500; color:var(--tx1);">${dt.getDate()}</div>
+      <div style="font-size:10px; color:var(--tx3b);">${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][dt.getMonth()]}</div>
+    </div>
+    <div style="border-left:3px solid ${cor}; padding-left:12px; flex:1;">
+      <div style="font-size:13px; color:var(--tx1); font-weight:500;">${esc(a.patient.nomeCompleto)}</div>
+      <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">${agFmtHora(dt)} · ${esc(a.type.nome)} · ${esc(a.professional.name || a.professional.email)}</div>
+    </div>
+    <span style="font-size:10px; padding:3px 10px; border-radius:5px; background:${cor}25; color:${cor}; font-weight:600;">${agStatusLabel(a.status, a.cancelado_por_origem)}</span>
+  </div>`;
+}
+function agListaRowTarefa(t) {
+  const dt = new Date(t.prazo + 'T00:00:00');
+  const cor = t.vencida ? '#f85149' : (t.prazo_dias <= 7 ? '#e3b341' : 'var(--ac)');
+  const sub = 'Prazo de tarefa'
+    + (t.delegada ? (t.sou_criador ? ' · você delegou p/ ' + esc(t.dono_nome) : ' · delegada por ' + esc(t.criador_nome)) : '')
+    + (t.paciente_nome ? ' · ' + esc(t.paciente_nome) : '');
+  return `<div style="padding:12px 14px; border-bottom:1px solid rgba(var(--bg3-rgb),0.5); cursor:pointer; display:flex; align-items:center; gap:14px;" onclick="homeTarefaDetalhe('${t.id}')">
+    <div style="text-align:center; min-width:60px;">
+      <div style="font-size:11px; color:var(--tx3b); text-transform:uppercase;">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()]}</div>
+      <div style="font-size:18px; font-weight:500; color:var(--tx1);">${dt.getDate()}</div>
+      <div style="font-size:10px; color:var(--tx3b);">${['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][dt.getMonth()]}</div>
+    </div>
+    <div style="border-left:3px solid ${cor}; padding-left:12px; flex:1;">
+      <div style="font-size:13px; color:var(--tx1); font-weight:500;"><i class="ti ti-checklist" style="font-size:12px;color:${cor}"></i> ${esc(t.titulo)}</div>
+      <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">${sub}</div>
+    </div>
+    <span style="font-size:10px; padding:3px 10px; border-radius:5px; background:${cor}25; color:${cor}; font-weight:600;">${agTarefaContagem(t)}</span>
+  </div>`;
 }
 
 // Cor de cada status pra render (combina com o modal)
@@ -11834,7 +11932,7 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
     </div>` : '';
   ev.innerHTML = `
     ${iconsHtml}
-    <div class="ev-paciente">${a.patient.nomeCompleto}</div>
+    <div class="ev-paciente">${esc(a.patient.nomeCompleto)}</div>
     <div class="ev-meta">${agFmtHora(start)} · ${a.type.nome}</div>
   `;
   slot.appendChild(ev);
@@ -11965,7 +12063,7 @@ function agAbrirStatusModal(id) {
     if (ag) {
       const dt = new Date(ag.start_at);
       const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${ag.patient.nomeCompleto}</strong> · ${ag.type.nome} · ${dataFmt} · ${ag.professional.name || ag.professional.email}`;
+      info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${esc(ag.patient.nomeCompleto)}</strong> · ${esc(ag.type.nome)} · ${dataFmt} · ${esc(ag.professional.name || ag.professional.email)}`;
     } else { info.innerHTML = ''; }
   }
   document.getElementById('ag-status-modal').classList.add('aberto');
@@ -11989,7 +12087,7 @@ function agAbrirAcoesModal(id) {
   if (ag) {
     const dt = new Date(ag.start_at);
     const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${ag.patient.nomeCompleto}</strong> · ${ag.type.nome} · ${dataFmt} · ${ag.professional.name || ag.professional.email}`;
+    info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${esc(ag.patient.nomeCompleto)}</strong> · ${esc(ag.type.nome)} · ${dataFmt} · ${esc(ag.professional.name || ag.professional.email)}`;
   } else {
     info.innerHTML = '';
   }
