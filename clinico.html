@@ -9960,12 +9960,20 @@ async function homeTarefaComentar(id, inputEl) {
   }
 }
 
+// Após mutar uma tarefa: atualiza o card "Minhas tarefas" + o "Em atenção" + (se a Agenda estiver
+// aberta) os chips de prazo — senão essas telas ficam com dado obsoleto.
+function homeTarefasSync() {
+  homeTarefasCarregar();
+  if (typeof homeAtencaoCarregar === 'function') homeAtencaoCarregar();
+  const agView = document.getElementById('view-agenda');
+  if (agView && agView.classList.contains('active') && typeof agCarregar === 'function') agCarregar();
+}
 async function homeTarefaAceite(id, aceita, motivo) {
   const body = { aceita: !!aceita }; if (motivo) body.motivo = motivo;
   const r = await pacApi('/api/clinico/tarefas/' + id + '/aceite', { method: 'POST', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui registrar.'); return; }
   homeToast(aceita ? 'Tarefa aceita. ✓' : 'Tarefa recusada.');
-  homeTarefasCarregar();
+  homeTarefasSync();
   homeTarefaDetalhe(id);
 }
 function homeTarefaRecusarPrompt(id) {
@@ -9982,24 +9990,25 @@ async function homeTarefaConcluir(id, btnEl) {
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
   if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
   homeToast('Tarefa concluída. ✓');
-  homeTarefasCarregar();
+  homeTarefasSync();
   if (homeTkDet && homeTkDet.tarefa && homeTkDet.tarefa.id === id) homeTarefaDetalhe(id);
   else homeTarefasAbrir();
 }
 async function homeTarefaReabrir(id) {
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'aberta' }) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui reabrir.'); return; }
-  homeToast('Tarefa reaberta.'); homeTarefasCarregar(); homeTarefaDetalhe(id);
+  homeToast('Tarefa reaberta.'); homeTarefasSync(); homeTarefaDetalhe(id);
 }
 async function homeTarefaCancelar(id) {
   if (!confirm('Cancelar esta tarefa? Ela sai das listas de todos os envolvidos.')) return;
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'cancelada' }) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui cancelar.'); return; }
-  homeToast('Tarefa cancelada.'); homeTarefasCarregar(); homeTarefasAbrir();
+  homeToast('Tarefa cancelada.'); homeTarefasSync(); homeTarefasAbrir();
 }
 async function homeTarefaReatribuir(id) {
   let usuarios = [];
   try { const r = await pacApi('/api/clinico/mentions/usuarios'); if (r.ok) usuarios = r.data.usuarios || []; } catch (e) {}
+  if (!usuarios.length) { homeToast('Não consegui carregar a lista de pessoas. Tente de novo.'); return; }
   const cur = homeTkDet && homeTkDet.tarefa ? homeTkDet.tarefa.dono_id : '';
   const opts = usuarios.map(u => `<option value="${u.id}" ${u.id === cur ? 'selected' : ''}>${esc(u.nome)}${u.cargo ? ' (' + esc(u.cargo) + ')' : ''}</option>`).join('');
   const box = document.querySelector('#atn-overlay .tkd-actions'); if (!box) return;
@@ -10015,7 +10024,7 @@ async function homeTarefaReatribuirConfirmar(id) {
   if (homeTkDet && homeTkDet.tarefa && sel.value === homeTkDet.tarefa.dono_id) { homeToast('Escolha um responsável diferente do atual.'); return; }
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ donoId: sel.value }) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui reatribuir.'); return; }
-  homeToast('Tarefa reatribuída.'); homeTarefasCarregar(); homeTarefaDetalhe(id);
+  homeToast('Tarefa reatribuída.'); homeTarefasSync(); homeTarefaDetalhe(id);
 }
 function homeTarefaEditar(id) {
   const t = homeTkDet && homeTkDet.tarefa; if (!t || t.id !== id) return;
@@ -10041,7 +10050,7 @@ async function homeTarefaEditarSalvar(id) {
   };
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui salvar.'); return; }
-  homeToast('Tarefa atualizada.'); homeTarefasCarregar(); homeTarefaDetalhe(id);
+  homeToast('Tarefa atualizada.'); homeTarefasSync(); homeTarefaDetalhe(id);
 }
 
 async function homeTarefaNova() {
@@ -10088,7 +10097,7 @@ async function homeTarefaSalvar(btnEl) {
   const r = await pacApi('/api/clinico/tarefas', { method: 'POST', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-check"></i> Criar tarefa'; } homeToast('Não consegui criar a tarefa.'); return; }
   homeToast('Tarefa criada.');
-  homeTarefasCarregar();
+  homeTarefasSync();
   homeTkBox = (r.data && r.data.delegada) ? 'deleguei' : 'recebidas'; // flag do backend (não infere pelo donoId)
   homeTarefasAbrir();
 }
@@ -10179,6 +10188,9 @@ function pontRenderRegistrar() {
   if (!pontCiclo) { body.innerHTML = '<div class="pt-card"><div class="pt-empty">Nenhum ciclo de pontuação aberto agora. Fale com a gestão para abrir o ciclo.</div></div>'; return; }
   pontRegInit();
   const r = pontReg;
+  // Venda/agendamento são sempre da trilha comercial (espelha o servidor; evita venda no operacional).
+  const trilhaFixa = (r.tipo === 'venda' || r.tipo === 'agendamento');
+  if (trilhaFixa) r.trilha = 'comercial';
   const podePac = temPermissao('paciente.ver_lista');
   let dyn = '';
   if (r.tipo === 'venda') {
@@ -10200,7 +10212,7 @@ function pontRenderRegistrar() {
   const pts = pontCalcPontos(r.tipo, parseFloat(r.valorReais) || 0);
   body.innerHTML = `<div class="pt-card pt-form">
     <div style="font-size:12px;color:var(--tx3);margin-bottom:2px">Ciclo <b style="color:var(--tx1)">${esc(pontCiclo.nome)}</b></div>
-    <div class="pt-row"><div><label>Trilha</label><select onchange="pontReg.trilha=this.value"><option value="operacional" ${r.trilha === 'operacional' ? 'selected' : ''}>Operacional</option><option value="comercial" ${r.trilha === 'comercial' ? 'selected' : ''}>Comercial</option></select></div>
+    <div class="pt-row"><div><label>Trilha${trilhaFixa ? ' <span style="text-transform:none;color:var(--tx4)">(automática p/ este tipo)</span>' : ''}</label><select ${trilhaFixa ? 'disabled' : ''} onchange="pontReg.trilha=this.value"><option value="operacional" ${r.trilha === 'operacional' ? 'selected' : ''}>Operacional</option><option value="comercial" ${r.trilha === 'comercial' ? 'selected' : ''}>Comercial</option></select></div>
     <div><label>Tipo de ação</label><select onchange="pontReg.tipo=this.value;pontRenderRegistrar()">${PONT_TIPOS.map(t => `<option value="${t[0]}" ${r.tipo === t[0] ? 'selected' : ''}>${esc(t[1])}</option>`).join('')}</select></div></div>
     ${dyn}
     <label>Observação (opcional)</label><textarea rows="2" oninput="pontReg.observacao=this.value" placeholder="algum detalhe para o RH">${esc(r.observacao)}</textarea>
@@ -10255,12 +10267,13 @@ async function pontRenderExtrato() {
     <span class="pt-st ${p.pago ? 'aprovado' : 'enviado'}">${p.pago ? 'pago' : 'a receber'}</span>
   </div>`).join('');
   const premCard = premRows ? `<div class="pt-card"><div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Meus prêmios</div>${premRows}</div>` : '';
-  const lifetime = (rs.pontos_aprovados || 0) + ((prem && prem.itens || []).reduce((s, p) => s + (p.pontos || 0), 0));
+  const lifetime = rs.pontos_lifetime || 0; // fonte ÚNICA (backend) — sem double-count de prêmios sobre registros
   const niv = lifetime >= 4000 ? 'Diamante' : lifetime >= 1500 ? 'Ouro' : lifetime >= 500 ? 'Prata' : 'Bronze';
+  const cicloLbl = d.ciclo_nome ? ('pontos · ' + esc(d.ciclo_nome)) : 'pontos no ciclo';
   body.innerHTML = `<div class="pt-card" style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
-    <div><div style="font-size:26px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums">${rs.pontos_aprovados || 0}</div><div class="mlbl">pontos no ciclo</div></div>
-    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.pendentes || 0}</div><div class="mlbl">aguardando</div></div>
-    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.aprovados || 0}/${rs.total || 0}</div><div class="mlbl">aprovados</div></div>
+    <div><div style="font-size:26px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums">${rs.pontos_ciclo || 0}</div><div class="mlbl">${cicloLbl}</div></div>
+    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.pendentes_ciclo || 0}</div><div class="mlbl">aguardando</div></div>
+    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.aprovados_ciclo || 0}/${rs.total_ciclo || 0}</div><div class="mlbl">aprovados no ciclo</div></div>
     <div style="margin-left:auto;text-align:right"><div style="font-size:22px;font-weight:800;font-variant-numeric:tabular-nums">${lifetime} <span class="pt-nivel">${niv}</span></div><div class="mlbl">trajetória (total de pontos)</div></div>
   </div>${premCard}<div class="pt-card">${rows}</div>`;
 }
@@ -10318,20 +10331,30 @@ function pontValRow(i, aprovada) {
     <div style="display:flex;gap:6px;flex-shrink:0">${acoes}</div>
   </div>`;
 }
+function pontValFilaVazia(id) {
+  // Ao remover a última linha, re-renderiza pra reaparecer o estado-vazio (não deixar cartão em branco).
+  const row = document.getElementById('pt-val-' + id); if (!row) return;
+  const card = row.parentElement; row.remove();
+  if (card && !card.querySelector('.pt-list-row')) pontRenderValidacao();
+}
 async function pontValidar(id, acao, tipo, valorCents) {
   const body = { acao };
-  if (acao === 'rejeitar') { body.motivo = prompt('Motivo da rejeição (opcional):') || ''; }
-  else if (tipo === 'venda') {
-    // Conciliação: confirmar o valor pago REAL (recalcula os pontos)
+  if (acao === 'rejeitar') {
+    const m = prompt('Motivo da rejeição (opcional):');
+    if (m === null) return;                 // Cancelar/ESC NÃO rejeita (ação é terminal)
+    body.motivo = m;
+  } else if (tipo === 'venda') {
+    // Conciliação: confirmar o valor pago REAL (recalcula os pontos). Valor inválido NÃO aprova em silêncio.
     const v = prompt('Conciliação — valor PAGO real (R$):', ((valorCents || 0) / 100).toFixed(2));
     if (v === null) return;
     const n = parseFloat(String(v).replace(',', '.'));
-    if (!isNaN(n) && n >= 0) body.valor_venda_cents = Math.round(n * 100);
+    if (isNaN(n) || n < 0) { homeToast('Valor inválido — a venda não foi aprovada.'); return; }
+    body.valor_venda_cents = Math.round(n * 100);
   }
   const r = await pacApi('/api/clinico/pontuacao/registros/' + id, { method: 'PATCH', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui validar.'); return; }
   homeToast(acao === 'aprovar' ? 'Aprovado. ✓' : 'Rejeitado.');
-  const row = document.getElementById('pt-val-' + id); if (row) row.remove();
+  pontValFilaVazia(id);
   pontValBadge();
 }
 async function pontEstornar(id) {
@@ -10340,13 +10363,13 @@ async function pontEstornar(id) {
   const r = await pacApi('/api/clinico/pontuacao/registros/' + id + '/estorno', { method: 'POST', body: JSON.stringify({ motivo: motivo || '' }) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui estornar.'); return; }
   homeToast('Registro estornado. Pontos revertidos.');
-  const row = document.getElementById('pt-val-' + id); if (row) row.remove();
+  pontValFilaVazia(id);
 }
 async function pontAbrirAnexo(id) {
   try {
     const resp = await fetch(API_BASE + '/api/clinico/pontuacao/anexo/' + id, { headers: { 'Authorization': 'Bearer ' + getToken() } });
     if (!resp.ok) { homeToast('Não consegui abrir o comprovante.'); return; }
-    const blob = await resp.blob(); const url = URL.createObjectURL(blob); window.open(url, '_blank');
+    const blob = await resp.blob(); const url = URL.createObjectURL(blob); window.open(url, '_blank', 'noopener,noreferrer');
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   } catch (e) { homeToast('Não consegui abrir o comprovante.'); }
 }
@@ -10456,12 +10479,17 @@ async function pontSyncAgenda(btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Puxando…'; }
   const r = await pacApi('/api/clinico/pontuacao/sync-agenda', { method: 'POST', body: '{}' });
   if (!r.ok || !r.data || !r.data.ok) { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-calendar-plus"></i> Puxar agendamentos da agenda'; } homeToast((r.data && r.data.erro) || 'Não consegui sincronizar.'); return; }
-  homeToast((r.data.criados || 0) + ' agendamento(s) pontuado(s) pela presença.');
+  if (r.data.aviso) homeToast(r.data.aviso);   // ex.: "marque os SDRs em Colaboradores"
+  else homeToast((r.data.criados || 0) + ' agendamento(s) pontuado(s) pela presença.');
   pontFechCarregar();
 }
 async function pontFechConfig(field, input) {
   const body = {};
-  if (field === 'meta') body.meta_faturamento_cents = Math.max(0, Math.round((parseFloat(input.value) || 0) * 100));
+  if (field === 'meta') {
+    const v = parseFloat(input.value);
+    if (isNaN(v) || v <= 0) { homeToast('Informe uma meta maior que zero.'); pontFechCarregar(); return; }
+    body.meta_faturamento_cents = Math.round(v * 100);
+  }
   if (field === 'orc') body.orcamento_operacional_cents = (input.value === '') ? null : Math.max(0, Math.round((parseFloat(input.value) || 0) * 100));
   const r = await pacApi('/api/clinico/pontuacao/ciclos/' + pontFech.cicloId, { method: 'PATCH', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast('Não consegui salvar.'); return; }
@@ -10489,7 +10517,9 @@ function pontFechCSV() {
   const D = pontFech.data; if (!D || !D.rel) return;
   const head = ['Colaborador', 'Unidade', 'Trilha', 'Pontos', 'Faixa', 'Base(R$)', 'Multiplicador', 'Premio(R$)', 'Pago'];
   const linhas = (D.rel.itens || []).map(l => [l.colaborador_nome, l.unidade_nome || '', l.trilha, l.pontos, l.faixa, (l.valor_base_cents / 100).toFixed(2), l.multiplicador, (l.valor_final_cents / 100).toFixed(2), l.pago ? 'sim' : 'nao']);
-  const csv = [head, ...linhas].map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+  // Neutraliza CSV formula injection: prefixa ' quando a célula começa com = + - @ (ou tab/CR/LF).
+  const cell = (x) => { let s = String(x); if (/^[=+\-@\t\r\n]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+  const csv = [head, ...linhas].map(r => r.map(cell).join(';')).join('\r\n');
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
   a.href = url; a.download = 'premios_' + String(D.ciclo.nome || 'ciclo').replace(/\s+/g, '_') + '.csv'; a.click();
