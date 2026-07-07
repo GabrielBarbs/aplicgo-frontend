@@ -6872,6 +6872,7 @@
       #view-pontuacao .pt-st.enviado{background:rgba(210,153,34,.16);color:#e3b341}
       #view-pontuacao .pt-st.aprovado{background:rgba(63,185,80,.16);color:#3fb950}
       #view-pontuacao .pt-st.rejeitado{background:rgba(248,81,73,.16);color:#f85149}
+      #view-pontuacao .pt-st.estornado,#view-pontuacao .pt-st.expirado{background:var(--bg3);color:var(--tx3)}
       #view-pontuacao .pt-rank{display:flex;align-items:center;gap:14px;padding:12px 8px;border-bottom:1px solid var(--bg2)}
       #view-pontuacao .pt-rank:last-child{border-bottom:0}
       #view-pontuacao .pt-rank .pos{font-size:16px;font-weight:700;color:var(--tx3);width:34px;text-align:center;font-variant-numeric:tabular-nums;flex-shrink:0}
@@ -9572,7 +9573,7 @@ async function homeConfirmarAmanha(idx, btnEl) {
   const hora = new Date(a.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const primeiro = (a.paciente || '').split(' ')[0];
   const msg = `Olá ${primeiro}! Aqui é da Aplic & Go. Passando pra confirmar seu horário amanhã às ${hora}. Podemos confirmar? 😊`;
-  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
   if (btnEl) { btnEl.classList.add('ok'); btnEl.innerHTML = '<i class="ti ti-check"></i> enviado'; btnEl.onclick = null; }
 }
 
@@ -9656,7 +9657,7 @@ async function homeAtencaoWa(idx) {
   const msg = i.tipo === 'no_show'
     ? `Olá ${primeiro}! Aqui é da Aplic & Go. Sentimos sua falta no último horário — vamos remarcar seu acompanhamento? 😊`
     : `Olá ${primeiro}! Aqui é da Aplic & Go. Faz um tempinho que não conversamos — como você está indo? 💚`;
-  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
 }
 
 // Card "Renovações em risco" -> conta (sem abordagem) + lista + registrar abordagem.
@@ -9739,7 +9740,7 @@ async function homeRenovWa(pid) {
   const full = num.length <= 11 ? '55' + num : num;
   const primeiro = (i.nome || '').split(' ')[0];
   const msg = `Olá ${primeiro}! Aqui é da Aplic & Go. Seu protocolo está chegando ao fim — vamos conversar sobre a renovação pra manter seus resultados? 💚`;
-  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
 }
 
 // ===== Card "Minhas tarefas" + Nova tarefa =====
@@ -10124,7 +10125,7 @@ function pontLabelTipo(t) { const x = PONT_TIPOS.find(p => p[0] === t); return x
 function pontLabelProd(p) { const x = PONT_PRODUTOS.find(q => q[0] === p); return x ? x[1] : (p || ''); }
 function pontBRL(cents) { return (Number(cents || 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 function pontData(iso) { try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }); } catch (e) { return ''; } }
-function pontStLabel(s) { return s === 'aprovado' ? 'aprovado' : s === 'rejeitado' ? 'rejeitado' : s === 'enviado' ? 'em análise' : s; }
+function pontStLabel(s) { return ({ aprovado: 'aprovado', rejeitado: 'rejeitado', enviado: 'em análise', estornado: 'estornado', expirado: 'expirado' })[s] || s; }
 
 async function pontInit() {
   try { const r = await pacApi('/api/clinico/pontuacao/ciclo/atual'); if (r.ok) pontCiclo = r.data.ciclo; } catch (e) {}
@@ -10132,7 +10133,9 @@ async function pontInit() {
   pontTab(pontTabAtual);
 }
 function pontTab(t) {
+  // Re-gate por permissão (defesa em profundidade além do data-perm que esconde as abas).
   if (t === 'validacao' && !temPermissao('pontuacao.aprovar')) t = 'registrar';
+  if ((t === 'fechamento' || t === 'metricas') && !temPermissao('pontuacao.gerir')) t = 'registrar';
   pontTabAtual = t;
   document.querySelectorAll('#view-pontuacao .pt-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
   if (t === 'registrar') pontRenderRegistrar();
@@ -10143,7 +10146,8 @@ function pontTab(t) {
   else if (t === 'metricas') pontRenderMetricas();
 }
 async function pontValBadge() {
-  try { const r = await pacApi('/api/clinico/pontuacao/validacao'); if (r.ok) { const n = r.data.total || 0; const b = document.getElementById('pt-val-badge'); if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; } } } catch (e) {}
+  // ?count=1 -> só a contagem (sem carregar 300 registros + PII só pra mostrar um número).
+  try { const r = await pacApi('/api/clinico/pontuacao/validacao?count=1'); if (r.ok) { const n = r.data.total || 0; const b = document.getElementById('pt-val-badge'); if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; } } } catch (e) {}
 }
 
 // ---- REGISTRAR ----
@@ -10151,7 +10155,7 @@ function pontRegInit() { if (!pontReg) pontReg = { trilha: 'operacional', tipo: 
 function pontPickerHtml() {
   const r = pontReg;
   if (r.patientId) return `<label>Paciente</label><div class="pt-chip"><i class="ti ti-user"></i> ${esc(r.patientNome)} <button onclick="pontReg.patientId=null;pontReg.patientNome='';pontRenderRegistrar()" title="Remover">×</button></div>`;
-  return `<label>Paciente (opcional)</label><div class="pt-pick"><input id="pt-pac-inp" placeholder="buscar por nome ou código" oninput="pontPickBuscar(this.value)" autocomplete="off"><div id="pt-pac-list"></div></div>`;
+  return `<label for="pt-pac-inp">Paciente (opcional)</label><div class="pt-pick"><input id="pt-pac-inp" aria-label="Buscar paciente por nome ou código" placeholder="buscar por nome ou código" oninput="pontPickBuscar(this.value)" autocomplete="off"><div id="pt-pac-list"></div></div>`;
 }
 async function pontPickBuscar(q) {
   clearTimeout(pontPickTimer);
@@ -10169,7 +10173,7 @@ function pontPickEscolher(idx) { const p = pontPickResults[idx]; if (!p) return;
 function pontAnexoHtml() {
   const r = pontReg;
   if (r.anexoId) return `<div class="pt-chip"><i class="ti ti-paperclip"></i> ${esc(r.anexoNome || 'comprovante')} <button onclick="pontReg.anexoId=null;pontReg.anexoNome='';pontRenderRegistrar()" title="Remover">×</button></div>`;
-  return `<div><input type="file" id="pt-anexo-inp" accept="image/*,application/pdf" onchange="pontAnexoUpload(this)"></div>`;
+  return `<div><input type="file" id="pt-anexo-inp" aria-label="Anexar comprovante (imagem ou PDF)" accept="image/*,application/pdf" onchange="pontAnexoUpload(this)"></div>`;
 }
 async function pontAnexoUpload(input) {
   const f = input.files && input.files[0]; if (!f) return;
@@ -10315,7 +10319,8 @@ async function pontRenderValidacao() {
   const aprovadas = pontValBox === 'aprovadas';
   const rows = (d.itens || []).map(i => pontValRow(i, aprovadas)).join('') || `<div class="pt-empty">${aprovadas ? 'Nenhum registro aprovado ainda.' : 'Nada na fila de validação. 🎉'}</div>`;
   const seg = `<div class="pt-seg" style="margin-bottom:14px"><button class="${!aprovadas ? 'active' : ''}" onclick="pontValBox='pendentes';pontRenderValidacao()">A validar</button><button class="${aprovadas ? 'active' : ''}" onclick="pontValBox='aprovadas';pontRenderValidacao()">Aprovadas (estorno)</button></div>`;
-  body.innerHTML = `<div class="pt-card">${seg}${rows}</div>`;
+  const trunc = d.truncado ? `<div style="font-size:11px;color:var(--tx4);text-align:center;padding:8px">mostrando ${d.mostrando} de ${d.total} — valide os mais antigos primeiro</div>` : '';
+  body.innerHTML = `<div class="pt-card">${seg}${rows}${trunc}</div>`;
 }
 function pontValRow(i, aprovada) {
   const det = i.tipo_acao === 'venda' ? `${esc(pontLabelProd(i.produto))} · ${pontBRL(i.valor_venda_cents)}` : '';
@@ -10459,11 +10464,13 @@ function pontFechRender() {
     <div class="pt-tbl-wrap">${pontFechTabela(linhas, D.fechado)}</div>
     <div class="pt-actions">${acao}</div>
   </div>`;
+  if (pontColabAberto) pontColabToggle(); // preserva a seção "Trilhas" aberta após re-render (edição de faturamento/meta)
 }
+let pontColabAberto = false;
 async function pontColabToggle() {
   const box = document.getElementById('pt-colab-box'); if (!box) return;
-  if (box.dataset.open === '1') { box.innerHTML = ''; box.dataset.open = '0'; return; }
-  box.dataset.open = '1'; box.innerHTML = '<div class="pt-empty" style="padding:14px">Carregando…</div>';
+  if (box.dataset.open === '1') { box.innerHTML = ''; box.dataset.open = '0'; pontColabAberto = false; return; }
+  box.dataset.open = '1'; pontColabAberto = true; box.innerHTML = '<div class="pt-empty" style="padding:14px">Carregando…</div>';
   let d = null; try { const r = await pacApi('/api/clinico/pontuacao/colaboradores'); if (r.ok) d = r.data; } catch (e) {}
   if (!d) { box.innerHTML = '<div class="pt-empty" style="padding:14px">Não consegui carregar.</div>'; return; }
   const chk = (u, campo) => `<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;color:var(--tx2)"><input type="checkbox" style="width:auto" ${u[campo] ? 'checked' : ''} onchange="pontColabSet('${u.user_id}','${campo}',this.checked)"> ${campo === 'comercial' ? 'Comercial' : campo === 'operacional' ? 'Operacional' : 'Comissão'}</label>`;
@@ -12393,6 +12400,8 @@ function agListaRowAgendamento(a) {
 function agListaRowTarefa(t) {
   const dt = new Date(t.prazo + 'T00:00:00');
   const cor = t.vencida ? '#f85149' : (t.prazo_dias <= 7 ? '#e3b341' : 'var(--ac)');
+  // fundo com alpha por faixa (não concatenar ${cor}25 — inválido quando cor é var(--ac))
+  const bg = t.vencida ? 'rgba(248,81,73,.16)' : (t.prazo_dias <= 7 ? 'rgba(210,153,34,.16)' : 'rgba(var(--ac-rgb),.13)');
   const sub = 'Prazo de tarefa'
     + (t.delegada ? (t.sou_criador ? ' · você delegou p/ ' + esc(t.dono_nome) : ' · delegada por ' + esc(t.criador_nome)) : '')
     + (t.paciente_nome ? ' · ' + esc(t.paciente_nome) : '');
@@ -12406,7 +12415,7 @@ function agListaRowTarefa(t) {
       <div style="font-size:13px; color:var(--tx1); font-weight:500;"><i class="ti ti-checklist" style="font-size:12px;color:${cor}"></i> ${esc(t.titulo)}</div>
       <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">${sub}</div>
     </div>
-    <span style="font-size:10px; padding:3px 10px; border-radius:5px; background:${cor}25; color:${cor}; font-weight:600;">${agTarefaContagem(t)}</span>
+    <span style="font-size:10px; padding:3px 10px; border-radius:5px; background:${bg}; color:${cor}; font-weight:600;">${agTarefaContagem(t)}</span>
   </div>`;
 }
 
@@ -19843,7 +19852,7 @@ async function rxEnviarWhatsappPresc(id, btn) {
     const msg = (r.data && r.data.mensagem) || '';
     const full = numero.length <= 11 ? '55' + numero : numero;
     if (msg && confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
-      window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank');
+      window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
     } else if (!msg) {
       alert('Não foi possível enviar: ' + erro);
     }
