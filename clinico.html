@@ -5939,6 +5939,7 @@
   .gst-table tr.clik:hover td{background:var(--bg2)}
   /* Carteira clínica (Home Gestor) */
   .cart-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .cart-mini.c3{grid-template-columns:repeat(3,1fr)}
   .cart-stat{background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;padding:12px 14px}
   .cart-stat .lbl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:6px}
   .cart-stat .val{font-size:24px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;line-height:1}
@@ -6263,6 +6264,18 @@
       <div class="dash-card" style="margin-top:16px">
         <div class="dash-card-head"><div class="ttl"><i class="ti ti-clipboard-heart" style="color:#3fb950"></i> Carteira clínica</div><span style="font-size:10px;color:var(--tx4)">pacientes em programa</span></div>
         <div id="gst-carteira"><div class="dash-vazio">Carregando…</div></div>
+      </div>
+
+      <!-- Agenda & operação: comparecimento, estoque/validade, produção da equipe -->
+      <div class="dash-card" style="margin-top:16px">
+        <div class="dash-card-head"><div class="ttl"><i class="ti ti-calendar-stats" style="color:#4A90E2"></i> Agenda & operação</div><span style="font-size:10px;color:var(--tx4)">mês atual</span></div>
+        <div id="gst-operacao"><div class="dash-vazio">Carregando…</div></div>
+      </div>
+
+      <!-- Comercial & marketing: ticket, vendedores, perdas, Meta Ads (financeiro) -->
+      <div class="dash-card" style="margin-top:16px">
+        <div class="dash-card-head"><div class="ttl"><i class="ti ti-chart-arrows-vertical" style="color:#3fb950"></i> Comercial & marketing</div><span style="font-size:10px;color:var(--tx4)">mês atual</span></div>
+        <div id="gst-comercial"><div class="dash-vazio">Carregando…</div></div>
       </div>
 
       <!-- Ranking do mês (mesmo motor de pontos da Operacional) -->
@@ -10624,6 +10637,8 @@ async function homeGestorCarregar() {
   // Carteira clínica é dado CLÍNICO (paciente.ver_lista) — renderiza independente
   // do financeiro; um gestor sem financeiro.ver ainda vê a carteira.
   homeGestorCarteira();
+  homeGestorOperacao();   // agenda/estoque/equipe — clínico
+  homeGestorComercial();  // ticket/vendedores/perdas/Meta — financeiro (gate próprio)
 
   let d = null;
   try { const r = await pacApi('/api/clinico/dashboard/gestor'); if (r.ok) d = r.data; } catch (e) {}
@@ -10760,6 +10775,122 @@ function gstBar(label, total, max, cor) {
 }
 function gstChip(cor, n, t) {
   return `<div class="cart-chip"><span class="dot" style="background:${cor}"></span><div><div class="n" style="color:${cor}">${n}</div><div class="t">${esc(t)}</div></div></div>`;
+}
+function gstDataBR(iso) {
+  const d = new Date(iso); if (isNaN(d)) return '—';
+  return String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + d.getUTCFullYear();
+}
+
+// ---- Agenda & operação (clínico) -------------------------------------------
+async function homeGestorOperacao() {
+  const box = document.getElementById('gst-operacao');
+  if (!box) return;
+  let o = null;
+  try { const r = await pacApi('/api/clinico/dashboard/operacao'); if (r.ok) o = r.data; } catch (e) {}
+  if (!o) { box.innerHTML = '<div class="dash-vazio">Não foi possível carregar a operação agora.</div>'; return; }
+  const ag = o.agenda, es = o.estoque, eq = o.equipe, ob = o.onboarding;
+
+  // Agenda
+  const noshowCor = ag.noshow_pct != null && ag.noshow_pct > 15 ? '#f85149' : '#e3b341';
+  const agCards = '<div class="cart-mini">'
+    + gstStat('ti-calendar-check', '#3fb950', ag.comparecimento_pct != null ? ag.comparecimento_pct + '%' : '—', 'Comparecimento', ag.atendidos + ' atendidos' + (ag.sem_desfecho ? ` · ${ag.sem_desfecho} sem desfecho` : ''))
+    + gstStat('ti-user-x', noshowCor, ag.noshow_pct != null ? ag.noshow_pct + '%' : '—', 'No-show', ag.faltas + ' faltas marcadas')
+    + gstStat('ti-calendar', '#4A90E2', ag.total_agendados, 'Agendamentos', 'no mês')
+    + gstStat('ti-device-laptop', '#8b949e', ag.online + '/' + ag.presencial, 'Online / presencial', 'atendimentos')
+    + '</div>'
+    + '<div style="font-size:10.5px;color:var(--tx4);margin:-8px 0 6px">% calculado só sobre agendamentos com desfecho marcado (atendido/falta)' + (ag.sem_desfecho ? ` — ${ag.sem_desfecho} já passaram sem marcação` : '') + '</div>';
+  const barsU = (ag.por_unidade || []).map(u => {
+    const res = u.atendidos + u.faltas, pct = u.comparecimento_pct != null ? u.comparecimento_pct : 0;
+    const cor = pct >= 85 ? '#3fb950' : pct >= 70 ? '#e3b341' : '#f85149';
+    return `<div class="cart-brow"><div class="cart-blabel"><span>${esc(u.nome)}</span><b>${pct}% <span style="color:var(--tx4);font-weight:400">(${u.atendidos}/${res})</span></b></div><div class="cart-bbar"><i style="width:${pct}%;background:${cor}"></i></div></div>`;
+  }).join('');
+
+  // Estoque
+  const esCards = '<div class="cart-mini">'
+    + gstStat('ti-clock-exclamation', es.vencendo_30 > 0 ? '#e3b341' : '#3fb950', es.vencendo_30, 'Vencendo ≤30d', es.vencendo_60 + ' em ≤60d')
+    + gstStat('ti-alert-triangle', es.vencidos > 0 ? '#f85149' : '#8b949e', es.vencidos, 'Lotes vencidos', 'com saldo — perda')
+    + gstStat('ti-package-off', es.zerados > 0 ? '#e3b341' : '#3fb950', es.zerados, 'Sem estoque', es.com_estoque + ' com saldo')
+    + gstStat('ti-vaccine', '#4A90E2', es.consumo_mes, 'Aplicações', 'no mês')
+    + '</div>';
+  const lotes = (es.vencendo && es.vencendo.length)
+    ? '<table class="gst-table"><thead><tr><th>Produto</th><th>Lote</th><th>Unidade</th><th style="text-align:right">Qtd</th><th style="text-align:right">Validade</th></tr></thead><tbody>'
+      + es.vencendo.map(l => {
+          const cor = l.dias <= 15 ? '#f85149' : l.dias <= 30 ? '#e3b341' : 'var(--tx3)';
+          return `<tr><td>${esc(l.produto)}</td><td>${esc(l.lote)}</td><td>${esc(l.unidade)}</td><td class="num">${l.qtd}</td><td class="num" style="color:${cor}">${gstDataBR(l.validade)} <span style="color:var(--tx4)">(${l.dias}d)</span></td></tr>`;
+        }).join('') + '</tbody></table>'
+    : '<div style="font-size:12px;color:var(--tx4)">Nenhum lote vencendo em 60 dias.</div>';
+
+  // Produção da equipe + onboarding
+  const eqChips = '<div class="cart-chips">'
+    + gstChip('#4A90E2', eq.atendimentos, 'Atendimentos')
+    + gstChip('#3fb950', eq.evolucoes, 'Evoluções')
+    + gstChip('#bc8cff', eq.aplicacoes, 'Aplicações')
+    + gstChip('#e3b341', eq.prescricoes, 'Prescrições')
+    + gstChip('#39d0d8', ob.pendentes, 'Onboardings abertos')
+    + '</div>';
+
+  box.innerHTML =
+    '<div class="cart-blk-ttl">Agenda & comparecimento</div>' + agCards
+    + (barsU ? '<div class="cart-blk-ttl" style="margin-top:2px">Comparecimento por unidade</div>' + barsU : '')
+    + '<div class="cart-blk-ttl" style="margin-top:18px">Estoque & validade</div>' + esCards + lotes
+    + '<div class="cart-blk-ttl" style="margin-top:18px">Produção da equipe (mês)</div>' + eqChips;
+}
+
+// ---- Comercial & marketing (financeiro) ------------------------------------
+const GST_CAT_LBL = { COMERCIAL_REAL: 'Comercial real', PROBLEMA_OFERTA: 'Problema de oferta', OPERACIONAL: 'Operacional', LIXO_FUNIL: 'Lixo de funil', SEM_CATEGORIA: 'Sem categoria' };
+const GST_CAT_COR = { COMERCIAL_REAL: '#f85149', PROBLEMA_OFERTA: '#e3b341', OPERACIONAL: '#4A90E2', LIXO_FUNIL: '#8b949e', SEM_CATEGORIA: '#6e7681' };
+
+async function homeGestorComercial() {
+  const box = document.getElementById('gst-comercial');
+  if (!box) return;
+  let c = null;
+  try { const r = await pacApi('/api/clinico/dashboard/comercial'); if (r.ok) c = r.data; } catch (e) {}
+  if (!c) { box.innerHTML = '<div class="dash-vazio">Sem acesso ao financeiro (ou dado indisponível).</div>'; return; }
+
+  const dif = c.ticket_medio_ant_cents > 0 ? Math.round((c.ticket_medio_cents - c.ticket_medio_ant_cents) / c.ticket_medio_ant_cents * 100) : null;
+  // Pipeline total vem do backend (todos os deals OPEN, inclusive sem dono); só cai
+  // no fallback por-vendedor se o campo faltar (versão antiga do endpoint).
+  const pipeTotal = c.pipeline_total_cents != null ? c.pipeline_total_cents : (c.vendedores || []).reduce((s, v) => s + (v.pipeline_cents || 0), 0);
+  const cards = '<div class="cart-mini">'
+    + gstStat('ti-receipt-2', '#3fb950', homeGestorFmtBRL(c.ticket_medio_cents), 'Ticket médio', dif != null ? `${dif >= 0 ? '+' : ''}${dif}% vs mês passado` : 'sem base anterior')
+    + gstStat('ti-shopping-cart', '#4A90E2', c.vendas_mes, 'Vendas no mês', 'negócios ganhos')
+    + gstStat('ti-clock', '#e3b341', c.tempo_medio_fechamento_dias != null ? c.tempo_medio_fechamento_dias + 'd' : '—', 'Tempo de fechamento', 'só negócios ganhos')
+    + gstStat('ti-cash', '#bc8cff', homeGestorFmtBRL(pipeTotal), 'Pipeline aberto', 'todos os negócios em aberto')
+    + '</div>';
+
+  const vend = (c.vendedores || []).filter(v => v.vendas_cents > 0 || v.meta_cents > 0);
+  const tbl = vend.length
+    ? '<table class="gst-table"><thead><tr><th>Vendedor</th><th style="text-align:right">Vendas</th><th style="text-align:right">Meta</th><th style="text-align:right">Pipeline</th></tr></thead><tbody>'
+      + vend.map(v => {
+          const pctTxt = v.pct_meta != null ? `<span style="color:${v.pct_meta >= 100 ? '#3fb950' : v.pct_meta >= 70 ? '#e3b341' : 'var(--tx3)'}">${v.pct_meta}%</span>` : '<span style="color:var(--tx4)">—</span>';
+          return `<tr><td>${esc(v.nome)}</td><td class="num">${homeGestorFmtBRL(v.vendas_cents)}</td><td class="num">${pctTxt}</td><td class="num" style="color:var(--tx3)">${homeGestorFmtBRL(v.pipeline_cents)}</td></tr>`;
+        }).join('') + '</tbody></table>'
+    : '<div style="font-size:12px;color:var(--tx4)">Sem vendedores com meta configurada.</div>';
+
+  const cats = c.perda_por_categoria || [];
+  const maxC = Math.max(1, ...cats.map(x => x.total));
+  const perdaBars = cats.length
+    ? cats.map(x => {
+        const pct = Math.round(x.total / maxC * 100);
+        return `<div class="cart-brow"><div class="cart-blabel"><span>${esc(GST_CAT_LBL[x.categoria] || x.categoria)}</span><b>${x.total} <span style="color:var(--tx4);font-weight:400">${homeGestorFmtBRL(x.valor_cents)}</span></b></div><div class="cart-bbar"><i style="width:${pct}%;background:${GST_CAT_COR[x.categoria] || '#8b949e'}"></i></div></div>`;
+      }).join('')
+    : '<div style="font-size:12px;color:var(--tx4)">Sem perdas registradas no mês.</div>';
+
+  const mk = c.marketing || {};
+  const mkBlock = mk.tem_dados
+    ? '<div class="cart-mini c3">'
+      + gstStat('ti-brand-meta', '#4A90E2', homeGestorFmtBRL(mk.spend_cents), 'Investimento Meta', 'no mês')
+      + gstStat('ti-users', '#3fb950', mk.leads, 'Leads (Meta)', 'contabilizados pelo pixel')
+      + gstStat('ti-coin', '#e3b341', mk.cpl_cents != null ? homeGestorFmtBRL(mk.cpl_cents) : '—', 'Custo por lead', 'investimento / leads')
+      + '</div>'
+    : '<div style="font-size:12px;color:var(--tx4)">Sem dados de Meta Ads no mês (depende da sincronização do Meta).</div>';
+
+  box.innerHTML = cards
+    + '<div class="cart-cols" style="margin-top:2px">'
+      + `<div><div class="cart-blk-ttl">Ranking de vendedores</div>${tbl}</div>`
+      + `<div><div class="cart-blk-ttl">Perda por categoria</div>${perdaBars}</div>`
+    + '</div>'
+    + '<div class="cart-blk-ttl" style="margin-top:18px">Marketing (Meta Ads)</div>' + mkBlock;
 }
 
 function gstFocoRender(d) {
