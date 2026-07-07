@@ -10283,33 +10283,55 @@ async function pontRenderRanking() {
 }
 
 // ---- VALIDAÇÃO (RH) ----
+let pontValBox = 'pendentes';
 async function pontRenderValidacao() {
   const body = document.getElementById('pt-body'); if (!body) return;
   body.innerHTML = '<div class="pt-empty">Carregando…</div>';
-  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/validacao'); if (r.ok) d = r.data; } catch (e) {}
+  const q = pontValBox === 'aprovadas' ? '?box=aprovadas' : '';
+  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/validacao' + q); if (r.ok) d = r.data; } catch (e) {}
   if (!d) { body.innerHTML = '<div class="pt-empty">Não consegui carregar.</div>'; return; }
-  const rows = (d.itens || []).map(pontValRow).join('') || '<div class="pt-empty">Nada na fila de validação. 🎉</div>';
-  body.innerHTML = `<div class="pt-card">${rows}</div>`;
+  const aprovadas = pontValBox === 'aprovadas';
+  const rows = (d.itens || []).map(i => pontValRow(i, aprovadas)).join('') || `<div class="pt-empty">${aprovadas ? 'Nenhum registro aprovado ainda.' : 'Nada na fila de validação. 🎉'}</div>`;
+  const seg = `<div class="pt-seg" style="margin-bottom:14px"><button class="${!aprovadas ? 'active' : ''}" onclick="pontValBox='pendentes';pontRenderValidacao()">A validar</button><button class="${aprovadas ? 'active' : ''}" onclick="pontValBox='aprovadas';pontRenderValidacao()">Aprovadas (estorno)</button></div>`;
+  body.innerHTML = `<div class="pt-card">${seg}${rows}</div>`;
 }
-function pontValRow(i) {
+function pontValRow(i, aprovada) {
   const det = i.tipo_acao === 'venda' ? `${esc(pontLabelProd(i.produto))} · ${pontBRL(i.valor_venda_cents)}` : '';
   const who = i.paciente_nome ? (' · ' + esc(i.paciente_nome)) : (i.indicado_nome ? (' · ' + esc(i.indicado_nome)) : '');
   const anexo = i.tem_anexo ? ` · <a href="#" onclick="pontAbrirAnexo('${i.anexo_id}');return false;" style="color:var(--ac)">ver comprovante</a>` : '';
+  const acoes = aprovada
+    ? `<button class="pt-btn no" style="padding:6px 12px;font-size:13px" onclick="pontEstornar('${i.id}')"><i class="ti ti-arrow-back-up"></i> Estornar</button>`
+    : `<button class="pt-btn ok" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','aprovar','${i.tipo_acao}',${i.valor_venda_cents || 0})">Aprovar</button><button class="pt-btn no" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','rejeitar')">Rejeitar</button>`;
   return `<div class="pt-list-row" id="pt-val-${i.id}">
     <div style="min-width:0;flex:1"><div style="font-size:14px;color:var(--tx1)">${esc(i.colaborador_nome)} <span style="color:var(--tx4);font-size:12px">${esc(pontLabelTipo(i.tipo_acao))} ${det}${who}</span></div>
     <div style="font-size:11px;color:var(--tx4)">${esc(i.trilha)} · ${pontData(i.created_at)}${i.observacao ? ' · ' + esc(i.observacao) : ''}${anexo}</div></div>
     <div style="font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums">${i.pontos}</div>
-    <div style="display:flex;gap:6px;flex-shrink:0"><button class="pt-btn ok" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','aprovar')">Aprovar</button><button class="pt-btn no" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','rejeitar')">Rejeitar</button></div>
+    <div style="display:flex;gap:6px;flex-shrink:0">${acoes}</div>
   </div>`;
 }
-async function pontValidar(id, acao) {
-  let motivo = '';
-  if (acao === 'rejeitar') { motivo = prompt('Motivo da rejeição (opcional):') || ''; }
-  const r = await pacApi('/api/clinico/pontuacao/registros/' + id, { method: 'PATCH', body: JSON.stringify({ acao, motivo }) });
+async function pontValidar(id, acao, tipo, valorCents) {
+  const body = { acao };
+  if (acao === 'rejeitar') { body.motivo = prompt('Motivo da rejeição (opcional):') || ''; }
+  else if (tipo === 'venda') {
+    // Conciliação: confirmar o valor pago REAL (recalcula os pontos)
+    const v = prompt('Conciliação — valor PAGO real (R$):', ((valorCents || 0) / 100).toFixed(2));
+    if (v === null) return;
+    const n = parseFloat(String(v).replace(',', '.'));
+    if (!isNaN(n) && n >= 0) body.valor_venda_cents = Math.round(n * 100);
+  }
+  const r = await pacApi('/api/clinico/pontuacao/registros/' + id, { method: 'PATCH', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui validar.'); return; }
   homeToast(acao === 'aprovar' ? 'Aprovado. ✓' : 'Rejeitado.');
   const row = document.getElementById('pt-val-' + id); if (row) row.remove();
   pontValBadge();
+}
+async function pontEstornar(id) {
+  const motivo = prompt('Motivo do estorno (reembolso / no-show / calote):');
+  if (motivo === null) return;
+  const r = await pacApi('/api/clinico/pontuacao/registros/' + id + '/estorno', { method: 'POST', body: JSON.stringify({ motivo: motivo || '' }) });
+  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui estornar.'); return; }
+  homeToast('Registro estornado. Pontos revertidos.');
+  const row = document.getElementById('pt-val-' + id); if (row) row.remove();
 }
 async function pontAbrirAnexo(id) {
   try {
@@ -10394,6 +10416,9 @@ function pontFechRender() {
     ${cfg}
     <div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin:16px 0 4px">Faturamento por unidade <span style="text-transform:none;color:var(--tx4)">(fonte da meta batida)</span></div>
     ${fatRows}
+    ${D.fechado ? '' : `<div style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="pt-btn" style="background:var(--bg3);color:var(--tx2);border:1px solid var(--bd1)" onclick="pontSyncAgenda(this)"><i class="ti ti-calendar-plus"></i> Puxar agendamentos da agenda</button><span style="font-size:11px;color:var(--tx4)">pontua captação (SDR) por presença de paciente novo, no ciclo aberto</span></div>`}
+    <div style="margin-top:10px"><button class="pt-btn" style="background:transparent;color:var(--ac);border:1px solid var(--bd1)" onclick="pontColabToggle()"><i class="ti ti-users"></i> Trilhas dos colaboradores (SDRs)</button></div>
+    <div id="pt-colab-box" data-open="0"></div>
   </div>
   <div class="pt-card">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px"><div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px">Apuração ${D.fechado ? '(congelada)' : '(prévia)'}</div><div style="font-size:16px;font-weight:700;color:var(--ac)">Total ${pontBRL(totalGeral)}</div></div>
@@ -10402,6 +10427,28 @@ function pontFechRender() {
     <div class="pt-tbl-wrap">${pontFechTabela(linhas, D.fechado)}</div>
     <div class="pt-actions">${acao}</div>
   </div>`;
+}
+async function pontColabToggle() {
+  const box = document.getElementById('pt-colab-box'); if (!box) return;
+  if (box.dataset.open === '1') { box.innerHTML = ''; box.dataset.open = '0'; return; }
+  box.dataset.open = '1'; box.innerHTML = '<div class="pt-empty" style="padding:14px">Carregando…</div>';
+  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/colaboradores'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { box.innerHTML = '<div class="pt-empty" style="padding:14px">Não consegui carregar.</div>'; return; }
+  const chk = (u, campo) => `<label style="display:inline-flex;gap:5px;align-items:center;font-size:12px;color:var(--tx2)"><input type="checkbox" style="width:auto" ${u[campo] ? 'checked' : ''} onchange="pontColabSet('${u.user_id}','${campo}',this.checked)"> ${campo === 'comercial' ? 'Comercial' : campo === 'operacional' ? 'Operacional' : 'Comissão'}</label>`;
+  const rows = (d.itens || []).map(u => `<div class="pt-fat" style="gap:16px"><div style="flex:1;min-width:130px;font-size:13px;color:var(--tx1)">${esc(u.nome)}</div>${chk(u, 'comercial')}${chk(u, 'operacional')}${chk(u, 'comissao')}</div>`).join('') || '<div class="pt-empty">Sem usuários ativos.</div>';
+  box.innerHTML = `<div style="margin-top:12px;border-top:1px solid var(--bg2);padding-top:12px"><div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Trilhas dos colaboradores <span style="text-transform:none;color:var(--tx4)">(marque os SDRs em Comercial p/ o sync creditar certo)</span></div>${rows}</div>`;
+}
+async function pontColabSet(userId, campo, val) {
+  const body = {}; body[campo] = val;
+  const r = await pacApi('/api/clinico/pontuacao/colaboradores/' + userId, { method: 'PUT', body: JSON.stringify(body) });
+  if (!r.ok || !r.data || !r.data.ok) homeToast('Não consegui salvar.');
+}
+async function pontSyncAgenda(btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Puxando…'; }
+  const r = await pacApi('/api/clinico/pontuacao/sync-agenda', { method: 'POST', body: '{}' });
+  if (!r.ok || !r.data || !r.data.ok) { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-calendar-plus"></i> Puxar agendamentos da agenda'; } homeToast((r.data && r.data.erro) || 'Não consegui sincronizar.'); return; }
+  homeToast((r.data.criados || 0) + ' agendamento(s) pontuado(s) pela presença.');
+  pontFechCarregar();
 }
 async function pontFechConfig(field, input) {
   const body = {};
