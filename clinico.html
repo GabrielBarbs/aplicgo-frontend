@@ -6898,6 +6898,10 @@
       #view-pontuacao .pt-batida{font-size:11px;font-weight:600;border-radius:20px;padding:2px 10px}
       #view-pontuacao .pt-batida.sim{background:rgba(63,185,80,.16);color:#3fb950}
       #view-pontuacao .pt-batida.nao{background:rgba(248,81,73,.14);color:#f85149}
+      #view-pontuacao .mlbl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px}
+      #view-pontuacao .mval{font-size:22px;font-weight:800;color:var(--tx1);font-variant-numeric:tabular-nums;line-height:1.2}
+      #view-pontuacao .mhead{font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:12px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+      #view-pontuacao .pt-nivel{font-size:11px;font-weight:700;border-radius:20px;padding:3px 11px;background:rgba(var(--ac-rgb),.14);color:var(--ac)}
     </style>
     <div class="pt-wrap">
       <div class="pt-tabs">
@@ -6906,6 +6910,7 @@
         <button class="pt-tab" data-tab="ranking" onclick="pontTab('ranking')"><i class="ti ti-trophy"></i> Ranking</button>
         <button class="pt-tab" data-tab="validacao" data-perm="pontuacao.aprovar" onclick="pontTab('validacao')"><i class="ti ti-checklist"></i> Validação <span class="pt-badge" id="pt-val-badge" style="display:none">0</span></button>
         <button class="pt-tab" data-tab="fechamento" data-perm="pontuacao.gerir" onclick="pontTab('fechamento')"><i class="ti ti-flag-check"></i> Fechamento</button>
+        <button class="pt-tab" data-tab="metricas" data-perm="pontuacao.gerir" onclick="pontTab('metricas')"><i class="ti ti-chart-bar"></i> Métricas</button>
       </div>
       <div id="pt-body"><div class="pt-empty">Carregando…</div></div>
     </div>
@@ -10126,6 +10131,7 @@ function pontTab(t) {
   else if (t === 'ranking') pontRenderRanking();
   else if (t === 'validacao') pontRenderValidacao();
   else if (t === 'fechamento') pontRenderFechamento();
+  else if (t === 'metricas') pontRenderMetricas();
 }
 async function pontValBadge() {
   try { const r = await pacApi('/api/clinico/pontuacao/validacao'); if (r.ok) { const n = r.data.total || 0; const b = document.getElementById('pt-val-badge'); if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; } } } catch (e) {}
@@ -10249,10 +10255,13 @@ async function pontRenderExtrato() {
     <span class="pt-st ${p.pago ? 'aprovado' : 'enviado'}">${p.pago ? 'pago' : 'a receber'}</span>
   </div>`).join('');
   const premCard = premRows ? `<div class="pt-card"><div style="font-size:12px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px">Meus prêmios</div>${premRows}</div>` : '';
-  body.innerHTML = `<div class="pt-card" style="display:flex;gap:28px;flex-wrap:wrap">
-    <div><div style="font-size:26px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums">${rs.pontos_aprovados || 0}</div><div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px">pontos aprovados</div></div>
-    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.pendentes || 0}</div><div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px">aguardando</div></div>
-    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.aprovados || 0}/${rs.total || 0}</div><div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px">aprovados</div></div>
+  const lifetime = (rs.pontos_aprovados || 0) + ((prem && prem.itens || []).reduce((s, p) => s + (p.pontos || 0), 0));
+  const niv = lifetime >= 4000 ? 'Diamante' : lifetime >= 1500 ? 'Ouro' : lifetime >= 500 ? 'Prata' : 'Bronze';
+  body.innerHTML = `<div class="pt-card" style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
+    <div><div style="font-size:26px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums">${rs.pontos_aprovados || 0}</div><div class="mlbl">pontos no ciclo</div></div>
+    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.pendentes || 0}</div><div class="mlbl">aguardando</div></div>
+    <div><div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums">${rs.aprovados || 0}/${rs.total || 0}</div><div class="mlbl">aprovados</div></div>
+    <div style="margin-left:auto;text-align:right"><div style="font-size:22px;font-weight:800;font-variant-numeric:tabular-nums">${lifetime} <span class="pt-nivel">${niv}</span></div><div class="mlbl">trajetória (total de pontos)</div></div>
   </div>${premCard}<div class="pt-card">${rows}</div>`;
 }
 function pontExtratoRow(i) {
@@ -10485,6 +10494,53 @@ function pontFechCSV() {
   const url = URL.createObjectURL(blob); const a = document.createElement('a');
   a.href = url; a.download = 'premios_' + String(D.ciclo.nome || 'ciclo').replace(/\s+/g, '_') + '.csv'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// ---- MÉTRICAS (Onda 4): visão de gestão ----
+async function pontRenderMetricas() {
+  const body = document.getElementById('pt-body'); if (!body) return;
+  body.innerHTML = '<div class="pt-empty">Carregando…</div>';
+  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/metricas'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { body.innerHTML = '<div class="pt-empty">Não consegui carregar.</div>'; return; }
+  const rs = d.resumo || {};
+  const cn = d.ciclo_atual ? d.ciclo_atual.nome : '—';
+  const cards = `<div class="pt-card" style="display:flex;gap:30px;flex-wrap:wrap">
+    <div><div class="mlbl">Ciclo</div><div class="mval">${esc(cn)}</div></div>
+    <div><div class="mlbl">Pontos comercial</div><div class="mval" style="color:var(--ac)">${rs.pontos_comercial || 0}</div></div>
+    <div><div class="mlbl">Pontos operacional</div><div class="mval" style="color:#3fb950">${rs.pontos_operacional || 0}</div></div>
+    <div><div class="mlbl">Participantes</div><div class="mval">${rs.colaboradores || 0}</div></div>
+    <div><div class="mlbl">Prêmio projetado</div><div class="mval" style="color:var(--ac)">${pontBRL(rs.premio_projetado_cents)}</div></div>
+  </div>`;
+  const un = d.unidades || [];
+  const maxU = Math.max(1, ...un.map(u => u.pontos_comercial + u.pontos_operacional));
+  const unRows = un.map(u => {
+    const tot = u.pontos_comercial + u.pontos_operacional;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--bg2)">
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--tx1);margin-bottom:6px;flex-wrap:wrap"><span>${esc(u.unidade_nome)}</span><span style="color:var(--tx4)">${tot} pts · ${u.colaboradores} pessoa(s) · ${u.per_capita}/pessoa</span></div>
+      <div style="height:9px;background:var(--bg1);border-radius:5px;overflow:hidden;display:flex"><div style="width:${Math.round(u.pontos_comercial / maxU * 100)}%;background:var(--ac)"></div><div style="width:${Math.round(u.pontos_operacional / maxU * 100)}%;background:#3fb950"></div></div>
+    </div>`;
+  }).join('') || '<div class="pt-empty">Sem pontos aprovados no ciclo atual.</div>';
+  const unCard = `<div class="pt-card"><div class="mhead">Por unidade <span style="font-size:11px;text-transform:none;color:var(--tx4)"><span style="color:var(--ac)">■</span> comercial · <span style="color:#3fb950">■</span> operacional</span></div>${unRows}</div>`;
+  const evCard = `<div class="pt-card"><div class="mhead">Evolução por ciclo <span style="font-size:11px;text-transform:none;color:var(--tx4)"><span style="color:var(--ac)">■</span> comercial · <span style="color:#3fb950">■</span> operacional</span></div>${pontEvolucaoSVG(d.evolucao || [])}</div>`;
+  body.innerHTML = cards + unCard + evCard;
+}
+function pontEvolucaoSVG(ev) {
+  if (!ev.length) return '<div class="pt-empty">Sem ciclos ainda.</div>';
+  const W = Math.max(320, ev.length * 92), H = 190, pad = 26, base = H - 26;
+  const max = Math.max(1, ...ev.map(e => Math.max(e.pontos_comercial, e.pontos_operacional)));
+  const bw = (W - pad * 2) / ev.length;
+  let bars = '', labels = '';
+  ev.forEach((e, i) => {
+    const cx = pad + i * bw + bw / 2;
+    const w2 = Math.min(20, bw / 3);
+    const hC = (e.pontos_comercial / max) * (base - 16);
+    const hO = (e.pontos_operacional / max) * (base - 16);
+    bars += `<rect x="${(cx - w2 - 2).toFixed(1)}" y="${(base - hC).toFixed(1)}" width="${w2.toFixed(1)}" height="${hC.toFixed(1)}" rx="2" fill="var(--ac)"><title>${esc(e.ciclo_nome)} · comercial ${e.pontos_comercial}</title></rect>`;
+    bars += `<rect x="${(cx + 2).toFixed(1)}" y="${(base - hO).toFixed(1)}" width="${w2.toFixed(1)}" height="${hO.toFixed(1)}" rx="2" fill="#3fb950"><title>${esc(e.ciclo_nome)} · operacional ${e.pontos_operacional}</title></rect>`;
+    labels += `<text x="${cx.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="9" fill="var(--tx4)">${esc(e.ciclo_nome)}</text>`;
+    if (e.status === 'fechado' && e.premio_cents) labels += `<text x="${cx.toFixed(1)}" y="${(base - Math.max(hC, hO) - 4).toFixed(1)}" text-anchor="middle" font-size="8" fill="var(--tx3)">${pontBRL(e.premio_cents)}</text>`;
+  });
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:${W}px;height:${H}px;display:block"><line x1="${pad}" y1="${base}" x2="${W - pad}" y2="${base}" stroke="var(--bg3)" stroke-width="1"/>${bars}${labels}</svg></div>`;
 }
 
 // ===== HOME GESTOR (Sprint 2) =====
