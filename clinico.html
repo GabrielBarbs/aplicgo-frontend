@@ -5935,6 +5935,29 @@
   .gst-table tr:last-child td{border-bottom:0}
   .gst-table td.num{text-align:right;font-variant-numeric:tabular-nums}
   .gst-table .gst-vazio{color:var(--tx4);text-align:center;padding:16px}
+  .gst-table tr.clik{cursor:pointer}
+  .gst-table tr.clik:hover td{background:var(--bg2)}
+  /* Carteira clínica (Home Gestor) */
+  .cart-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+  .cart-stat{background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;padding:12px 14px}
+  .cart-stat .lbl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:6px}
+  .cart-stat .val{font-size:24px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;line-height:1}
+  .cart-stat .sub{font-size:10.5px;color:var(--tx4);margin-top:3px}
+  .cart-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .cart-blk-ttl{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;font-weight:600;margin:2px 0 10px}
+  .cart-brow{margin-bottom:11px}
+  .cart-brow .cart-blabel{display:flex;justify-content:space-between;font-size:12.5px;color:var(--tx1b)}
+  .cart-brow .cart-blabel b{font-variant-numeric:tabular-nums;color:var(--tx1)}
+  .cart-bbar{height:6px;background:var(--bg3);border-radius:20px;margin-top:5px;overflow:hidden}
+  .cart-bbar i{display:block;height:100%;border-radius:20px;transition:width .5s}
+  .cart-chips{display:flex;flex-wrap:wrap;gap:8px}
+  .cart-chip{display:flex;align-items:center;gap:7px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:8px 11px;flex:1;min-width:90px}
+  .cart-chip .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .cart-chip .n{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+  .cart-chip .t{font-size:10.5px;color:var(--tx3)}
+  .cart-delta-down{color:#3fb950;font-weight:600}
+  .cart-delta-up{color:#e3b341;font-weight:600}
+  @media(max-width:720px){.cart-mini{grid-template-columns:repeat(2,1fr)}.cart-cols{grid-template-columns:1fr}}
   .tk-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--bd2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px}
   .tk-check:hover{border-color:var(--ac);color:var(--ac)}
   .tk-sub{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;padding:10px 18px 4px}
@@ -6234,6 +6257,12 @@
       <div class="dash-card" style="margin-top:16px">
         <div class="dash-card-head"><div class="ttl"><i class="ti ti-building-hospital"></i> Resumo das unidades</div></div>
         <table class="gst-table" id="gst-unidades"><tbody><tr><td class="gst-vazio">Carregando…</td></tr></tbody></table>
+      </div>
+
+      <!-- Carteira clínica: planos ativos, programas, jornada e quem concluiu -->
+      <div class="dash-card" style="margin-top:16px">
+        <div class="dash-card-head"><div class="ttl"><i class="ti ti-clipboard-heart" style="color:#3fb950"></i> Carteira clínica</div><span style="font-size:10px;color:var(--tx4)">pacientes em programa</span></div>
+        <div id="gst-carteira"><div class="dash-vazio">Carregando…</div></div>
       </div>
 
       <!-- Ranking do mês (mesmo motor de pontos da Operacional) -->
@@ -10592,6 +10621,10 @@ async function homeGestorCarregar() {
   const amN = document.getElementById('gst-am-naoconf'); if (amN) amN.textContent = am ? am.nao_confirmados : '—';
   const rv = document.getElementById('gst-renov-val'); if (rv) rv.textContent = (homeRenovTotal == null ? '—' : homeRenovTotal);
 
+  // Carteira clínica é dado CLÍNICO (paciente.ver_lista) — renderiza independente
+  // do financeiro; um gestor sem financeiro.ver ainda vê a carteira.
+  homeGestorCarteira();
+
   let d = null;
   try { const r = await pacApi('/api/clinico/dashboard/gestor'); if (r.ok) d = r.data; } catch (e) {}
   if (!d) { // 403 (sem financeiro.ver) ou erro
@@ -10641,6 +10674,92 @@ async function homeGestorCarregar() {
     : '<tbody><tr><td class="gst-vazio">Sem unidades.</td></tr></tbody>';
 
   gstFocoRender(d);
+}
+
+// ---- Carteira clínica (Home Gestor) ----------------------------------------
+const GST_FASE_LBL = { BURN_1: 'Burn 1', BURN_2: 'Burn 2', BURN_3: 'Burn 3', BUILD_4: 'Build 4', BUILD_5: 'Build 5', CLUB: 'Club' };
+const GST_PROG_COR = ['#3fb950', '#4A90E2', '#e3b341', '#bc8cff', '#f778ba', '#39d0d8', '#f0883e', '#8b949e'];
+
+async function homeGestorCarteira() {
+  const box = document.getElementById('gst-carteira');
+  if (!box) return;
+  let c = null;
+  try { const r = await pacApi('/api/clinico/dashboard/carteira'); if (r.ok) c = r.data; } catch (e) {}
+  if (!c) { box.innerHTML = '<div class="dash-vazio">Não foi possível carregar a carteira agora.</div>'; return; }
+  const a = c.ativos, fl = c.fluxo, cc = c.concluidos;
+
+  // 1) Mini-cards de topo (só métricas honestas: contagens de status + planos
+  // iniciados no mês por data real; sem "concluídos/saídas no mês" derivados de updatedAt)
+  const mini = '<div class="cart-mini">'
+    + gstStat('ti-users', '#3fb950', a.total, 'Planos ativos', 'pacientes em programa')
+    + gstStat('ti-player-play', '#39d0d8', fl.iniciaram_mes, 'Iniciaram no mês', 'novos planos no mês')
+    + gstStat('ti-hourglass-low', '#e3b341', a.pre_programa, 'A iniciar', 'pré-programa' + (a.pausados ? ` · ${a.pausados} pausado${a.pausados > 1 ? 's' : ''}` : ''))
+    + gstStat('ti-flag-check', '#4A90E2', cc.total, 'Concluíram', 'total histórico')
+    + '</div>';
+
+  // 2) Duas colunas: por programa + jornada/sinal clínico
+  const progs = (a.por_programa || []).slice(0, 8);
+  const maxProg = Math.max(1, ...progs.map(p => p.total));
+  const barsProg = progs.length
+    ? progs.map((p, i) => gstBar(p.chave || 'Sem programa', p.total, maxProg, GST_PROG_COR[i % GST_PROG_COR.length])).join('')
+    : '<div style="font-size:12px;color:var(--tx4)">Nenhum paciente ativo.</div>';
+
+  const fases = a.por_fase || [];
+  const maxFase = Math.max(1, ...fases.map(p => p.total));
+  const barsFase = fases.length
+    ? fases.map(p => gstBar(p.chave ? (GST_FASE_LBL[p.chave] || p.chave) : 'Sem fase', p.total, maxFase, '#bc8cff')).join('')
+    : '<div style="font-size:12px;color:var(--tx4)">Sem fase definida.</div>';
+
+  const sc = a.sinal_clinico;
+  const chips = '<div class="cart-chips">'
+    + gstChip('#3fb950', sc.estavel, 'Estável')
+    + gstChip('#e3b341', sc.atencao, 'Atenção')
+    + gstChip('#f85149', sc.urgencia, 'Urgência')
+    + (sc.sem ? gstChip('#8b949e', sc.sem, 'Sem sinal') : '')
+    + '</div>';
+
+  const cols = '<div class="cart-cols">'
+    + `<div><div class="cart-blk-ttl">Por programa</div>${barsProg}</div>`
+    + `<div><div class="cart-blk-ttl">Jornada (fase)</div>${barsFase}`
+    + `<div class="cart-blk-ttl" style="margin-top:14px">Sinal clínico</div>${chips}</div>`
+    + '</div>';
+
+  // 3) Concluíram recentemente + histórico resumido
+  let tabela = '';
+  if (cc.recentes && cc.recentes.length) {
+    const linhas = cc.recentes.map(p => {
+      let peso = '—';
+      if (p.delta_peso != null) {
+        const cls = p.delta_peso < 0 ? 'cart-delta-down' : (p.delta_peso > 0 ? 'cart-delta-up' : '');
+        const arw = p.delta_peso < 0 ? '↓' : (p.delta_peso > 0 ? '↑' : '');
+        peso = `<span class="${cls}">${arw} ${Math.abs(p.delta_peso).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg</span>`;
+      }
+      return `<tr class="clik" onclick="pacAbrirDetalhe('${p.id}')">`
+        + `<td>${esc(p.nome)}<div style="font-size:10.5px;color:var(--tx4)">${esc(p.codigo)}</div></td>`
+        + `<td>${p.programa ? esc(p.programa) : '<span style="color:var(--tx4)">—</span>'}</td>`
+        + `<td class="num">${peso}</td>`
+        + `<td class="num">${p.atendimentos}</td>`
+        + `<td class="num">${p.aplicacoes}</td>`
+        + '</tr>';
+    }).join('');
+    tabela = '<div class="cart-blk-ttl" style="margin-top:18px">Concluíram o programa <span style="text-transform:none;font-weight:400;color:var(--tx4)">· resultados reais · clique para abrir o prontuário</span></div>'
+      + `<table class="gst-table"><thead><tr><th>Paciente</th><th>Programa</th><th style="text-align:right">Δ peso</th><th style="text-align:right">Atend.</th><th style="text-align:right">Aplic.</th></tr></thead><tbody>${linhas}</tbody></table>`;
+  }
+
+  box.innerHTML = mini + cols + tabela;
+}
+
+function gstStat(ico, cor, val, lbl, sub) {
+  return `<div class="cart-stat"><div class="lbl"><i class="ti ${ico}" style="color:${cor}"></i> ${esc(lbl)}</div>`
+    + `<div class="val" style="color:${cor}">${esc(String(val))}</div><div class="sub">${esc(sub)}</div></div>`;
+}
+function gstBar(label, total, max, cor) {
+  const pct = Math.round((total / max) * 100);
+  return `<div class="cart-brow"><div class="cart-blabel"><span>${esc(String(label))}</span><b>${total}</b></div>`
+    + `<div class="cart-bbar"><i style="width:${pct}%;background:${cor}"></i></div></div>`;
+}
+function gstChip(cor, n, t) {
+  return `<div class="cart-chip"><span class="dot" style="background:${cor}"></span><div><div class="n" style="color:${cor}">${n}</div><div class="t">${esc(t)}</div></div></div>`;
 }
 
 function gstFocoRender(d) {
