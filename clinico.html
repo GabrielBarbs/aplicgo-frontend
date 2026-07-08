@@ -5674,6 +5674,9 @@
       <button class="sidebar-item" data-view="estoque" data-perm="estoque.ver">
         <i class="ti ti-package"></i> Estoque
       </button>
+      <button class="sidebar-item" data-view="insumos">
+        <i class="ti ti-list-details"></i> Catálogo
+      </button>
     </div>
 
     <div class="sidebar-group" data-grupo-equipe>
@@ -6570,6 +6573,18 @@
       <div id="es-conteudo">
         <div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div>
       </div>
+    </div>
+  </div>
+
+  <!-- VIEW: Catálogo de Injetáveis (Onda 1 — Cadastro Mestre) -->
+  <div class="view" id="view-insumos">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <input id="ins-busca" oninput="insumosRender()" placeholder="Buscar produto, SKU, composição…" style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;color:var(--tx1);font-size:13px">
+      <select id="ins-cat" onchange="insumosRender()" style="background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;color:var(--tx1);font-size:13px"><option value="">Todas as categorias</option></select>
+      <span id="ins-count" style="font-size:11.5px;color:var(--tx4);white-space:nowrap"></span>
+    </div>
+    <div class="dash-card" style="padding:6px 0 0">
+      <div id="ins-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
     </div>
   </div>
 
@@ -10893,6 +10908,83 @@ async function homeGestorComercial() {
     + '<div class="cart-blk-ttl" style="margin-top:18px">Marketing (Meta Ads)</div>' + mkBlock;
 }
 
+// ---- Catálogo de Injetáveis (Onda 1 — Cadastro Mestre) ---------------------
+let insCache = [];
+async function insumosCarregar() {
+  const cont = document.getElementById('ins-conteudo');
+  if (!cont) return;
+  let d = null;
+  try { const r = await pacApi('/api/clinico/insumos?ativo=true'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { cont.innerHTML = '<div class="pac-empty">Não foi possível carregar o catálogo (deploy do backend pendente?).</div>'; return; }
+  insCache = d.itens || [];
+  window.insVePreco = !!d.ve_preco; window.insVeCusto = !!d.ve_custo;
+  const cats = [...new Set(insCache.map(i => i.categoria).filter(Boolean))].sort();
+  const sel = document.getElementById('ins-cat');
+  if (sel && sel.options.length <= 1) sel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
+  insumosRender();
+}
+function insumosRender() {
+  const cont = document.getElementById('ins-conteudo');
+  if (!cont) return;
+  const q = (document.getElementById('ins-busca').value || '').toLowerCase().trim();
+  const cat = document.getElementById('ins-cat').value || '';
+  const list = insCache.filter(i =>
+    (!cat || i.categoria === cat) &&
+    (!q || (i.produto + ' ' + i.sku + ' ' + (i.composicao || '') + ' ' + (i.categoria || '')).toLowerCase().includes(q)));
+  const cnt = document.getElementById('ins-count'); if (cnt) cnt.textContent = `${list.length} de ${insCache.length} itens`;
+  if (!list.length) { cont.innerHTML = '<div class="pac-empty">Nenhum item.</div>'; return; }
+  const vePreco = window.insVePreco, veCusto = window.insVeCusto;
+  const head = '<thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th><th>Via</th><th>Tarja</th>'
+    + (vePreco ? '<th style="text-align:right">Preço</th>' : '')
+    + (veCusto ? '<th style="text-align:right">Custo</th><th style="text-align:right">Margem</th>' : '')
+    + '</tr></thead>';
+  const rows = list.map(i => {
+    const tarja = i.requer_prescricao ? '<span style="color:#e3b341">Tarja</span>' : '<span style="color:var(--tx4)">—</span>';
+    return `<tr class="clik" onclick="insumoDetalhe('${esc(i.sku)}')">`
+      + `<td style="font-variant-numeric:tabular-nums;color:var(--tx3)">${esc(i.sku)}</td>`
+      + `<td>${esc(i.produto)}${i.tipo ? ` <span style="font-size:10px;color:var(--tx4)">${esc(i.tipo)}</span>` : ''}</td>`
+      + `<td>${i.categoria ? esc(i.categoria) : '<span style="color:var(--tx4)">—</span>'}</td>`
+      + `<td style="font-size:11px;color:var(--tx3)">${(i.vias || []).map(esc).join(' · ')}</td>`
+      + `<td>${tarja}</td>`
+      + (vePreco ? `<td class="num">${i.preco_venda_cents != null ? homeGestorFmtBRL(i.preco_venda_cents) : '—'}</td>` : '')
+      + (veCusto ? `<td class="num" style="color:var(--tx3)">${i.custo_total_cents != null ? homeGestorFmtBRL(i.custo_total_cents) : '—'}</td><td class="num" style="color:#3fb950">${i.margem_cents != null ? homeGestorFmtBRL(i.margem_cents) : '—'}</td>` : '');
+  }).map(r => r + '</tr>').join('');
+  cont.innerHTML = `<table class="gst-table">${head}<tbody>${rows}</tbody></table>`;
+}
+function insumoDetalhe(sku) {
+  const i = insCache.find(x => x.sku === sku);
+  if (!i) return;
+  const linha = (lbl, val) => val ? `<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px">${lbl}</div><div style="font-size:13px;color:var(--tx1b);line-height:1.4">${esc(val)}</div></div>` : '';
+  let valores = '';
+  if (window.insVeCusto) {
+    valores = '<div class="cart-mini c3" style="margin:4px 0 12px">'
+      + gstStat('ti-cash', '#3fb950', i.preco_venda_cents != null ? homeGestorFmtBRL(i.preco_venda_cents) : '—', 'Preço de venda', 'sugerido')
+      + gstStat('ti-tag', 'var(--tx2)', i.custo_total_cents != null ? homeGestorFmtBRL(i.custo_total_cents) : '—', 'Custo total', 'insumo+mat.+sala')
+      + gstStat('ti-percentage', '#39d0d8', i.margem_cents != null ? homeGestorFmtBRL(i.margem_cents) : '—', 'Margem', i.markup != null ? `markup ${i.markup}x` : '')
+      + '</div>';
+  } else if (window.insVePreco) {
+    valores = '<div class="cart-mini c3" style="margin:4px 0 12px">'
+      + gstStat('ti-cash', '#3fb950', i.preco_venda_cents != null ? homeGestorFmtBRL(i.preco_venda_cents) : '—', 'Preço de venda', 'ao paciente')
+      + '</div>';
+  }
+  const body = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">`
+    + `<div><div style="font-size:16px;font-weight:700;color:var(--tx1)">${esc(i.produto)}</div>`
+    + `<div style="font-size:11px;color:var(--tx4)">${esc(i.sku)}${i.tipo ? ' · ' + esc(i.tipo) : ''}${i.categoria ? ' · ' + esc(i.categoria) : ''}${i.requer_prescricao ? ' · <span style="color:#e3b341">tarja</span>' : ''}</div></div>`
+    + `<button onclick="document.getElementById('ins-modal').remove()" style="background:none;border:0;color:var(--tx3);font-size:20px;cursor:pointer;line-height:1">×</button></div>`
+    + valores
+    + linha('Composição', i.composicao) + linha('Apresentação', i.apresentacao) + linha('Vias', (i.vias || []).join(' · '))
+    + linha('Objetivo clínico', i.objetivo_clinico) + linha('Cuidados de uso', i.cuidados)
+    + linha('Reações adversas', i.reacoes_adversas) + linha('Farmácia', i.farmacia) + linha('Observações', i.observacoes);
+  let ov = document.getElementById('ins-modal');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'ins-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:540px;width:100%;max-height:85vh;overflow:auto;padding:20px">${body}</div>`;
+}
+
 function gstFocoRender(d) {
   const box = document.getElementById('gst-foco'), txt = document.getElementById('gst-foco-txt'), btn = document.getElementById('gst-foco-btn');
   if (!box || !txt) return;
@@ -11200,6 +11292,7 @@ const VIEW_TITLES = {
   prontuario: { titulo: 'Prontuário', sub: 'Evoluções multiprofissionais' },
   aplicacoes: { titulo: 'Aplicações', sub: 'Injetáveis e bioimpedância' },
   estoque: { titulo: 'Estoque', sub: 'Produtos, lotes e validades' },
+  insumos: { titulo: 'Catálogo de Injetáveis', sub: 'Cadastro mestre — insumos, vias e preços' },
   whatsapp: { titulo: 'WhatsApp', sub: 'Conversas e aparelhos' },
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
@@ -11236,6 +11329,7 @@ function trocarView(v) {
   else if (v === 'pendencias') pendCarregar();
   else if (v === 'dev') devCarregar();
   else if (v === 'pontuacao') pontInit();
+  else if (v === 'insumos') insumosCarregar();
   fecharSidebar(); // no mobile, fecha o drawer após escolher uma seção
 }
 
