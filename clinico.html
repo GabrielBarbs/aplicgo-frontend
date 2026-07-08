@@ -5677,6 +5677,9 @@
       <button class="sidebar-item" data-view="insumos">
         <i class="ti ti-list-details"></i> Catálogo
       </button>
+      <button class="sidebar-item" data-view="injetaveis" data-perm="prescricao_inj.criar|financeiro.ver|prontuario.aplicacao.registrar">
+        <i class="ti ti-prescription"></i> Injetáveis
+      </button>
     </div>
 
     <div class="sidebar-group" data-grupo-equipe>
@@ -6586,6 +6589,26 @@
     <div class="dash-card" style="padding:6px 0 0">
       <div id="ins-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
     </div>
+  </div>
+
+  <!-- VIEW: Injetáveis (Onda 2c — prescrever / cobrança / aplicar) -->
+  <style>
+    #view-injetaveis .pt-tabs{display:flex;gap:4px;border-bottom:1px solid var(--bd1);margin-bottom:20px;flex-wrap:wrap}
+    #view-injetaveis .pt-tab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--tx3);font:inherit;font-size:14px;font-weight:500;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:-1px}
+    #view-injetaveis .pt-tab.active{color:var(--tx1);border-bottom-color:var(--ac)}
+    .inj-badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
+    .inj-res-item{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;margin-bottom:7px}
+    .inj-pick{background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;overflow:hidden;margin-top:6px}
+    .inj-pick-row{padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--bg3);font-size:13px}
+    .inj-pick-row:last-child{border-bottom:0}.inj-pick-row:hover{background:var(--bg3)}
+  </style>
+  <div class="view" id="view-injetaveis">
+    <div class="pt-tabs">
+      <button class="pt-tab active" data-tab="prescrever" data-perm="prescricao_inj.criar" onclick="injTab('prescrever')"><i class="ti ti-prescription"></i> Prescrever</button>
+      <button class="pt-tab" data-tab="cobranca" data-perm="financeiro.ver" onclick="injTab('cobranca')"><i class="ti ti-cash"></i> Cobrança</button>
+      <button class="pt-tab" data-tab="aplicar" data-perm="prontuario.aplicacao.registrar" onclick="injTab('aplicar')"><i class="ti ti-vaccine"></i> Aplicar</button>
+    </div>
+    <div id="inj-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
   </div>
 
   <!-- VIEW: Auditoria -->
@@ -10985,6 +11008,205 @@ function insumoDetalhe(sku) {
   ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:540px;width:100%;max-height:85vh;overflow:auto;padding:20px">${body}</div>`;
 }
 
+// ---- Injetáveis: prescrever / cobrança / aplicar (Onda 2c) ------------------
+const injState = { tab: null, patient: null, protocolos: null, pacResults: [] };
+const INJ_STATUS = {
+  pendente_orcamento: { t: 'Aguarda orçamento', c: '#e3b341' },
+  aguardando_pagamento: { t: 'Aguarda pagamento', c: '#e3b341' },
+  liberado: { t: 'Liberado', c: '#3fb950' },
+  agendado: { t: 'Agendado', c: '#4A90E2' },
+  aplicado: { t: 'Aplicado', c: '#56d364' },
+  cancelado: { t: 'Cancelado', c: 'var(--tx4)' },
+};
+function injBadge(s) {
+  const x = INJ_STATUS[s] || { t: s, c: 'var(--tx3)' };
+  return `<span class="inj-badge" style="color:${x.c};border:1px solid ${x.c}">${esc(x.t)}</span>`;
+}
+// Estado de erro EXPLÍCITO — não confundir falha de servidor com fila vazia.
+const INJ_ERRO = '<div class="pac-empty" style="padding:12px;color:#f85149">Não foi possível carregar — tente novamente.</div>';
+function injAllowed() {
+  const a = [];
+  if (temPermissao('prescricao_inj.criar')) a.push('prescrever');
+  if (temPermissao('financeiro.ver')) a.push('cobranca');
+  if (temPermissao('prontuario.aplicacao.registrar')) a.push('aplicar');
+  return a;
+}
+function injInit() {
+  const a = injAllowed();
+  if (a.length) injTab(a[0]);
+  else document.getElementById('inj-conteudo').innerHTML = '<div class="pac-empty">Sem permissão para este módulo.</div>';
+}
+function injTab(t) {
+  const a = injAllowed();
+  if (!a.includes(t)) t = a[0];
+  if (!t) return;
+  injState.tab = t;
+  document.querySelectorAll('#view-injetaveis .pt-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
+  if (t === 'prescrever') injRenderPrescrever();
+  else if (t === 'cobranca') injRenderCobranca();
+  else injRenderAplicar();
+}
+function injOverlay(html) {
+  let ov = document.getElementById('inj-modal');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'inj-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:440px;width:100%;padding:20px">${html}</div>`;
+}
+
+// --- Aba PRESCREVER (médico) ---
+function injRenderPrescrever() {
+  const c = document.getElementById('inj-conteudo'); if (!c) return;
+  const p = injState.patient;
+  c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Paciente</div>'
+    + (p
+      ? `<div class="inj-res-item"><div><strong>${esc(p.nome)}</strong> <span style="color:var(--tx4);font-size:11px">${esc(p.codigo || '')}</span></div><button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injTrocarPaciente()">Trocar</button></div>`
+      : '<input class="pac-search" id="inj-pac-q" oninput="injPacBusca(this.value)" placeholder="🔍 Buscar paciente por nome, código, CPF…"><div id="inj-pac-res"></div>')
+    + '</div>'
+    + (p
+      ? '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Nova prescrição</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        + '<select id="inj-prot" class="pac-search" style="flex:1;min-width:200px" onchange="injProtoPreview()"><option value="">Carregando…</option></select>'
+        + '<button class="tk-btn primary" onclick="injPrescrever()"><i class="ti ti-prescription"></i> Prescrever</button></div>'
+        + '<div id="inj-prot-preview" style="margin-top:10px"></div><div id="inj-presc-result" style="margin-top:12px"></div></div>'
+        + '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Prescrições do paciente</div><div id="inj-presc-recent"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>'
+      : '');
+  if (p) injCarregarProtocolos();
+}
+let _injPacTimer = null;
+function injPacBusca(q) {
+  clearTimeout(_injPacTimer);
+  _injPacTimer = setTimeout(async () => {
+    const box = document.getElementById('inj-pac-res'); if (!box) return;
+    if ((q || '').trim().length < 2) { box.innerHTML = ''; return; }
+    let pacs = [];
+    try { const r = await pacApi('/api/clinico/patients?limit=8&q=' + encodeURIComponent(q.trim())); if (r.ok) pacs = r.data.pacientes || []; } catch (e) {}
+    injState.pacResults = pacs;
+    box.innerHTML = pacs.length
+      ? '<div class="inj-pick">' + pacs.map((p, i) => `<div class="inj-pick-row" onclick="injPacPick(${i})"><strong>${esc(p.nome_completo || '')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(p.codigo || '')}</span></div>`).join('') + '</div>'
+      : '<div class="pac-empty" style="padding:10px">Nenhum paciente encontrado.</div>';
+  }, 300);
+}
+function injPacPick(i) {
+  const p = (injState.pacResults || [])[i]; if (!p) return;
+  injState.patient = { id: p.id, nome: p.nome_completo, codigo: p.codigo };
+  injRenderPrescrever();
+}
+function injTrocarPaciente() { injState.patient = null; injRenderPrescrever(); }
+async function injCarregarProtocolos() {
+  let err = false;
+  if (!injState.protocolos) {
+    // Só cacheia em sucesso; no erro deixa null p/ tentar de novo na próxima abertura.
+    try { const r = await pacApi('/api/clinico/prescricoes-inj/protocolos-modelo'); if (r.ok) injState.protocolos = r.data.modelos || []; else err = true; } catch (e) { err = true; }
+  }
+  const sel = document.getElementById('inj-prot');
+  if (sel) {
+    sel.innerHTML = (err && !injState.protocolos)
+      ? '<option value="">— erro ao carregar protocolos —</option>'
+      : '<option value="">— escolha um protocolo —</option>' + (injState.protocolos || []).map((m) => `<option value="${esc(m.protocolo_id)}">${esc(m.nome)} (${(m.itens || []).length} itens)</option>`).join('');
+  }
+  injCarregarRecentes();
+}
+function injProtoPreview() {
+  const id = document.getElementById('inj-prot').value;
+  const box = document.getElementById('inj-prot-preview');
+  const m = (injState.protocolos || []).find((x) => x.protocolo_id === id);
+  if (!m || !box) { if (box) box.innerHTML = ''; return; }
+  box.innerHTML = '<table class="gst-table"><thead><tr><th>Sem.</th><th>SKU</th><th>Dose</th><th>Via</th><th>Padrão</th></tr></thead><tbody>'
+    + m.itens.map((it) => `<tr><td>${it.semana}</td><td>${esc(it.sku_ativo)}</td><td>${esc(it.dose || '')}</td><td style="color:var(--tx3)">${esc(it.via || '')}</td><td style="font-size:11px;color:var(--tx4)">${esc(it.incluso_padrao || '')}</td></tr>`).join('')
+    + '</tbody></table>';
+}
+async function injPrescrever() {
+  const protId = document.getElementById('inj-prot').value;
+  if (!protId) { homeToast('Escolha um protocolo.'); return; }
+  const res = document.getElementById('inj-presc-result');
+  res.innerHTML = '<div class="pac-empty" style="padding:10px">Prescrevendo…</div>';
+  let d = null;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj', { method: 'POST', body: JSON.stringify({ patient_id: injState.patient.id, protocolo_id: protId }) }); if (r.ok) d = r.data; } catch (e) {}
+  if (!d || !d.prescricao) { res.innerHTML = '<div class="pac-empty" style="padding:10px;color:#f85149">Não foi possível prescrever.</div>'; return; }
+  res.innerHTML = '<div style="font-size:12px;color:#3fb950;margin-bottom:8px"><i class="ti ti-check"></i> Prescrição criada</div>' + injPrescResumo(d.prescricao);
+  injCarregarRecentes();
+}
+async function injCarregarRecentes() {
+  if (!injState.patient) return;
+  const box = document.getElementById('inj-presc-recent'); if (!box) return;
+  let presc = [], err = false;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj?patient_id=' + injState.patient.id); if (r.ok) presc = r.data.prescricoes || []; else err = true; } catch (e) { err = true; }
+  box.innerHTML = err ? INJ_ERRO : (presc.length ? presc.map((pr) => injPrescResumo(pr)).join('') : '<div class="pac-empty" style="padding:12px">Sem prescrições ainda.</div>');
+}
+function injPrescResumo(pr) {
+  const om = { incluso: { t: 'Tudo incluso', c: '#3fb950' }, parcial: { t: 'Parcial', c: '#e3b341' }, nao_incluso: { t: 'Não incluso', c: 'var(--tx3)' } }[pr.origem_inclusao] || { t: pr.origem_inclusao, c: 'var(--tx3)' };
+  let dt = ''; try { dt = new Date(pr.data).toLocaleDateString('pt-BR'); } catch (e) {}
+  const head = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;color:var(--tx3)">${esc(pr.protocolo_id || 'Avulsa')} · ${dt}</div><span class="inj-badge" style="color:${om.c};border:1px solid ${om.c}">${esc(om.t)}</span></div>`;
+  const itens = (pr.itens || []).map((it) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:4px 0;border-top:1px solid var(--bg3)"><span>${esc(it.sku_ativo)} <span style="color:var(--tx4)">sem ${it.semana}${it.dose ? ' · ' + esc(it.dose) : ''}</span></span>${injBadge(it.status_item)}</div>`).join('');
+  return `<div class="dash-card" style="margin-bottom:10px;padding:12px;background:var(--bg2)">${head}${itens}</div>`;
+}
+
+// --- Aba COBRANÇA (recepção) ---
+function injRenderCobranca() {
+  const c = document.getElementById('inj-conteudo'); if (!c) return;
+  c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Fila de cobrança</div><div id="inj-fila"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>'
+    + '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Orçamentos aguardando pagamento</div><div id="inj-orcs"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  injCarregarCobranca();
+}
+async function injCarregarCobranca() {
+  let fila = [], orcs = [], errF = false, errO = false;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/cobranca'); if (r.ok) fila = r.data.fila || []; else errF = true; } catch (e) { errF = true; }
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/orcamentos?status=pendente'); if (r.ok) orcs = r.data.orcamentos || []; else errO = true; } catch (e) { errO = true; }
+  const fbox = document.getElementById('inj-fila');
+  if (fbox) fbox.innerHTML = errF ? INJ_ERRO : (fila.length
+    ? fila.map((f) => `<div class="inj-res-item"><div><strong>${esc(f.paciente || '—')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(f.protocolo_id || 'avulsa')}</span><div style="font-size:11px;color:var(--tx3)">${f.itens} item(ns) · ${homeGestorFmtBRL(f.valor_total_cents)}</div></div><button class="tk-btn primary" onclick="injGerarOrcamento('${f.prescricao_id}',this)">Gerar orçamento</button></div>`).join('')
+    : '<div class="pac-empty" style="padding:12px">Nada a cobrar.</div>');
+  const obox = document.getElementById('inj-orcs');
+  if (obox) obox.innerHTML = errO ? INJ_ERRO : (orcs.length
+    ? orcs.map((o) => `<div class="inj-res-item"><div><strong>${esc(o.paciente || '—')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(o.protocolo_id || '')}</span><div style="font-size:11px;color:var(--tx3)">${homeGestorFmtBRL(o.valor_total_cents)}</div></div><button class="tk-btn primary" onclick="injPagarModal('${o.id}',${o.valor_total_cents || 0})">Confirmar pagamento</button></div>`).join('')
+    : '<div class="pac-empty" style="padding:12px">Nenhum orçamento pendente.</div>');
+}
+async function injGerarOrcamento(prescId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/' + prescId + '/orcamento', { method: 'POST', body: JSON.stringify({}) }); ok = r.ok; } catch (e) {}
+  homeToast(ok ? 'Orçamento gerado.' : 'Não foi possível gerar o orçamento.');
+  injCarregarCobranca();
+}
+function injPagarModal(oid, valorCents) {
+  const btns = [['pix', 'Pix'], ['dinheiro', 'Dinheiro'], ['cartao', 'Cartão']].map(([v, l]) => `<button class="tk-btn primary" style="flex:1" onclick="injPagarConfirmar('${oid}','${v}')">${l}</button>`).join('');
+  injOverlay(`<div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:4px">Confirmar pagamento</div><div style="font-size:13px;color:var(--tx3);margin-bottom:14px">Valor: <strong style="color:var(--tx1)">${homeGestorFmtBRL(valorCents)}</strong></div><div style="display:flex;gap:8px;flex-wrap:wrap">${btns}</div><button class="tk-btn" style="margin-top:10px;width:100%;background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('inj-modal').remove()">Cancelar</button>`);
+}
+async function injPagarConfirmar(oid, forma) {
+  const ov = document.getElementById('inj-modal'); if (ov) ov.remove();
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/orcamentos/' + oid + '/pagar', { method: 'POST', body: JSON.stringify({ forma_pagamento: forma }) }); ok = r.ok; } catch (e) {}
+  homeToast(ok ? 'Pagamento confirmado — itens liberados.' : 'Não foi possível confirmar o pagamento.');
+  injCarregarCobranca();
+}
+
+// --- Aba APLICAR (enfermagem) ---
+function injRenderAplicar() {
+  const c = document.getElementById('inj-conteudo'); if (!c) return;
+  c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Itens liberados para aplicação</div><div id="inj-liberados"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  injCarregarLiberados();
+}
+async function injCarregarLiberados() {
+  let itens = [], err = false;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/liberados'); if (r.ok) itens = r.data.itens || []; else err = true; } catch (e) { err = true; }
+  const box = document.getElementById('inj-liberados'); if (!box) return;
+  box.innerHTML = err ? INJ_ERRO : (itens.length
+    ? itens.map((it) => `<div class="inj-res-item"><div><strong>${esc(it.paciente || '—')}</strong> ${injBadge(it.status_item)}<div style="font-size:11px;color:var(--tx3)">${esc(it.sku_ativo)} · ${esc(it.dose || '')} · ${esc(it.via || '')} · sem ${it.semana}${it.incluso ? ' · <span style="color:#3fb950">incluso</span>' : ''}</div></div><button class="tk-btn primary" onclick="injAplicar('${it.id}',this)"><i class="ti ti-vaccine"></i> Aplicar</button></div>`).join('')
+    : '<div class="pac-empty" style="padding:12px">Nenhum item liberado.</div>');
+}
+async function injAplicar(itemId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  let d = null;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/itens/' + itemId + '/aplicar', { method: 'POST', body: JSON.stringify({}) }); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { homeToast('Não foi possível aplicar (item não liberado ou sem estoque).'); }
+  else { homeToast(d.baixa_estoque ? 'Aplicado — baixa de estoque (FEFO) feita.' : 'Aplicado. ' + (d.aviso || 'Sem baixa de estoque.')); }
+  injCarregarLiberados();
+}
+
 function gstFocoRender(d) {
   const box = document.getElementById('gst-foco'), txt = document.getElementById('gst-foco-txt'), btn = document.getElementById('gst-foco-btn');
   if (!box || !txt) return;
@@ -11293,6 +11515,7 @@ const VIEW_TITLES = {
   aplicacoes: { titulo: 'Aplicações', sub: 'Injetáveis e bioimpedância' },
   estoque: { titulo: 'Estoque', sub: 'Produtos, lotes e validades' },
   insumos: { titulo: 'Catálogo de Injetáveis', sub: 'Cadastro mestre — insumos, vias e preços' },
+  injetaveis: { titulo: 'Injetáveis', sub: 'Prescrição, cobrança e aplicação' },
   whatsapp: { titulo: 'WhatsApp', sub: 'Conversas e aparelhos' },
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
@@ -11330,6 +11553,7 @@ function trocarView(v) {
   else if (v === 'dev') devCarregar();
   else if (v === 'pontuacao') pontInit();
   else if (v === 'insumos') insumosCarregar();
+  else if (v === 'injetaveis') injInit();
   fecharSidebar(); // no mobile, fecha o drawer após escolher uma seção
 }
 
