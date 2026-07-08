@@ -5680,6 +5680,9 @@
       <button class="sidebar-item" data-view="injetaveis" data-perm="prescricao_inj.criar|financeiro.ver|prontuario.aplicacao.registrar">
         <i class="ti ti-prescription"></i> Injetáveis
       </button>
+      <button class="sidebar-item" data-view="varejo" data-perm="financeiro.ver">
+        <i class="ti ti-shopping-cart"></i> Varejo
+      </button>
     </div>
 
     <div class="sidebar-group" data-grupo-equipe>
@@ -6610,6 +6613,23 @@
       <button class="pt-tab" data-tab="precos" data-perm="financeiro.ver" onclick="injTab('precos')"><i class="ti ti-tag"></i> Preços</button>
     </div>
     <div id="inj-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
+  </div>
+
+  <!-- VIEW: Varejo (Onda 4b — vender / vendas / recompras) -->
+  <style>
+    #view-varejo .pt-tabs{display:flex;gap:4px;border-bottom:1px solid var(--bd1);margin-bottom:20px;flex-wrap:wrap}
+    #view-varejo .pt-tab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--tx3);font:inherit;font-size:14px;font-weight:500;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:-1px}
+    #view-varejo .pt-tab.active{color:var(--tx1);border-bottom-color:var(--ac)}
+    #view-varejo label{font-size:11px;color:var(--tx3);display:block}
+    #view-varejo .pac-search{margin-top:3px}
+  </style>
+  <div class="view" id="view-varejo">
+    <div class="pt-tabs">
+      <button class="pt-tab active" data-tab="vender" onclick="varTab('vender')"><i class="ti ti-shopping-cart-plus"></i> Vender</button>
+      <button class="pt-tab" data-tab="vendas" onclick="varTab('vendas')"><i class="ti ti-receipt"></i> Vendas</button>
+      <button class="pt-tab" data-tab="recompras" onclick="varTab('recompras')"><i class="ti ti-refresh"></i> Recompras</button>
+    </div>
+    <div id="var-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
   </div>
 
   <!-- VIEW: Auditoria -->
@@ -11278,6 +11298,142 @@ async function injSalvarPremissas() {
   if (ok) { injState.protocolos = null; injRenderPrecos(); }
 }
 
+// ---- Varejo: vender / vendas / recompras (Onda 4b) -------------------------
+const varState = { tab: null, produtos: null, patient: null, pacResults: [], prodErr: false };
+function varBadgeEntrega(s) { const m = { pendente: '#e3b341', separado: '#e3b341', enviado: '#4A90E2', entregue: '#3fb950', retirado: '#3fb950', cancelado: 'var(--tx4)' }; const c = m[s] || 'var(--tx3)'; return `<span class="inj-badge" style="color:${c};border:1px solid ${c}">${esc(s)}</span>`; }
+function varBadgeRecompra(s) { const m = { vencida: '#f85149', oferecer: '#e3b341', em_dia: '#3fb950' }, l = { vencida: 'Vencida', oferecer: 'Oferecer', em_dia: 'Em dia' }; const c = m[s] || 'var(--tx3)'; return `<span class="inj-badge" style="color:${c};border:1px solid ${c}">${esc(l[s] || s)}</span>`; }
+function varInit() { varTab('vender'); }
+function varTab(t) {
+  if (!temPermissao('financeiro.ver')) return;
+  varState.tab = t;
+  document.querySelectorAll('#view-varejo .pt-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
+  if (t === 'vender') varRenderVender();
+  else if (t === 'vendas') varRenderVendas();
+  else varRenderRecompras();
+}
+
+// --- Aba VENDER ---
+function varRenderVender() {
+  const c = document.getElementById('var-conteudo'); if (!c) return;
+  c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Nova venda</div><div id="var-form"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  varCarregarProdutos();
+}
+async function varCarregarProdutos() {
+  if (!varState.produtos) {
+    varState.prodErr = false;
+    try { const r = await pacApi('/api/clinico/varejo/produtos'); if (r.ok) varState.produtos = r.data.produtos || []; else varState.prodErr = true; } catch (e) { varState.prodErr = true; }
+  }
+  const f = document.getElementById('var-form'); if (!f) return;
+  if (varState.prodErr && !varState.produtos) { f.innerHTML = INJ_ERRO; return; }
+  const prods = varState.produtos || [];
+  if (!prods.length) { f.innerHTML = '<div class="pac-empty" style="padding:12px">Nenhum produto de varejo.</div>'; return; }
+  f.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:640px">'
+    + `<div><label>Produto</label><select id="var-sku" class="pac-search" onchange="varAtualizarPreco()">${prods.map((p) => `<option value="${esc(p.sku)}">${esc(p.nome)}</option>`).join('')}</select></div>`
+    + '<div><label>Quantidade</label><input id="var-qtd" type="number" min="1" value="1" class="pac-search" oninput="varAtualizarPreco()"></div>'
+    + '<div><label>Cliente</label><select id="var-tipo" class="pac-search" onchange="varTipoMudou()"><option value="nao_paciente">Não paciente</option><option value="paciente_ativo">Paciente ativo</option></select></div>'
+    + '<div><label>Canal</label><select id="var-canal" class="pac-search"><option value="presencial">Presencial</option><option value="ecommerce">E-commerce</option><option value="clinica">Clínica</option></select></div>'
+    + '<div><label>Forma de pagamento</label><select id="var-forma" class="pac-search"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option></select></div>'
+    + '<div><label>Pagamento</label><select id="var-pag" class="pac-search"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>'
+    + '</div>'
+    + '<div id="var-pac-wrap" style="display:none;margin-top:10px;max-width:400px"><label>Paciente ativo</label><input id="var-pac-q" class="pac-search" oninput="varPacBusca(this.value)" placeholder="🔍 buscar paciente…"><div id="var-pac-res"></div><div id="var-pac-sel" style="font-size:12px;color:#3fb950;margin-top:4px"></div></div>'
+    + '<div style="margin-top:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div id="var-preco" style="font-size:20px;font-weight:700;color:#3fb950"></div><button class="tk-btn primary" onclick="varRegistrar()"><i class="ti ti-check"></i> Registrar venda</button></div>';
+  varAtualizarPreco();
+}
+function varProdAtual() { const sel = document.getElementById('var-sku'); return (varState.produtos || []).find((p) => p.sku === (sel ? sel.value : '')); }
+function varAtualizarPreco() {
+  const p = varProdAtual(), box = document.getElementById('var-preco'); if (!p || !box) return;
+  const tipo = (document.getElementById('var-tipo') || {}).value || 'nao_paciente';
+  const qtd = Math.max(1, parseInt((document.getElementById('var-qtd') || {}).value, 10) || 1);
+  const unit = tipo === 'paciente_ativo' ? p.preco_paciente_cents : p.preco_nao_paciente_cents;
+  box.textContent = homeGestorFmtBRL(unit * qtd) + (qtd > 1 ? ` (${qtd}× ${homeGestorFmtBRL(unit)})` : '');
+}
+function varTipoMudou() {
+  const tipo = document.getElementById('var-tipo').value;
+  document.getElementById('var-pac-wrap').style.display = tipo === 'paciente_ativo' ? '' : 'none';
+  if (tipo !== 'paciente_ativo') { varState.patient = null; const s = document.getElementById('var-pac-sel'); if (s) s.textContent = ''; }
+  varAtualizarPreco();
+}
+let _varPacTimer = null;
+function varPacBusca(q) {
+  clearTimeout(_varPacTimer);
+  _varPacTimer = setTimeout(async () => {
+    const box = document.getElementById('var-pac-res'); if (!box) return;
+    if ((q || '').trim().length < 2) { box.innerHTML = ''; return; }
+    let pacs = [];
+    try { const r = await pacApi('/api/clinico/patients?limit=8&q=' + encodeURIComponent(q.trim())); if (r.ok) pacs = r.data.pacientes || []; } catch (e) {}
+    varState.pacResults = pacs;
+    box.innerHTML = pacs.length
+      ? '<div class="inj-pick">' + pacs.map((p, i) => `<div class="inj-pick-row" onclick="varPacPick(${i})"><strong>${esc(p.nome_completo || '')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(p.codigo || '')}</span></div>`).join('') + '</div>'
+      : '<div class="pac-empty" style="padding:8px">Nenhum paciente.</div>';
+  }, 300);
+}
+function varPacPick(i) {
+  const p = (varState.pacResults || [])[i]; if (!p) return;
+  varState.patient = { id: p.id, nome: p.nome_completo };
+  document.getElementById('var-pac-res').innerHTML = '';
+  const q = document.getElementById('var-pac-q'); if (q) q.value = p.nome_completo;
+  document.getElementById('var-pac-sel').textContent = '✓ ' + p.nome_completo;
+}
+async function varRegistrar() {
+  const p = varProdAtual(); if (!p) { homeToast('Escolha um produto.'); return; }
+  const tipo = document.getElementById('var-tipo').value;
+  if (tipo === 'paciente_ativo' && !varState.patient) { homeToast('Selecione o paciente ativo.'); return; }
+  const body = {
+    sku: p.sku, qtd: Math.max(1, parseInt(document.getElementById('var-qtd').value, 10) || 1),
+    canal: document.getElementById('var-canal').value, tipo_cliente: tipo,
+    patient_id: tipo === 'paciente_ativo' ? varState.patient.id : undefined,
+    forma_pagamento: document.getElementById('var-forma').value, status_pagamento: document.getElementById('var-pag').value,
+  };
+  let ok = false, msg = '';
+  try { const r = await pacApi('/api/clinico/varejo/vendas', { method: 'POST', body: JSON.stringify(body) }); ok = r.ok; if (!ok && r.data && r.data.erro) msg = r.data.erro; } catch (e) {}
+  homeToast(ok ? 'Venda registrada.' : ('Não foi possível registrar: ' + (msg || 'erro')));
+  if (ok) { varState.patient = null; varState.produtos = null; varRenderVender(); }
+}
+
+// --- Aba VENDAS ---
+async function varRenderVendas() {
+  const c = document.getElementById('var-conteudo'); if (!c) return;
+  c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Vendas recentes</div><div id="var-vendas"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  let vendas = [], err = false;
+  try { const r = await pacApi('/api/clinico/varejo/vendas'); if (r.ok) vendas = r.data.vendas || []; else err = true; } catch (e) { err = true; }
+  const box = document.getElementById('var-vendas'); if (!box) return;
+  if (err) { box.innerHTML = INJ_ERRO; return; }
+  box.innerHTML = vendas.length
+    ? '<table class="gst-table"><thead><tr><th>Data</th><th>Produto</th><th>Cliente</th><th style="text-align:right">Valor</th><th>Entrega</th><th>Pgto</th><th></th></tr></thead><tbody>'
+      + vendas.map((v) => {
+          let dt = ''; try { dt = new Date(v.data).toLocaleDateString('pt-BR'); } catch (e) {}
+          const cli = v.tipo_cliente === 'paciente_ativo' ? esc(v.paciente || 'paciente') : '<span style="color:var(--tx4)">não paciente</span>';
+          const entregar = (v.status_entrega !== 'cancelado' && v.status_entrega !== 'entregue' && v.status_entrega !== 'retirado') ? `<button class="tk-btn" style="padding:5px 9px;font-size:11px" onclick="varPatch('${v.id}','entregue',this)">Entregar</button>` : '';
+          const cancelar = v.status_entrega !== 'cancelado' ? `<button class="tk-btn" style="padding:5px 9px;font-size:11px;background:transparent;color:#f85149" onclick="varPatch('${v.id}','cancelado',this)">Cancelar</button>` : '';
+          return `<tr><td>${dt}</td><td>${esc(v.sku)} ×${v.qtd}</td><td>${cli}</td><td class="num">${homeGestorFmtBRL(v.valor_total_cents)}</td><td>${varBadgeEntrega(v.status_entrega)}</td><td style="font-size:11px;color:var(--tx3)">${esc(v.status_pagamento)}</td><td style="white-space:nowrap">${entregar} ${cancelar}</td></tr>`;
+        }).join('') + '</tbody></table>'
+    : '<div class="pac-empty" style="padding:12px">Nenhuma venda ainda.</div>';
+}
+async function varPatch(id, statusEntrega, btn) {
+  if (statusEntrega === 'cancelado' && !confirm('Cancelar esta venda? O estoque será devolvido.')) return;
+  if (btn) btn.disabled = true;
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/varejo/vendas/' + id, { method: 'PATCH', body: JSON.stringify({ status_entrega: statusEntrega }) }); ok = r.ok; } catch (e) {}
+  homeToast(ok ? 'Venda atualizada.' : 'Não foi possível atualizar.');
+  varRenderVendas();
+}
+
+// --- Aba RECOMPRAS ---
+async function varRenderRecompras() {
+  const c = document.getElementById('var-conteudo'); if (!c) return;
+  c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Follow-up de recompra <span style="text-transform:none;font-weight:400;color:var(--tx4)">· vencidas + a vencer em ≤7 dias</span></div><div id="var-recompras"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  let recs = [], err = false;
+  try { const r = await pacApi('/api/clinico/varejo/recompras'); if (r.ok) recs = r.data.recompras || []; else err = true; } catch (e) { err = true; }
+  const box = document.getElementById('var-recompras'); if (!box) return;
+  if (err) { box.innerHTML = INJ_ERRO; return; }
+  box.innerHTML = recs.length
+    ? recs.map((r) => {
+        let dt = '—'; try { if (r.recompra_prevista) dt = new Date(r.recompra_prevista).toLocaleDateString('pt-BR'); } catch (e) {}
+        return `<div class="inj-res-item"><div><strong>${esc(r.paciente || '—')}</strong> ${varBadgeRecompra(r.status_recompra)}<div style="font-size:11px;color:var(--tx3)">${esc(r.sku)} ×${r.qtd} · recompra prevista ${dt}</div></div></div>`;
+      }).join('')
+    : '<div class="pac-empty" style="padding:12px">Nenhuma recompra próxima.</div>';
+}
+
 function gstFocoRender(d) {
   const box = document.getElementById('gst-foco'), txt = document.getElementById('gst-foco-txt'), btn = document.getElementById('gst-foco-btn');
   if (!box || !txt) return;
@@ -11587,6 +11743,7 @@ const VIEW_TITLES = {
   estoque: { titulo: 'Estoque', sub: 'Produtos, lotes e validades' },
   insumos: { titulo: 'Catálogo de Injetáveis', sub: 'Cadastro mestre — insumos, vias e preços' },
   injetaveis: { titulo: 'Injetáveis', sub: 'Prescrição, cobrança e aplicação' },
+  varejo: { titulo: 'Varejo', sub: 'Suplementos — venda, entrega e recompra' },
   whatsapp: { titulo: 'WhatsApp', sub: 'Conversas e aparelhos' },
   auditoria: { titulo: 'Auditoria', sub: 'Trilha de ações sensíveis' },
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
@@ -11625,6 +11782,7 @@ function trocarView(v) {
   else if (v === 'pontuacao') pontInit();
   else if (v === 'insumos') insumosCarregar();
   else if (v === 'injetaveis') injInit();
+  else if (v === 'varejo') varInit();
   fecharSidebar(); // no mobile, fecha o drawer após escolher uma seção
 }
 
