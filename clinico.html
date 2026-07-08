@@ -6607,6 +6607,7 @@
       <button class="pt-tab active" data-tab="prescrever" data-perm="prescricao_inj.criar" onclick="injTab('prescrever')"><i class="ti ti-prescription"></i> Prescrever</button>
       <button class="pt-tab" data-tab="cobranca" data-perm="financeiro.ver" onclick="injTab('cobranca')"><i class="ti ti-cash"></i> Cobrança</button>
       <button class="pt-tab" data-tab="aplicar" data-perm="prontuario.aplicacao.registrar" onclick="injTab('aplicar')"><i class="ti ti-vaccine"></i> Aplicar</button>
+      <button class="pt-tab" data-tab="precos" data-perm="financeiro.ver" onclick="injTab('precos')"><i class="ti ti-tag"></i> Preços</button>
     </div>
     <div id="inj-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
   </div>
@@ -11029,6 +11030,7 @@ function injAllowed() {
   if (temPermissao('prescricao_inj.criar')) a.push('prescrever');
   if (temPermissao('financeiro.ver')) a.push('cobranca');
   if (temPermissao('prontuario.aplicacao.registrar')) a.push('aplicar');
+  if (temPermissao('financeiro.ver')) a.push('precos');
   return a;
 }
 function injInit() {
@@ -11044,6 +11046,7 @@ function injTab(t) {
   document.querySelectorAll('#view-injetaveis .pt-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
   if (t === 'prescrever') injRenderPrescrever();
   else if (t === 'cobranca') injRenderCobranca();
+  else if (t === 'precos') injRenderPrecos();
   else injRenderAplicar();
 }
 function injOverlay(html) {
@@ -11205,6 +11208,74 @@ async function injAplicar(itemId, btn) {
   if (!d) { homeToast('Não foi possível aplicar (item não liberado ou sem estoque).'); }
   else { homeToast(d.baixa_estoque ? 'Aplicado — baixa de estoque (FEFO) feita.' : 'Aplicado. ' + (d.aviso || 'Sem baixa de estoque.')); }
   injCarregarLiberados();
+}
+
+// --- Aba PREÇOS (comercial/admin) ---
+function injRenderPrecos() {
+  const c = document.getElementById('inj-conteudo'); if (!c) return;
+  c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Preço dos protocolos <span style="text-transform:none;font-weight:400;color:var(--tx4)">· diluído (custo fixo 1×/sessão) vs avulso</span></div><div id="inj-preco-prot"><div class="pac-empty" style="padding:12px">Calculando…</div></div></div>'
+    + '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">GLP-1 por dose</div><div id="inj-preco-glp1"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>'
+    + (temPermissao('custo.ver') ? '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Premissas de custo <span style="text-transform:none;font-weight:400;color:var(--tx4)">· editável (admin)</span></div><div id="inj-preco-prem"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>' : '');
+  injCarregarPrecos();
+}
+async function injCarregarPrecos() {
+  let errProt = false;
+  if (!injState.protocolos) {
+    try { const r = await pacApi('/api/clinico/prescricoes-inj/protocolos-modelo'); if (r.ok) injState.protocolos = r.data.modelos || []; else errProt = true; } catch (e) { errProt = true; }
+  }
+  const protos = injState.protocolos || [];
+  const pbox = document.getElementById('inj-preco-prot');
+  if (pbox) {
+    if (errProt && !injState.protocolos) pbox.innerHTML = INJ_ERRO;
+    else if (!protos.length) pbox.innerHTML = '<div class="pac-empty" style="padding:12px">Nenhum protocolo.</div>';
+    else {
+      const precos = await Promise.all(protos.map(async (m) => { try { const r = await pacApi('/api/clinico/prescricoes-inj/protocolos-modelo/' + encodeURIComponent(m.protocolo_id) + '/preco'); return r.ok ? r.data.preco : null; } catch (e) { return null; } }));
+      pbox.innerHTML = precos.map((p, i) => {
+        const m = protos[i];
+        if (!p) return `<div class="inj-res-item"><strong>${esc(m.nome)}</strong><span style="color:#f85149">erro ao calcular</span></div>`;
+        const econ = p.economia_pct > 0 ? `<span style="color:#3fb950;font-size:11px">−${p.economia_pct}%</span>` : '';
+        const warn = p.preco_incompleto ? ' <span class="inj-badge" style="color:#e3b341;border:1px solid #e3b341">preço parcial</span>' : '';
+        const semc = (p.preco_incompleto && p.skus_sem_custo) ? '<div style="font-size:10.5px;color:#e3b341">sem custo: ' + esc(p.skus_sem_custo.join(', ')) + '</div>' : '';
+        return `<div class="inj-res-item"><div><strong>${esc(m.nome)}</strong>${warn}<div style="font-size:11px;color:var(--tx4)">${esc(p.protocolo_id)}</div>${semc}</div><div style="text-align:right"><div style="font-size:16px;font-weight:700;color:#3fb950">${homeGestorFmtBRL(p.preco_diluido_cents)}</div><div style="font-size:11px;color:var(--tx4)"><s>${homeGestorFmtBRL(p.preco_avulso_cents)}</s> ${econ}</div></div></div>`;
+      }).join('');
+    }
+  }
+  let glp1 = null, errG = false;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/glp1/preco'); if (r.ok) glp1 = r.data; else errG = true; } catch (e) { errG = true; }
+  const gbox = document.getElementById('inj-preco-glp1');
+  if (gbox) gbox.innerHTML = errG ? INJ_ERRO : (glp1 && glp1.tabela
+    ? '<table class="gst-table"><thead><tr><th>Dose</th><th style="text-align:right">Preço</th><th style="text-align:right">Doses/frasco 90mg</th></tr></thead><tbody>'
+      + glp1.tabela.map((d) => `<tr><td>${d.dose_mg} mg</td><td class="num">${homeGestorFmtBRL(d.preco_cents)}</td><td class="num">${d.doses_por_frasco}</td></tr>`).join('') + '</tbody></table>'
+    : '<div class="pac-empty" style="padding:12px">Sem dados de GLP-1.</div>');
+  if (temPermissao('custo.ver')) injCarregarPremissas();
+}
+async function injCarregarPremissas() {
+  const box = document.getElementById('inj-preco-prem'); if (!box) return;
+  let d = null;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/premissas'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { box.innerHTML = INJ_ERRO; return; }
+  const cfg = d.config, brl = (c) => (Number(c || 0) / 100).toFixed(2);
+  const viaRows = ['IM', 'SC', 'ID', 'EV'].map((v) => { const x = (d.vias && d.vias[v]) || { tempoMin: 0, materiaisCents: 0 }; return `<tr><td>${v}</td><td><input id="inj-prem-${v}-t" type="number" value="${x.tempoMin}" class="pac-search" style="width:80px"></td><td><input id="inj-prem-${v}-m" type="number" step="0.01" value="${brl(x.materiaisCents)}" class="pac-search" style="width:100px"></td></tr>`; }).join('');
+  box.innerHTML = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">'
+    + `<label style="font-size:11px;color:var(--tx3)">Sala R$/h<br><input id="inj-prem-sala" type="number" step="0.01" value="${brl(cfg.salaHoraCents)}" class="pac-search" style="width:110px"></label>`
+    + `<label style="font-size:11px;color:var(--tx3)">Ativo adicional R$<br><input id="inj-prem-adic" type="number" step="0.01" value="${brl(cfg.custoAtivoAdicionalCents)}" class="pac-search" style="width:110px"></label>`
+    + `<label style="font-size:11px;color:var(--tx3)">GLP-1 R$/mg<br><input id="inj-prem-glpmg" type="number" step="0.01" value="${brl(cfg.glp1CustoMgCents)}" class="pac-search" style="width:110px"></label>`
+    + `<label style="font-size:11px;color:var(--tx3)">GLP-1 markup<br><input id="inj-prem-glpmk" type="number" step="0.1" value="${cfg.glp1Markup}" class="pac-search" style="width:90px"></label>`
+    + '</div><table class="gst-table"><thead><tr><th>Via</th><th>Tempo (min)</th><th>Materiais (R$)</th></tr></thead><tbody>' + viaRows + '</tbody></table>'
+    + '<button class="tk-btn primary" style="margin-top:10px" onclick="injSalvarPremissas()">Salvar premissas</button>';
+}
+async function injSalvarPremissas() {
+  const num = (id) => { const el = document.getElementById(id); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? undefined : v; };
+  const cents = (id) => { const v = num(id); return v == null ? undefined : Math.round(v * 100); };
+  const body = {
+    sala_hora_cents: cents('inj-prem-sala'), custo_ativo_adicional_cents: cents('inj-prem-adic'),
+    glp1_custo_mg_cents: cents('inj-prem-glpmg'), glp1_markup: num('inj-prem-glpmk'),
+    vias: ['IM', 'SC', 'ID', 'EV'].map((v) => ({ via: v, tempo_min: Math.round(num('inj-prem-' + v + '-t') || 0), materiais_cents: Math.round((num('inj-prem-' + v + '-m') || 0) * 100) })),
+  };
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/premissas', { method: 'PUT', body: JSON.stringify(body) }); ok = r.ok; } catch (e) {}
+  homeToast(ok ? 'Premissas salvas — preços recalculados.' : 'Não foi possível salvar.');
+  if (ok) { injState.protocolos = null; injRenderPrecos(); }
 }
 
 function gstFocoRender(d) {
