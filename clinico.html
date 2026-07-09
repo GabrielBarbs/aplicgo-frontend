@@ -6589,6 +6589,7 @@
       <input id="ins-busca" oninput="insumosRender()" placeholder="Buscar produto, SKU, composição…" style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;color:var(--tx1);font-size:13px">
       <select id="ins-cat" onchange="insumosRender()" style="background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;color:var(--tx1);font-size:13px"><option value="">Todas as categorias</option></select>
       <span id="ins-count" style="font-size:11.5px;color:var(--tx4);white-space:nowrap"></span>
+      <button id="ins-novo-btn" class="tk-btn primary" style="display:none;white-space:nowrap" onclick="insEditar(null)"><i class="ti ti-plus"></i> Novo produto</button>
     </div>
     <div class="dash-card" style="padding:6px 0 0">
       <div id="ins-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
@@ -10963,6 +10964,7 @@ async function insumosCarregar() {
   if (!d) { cont.innerHTML = '<div class="pac-empty">Não foi possível carregar o catálogo (deploy do backend pendente?).</div>'; return; }
   insCache = d.itens || [];
   window.insVePreco = !!d.ve_preco; window.insVeCusto = !!d.ve_custo;
+  const nb = document.getElementById('ins-novo-btn'); if (nb) nb.style.display = window.insVeCusto ? '' : 'none';
   const cats = [...new Set(insCache.map(i => i.categoria).filter(Boolean))].sort();
   const sel = document.getElementById('ins-cat');
   if (sel && sel.options.length <= 1) sel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
@@ -11052,7 +11054,7 @@ function insumoDetalhe(sku) {
   const body = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">`
     + `<div><div style="font-size:16px;font-weight:700;color:var(--tx1)">${esc(i.produto)}</div>`
     + `<div style="font-size:11px;color:var(--tx4)">${esc(i.sku)}${i.tipo ? ' · ' + esc(i.tipo) : ''}${i.categoria ? ' · ' + esc(i.categoria) : ''}${i.requer_prescricao ? ' · <span style="color:#e3b341">tarja</span>' : ''}</div></div>`
-    + `<button onclick="document.getElementById('ins-modal').remove()" style="background:none;border:0;color:var(--tx3);font-size:20px;cursor:pointer;line-height:1">×</button></div>`
+    + `<div style="display:flex;gap:8px;align-items:center">${window.insVeCusto ? `<button class="tk-btn" style="padding:5px 10px;font-size:12px" onclick="insEditar('${esc(i.sku)}')"><i class="ti ti-pencil"></i> Editar</button>` : ''}<button onclick="document.getElementById('ins-modal').remove()" style="background:none;border:0;color:var(--tx3);font-size:20px;cursor:pointer;line-height:1">×</button></div></div>`
     + valores
     + linha('Composição', i.composicao) + linha('Apresentação', i.apresentacao) + linha('Vias', (i.vias || []).join(' · '))
     + linha('Objetivo clínico', i.objetivo_clinico) + linha('Cuidados de uso', i.cuidados)
@@ -11065,6 +11067,72 @@ function insumoDetalhe(sku) {
     document.body.appendChild(ov);
   }
   ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:540px;width:100%;max-height:85vh;overflow:auto;padding:20px">${body}</div>`;
+}
+
+// ---- Editar/criar insumo (admin — custo.ver) -------------------------------
+function insEditar(sku) {
+  if (!temPermissao('custo.ver')) { homeToast('Sem permissão para editar o catálogo.'); return; }
+  const i = sku ? ((insCache || []).find((x) => x.sku === sku) || {}) : {};
+  const isNew = !sku;
+  const brl = (c) => (c == null ? '' : (Number(c) / 100).toFixed(2));
+  const lab = 'font-size:10.5px;color:var(--tx3);display:block';
+  const F = (id, label, val, num, ph, attrs) => `<div><label style="${lab}">${label}</label><input id="${id}"${num ? ' type="number" step="any"' : ''} value="${esc(val == null ? '' : val)}" placeholder="${ph || ''}"${attrs ? ' ' + attrs : ''} class="pac-search" style="margin-top:2px"></div>`;
+  const T = (id, label, val) => `<div style="grid-column:1/-1"><label style="${lab}">${label}</label><textarea id="${id}" class="pac-search" style="margin-top:2px;min-height:50px;resize:vertical">${esc(val == null ? '' : val)}</textarea></div>`;
+  const body = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:16px;font-weight:700;color:var(--tx1)">${isNew ? 'Novo produto' : 'Editar ' + esc(i.produto || sku)}</div><button onclick="document.getElementById('ins-modal').remove()" style="background:none;border:0;color:var(--tx3);font-size:20px;cursor:pointer">×</button></div>`
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    + (isNew ? F('ins-f-sku', 'SKU', i.sku, false, 'AG-046') : `<div><label style="${lab}">SKU</label><input class="pac-search" value="${esc(sku)}" disabled style="margin-top:2px;opacity:.6"></div>`)
+    + F('ins-f-produto', 'Produto', i.produto) + F('ins-f-tipo', 'Tipo (Insumo/Fórmula/Kit)', i.tipo)
+    + F('ins-f-categoria', 'Categoria', i.categoria) + F('ins-f-tags', 'Tags (vírgula)', (i.tags || []).join(', '))
+    + F('ins-f-vias', 'Vias (IM, EV…)', (i.vias || []).join(', '))
+    + F('ins-f-viacust', 'Via de custeio', i.via_custeio) + F('ins-f-farmacia', 'Farmácia', i.farmacia)
+    + F('ins-f-unidade', 'Unidade de estoque', i.unidade_estoque) + F('ins-f-estmin', 'Estoque mínimo', i.estoque_minimo, true)
+    + F('ins-f-cinsumo', 'Custo insumo (R$)', brl(i.custo_insumo_cents), true) + F('ins-f-cmat', 'Custo materiais (R$)', brl(i.custo_materiais_cents), true)
+    + F('ins-f-csala', 'Custo sala (R$)', brl(i.custo_sala_cents), true) + F('ins-f-markup', 'Markup (x) → preenche o preço', i.markup, true, '', 'oninput="insCalcPreco()"')
+    + F('ins-f-preco', 'Preço de venda (R$)', brl(i.preco_venda_cents), true)
+    + `<div style="display:flex;gap:16px;align-items:flex-end;padding-bottom:6px"><label style="font-size:12px;color:var(--tx2)"><input type="checkbox" id="ins-f-tarja" ${i.requer_prescricao ? 'checked' : ''}> Tarja</label><label style="font-size:12px;color:var(--tx2)"><input type="checkbox" id="ins-f-ativo" ${i.ativo !== false ? 'checked' : ''}> Ativo</label></div>`
+    + T('ins-f-composicao', 'Composição', i.composicao) + T('ins-f-apresentacao', 'Apresentação', i.apresentacao)
+    + T('ins-f-objetivo', 'Objetivo clínico', i.objetivo_clinico) + T('ins-f-cuidados', 'Cuidados de uso', i.cuidados)
+    + T('ins-f-reacoes', 'Reações adversas', i.reacoes_adversas) + T('ins-f-obs', 'Observações (nota de custo)', i.observacoes)
+    + '</div>'
+    + `<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('ins-modal').remove()">Cancelar</button><button class="tk-btn primary" onclick="insSalvar(${sku ? `'${esc(sku)}'` : 'null'})"><i class="ti ti-check"></i> Salvar</button></div>`;
+  let ov = document.getElementById('ins-modal');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'ins-modal'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px'; ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); }); document.body.appendChild(ov); }
+  ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:620px;width:100%;max-height:88vh;overflow:auto;padding:20px">${body}</div>`;
+}
+// Markup preenche o preço = custo_total × markup (preço é o valor autoritativo; o
+// servidor deriva o markup de volta a partir de preço/custo, mantendo tudo coerente).
+function insCalcPreco() {
+  const n = (id) => { const e = document.getElementById(id); const x = e ? parseFloat(e.value) : NaN; return isNaN(x) ? 0 : x; };
+  const custoTotal = n('ins-f-cinsumo') + n('ins-f-cmat') + n('ins-f-csala');
+  const mk = n('ins-f-markup');
+  const pe = document.getElementById('ins-f-preco');
+  if (pe && mk > 0 && custoTotal > 0) pe.value = (custoTotal * mk).toFixed(2);
+}
+async function insSalvar(sku) {
+  const v = (id) => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  const num = (id) => { const e = document.getElementById(id); const n = e ? parseFloat(e.value) : NaN; return isNaN(n) ? null : n; };
+  const cents = (id) => { const n = num(id); return n == null ? null : Math.round(n * 100); };
+  const intg = (id) => { const n = num(id); return n == null ? null : Math.round(n); };
+  const chk = (id) => { const e = document.getElementById(id); return e ? e.checked : false; };
+  const tarja = chk('ins-f-tarja');
+  const body = {
+    sku: sku || v('ins-f-sku'), produto: v('ins-f-produto'), tipo: v('ins-f-tipo') || null, categoria: v('ins-f-categoria') || null,
+    tags: v('ins-f-tags').split(/,/).map((s) => s.trim()).filter(Boolean),
+    vias: v('ins-f-vias').split(/[,/]/).map((s) => s.trim().toUpperCase()).filter(Boolean),
+    via_custeio: v('ins-f-viacust') || null, farmacia: v('ins-f-farmacia') || null, unidade_estoque: v('ins-f-unidade') || null,
+    custo_insumo_cents: cents('ins-f-cinsumo'), custo_materiais_cents: cents('ins-f-cmat'), custo_sala_cents: cents('ins-f-csala'),
+    markup: num('ins-f-markup'), preco_venda_cents: cents('ins-f-preco'), estoque_minimo: intg('ins-f-estmin'),
+    requer_prescricao: tarja, ativo: chk('ins-f-ativo'),   // tarja (string) é derivada no servidor
+    composicao: v('ins-f-composicao') || null, apresentacao: v('ins-f-apresentacao') || null, objetivo_clinico: v('ins-f-objetivo') || null,
+    cuidados: v('ins-f-cuidados') || null, reacoes_adversas: v('ins-f-reacoes') || null, observacoes: v('ins-f-obs') || null,
+  };
+  if (!body.produto) { homeToast('Informe o nome do produto.'); return; }
+  if (!sku && !/^[A-Za-z0-9_-]{2,40}$/.test(body.sku)) { homeToast('SKU inválido (letras, números, hífen).'); return; }
+  const path = sku ? '/api/clinico/insumos/' + encodeURIComponent(sku) : '/api/clinico/insumos';
+  let ok = false, msg = '';
+  try { const r = await pacApi(path, { method: sku ? 'PUT' : 'POST', body: JSON.stringify(body) }); ok = r.ok; if (!ok && r.data) msg = r.data.erro || ''; } catch (e) {}
+  homeToast(ok ? (sku ? 'Produto atualizado.' : 'Produto criado.') : ('Não foi possível salvar: ' + (msg || 'erro')));
+  if (ok) { const ov = document.getElementById('ins-modal'); if (ov) ov.remove(); insumosCarregar(); }
 }
 
 // ---- Injetáveis: prescrever / cobrança / aplicar (Onda 2c) ------------------
