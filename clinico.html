@@ -6584,6 +6584,7 @@
 
   <!-- VIEW: Catálogo de Injetáveis (Onda 1 — Cadastro Mestre) -->
   <div class="view" id="view-insumos">
+    <div id="ins-vinculos"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
       <input id="ins-busca" oninput="insumosRender()" placeholder="Buscar produto, SKU, composição…" style="flex:1;min-width:220px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;color:var(--tx1);font-size:13px">
       <select id="ins-cat" onchange="insumosRender()" style="background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;color:var(--tx1);font-size:13px"><option value="">Todas as categorias</option></select>
@@ -10966,6 +10967,43 @@ async function insumosCarregar() {
   const sel = document.getElementById('ins-cat');
   if (sel && sel.options.length <= 1) sel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${esc(c)}</option>`).join('');
   insumosRender();
+  if (temPermissao('estoque.ver')) insumosVinculosCarregar();
+}
+// Painel de vínculo insumo -> produto de estoque (ativa a baixa FEFO). Só estoque.ver.
+async function insumosVinculosCarregar() {
+  const box = document.getElementById('ins-vinculos'); if (!box) return;
+  let d = null;
+  try { const r = await pacApi('/api/clinico/insumos/vinculos'); if (r.ok) d = r.data; } catch (e) {}
+  if (!d) { box.innerHTML = ''; return; }
+  const naoVinc = (d.itens || []).filter((x) => !x.product_id);
+  if (!naoVinc.length) {
+    box.innerHTML = `<div class="dash-card" style="margin-bottom:14px"><div style="font-size:12px;color:#3fb950"><i class="ti ti-check"></i> Estoque vinculado: ${d.vinculados}/${d.total} — todos os insumos ativos estão ligados a um produto (baixa FEFO ativa).</div></div>`;
+    return;
+  }
+  // Sugestão NÃO vem pré-selecionada (evita vincular estoque errado com 1 clique):
+  // default é "— escolher produto —"; a sugestão é só uma dica (badge + rótulo "(sugestão)").
+  const opts = (sug) => '<option value="" selected>— escolher produto —</option>' + (d.produtos || []).map((p) => `<option value="${esc(p.id)}">${esc(p.nome)}${sug && sug.product_id === p.id ? ' (sugestão)' : ''}</option>`).join('');
+  box.innerHTML = `<div class="dash-card" style="margin-bottom:14px"><div class="cart-blk-ttl">Vínculo de estoque <span style="text-transform:none;font-weight:400;color:var(--tx4)">· ${d.vinculados}/${d.total} vinculados · ligue p/ ativar a baixa FEFO na aplicação</span></div>`
+    + naoVinc.map((x) => `<div class="inj-res-item"><div style="flex:1;min-width:160px"><strong>${esc(x.produto)}</strong> <span style="font-size:10.5px;color:var(--tx4)">${esc(x.sku)}</span>${x.sugestao ? ` <span class="inj-badge" style="color:#4A90E2;border:1px solid #4A90E2">sugestão: ${esc(x.sugestao.nome)}</span>` : ''}</div>`
+      + `<select class="pac-search" id="ins-vin-${esc(x.sku)}" style="width:190px">${opts(x.sugestao)}</select>`
+      + `<button class="tk-btn primary" style="padding:6px 10px;font-size:12px" onclick="insVincular('${esc(x.sku)}')">Vincular</button>`
+      + `<button class="tk-btn" style="padding:6px 10px;font-size:12px" onclick="insCriarProduto('${esc(x.sku)}')">Criar produto</button></div>`).join('')
+    + '</div>';
+}
+async function insVincular(sku) {
+  const sel = document.getElementById('ins-vin-' + sku), pid = sel ? sel.value : '';
+  if (!pid) { homeToast('Escolha um produto para vincular.'); return; }
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/insumos/' + encodeURIComponent(sku) + '/produto', { method: 'PUT', body: JSON.stringify({ product_id: pid }) }); ok = r.ok; } catch (e) {}
+  homeToast(ok ? 'Insumo vinculado ao produto.' : 'Não foi possível vincular.');
+  if (ok) insumosVinculosCarregar();
+}
+async function insCriarProduto(sku) {
+  if (!confirm('Criar um produto de estoque a partir deste insumo e vinculá-lo?')) return;
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/insumos/' + encodeURIComponent(sku) + '/produto/criar', { method: 'POST', body: JSON.stringify({}) }); ok = r.ok; } catch (e) {}
+  homeToast(ok ? 'Produto criado e vinculado.' : 'Não foi possível criar o produto.');
+  if (ok) insumosVinculosCarregar();
 }
 function insumosRender() {
   const cont = document.getElementById('ins-conteudo');
