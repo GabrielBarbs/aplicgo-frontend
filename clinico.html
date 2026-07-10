@@ -3393,6 +3393,22 @@
     .ia-barmini > span { display: block; height: 100%; background: #7B68EE; border-radius: 2px; }
     .ia-aviso { background: rgba(227,179,65,0.1); border: 1px solid rgba(227,179,65,0.35); color: #e3b341; border-radius: 10px; padding: 10px 14px; font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
     .ia-aviso code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; font-family: 'SF Mono', Consolas, monospace; }
+    #view-gtarefas .gt-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd1); margin-bottom: 16px; flex-wrap: wrap; }
+    #view-gtarefas .gt-tab { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--tx3); font: inherit; font-weight: 500; padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 7px; margin-bottom: -1px; }
+    #view-gtarefas .gt-tab.active { color: var(--tx1); border-bottom-color: var(--ac); }
+    #view-gtarefas .gt-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    #view-gtarefas .gt-card.dim { opacity: .6; }
+    #view-gtarefas .gt-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg3); border: 1px solid var(--bd1); border-radius: 20px; padding: 3px 6px 3px 11px; font-size: 12px; color: var(--tx2); margin: 4px 4px 0 0; }
+    #view-gtarefas .gt-chip button { background: 0; border: 0; color: var(--tx4); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+    #view-gtarefas .gt-chip button:hover { color: #f85149; }
+    #view-gtarefas .gt-form label { display: block; font-size: 11px; color: var(--tx3); text-transform: uppercase; letter-spacing: .3px; margin: 12px 0 5px; font-weight: 600; }
+    #view-gtarefas .gt-form .pac-search { width: 100%; }
+    #view-gtarefas .gt-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #view-gtarefas .gt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: 20px; background: var(--bg3); color: var(--tx2); white-space: nowrap; }
+    #view-gtarefas .gt-bar { height: 5px; border-radius: 3px; background: rgba(232,148,90,0.15); overflow: hidden; min-width: 70px; margin-top: 4px; }
+    #view-gtarefas .gt-bar > span { display: block; height: 100%; background: var(--ac); }
+    #view-gtarefas .gt-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    @media(max-width:640px){ #view-gtarefas .gt-row2 { grid-template-columns: 1fr; } }
 
     /* ====== BOTÃO FLUTUANTE DE REPORT ====== */
     .bug-fab {
@@ -5697,6 +5713,9 @@
       <button class="sidebar-item" data-view="pontuacao" data-perm="pontuacao.ver">
         <i class="ti ti-trophy"></i> Pontuação
       </button>
+      <button class="sidebar-item" data-view="gtarefas" data-perm="tarefas.gerenciar">
+        <i class="ti ti-checklist"></i> Gestão de Tarefas
+      </button>
     </div>
 
     <div class="sidebar-group" id="sidebar-group-admin" style="display:none;">
@@ -6775,6 +6794,20 @@
     <div id="dev-conteudo">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
     </div>
+  </div>
+
+  <!-- VIEW: Gestão de Tarefas (rotinas recorrentes + acompanhamento do gestor) -->
+  <div class="view" id="view-gtarefas">
+    <div class="gt-tabs">
+      <button class="gt-tab active" data-gt="painel" onclick="gtTab('painel')"><i class="ti ti-checklist"></i> Acompanhamento</button>
+      <button class="gt-tab" data-gt="rotinas" onclick="gtTab('rotinas')"><i class="ti ti-repeat"></i> Rotinas &amp; Tarefas</button>
+      <button class="gt-tab" data-gt="grupos" onclick="gtTab('grupos')"><i class="ti ti-users-group"></i> Grupos</button>
+      <button class="gt-tab" data-gt="equipe" onclick="gtTab('equipe')"><i class="ti ti-stairs-up"></i> Níveis</button>
+    </div>
+    <div id="gt-painel" class="gt-pane"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
+    <div id="gt-rotinas" class="gt-pane" style="display:none;"></div>
+    <div id="gt-grupos" class="gt-pane" style="display:none;"></div>
+    <div id="gt-equipe" class="gt-pane" style="display:none;"></div>
   </div>
 
   <!-- VIEW: Comunicação Interna (esquema funcional) -->
@@ -12092,6 +12125,7 @@ const VIEW_TITLES = {
   comunicacao: { titulo: 'Comunicação Interna', sub: 'Chat e menções' },
   financeiro: { titulo: 'Financeiro', sub: 'Contratos e pagamentos' },
   pontuacao: { titulo: 'Pontuação', sub: 'Rankings e premiação da equipe' },
+  gtarefas: { titulo: 'Gestão de Tarefas', sub: 'Rotinas, atribuição e acompanhamento da equipe' },
   admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' },
   pendencias: { titulo: 'Pendências', sub: 'Onboarding administrativo em aberto' },
   dev: { titulo: 'Desenvolvedor', sub: 'Painel técnico: DB, audit, env, métricas' }
@@ -12123,6 +12157,7 @@ function trocarView(v) {
   else if (v === 'pendencias') pendCarregar();
   else if (v === 'dev') devCarregar();
   else if (v === 'pontuacao') pontInit();
+  else if (v === 'gtarefas') gtInit();
   else if (v === 'insumos') insumosCarregar();
   else if (v === 'injetaveis') injInit();
   else if (v === 'varejo') varInit();
@@ -17262,6 +17297,253 @@ function devIARender(d) {
     ? `<div class="ia-aviso"><i class="ti ti-alert-triangle"></i> Modelo(s) sem preço catalogado: ${semPreco.map((m) => esc(m.modelo) + ' (' + devIAFmtNum(m.chamadas) + ' chamadas)').join(', ')} — o custo dessas chamadas <strong>não é contabilizado</strong> (não chutamos). Adicione o preço em <code>ai-usage.ts</code>.</div>`
     : '';
   box.innerHTML = aviso + cards + tabelaAg + tabelaDia + precos;
+}
+
+// ==================== Gestão de Tarefas (painel do gestor) ====================
+const gtState = { pessoas: [], cargos: [], grupos: [], niveis: ['junior', 'pleno', 'senior'], painelDias: 30, novaAlvos: [] };
+const GT_RECORR = { unica: 'Única', diaria: 'Diária', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
+function gtHojeStr() { try { return new Date().toLocaleDateString('en-CA'); } catch (e) { return new Date().toISOString().slice(0, 10); } }
+function gtNomePessoa(id) { const p = gtState.pessoas.find((x) => x.id === id); return p ? p.nome : '—'; }
+function gtNomeCargo(slug) { const c = gtState.cargos.find((x) => x.slug === slug); return c ? c.nome : slug; }
+function gtNomeGrupo(id) { const g = gtState.grupos.find((x) => x.id === id); return g ? g.nome : 'grupo'; }
+function gtNivelLabel(n) { return ({ junior: 'Júnior', pleno: 'Pleno', senior: 'Sênior' })[n] || n; }
+function gtAlvoLabel(a) {
+  if (a.tipo === 'pessoa') return '<i class="ti ti-user"></i> ' + esc(gtNomePessoa(a.pessoa));
+  if (a.tipo === 'cargo') return 'Cargo: ' + esc(gtNomeCargo(a.cargo));
+  if (a.tipo === 'nivel') return 'Nível: ' + esc(gtNivelLabel(a.nivel));
+  if (a.tipo === 'cargo_nivel') return esc(gtNomeCargo(a.cargo)) + ' ' + esc(gtNivelLabel(a.nivel));
+  if (a.tipo === 'grupo') return 'Grupo: ' + esc(gtNomeGrupo(a.grupo));
+  return esc(a.tipo);
+}
+async function gtInit() { await gtCarregarBase(); gtTab('painel'); }
+async function gtCarregarBase() {
+  const [p, c, g] = await Promise.all([
+    pacApi('/api/clinico/tarefas-gestao/pessoas').catch(() => ({ ok: false })),
+    pacApi('/api/clinico/tarefas-gestao/cargos').catch(() => ({ ok: false })),
+    pacApi('/api/clinico/tarefas-gestao/grupos').catch(() => ({ ok: false })),
+  ]);
+  if (p.ok) { gtState.pessoas = p.data.pessoas || []; gtState.niveis = p.data.niveis || gtState.niveis; }
+  if (c.ok) gtState.cargos = c.data.cargos || [];
+  if (g.ok) gtState.grupos = g.data.grupos || [];
+}
+function gtTab(t) {
+  document.querySelectorAll('#view-gtarefas .gt-tab').forEach((b) => b.classList.toggle('active', b.dataset.gt === t));
+  document.querySelectorAll('#view-gtarefas .gt-pane').forEach((p) => (p.style.display = 'none'));
+  const pane = document.getElementById('gt-' + t); if (pane) pane.style.display = '';
+  if (t === 'painel') gtPainelCarregar();
+  else if (t === 'rotinas') gtRotinasCarregar();
+  else if (t === 'grupos') gtGruposRender();
+  else if (t === 'equipe') gtEquipeRender();
+}
+// ---- Acompanhamento ----
+async function gtPainelCarregar() {
+  const box = document.getElementById('gt-painel');
+  box.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div>';
+  const r = await pacApi('/api/clinico/tarefas-gestao/painel?dias=' + gtState.painelDias);
+  if (!r.ok) { box.innerHTML = '<div class="pac-empty" style="color:#f85149">Erro ao carregar.</div>'; return; }
+  gtPainelRender(r.data);
+}
+function gtPainelRange(d) { gtState.painelDias = d; gtPainelCarregar(); }
+function gtPainelRender(d) {
+  const box = document.getElementById('gt-painel'); const t = d.totais;
+  const rg = [7, 30, 90].map((n) => `<button class="ia-rg${n === d.dias ? ' active' : ''}" onclick="gtPainelRange(${n})">${n}d</button>`).join('');
+  const cards = `<div class="dev-grid">
+    <div class="dev-stat-card"><div class="titulo"><i class="ti ti-users"></i> Pessoas com tarefa</div><div class="big">${t.pessoas}</div><div class="small">janela de ${d.dias} dias</div></div>
+    <div class="dev-stat-card" style="border-left-color:#f85149;"><div class="titulo"><i class="ti ti-alarm"></i> Vencidas agora</div><div class="big" style="color:${t.vencidas ? '#f85149' : '#3fb950'}">${t.vencidas}</div><div class="small">${t.hoje} vencem hoje · ${t.abertas} abertas</div></div>
+    <div class="dev-stat-card" style="border-left-color:var(--ac);"><div class="titulo"><i class="ti ti-target-arrow"></i> Cumprimento</div><div class="big" style="color:var(--ac)">${t.taxa == null ? '—' : t.taxa + '%'}</div><div class="small">${t.cumpridas} de ${t.due} com prazo na janela</div></div>
+  </div>`;
+  const linhas = d.pessoas.map((p) => {
+    const tag = p.nivel ? ` <span class="gt-badge">${esc(gtNivelLabel(p.nivel))}</span>` : '';
+    const cargo = p.cargo ? `<div><span style="color:var(--tx4);font-size:11px;">${esc(p.cargo)}</span></div>` : '';
+    return `<tr><td><span class="ator">${esc(p.nome)}</span>${tag}${cargo}</td>
+      <td class="num">${p.hoje}</td>
+      <td class="num" style="color:${p.vencidas ? '#f85149' : 'inherit'}">${p.vencidas}</td>
+      <td class="num">${p.abertas}</td>
+      <td class="num">${p.taxa == null ? '—' : p.taxa + '%'}<div class="gt-bar"><span style="width:${p.taxa == null ? 0 : p.taxa}%"></span></div></td></tr>`;
+  }).join('');
+  const tabela = `<div class="dev-table-wrap"><div class="dev-table-head"><div class="ttl"><i class="ti ti-list-check"></i> Por pessoa</div><div class="count">${d.pessoas.length}</div></div>
+    <div style="overflow-x:auto;"><table class="dev-table"><thead><tr><th>Pessoa</th><th class="num">Hoje</th><th class="num">Vencidas</th><th class="num">Abertas</th><th class="num">Cumprimento</th></tr></thead>
+    <tbody>${linhas || '<tr><td colspan="5" style="text-align:center;color:var(--tx4)">Ninguém com tarefa na janela.</td></tr>'}</tbody></table></div></div>`;
+  box.innerHTML = `<div class="gt-toolbar"><div style="font-size:12px;color:var(--tx3);max-width:520px">Tarefas de toda a equipe (rotinas + avulsas). "Cumprimento" = concluídas ÷ com prazo na janela.</div><span class="ia-range">${rg}</span></div>` + cards + tabela;
+}
+// ---- Rotinas ----
+async function gtRotinasCarregar() {
+  const box = document.getElementById('gt-rotinas');
+  box.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div>';
+  const r = await pacApi('/api/clinico/tarefas-gestao/rotinas');
+  if (!r.ok) { box.innerHTML = '<div class="pac-empty" style="color:#f85149">Erro.</div>'; return; }
+  gtRotinasRender(r.data.rotinas || []);
+}
+function gtRotinasRender(rotinas) {
+  const box = document.getElementById('gt-rotinas');
+  const lista = rotinas.map((r) => {
+    const alvos = (r.alvos || []).map((a) => `<span class="gt-chip" style="padding:2px 10px">${gtAlvoLabel(a)}</span>`).join('');
+    const rec = `<span class="gt-badge" style="background:rgba(232,148,90,0.12);color:var(--ac)">${GT_RECORR[r.recorrencia] || r.recorrencia}</span>`;
+    return `<div class="gt-card${r.ativo ? '' : ' dim'}">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+        <div style="min-width:0"><strong style="font-size:14px">${esc(r.titulo)}</strong> ${rec} ${r.contagem ? '<span class="gt-badge"><i class="ti ti-hourglass-low"></i> contagem</span>' : ''} ${r.ativo ? '' : '<span class="gt-badge" style="color:#f85149">pausada</span>'}
+          ${r.descricao ? `<div style="font-size:12px;color:var(--tx3);margin-top:3px">${esc(r.descricao)}</div>` : ''}
+          <div style="margin-top:6px">${alvos}</div></div>
+        <div style="text-align:right;min-width:110px">
+          <div style="font-size:20px;font-weight:700;color:var(--ac)">${r.taxa == null ? '—' : r.taxa + '%'}</div>
+          <div style="font-size:11px;color:var(--tx3)">${r.concluidas}/${r.total} concluídas</div>
+          <div style="font-size:11px;color:${r.vencidas ? '#f85149' : 'var(--tx4)'}">${r.vencidas} vencidas</div></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+        <button class="tk-btn" onclick="gtRotinaAcao('${r.id}','${r.ativo ? 'pausar' : 'ativar'}')">${r.ativo ? '<i class="ti ti-player-pause"></i> Pausar' : '<i class="ti ti-player-play"></i> Ativar'}</button>
+        <button class="tk-btn" onclick="gtRotinaAcao('${r.id}','materializar')"><i class="ti ti-refresh"></i> Gerar mais</button>
+        <button class="tk-btn" onclick="gtRotinaAcao('${r.id}','excluir')" style="color:#f85149"><i class="ti ti-trash"></i> Excluir</button>
+      </div></div>`;
+  }).join('');
+  box.innerHTML = `<div class="gt-toolbar"><div style="font-size:13px;color:var(--tx2)">${rotinas.length} rotina(s) / tarefa(s)</div>
+    <button class="tk-btn primary" onclick="gtRotinaNovaForm()"><i class="ti ti-plus"></i> Nova rotina / tarefa</button></div>
+    <div id="gt-nova-wrap"></div>` + (lista || '<div class="pac-empty">Nenhuma rotina ainda. Crie a primeira.</div>');
+}
+function gtRotinaNovaForm() {
+  gtState.novaAlvos = [];
+  const w = document.getElementById('gt-nova-wrap'); if (!w) return;
+  w.innerHTML = `<div class="gt-card gt-form">
+    <label>Título</label><input class="pac-search" id="gt-nt-titulo" placeholder="Ex.: Conferir estoque de insumos">
+    <label>Descrição (opcional)</label><textarea class="pac-search" id="gt-nt-desc" rows="2" placeholder="Detalhes"></textarea>
+    <div class="gt-row2">
+      <div><label>Recorrência</label><select class="pac-search" id="gt-nt-rec">${Object.entries(GT_RECORR).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div><label>Prioridade</label><select class="pac-search" id="gt-nt-prio"><option value="media">Média</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select></div>
+    </div>
+    <div class="gt-row2">
+      <div><label>Início / prazo</label><input class="pac-search" type="date" id="gt-nt-inicio" value="${gtHojeStr()}"></div>
+      <div><label>Fim da recorrência (opcional)</label><input class="pac-search" type="date" id="gt-nt-fim"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--tx2);cursor:pointer;font-weight:400"><input type="checkbox" id="gt-nt-cont"> Mostrar contagem regressiva ("dia X/N") até o prazo</label>
+    <label>Atribuir a</label>
+    <div class="gt-row2">
+      <select class="pac-search" id="gt-alvo-tipo" onchange="gtAlvoTipoChange()"><option value="pessoa">Pessoa</option><option value="cargo">Cargo</option><option value="nivel">Nível</option><option value="cargo_nivel">Cargo + Nível</option><option value="grupo">Grupo</option></select>
+      <div id="gt-alvo-valor"></div>
+    </div>
+    <button class="tk-btn" style="margin-top:8px" onclick="gtAlvoAdd()"><i class="ti ti-plus"></i> Adicionar alvo</button>
+    <div id="gt-alvos-chips" style="margin-top:8px"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="tk-btn primary" onclick="gtRotinaCriar()"><i class="ti ti-check"></i> Criar</button>
+      <button class="tk-btn" onclick="document.getElementById('gt-nova-wrap').innerHTML=''">Cancelar</button>
+    </div>
+    <div id="gt-nova-msg" style="margin-top:8px;font-size:12px"></div></div>`;
+  gtAlvoTipoChange(); gtAlvosRender();
+}
+function gtAlvoTipoChange() {
+  const tipo = document.getElementById('gt-alvo-tipo').value;
+  const box = document.getElementById('gt-alvo-valor'); if (!box) return;
+  const pessoas = gtState.pessoas.map((p) => `<option value="${esc(p.id)}">${esc(p.nome)}</option>`).join('');
+  const cargos = gtState.cargos.map((c) => `<option value="${esc(c.slug)}">${esc(c.nome)}</option>`).join('');
+  const niveis = gtState.niveis.map((n) => `<option value="${esc(n)}">${esc(gtNivelLabel(n))}</option>`).join('');
+  const grupos = gtState.grupos.map((g) => `<option value="${esc(g.id)}">${esc(g.nome)}</option>`).join('');
+  if (tipo === 'pessoa') box.innerHTML = `<select class="pac-search" id="gt-alvo-v1">${pessoas || '<option value="">—</option>'}</select>`;
+  else if (tipo === 'cargo') box.innerHTML = `<select class="pac-search" id="gt-alvo-v1">${cargos || '<option value="">—</option>'}</select>`;
+  else if (tipo === 'nivel') box.innerHTML = `<select class="pac-search" id="gt-alvo-v1">${niveis}</select>`;
+  else if (tipo === 'grupo') box.innerHTML = `<select class="pac-search" id="gt-alvo-v1">${grupos || '<option value="">—</option>'}</select>`;
+  else if (tipo === 'cargo_nivel') box.innerHTML = `<div style="display:flex;gap:6px"><select class="pac-search" id="gt-alvo-v1">${cargos}</select><select class="pac-search" id="gt-alvo-v2">${niveis}</select></div>`;
+}
+function gtAlvoAdd() {
+  const tipo = document.getElementById('gt-alvo-tipo').value;
+  const v1 = document.getElementById('gt-alvo-v1'); const val = v1 ? v1.value : '';
+  if (!val) { homeToast('Nenhuma opção disponível pra esse tipo.'); return; }
+  let a;
+  if (tipo === 'pessoa') a = { tipo, pessoa: val };
+  else if (tipo === 'cargo') a = { tipo, cargo: val };
+  else if (tipo === 'nivel') a = { tipo, nivel: val };
+  else if (tipo === 'grupo') a = { tipo, grupo: val };
+  else { const v2 = document.getElementById('gt-alvo-v2'); a = { tipo, cargo: val, nivel: v2 ? v2.value : '' }; }
+  if (gtState.novaAlvos.some((x) => JSON.stringify(x) === JSON.stringify(a))) return;
+  gtState.novaAlvos.push(a); gtAlvosRender();
+}
+function gtAlvoRemove(i) { gtState.novaAlvos.splice(i, 1); gtAlvosRender(); }
+function gtAlvosRender() {
+  const box = document.getElementById('gt-alvos-chips'); if (!box) return;
+  box.innerHTML = gtState.novaAlvos.length
+    ? gtState.novaAlvos.map((a, i) => `<span class="gt-chip">${gtAlvoLabel(a)}<button onclick="gtAlvoRemove(${i})">×</button></span>`).join('')
+    : '<span style="font-size:12px;color:var(--tx4)">Nenhum alvo — adicione ao menos um.</span>';
+}
+async function gtRotinaCriar() {
+  const msg = document.getElementById('gt-nova-msg');
+  const titulo = document.getElementById('gt-nt-titulo').value.trim();
+  const inicio = document.getElementById('gt-nt-inicio').value;
+  if (!titulo) { msg.innerHTML = '<span style="color:#f85149">Informe o título.</span>'; return; }
+  if (!inicio) { msg.innerHTML = '<span style="color:#f85149">Informe a data de início.</span>'; return; }
+  if (!gtState.novaAlvos.length) { msg.innerHTML = '<span style="color:#f85149">Adicione ao menos um alvo.</span>'; return; }
+  const fim = document.getElementById('gt-nt-fim').value;
+  const body = {
+    titulo, descricao: document.getElementById('gt-nt-desc').value.trim() || null,
+    prioridade: document.getElementById('gt-nt-prio').value, recorrencia: document.getElementById('gt-nt-rec').value,
+    inicio, fim: fim || null, contagem: document.getElementById('gt-nt-cont').checked, alvos: gtState.novaAlvos,
+  };
+  msg.innerHTML = 'Criando…';
+  const r = await pacApi('/api/clinico/tarefas-gestao/rotinas', { method: 'POST', body: JSON.stringify(body) });
+  if (!r.ok) { msg.innerHTML = '<span style="color:#f85149">' + esc((r.data && r.data.erro) || 'Erro ao criar.') + '</span>'; return; }
+  homeToast('Rotina criada — ' + (r.data.ocorrencias_criadas || 0) + ' ocorrência(s) para ' + (r.data.pessoas || 0) + ' pessoa(s).');
+  const w = document.getElementById('gt-nova-wrap'); if (w) w.innerHTML = '';
+  gtRotinasCarregar();
+}
+async function gtRotinaAcao(id, acao) {
+  if (acao === 'excluir' && !confirm('Excluir esta rotina? As ocorrências futuras ainda abertas serão canceladas (passado e concluídas ficam).')) return;
+  let r;
+  if (acao === 'pausar') r = await pacApi('/api/clinico/tarefas-gestao/rotinas/' + id, { method: 'PATCH', body: JSON.stringify({ ativo: false }) });
+  else if (acao === 'ativar') r = await pacApi('/api/clinico/tarefas-gestao/rotinas/' + id, { method: 'PATCH', body: JSON.stringify({ ativo: true }) });
+  else if (acao === 'materializar') r = await pacApi('/api/clinico/tarefas-gestao/rotinas/' + id + '/materializar', { method: 'POST', body: JSON.stringify({}) });
+  else if (acao === 'excluir') r = await pacApi('/api/clinico/tarefas-gestao/rotinas/' + id, { method: 'DELETE' });
+  if (r && r.ok) { if (acao === 'materializar') homeToast((r.data.ocorrencias_criadas || 0) + ' nova(s) ocorrência(s).'); gtRotinasCarregar(); }
+  else homeToast('Não foi possível concluir a ação.');
+}
+// ---- Grupos ----
+function gtGruposRender() {
+  const box = document.getElementById('gt-grupos');
+  const lista = gtState.grupos.map((g) => `<div class="gt-card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+    <div style="min-width:0"><strong>${esc(g.nome)}</strong> <span style="font-size:11px;color:var(--tx4)">${g.membros.length} pessoa(s)</span>
+      <div style="margin-top:6px">${g.membros.map((m) => `<span class="gt-chip" style="padding:2px 10px"><i class="ti ti-user"></i> ${esc(m.nome)}</span>`).join('') || '<span style="font-size:12px;color:var(--tx4)">Sem membros</span>'}</div></div>
+    <div style="display:flex;gap:6px"><button class="tk-btn" onclick="gtGrupoForm('${g.id}')"><i class="ti ti-edit"></i></button><button class="tk-btn" onclick="gtGrupoExcluir('${g.id}')" style="color:#f85149"><i class="ti ti-trash"></i></button></div>
+  </div></div>`).join('');
+  box.innerHTML = `<div class="gt-toolbar"><div style="font-size:13px;color:var(--tx2)">${gtState.grupos.length} grupo(s)</div>
+    <button class="tk-btn primary" onclick="gtGrupoForm()"><i class="ti ti-plus"></i> Novo grupo</button></div>
+    <div id="gt-grupo-wrap"></div>` + (lista || '<div class="pac-empty">Nenhum grupo salvo.</div>');
+}
+function gtGrupoForm(id) {
+  const g = id ? gtState.grupos.find((x) => x.id === id) : null;
+  const sel = new Set(g ? g.membros.map((m) => m.id) : []);
+  const w = document.getElementById('gt-grupo-wrap'); if (!w) return;
+  const membros = gtState.pessoas.map((p) => `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;text-transform:none;color:var(--tx2);margin:0;font-weight:400"><input type="checkbox" class="gt-gm" value="${esc(p.id)}"${sel.has(p.id) ? ' checked' : ''}> ${esc(p.nome)}${p.nivel ? ` <span class="gt-badge">${esc(gtNivelLabel(p.nivel))}</span>` : ''}</label>`).join('');
+  w.innerHTML = `<div class="gt-card gt-form">
+    <label>Nome do grupo</label><input class="pac-search" id="gt-g-nome" value="${g ? injAttr(g.nome) : ''}" placeholder="Ex.: Recepção turno tarde">
+    <label>Membros</label><div style="max-height:240px;overflow:auto;border:1px solid var(--bd1);border-radius:8px;padding:6px 10px">${membros || '<div class="pac-empty">Sem pessoas.</div>'}</div>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="tk-btn primary" onclick="gtGrupoSalvar('${id || ''}')"><i class="ti ti-check"></i> Salvar</button><button class="tk-btn" onclick="document.getElementById('gt-grupo-wrap').innerHTML=''">Cancelar</button></div>
+    <div id="gt-g-msg" style="font-size:12px;margin-top:6px"></div></div>`;
+}
+async function gtGrupoSalvar(id) {
+  const nome = document.getElementById('gt-g-nome').value.trim();
+  const msg = document.getElementById('gt-g-msg');
+  if (!nome) { msg.innerHTML = '<span style="color:#f85149">Informe o nome.</span>'; return; }
+  const membros = [...document.querySelectorAll('.gt-gm:checked')].map((c) => c.value);
+  const body = JSON.stringify({ nome, membros });
+  const r = id ? await pacApi('/api/clinico/tarefas-gestao/grupos/' + id, { method: 'PUT', body }) : await pacApi('/api/clinico/tarefas-gestao/grupos', { method: 'POST', body });
+  if (!r.ok) { msg.innerHTML = '<span style="color:#f85149">Erro ao salvar.</span>'; return; }
+  await gtCarregarBase(); gtGruposRender(); homeToast('Grupo salvo.');
+}
+async function gtGrupoExcluir(id) {
+  if (!confirm('Excluir este grupo?')) return;
+  const r = await pacApi('/api/clinico/tarefas-gestao/grupos/' + id, { method: 'DELETE' });
+  if (r.ok) { await gtCarregarBase(); gtGruposRender(); } else homeToast('Não foi possível excluir.');
+}
+// ---- Níveis ----
+function gtEquipeRender() {
+  const box = document.getElementById('gt-equipe');
+  const linhas = gtState.pessoas.map((p) => {
+    const opts = ['', 'junior', 'pleno', 'senior'].map((n) => `<option value="${n}"${(p.nivel || '') === n ? ' selected' : ''}>${n ? gtNivelLabel(n) : '—'}</option>`).join('');
+    const cargos = p.cargos.map((c) => `<span class="gt-badge" style="margin-right:4px">${esc(c.nome)}</span>`).join('') || '<span style="color:var(--tx4);font-size:11px">sem cargo</span>';
+    return `<tr><td><span class="ator">${esc(p.nome)}</span></td><td>${cargos}</td><td><select class="pac-search" style="max-width:140px" onchange="gtNivelSet('${p.id}',this.value)">${opts}</select></td></tr>`;
+  }).join('');
+  box.innerHTML = `<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">A senioridade é separada do cargo — dá pra atribuir tarefa a "todos os Sêniores" ou a "Nutricionistas Plenos".</div>
+    <div class="dev-table-wrap"><div style="overflow-x:auto;"><table class="dev-table"><thead><tr><th>Pessoa</th><th>Cargos</th><th>Nível</th></tr></thead><tbody>${linhas || '<tr><td colspan="3" style="text-align:center;color:var(--tx4)">Sem pessoas.</td></tr>'}</tbody></table></div></div>`;
+}
+async function gtNivelSet(id, nivel) {
+  const r = await pacApi('/api/clinico/tarefas-gestao/pessoas/' + id + '/nivel', { method: 'PUT', body: JSON.stringify({ nivel: nivel || null }) });
+  if (r.ok) { const p = gtState.pessoas.find((x) => x.id === id); if (p) p.nivel = nivel || null; homeToast('Nível atualizado.'); }
+  else homeToast('Não foi possível atualizar.');
 }
 
 async function devCarregar() {
