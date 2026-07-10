@@ -5700,7 +5700,7 @@
       <button class="sidebar-item" data-view="insumos">
         <i class="ti ti-list-details"></i> Catálogo
       </button>
-      <button class="sidebar-item" data-view="injetaveis" data-perm="prescricao_inj.criar|financeiro.ver|prontuario.aplicacao.registrar">
+      <button class="sidebar-item" data-view="injetaveis" data-perm="financeiro.ver|prontuario.aplicacao.registrar">
         <i class="ti ti-prescription"></i> Injetáveis
       </button>
       <button class="sidebar-item" data-view="varejo" data-perm="financeiro.ver">
@@ -6648,8 +6648,7 @@
   </style>
   <div class="view" id="view-injetaveis">
     <div class="pt-tabs">
-      <button class="pt-tab active" data-tab="prescrever" data-perm="prescricao_inj.criar" onclick="injTab('prescrever')"><i class="ti ti-prescription"></i> Prescrever</button>
-      <button class="pt-tab" data-tab="cobranca" data-perm="financeiro.ver" onclick="injTab('cobranca')"><i class="ti ti-cash"></i> Cobrança</button>
+      <button class="pt-tab active" data-tab="cobranca" data-perm="financeiro.ver" onclick="injTab('cobranca')"><i class="ti ti-cash"></i> Cobrança</button>
       <button class="pt-tab" data-tab="aplicar" data-perm="prontuario.aplicacao.registrar" onclick="injTab('aplicar')"><i class="ti ti-vaccine"></i> Aplicar</button>
       <button class="pt-tab" data-tab="precos" data-perm="financeiro.ver" onclick="injTab('precos')"><i class="ti ti-tag"></i> Preços</button>
     </div>
@@ -11225,7 +11224,6 @@ function injBadge(s) {
 const INJ_ERRO = '<div class="pac-empty" style="padding:12px;color:#f85149">Não foi possível carregar — tente novamente.</div>';
 function injAllowed() {
   const a = [];
-  if (temPermissao('prescricao_inj.criar')) a.push('prescrever');
   if (temPermissao('financeiro.ver')) a.push('cobranca');
   if (temPermissao('prontuario.aplicacao.registrar')) a.push('aplicar');
   if (temPermissao('financeiro.ver')) a.push('precos');
@@ -11260,7 +11258,8 @@ function injOverlay(html) {
 
 // --- Aba PRESCREVER (médico) ---
 function injRenderPrescrever() {
-  const c = document.getElementById('inj-conteudo'); if (!c) return;
+  // Alvo configurável: por padrão a aba, mas embutido no modal do prontuário usa #pr-inj-wrap.
+  const c = document.getElementById(injState.prescEl || 'inj-conteudo'); if (!c) return;
   const p = injState.patient;
   c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Paciente</div>'
     + (p
@@ -12101,7 +12100,19 @@ function renderPacAppDetalhe(d){
       : '<div style="display:flex;gap:8px;">'+[0,1,2].map(function(){return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>';}).join('')+'</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">O paciente ainda não enviou fotos de evolução pelo app.</div>'
     )+'</div>';
 
-  function coachCard(nome,ic,c){ return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti '+ic+'"></i> Coach IA — '+nome+'</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="font-size:12px;color:var(--tx3);min-height:40px;">'+((c&&c.disponivel&&c.resumo)?c.resumo:('Resumo da conversa do paciente com o coach '+nome.toLowerCase()+' (ainda não disponível).'))+'</div><button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button></div>'; }
+  function coachCard(nome,ic,c){
+    var coachKey=(nome==='Físico')?'fisico':'nutri';
+    var pid=(d.paciente&&d.paciente.id)||'';
+    var disp=!!(c&&c.disponivel);
+    var corpo=disp
+      ? '<div style="font-size:12px;color:var(--tx2);min-height:40px;">'+(c.resumo?esc(c.resumo):'')+'</div>'
+        +'<div style="font-size:10px;color:var(--tx4);margin-top:4px;">'+(c.total_mensagens||0)+' mensagens · última '+pacAppData(c.ultima_em)+'</div>'
+      : '<div style="font-size:12px;color:var(--tx3);min-height:40px;">O paciente ainda não conversou com o coach '+nome.toLowerCase()+' pelo app.</div>';
+    var botao=disp
+      ? '<button class="pac-btn-secondary" style="margin-top:8px;" onclick="prAbrirCoachChat(\''+pid+'\',\''+coachKey+'\',\''+nome+'\')"><i class="ti ti-message-circle"></i> Entrar no chat</button>'
+      : '<button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button>';
+    return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti '+ic+'"></i> Coach IA — '+nome+'</div></div>'+corpo+botao+'</div>';
+  }
 
   const sonoBlock=pacAppWellCard('Sono','ti-moon',d.sono,'sono');
   const recBlock=pacAppWellCard('Recuperação','ti-bolt',d.recovery,'recovery');
@@ -19092,6 +19103,41 @@ async function prAbrirScoreHist(tipo) {
   body.innerHTML = '<div class="sc-modal-chart">' + prScoreChart(serie, cor) + '</div>' + detalhe;
 }
 
+// Abre a conversa (read-only) do paciente com um Coach IA (nutri|fisico) num modal.
+async function prAbrirCoachChat(pid, coach, nomeLabel) {
+  const titulo = 'Coach IA — ' + (nomeLabel || (coach === 'fisico' ? 'Físico' : 'Nutricional'));
+  let ov = document.getElementById('pr-coach-modal'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'pr-coach-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'pr-coach-modal') ov.remove(); };
+  ov.innerHTML = '<div class="pac-modal" style="max-width:560px;"><div class="pac-modal-head"><div class="ttl"><i class="ti ti-message-circle"></i> ' + esc(titulo) + '</div>'
+    + '<button class="pac-modal-close" onclick="document.getElementById(\'pr-coach-modal\').remove()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body" id="pr-coach-body"><div class="sc-loading"><i class="ti ti-loader-2"></i></div></div></div>';
+  document.body.appendChild(ov);
+
+  let msgs = [];
+  try {
+    const r = await pacApi('/api/clinico/app/paciente/' + pid + '/coach/' + coach);
+    msgs = (r.ok && r.data && r.data.mensagens) ? r.data.mensagens : [];
+  } catch (e) { msgs = null; }
+  const body = document.getElementById('pr-coach-body');
+  if (!body) return; // modal fechado durante o fetch
+  if (msgs === null) { body.innerHTML = '<div class="sc-empty">Não foi possível carregar a conversa.</div>'; return; }
+  if (!msgs.length) { body.innerHTML = '<div class="sc-empty">Nenhuma conversa registrada com este coach ainda.</div>'; return; }
+  const linhas = msgs.map(function (mm) {
+    const mine = mm.role === 'user';
+    const bg = mine ? 'var(--ac)' : 'var(--bg3)';
+    const col = mine ? '#0b1210' : 'var(--tx1)';
+    const quem = mine ? 'Paciente' : 'Coach IA';
+    return '<div style="display:flex;justify-content:' + (mine ? 'flex-end' : 'flex-start') + ';margin-bottom:8px;">'
+      + '<div style="max-width:78%;">'
+      + '<div style="font-size:9px;color:var(--tx4);margin-bottom:2px;text-align:' + (mine ? 'right' : 'left') + ';">' + quem + ' · ' + pacAppData(mm.data) + '</div>'
+      + '<div style="background:' + bg + ';color:' + col + ';padding:8px 11px;border-radius:12px;font-size:13px;line-height:1.45;white-space:pre-wrap;word-break:break-word;">' + esc(mm.content) + '</div>'
+      + '</div></div>';
+  }).join('');
+  body.innerHTML = '<div style="display:flex;flex-direction:column;">' + linhas + '</div>'
+    + '<div style="font-size:10px;color:var(--tx4);margin-top:10px;text-align:center;">Conversa somente-leitura · registrada a partir do app do paciente.</div>';
+}
+
 function prRenderAppMonitor() {
   const m = prState.appMonitor;
   if (!m || !m.data) return '';
@@ -19141,8 +19187,20 @@ function prRenderAppMonitor() {
           : '<div style="display:flex;gap:8px;">' + [0, 1, 2].map(function(){ return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>'; }).join('') + '</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">O paciente ainda não enviou fotos de evolução pelo app.</div>'
       ) + '</div>');
   })();
-  // Coach IA — conversa do paciente com os agentes (igual à aba antiga, placeholder)
-  var coachCard = function(nome, ic, c){ return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ' + ic + '"></i> Coach IA — ' + nome + '</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="font-size:12px;color:var(--tx3);min-height:40px;">' + ((c && c.disponivel && c.resumo) ? c.resumo : ('Resumo da conversa do paciente com o coach ' + nome.toLowerCase() + ' (ainda não disponível).')) + '</div><button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button></div>'; };
+  // Coach IA — conversa REAL do paciente com os agentes (clica pra abrir o chat, read-only)
+  var coachCard = function(nome, ic, c){
+    var coachKey = (nome === 'Físico') ? 'fisico' : 'nutri';
+    var pid = (d.paciente && d.paciente.id) || '';
+    var disp = !!(c && c.disponivel);
+    var corpo = disp
+      ? '<div style="font-size:12px;color:var(--tx2);min-height:40px;">' + (c.resumo ? esc(c.resumo) : '') + '</div>'
+        + '<div style="font-size:10px;color:var(--tx4);margin-top:4px;">' + (c.total_mensagens || 0) + ' mensagens · última ' + pacAppData(c.ultima_em) + '</div>'
+      : '<div style="font-size:12px;color:var(--tx3);min-height:40px;">O paciente ainda não conversou com o coach ' + nome.toLowerCase() + ' pelo app.</div>';
+    var botao = disp
+      ? '<button class="pac-btn-secondary" style="margin-top:8px;" onclick="prAbrirCoachChat(\'' + pid + '\',\'' + coachKey + '\',\'' + nome + '\')"><i class="ti ti-message-circle"></i> Entrar no chat</button>'
+      : '<button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button>';
+    return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ' + ic + '"></i> Coach IA — ' + nome + '</div></div>' + corpo + botao + '</div>';
+  };
   cards.push(coachCard('Nutricional', 'ti-apple', d.coach_ia && d.coach_ia.nutricional));
   cards.push(coachCard('Físico', 'ti-barbell', d.coach_ia && d.coach_ia.fisico));
   if (!cards.length) return '';
@@ -21073,8 +21131,8 @@ function rxRerender(scroll) {
   sec.innerHTML = rxState.aberto ? prRenderPrescritor() : '';
   if (scroll && rxState.aberto) setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
-// "Injetáveis" no seletor de documentos: leva pro módulo de Injetáveis (aba Prescrever)
-// já com o paciente atual selecionado — o builder semana-a-semana vive lá.
+// "Injetáveis" no seletor de documentos: monta o builder semana-a-semana DENTRO do modal
+// (abaixo do seletor, no prontuário), igual ao Receituário — sem trocar de tela.
 function prAbrirInjetaveis() {
   if (typeof temPermissao === 'function' && !temPermissao('prescricao_inj.criar')) {
     if (typeof homeToast === 'function') homeToast('Você não tem permissão pra prescrever injetáveis.');
@@ -21082,13 +21140,12 @@ function prAbrirInjetaveis() {
   }
   const p = prState.pacienteAtual;
   if (!p || !p.id) { if (typeof homeToast === 'function') homeToast('Abra o paciente primeiro.'); return; }
-  if (typeof injState !== 'undefined') {
-    injState.patient = { id: p.id, nome: p.nome || p.nome_completo || p.nomeCompleto || '', codigo: p.codigo || '' };
-    injState.builder = null; // começa uma prescrição nova pra esse paciente
-  }
-  if (typeof rxFechar === 'function') rxFechar();
-  trocarView('injetaveis');
-  setTimeout(() => { if (typeof injTab === 'function') injTab('prescrever'); }, 0);
+  injState.patient = { id: p.id, nome: p.nome || p.nome_completo || p.nomeCompleto || '', codigo: p.codigo || '' };
+  injState.builder = null;               // prescrição nova pra esse paciente
+  injState.prescEl = 'pr-inj-wrap';      // renderiza dentro do modal, não na aba
+  rxState.tipoDoc = 'injetaveis';
+  rxRerender(false);                     // re-renderiza o modal com o container #pr-inj-wrap
+  injRenderPrescrever();                 // preenche o container (paciente + builder)
 }
 function rxSetTipoDoc(t) {
   if (t === 'exames') {
@@ -21224,6 +21281,7 @@ function prRenderPrescritor() {
         ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
         ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
       </div>
+      ${rxState.tipoDoc === 'injetaveis' ? `<div id="pr-inj-wrap" style="margin-top:14px"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando módulo de injetáveis…</div></div>` : `
       ${ehAtestado ? `
         <div class="rx-lbl">Selecione o modelo de atestado</div>
         <div class="rx-row">
@@ -21295,6 +21353,7 @@ function prRenderPrescritor() {
           : 'O documento sai com QR + chave de acesso pra farmácia conferir.')}
         ${ehAtestado ? '' : 'Prefere o formulário por itens? <a onclick="prAbrirPrescModal()">Abrir modo estruturado</a>.'}</div>
       <div id="rx-erro" style="display:none; color:#f85149; font-size:12px; margin-top:10px;"></div>
+      `}
     </div>`;
 }
 
