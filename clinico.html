@@ -6630,6 +6630,7 @@
       <button class="pt-tab active" data-tab="vender" onclick="varTab('vender')"><i class="ti ti-shopping-cart-plus"></i> Vender</button>
       <button class="pt-tab" data-tab="vendas" onclick="varTab('vendas')"><i class="ti ti-receipt"></i> Vendas</button>
       <button class="pt-tab" data-tab="recompras" onclick="varTab('recompras')"><i class="ti ti-refresh"></i> Recompras</button>
+      <button class="pt-tab" data-tab="produtos" id="var-tab-produtos" style="display:none" onclick="varTab('produtos')"><i class="ti ti-package"></i> Produtos</button>
     </div>
     <div id="var-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
   </div>
@@ -11408,13 +11409,18 @@ async function injSalvarPremissas() {
 const varState = { tab: null, produtos: null, patient: null, pacResults: [], prodErr: false };
 function varBadgeEntrega(s) { const m = { pendente: '#e3b341', separado: '#e3b341', enviado: '#4A90E2', entregue: '#3fb950', retirado: '#3fb950', cancelado: 'var(--tx4)' }; const c = m[s] || 'var(--tx3)'; return `<span class="inj-badge" style="color:${c};border:1px solid ${c}">${esc(s)}</span>`; }
 function varBadgeRecompra(s) { const m = { vencida: '#f85149', oferecer: '#e3b341', em_dia: '#3fb950' }, l = { vencida: 'Vencida', oferecer: 'Oferecer', em_dia: 'Em dia' }; const c = m[s] || 'var(--tx3)'; return `<span class="inj-badge" style="color:${c};border:1px solid ${c}">${esc(l[s] || s)}</span>`; }
-function varInit() { varTab('vender'); }
+function varInit() {
+  const pt = document.getElementById('var-tab-produtos'); if (pt) pt.style.display = temPermissao('custo.ver') ? '' : 'none';
+  varTab('vender');
+}
 function varTab(t) {
   if (!temPermissao('financeiro.ver')) return;
+  if (t === 'produtos' && !temPermissao('custo.ver')) t = 'vender';
   varState.tab = t;
   document.querySelectorAll('#view-varejo .pt-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
   if (t === 'vender') varRenderVender();
   else if (t === 'vendas') varRenderVendas();
+  else if (t === 'produtos') varRenderProdutos();
   else varRenderRecompras();
 }
 
@@ -11538,6 +11544,61 @@ async function varRenderRecompras() {
         return `<div class="inj-res-item"><div><strong>${esc(r.paciente || '—')}</strong> ${varBadgeRecompra(r.status_recompra)}<div style="font-size:11px;color:var(--tx3)">${esc(r.sku)} ×${r.qtd} · recompra prevista ${dt}</div></div></div>`;
       }).join('')
     : '<div class="pac-empty" style="padding:12px">Nenhuma recompra próxima.</div>';
+}
+
+// --- Aba PRODUTOS (gestão do catálogo de varejo — custo.ver) ---
+async function varRenderProdutos() {
+  const c = document.getElementById('var-conteudo'); if (!c) return;
+  c.innerHTML = '<div class="dash-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="cart-blk-ttl" style="margin:0">Produtos de varejo</div><button class="tk-btn primary" onclick="varProdEditar(null)"><i class="ti ti-plus"></i> Novo produto</button></div><div id="var-prods"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  let prods = [], err = false;
+  try { const r = await pacApi('/api/clinico/varejo/produtos?todos=1'); if (r.ok) prods = r.data.produtos || []; else err = true; } catch (e) { err = true; }
+  varState.prodsMgmt = prods;
+  const box = document.getElementById('var-prods'); if (!box) return;
+  if (err) { box.innerHTML = INJ_ERRO; return; }
+  box.innerHTML = prods.length
+    ? '<table class="gst-table"><thead><tr><th>SKU</th><th>Produto</th><th style="text-align:right">Pac. ativo</th><th style="text-align:right">Não pac.</th><th style="text-align:right">Estoque</th><th></th></tr></thead><tbody>'
+      + prods.map((p) => `<tr${p.ativo === false ? ' style="opacity:.5"' : ''}><td style="color:var(--tx3)">${esc(p.sku)}</td><td>${esc(p.nome)}${p.ativo === false ? ' <span style="font-size:10px;color:var(--tx4)">(inativo)</span>' : ''}</td><td class="num">${homeGestorFmtBRL(p.preco_paciente_cents)}</td><td class="num">${homeGestorFmtBRL(p.preco_nao_paciente_cents)}</td><td class="num" style="${p.estoque_baixo ? 'color:#e3b341' : ''}">${p.estoque_atual}</td><td><button class="tk-btn" style="padding:5px 10px;font-size:12px" onclick="varProdEditar('${esc(p.sku)}')"><i class="ti ti-pencil"></i> Editar</button></td></tr>`).join('') + '</tbody></table>'
+    : '<div class="pac-empty" style="padding:12px">Nenhum produto de varejo.</div>';
+}
+function varProdEditar(sku) {
+  if (!temPermissao('custo.ver')) { homeToast('Sem permissão.'); return; }
+  const p = sku ? ((varState.prodsMgmt || []).find((x) => x.sku === sku) || {}) : {};
+  const isNew = !sku;
+  const brl = (c) => (c == null ? '' : (Number(c) / 100).toFixed(2));
+  const lab = 'font-size:10.5px;color:var(--tx3);display:block';
+  const F = (id, label, val, num) => `<div><label style="${lab}">${label}</label><input id="${id}"${num ? ' type="number" step="any"' : ''} value="${esc(val == null ? '' : val)}" class="pac-search" style="margin-top:2px"></div>`;
+  const body = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:16px;font-weight:700;color:var(--tx1)">${isNew ? 'Novo produto' : 'Editar ' + esc(p.nome || sku)}</div><button onclick="document.getElementById('var-modal').remove()" style="background:none;border:0;color:var(--tx3);font-size:20px;cursor:pointer">×</button></div>`
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    + (isNew ? F('var-f-sku', 'SKU', p.sku) : `<div><label style="${lab}">SKU</label><input class="pac-search" value="${esc(sku)}" disabled style="margin-top:2px;opacity:.6"></div>`)
+    + F('var-f-nome', 'Produto', p.nome) + F('var-f-cat', 'Categoria', p.categoria)
+    + F('var-f-dias', 'Dias de uso', p.dias_de_uso, true) + F('var-f-custo', 'Custo (R$)', brl(p.custo_cents), true)
+    + F('var-f-ppac', 'Preço paciente ativo (R$)', brl(p.preco_paciente_cents), true) + F('var-f-pnao', 'Preço não paciente (R$)', brl(p.preco_nao_paciente_cents), true)
+    + F('var-f-est', 'Estoque atual', p.estoque_atual, true) + F('var-f-estmin', 'Estoque mínimo', p.estoque_minimo, true)
+    + `<div style="align-self:flex-end;padding-bottom:6px"><label style="font-size:12px;color:var(--tx2)"><input type="checkbox" id="var-f-ativo" ${p.ativo !== false ? 'checked' : ''}> Ativo</label></div>`
+    + '</div>'
+    + `<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('var-modal').remove()">Cancelar</button><button class="tk-btn primary" onclick="varProdSalvar(${sku ? `'${esc(sku)}'` : 'null'})"><i class="ti ti-check"></i> Salvar</button></div>`;
+  let ov = document.getElementById('var-modal');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'var-modal'; ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px'; ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); }); document.body.appendChild(ov); }
+  ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:20px">${body}</div>`;
+}
+async function varProdSalvar(sku) {
+  const v = (id) => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  const num = (id) => { const e = document.getElementById(id); const n = e ? parseFloat(e.value) : NaN; return isNaN(n) ? null : n; };
+  const cents = (id) => { const n = num(id); return n == null ? null : Math.round(n * 100); };
+  const intg = (id) => { const n = num(id); return n == null ? 0 : Math.round(n); };
+  const chk = (id) => { const e = document.getElementById(id); return e ? e.checked : true; };
+  const skuFinal = sku || v('var-f-sku');
+  if (!/^[A-Za-z0-9_-]{2,40}$/.test(skuFinal)) { homeToast('SKU inválido (letras, números, hífen).'); return; }
+  if (v('var-f-nome').length < 2) { homeToast('Informe o nome do produto.'); return; }
+  const body = {
+    sku: skuFinal, nome: v('var-f-nome'), categoria: v('var-f-cat') || null, dias_de_uso: intg('var-f-dias') || 30,
+    custo_cents: cents('var-f-custo'), preco_paciente_cents: cents('var-f-ppac') || 0, preco_nao_paciente_cents: cents('var-f-pnao') || 0,
+    estoque_atual: intg('var-f-est'), estoque_minimo: intg('var-f-estmin'), ativo: chk('var-f-ativo'),
+  };
+  let ok = false, msg = '';
+  try { const r = await pacApi('/api/clinico/varejo/produtos', { method: 'POST', body: JSON.stringify(body) }); ok = r.ok; if (!ok && r.data) msg = r.data.erro || ''; } catch (e) {}
+  homeToast(ok ? (sku ? 'Produto atualizado.' : 'Produto criado.') : ('Não foi possível salvar: ' + (msg || 'erro')));
+  if (ok) { const ov = document.getElementById('var-modal'); if (ov) ov.remove(); varState.produtos = null; varRenderProdutos(); }
 }
 
 function gstFocoRender(d) {
