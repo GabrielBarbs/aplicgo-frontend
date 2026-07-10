@@ -6602,11 +6602,17 @@
     #view-injetaveis .pt-tab{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--tx3);font:inherit;font-size:14px;font-weight:500;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;margin-bottom:-1px}
     #view-injetaveis .pt-tab.active{color:var(--tx1);border-bottom-color:var(--ac)}
     #view-injetaveis .inj-wk{border:1px solid var(--bd1);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--bg2)}
-    #view-injetaveis .inj-wk-h{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px}
-    #view-injetaveis .inj-row{display:grid;grid-template-columns:1.7fr .8fr .7fr .8fr 1.1fr auto;gap:6px;margin-bottom:6px;align-items:center}
+    #view-injetaveis .inj-wk-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--tx2);margin-bottom:6px}
+    #view-injetaveis .inj-wk-acts{display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    #view-injetaveis .inj-wk-resp{padding:4px 6px !important;font-size:11px !important;max-width:160px}
+    #view-injetaveis .inj-item{margin-bottom:6px}
+    #view-injetaveis .inj-row{display:grid;grid-template-columns:1.5fr .65fr .55fr .7fr 1fr .95fr auto;gap:6px;align-items:center}
     #view-injetaveis .inj-row .pac-search{padding:6px 8px;font-size:12px;margin-top:0}
+    #view-injetaveis .inj-acts{display:flex;gap:3px;align-items:center}
+    #view-injetaveis .inj-obs{width:100%;font-size:12px !important;margin-top:4px !important;border-color:var(--ac) !important}
     #view-injetaveis .inj-mini{background:var(--bg3);border:0;border-radius:6px;color:var(--tx2);font-size:11px;padding:5px 9px;cursor:pointer;white-space:nowrap}
-    @media(max-width:640px){#view-injetaveis .inj-row{grid-template-columns:1fr 1fr}}
+    #view-injetaveis .inj-mini.on{background:var(--ac);color:#1a1205}
+    @media(max-width:640px){#view-injetaveis .inj-row{grid-template-columns:1fr 1fr}#view-injetaveis .inj-wk-resp{max-width:none}}
     .inj-badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap}
     .inj-res-item{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:9px 12px;margin-bottom:7px}
     .inj-pick{background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;overflow:hidden;margin-top:6px}
@@ -11254,7 +11260,7 @@ async function injBuilderInit() {
 }
 function injNewBItem(sem) {
   const cat = injState.catalogo || [];
-  return { id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: sem, sku: cat[0] ? cat[0].sku : '', dose: '', via: '', frequencia: '', responsavel_id: '' };
+  return { id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: sem, sku: cat[0] ? cat[0].sku : '', dose: '', via: '', frequencia: '', responsavel_id: '', incluso_padrao: 'depende_plano', observacao: '' };
 }
 function injViaFirst(v) { const s = (v || '').toUpperCase(); for (const x of ['IM', 'EV', 'SC', 'ID']) if (s.indexOf(x) >= 0) return x; return ''; }
 function injBuilderBlank() { injState.builder = [injNewBItem(1)]; injBuilderRender(); }
@@ -11262,22 +11268,35 @@ function injBuilderFromTemplate(protId) {
   if (!protId) return;
   const m = (injState.protocolos || []).find((x) => x.protocolo_id === protId);
   if (!m) return;
-  injState.builder = (m.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku_ativo, dose: it.dose || '', via: injViaFirst(it.via), frequencia: it.frequencia || '', responsavel_id: '' }));
+  // 'nao_incluso' e 'depende_plano' têm o mesmo efeito no motor (o plano decide) — normalizo p/ não exibir rótulo enganoso.
+  injState.builder = (m.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku_ativo, dose: it.dose || '', via: injViaFirst(it.via), frequencia: it.frequencia || '', responsavel_id: '', incluso_padrao: it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano', observacao: it.observacao || '' }));
+  injBuilderRenumber();
   if (!injState.builder.length) injBuilderBlank(); else injBuilderRender();
 }
 function injBuilderRender() {
   const box = document.getElementById('inj-builder'); if (!box) return;
   const items = injState.builder || [];
-  const maxSem = Math.max(1, ...items.map((i) => i.semana));
+  // Só rendemos as semanas que existem (sem semana-fantasma vazia após remoção).
+  const semanas = [...new Set(items.map((i) => i.semana))].sort((a, b) => a - b);
   let html = '';
-  for (let s = 1; s <= maxSem; s++) {
+  for (const s of semanas) {
     const wk = items.filter((i) => i.semana === s);
-    html += `<div class="inj-wk"><div class="inj-wk-h"><span>Semana ${s}</span><button class="inj-mini" onclick="injBuilderAddItem(${s})"><i class="ti ti-plus"></i> item</button></div>`;
-    html += wk.length ? wk.map(injBuilderRow).join('') : '<div style="font-size:11px;color:var(--tx4);padding:4px 0">sem itens nesta semana</div>';
+    // responsável "da semana" = mostra selecionado só quando TODOS os itens têm o mesmo responsável.
+    const mesmoResp = wk.length && wk.every((i) => i.responsavel_id === wk[0].responsavel_id) ? wk[0].responsavel_id : '';
+    const respSel = '<option value="">responsável da semana…</option>' + (injState.profs || []).map((p) => `<option value="${esc(p.id)}"${p.id === mesmoResp ? ' selected' : ''}>${esc(p.nome)}</option>`).join('');
+    html += `<div class="inj-wk"><div class="inj-wk-h"><span>Semana ${s} <span style="color:var(--tx4);font-weight:400">· ${wk.length} ${wk.length === 1 ? 'item' : 'itens'}</span></span><div class="inj-wk-acts">`
+      + `<select class="pac-search inj-wk-resp" onchange="injBuilderSetSemanaResp(${s}, this.value)" title="define o responsável de todos os itens desta semana">${respSel}</select>`
+      + `<button class="inj-mini" onclick="injBuilderAddItem(${s})" title="adicionar item"><i class="ti ti-plus"></i> item</button>`
+      + `<button class="inj-mini" onclick="injBuilderDupSemana(${s})" title="duplicar esta semana"><i class="ti ti-copy"></i></button>`
+      + `<button class="inj-mini" onclick="injBuilderRemoveSemana(${s})" title="remover semana inteira">×</button>`
+      + `</div></div>`;
+    html += wk.map(injBuilderRow).join('');
     html += '</div>';
   }
   box.innerHTML = html + `<button class="tk-btn" style="background:var(--bg3);color:var(--tx2);margin-top:6px" onclick="injBuilderAddSemana()"><i class="ti ti-plus"></i> Semana</button>`;
 }
+// esc() escapa < > & mas NÃO aspas — dentro de value="…" uma aspas quebra o atributo/trunca o texto. injAttr fecha isso.
+function injAttr(v) { return esc(String(v == null ? '' : v)).replace(/"/g, '&quot;'); }
 function injBuilderRow(it) {
   const cat = injState.catalogo || [];
   const known = !it.sku || cat.some((c) => c.sku === it.sku);
@@ -11287,20 +11306,75 @@ function injBuilderRow(it) {
   const opts = foraOpt + cat.map((c) => `<option value="${esc(c.sku)}"${(known && c.sku === it.sku) ? ' selected' : ''}>${esc(c.produto)}</option>`).join('');
   const viaOpts = ['', 'IM', 'EV', 'SC', 'ID'].map((v) => `<option${v === it.via ? ' selected' : ''}>${v}</option>`).join('');
   const profOpts = '<option value="">— responsável —</option>' + (injState.profs || []).map((p) => `<option value="${esc(p.id)}"${p.id === it.responsavel_id ? ' selected' : ''}>${esc(p.nome)}</option>`).join('');
-  return '<div class="inj-row">'
+  // Incluso = já liberado sem cobrança; "plano decide" cai no motor (cobra se o plano não cobrir).
+  const incVal = it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano';
+  const incOpts = [['depende_plano', 'Cobrança: plano'], ['incluso', 'Incluso (grátis)']].map(([v, l]) => `<option value="${v}"${incVal === v ? ' selected' : ''}>${l}</option>`).join('');
+  const obsOpen = (injState._obsOpen && injState._obsOpen[it.id]) || !!(it.observacao && it.observacao.trim());
+  const obsLine = obsOpen ? `<input class="pac-search inj-obs" data-bid="${it.id}" data-f="observacao" value="${injAttr(it.observacao)}" placeholder="obs clínica (opcional): diluir em 100 ml SF, infusão lenta…" onchange="injBuilderSet(this)">` : '';
+  return '<div class="inj-item">'
+    + '<div class="inj-row">'
     + `<select class="pac-search" data-bid="${it.id}" data-f="sku" onchange="injBuilderSet(this)">${opts}</select>`
-    + `<input class="pac-search" data-bid="${it.id}" data-f="dose" value="${esc(it.dose || '')}" placeholder="dose" onchange="injBuilderSet(this)">`
+    + `<input class="pac-search" data-bid="${it.id}" data-f="dose" value="${injAttr(it.dose)}" placeholder="dose" onchange="injBuilderSet(this)">`
     + `<select class="pac-search" data-bid="${it.id}" data-f="via" onchange="injBuilderSet(this)">${viaOpts}</select>`
-    + `<input class="pac-search" data-bid="${it.id}" data-f="frequencia" value="${esc(it.frequencia || '')}" placeholder="freq" onchange="injBuilderSet(this)">`
+    + `<input class="pac-search" data-bid="${it.id}" data-f="frequencia" value="${injAttr(it.frequencia)}" placeholder="freq" onchange="injBuilderSet(this)">`
     + `<select class="pac-search" data-bid="${it.id}" data-f="responsavel_id" onchange="injBuilderSet(this)">${profOpts}</select>`
+    + `<select class="pac-search" data-bid="${it.id}" data-f="incluso_padrao" onchange="injBuilderSet(this)" title="Incluso = liberado sem cobrança">${incOpts}</select>`
+    + '<span class="inj-acts">'
+    + `<button class="inj-mini${obsOpen ? ' on' : ''}" title="observação clínica" onclick="injBuilderToggleObs('${it.id}')"><i class="ti ti-note"></i></button>`
+    + `<button class="inj-mini" title="duplicar item" onclick="injBuilderDupItem('${it.id}')"><i class="ti ti-copy"></i></button>`
     + `<button class="inj-mini" title="remover item" onclick="injBuilderRemoveItem('${it.id}')">×</button>`
+    + '</span>'
+    + '</div>'
+    + obsLine
     + '</div>';
 }
 function injBuilderSet(el) { const it = (injState.builder || []).find((x) => x.id === el.dataset.bid); if (it) it[el.dataset.f] = el.value; }
 function injBuilderSync() { document.querySelectorAll('#inj-builder [data-bid]').forEach(injBuilderSet); }
 function injBuilderAddItem(sem) { injBuilderSync(); injState.builder.push(injNewBItem(sem)); injBuilderRender(); }
 function injBuilderAddSemana() { injBuilderSync(); const maxSem = Math.max(0, ...injState.builder.map((i) => i.semana)); injState.builder.push(injNewBItem(maxSem + 1)); injBuilderRender(); }
-function injBuilderRemoveItem(id) { injBuilderSync(); injState.builder = (injState.builder || []).filter((x) => x.id !== id); if (!injState.builder.length) injState.builder = [injNewBItem(1)]; injBuilderRender(); }
+function injBuilderRemoveItem(id) { injBuilderSync(); injState.builder = (injState.builder || []).filter((x) => x.id !== id); if (!injState.builder.length) injState.builder = [injNewBItem(1)]; injBuilderRenumber(); injBuilderRender(); }
+// Reindexa as semanas para 1..n (mantém contíguo após remover/duplicar).
+function injBuilderRenumber() {
+  const uniq = [...new Set((injState.builder || []).map((i) => i.semana))].sort((a, b) => a - b);
+  const map = new Map(uniq.map((v, idx) => [v, idx + 1]));
+  (injState.builder || []).forEach((i) => { i.semana = map.get(i.semana); });
+}
+// Duplica a semana s (clona itens) logo depois dela, empurrando as seguintes.
+function injBuilderDupSemana(s) {
+  injBuilderSync();
+  const src = (injState.builder || []).filter((i) => i.semana === s);
+  if (!src.length) return;
+  (injState.builder || []).forEach((i) => { if (i.semana > s) i.semana += 1; });
+  src.forEach((i) => { injState.builder.push({ ...i, id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: s + 1 }); });
+  injBuilderRenumber();
+  injBuilderRender();
+}
+function injBuilderRemoveSemana(s) {
+  injBuilderSync();
+  injState.builder = (injState.builder || []).filter((i) => i.semana !== s);
+  if (!injState.builder.length) injState.builder = [injNewBItem(1)];
+  injBuilderRenumber();
+  injBuilderRender();
+}
+// Define o responsável de TODOS os itens da semana de uma vez (a mesma pessoa costuma aplicar a semana toda).
+function injBuilderSetSemanaResp(s, val) {
+  injBuilderSync();
+  (injState.builder || []).forEach((i) => { if (i.semana === s) i.responsavel_id = val; });
+  injBuilderRender();
+}
+function injBuilderDupItem(id) {
+  injBuilderSync();
+  const it = (injState.builder || []).find((x) => x.id === id); if (!it) return;
+  const idx = injState.builder.indexOf(it);
+  injState.builder.splice(idx + 1, 0, { ...it, id: 'b' + (injState._bid = (injState._bid || 0) + 1) });
+  injBuilderRender();
+}
+function injBuilderToggleObs(id) {
+  injBuilderSync();
+  injState._obsOpen = injState._obsOpen || {};
+  injState._obsOpen[id] = !injState._obsOpen[id];
+  injBuilderRender();
+}
 async function injPrescrever2() {
   if ((injState.catErr && !injState.catalogo) || !(injState.catalogo || []).length) { homeToast('Catálogo indisponível — não é possível prescrever agora.'); return; }
   injBuilderSync();
@@ -11308,7 +11382,7 @@ async function injPrescrever2() {
   const catSkus = new Set((injState.catalogo || []).map((c) => c.sku));
   const fora = [...new Set((injState.builder || []).filter((i) => i.sku && !catSkus.has(i.sku)).map((i) => i.sku))];
   if (fora.length) { homeToast('Insumo fora do catálogo: ' + fora.join(', ') + '. Escolha um insumo válido antes de prescrever.'); return; }
-  const itens = (injState.builder || []).filter((i) => i.sku).map((i) => ({ sku_ativo: i.sku, semana: i.semana, dose: i.dose || null, via: i.via || null, frequencia: i.frequencia || null, responsavel_id: i.responsavel_id || null }));
+  const itens = (injState.builder || []).filter((i) => i.sku).map((i) => ({ sku_ativo: i.sku, semana: i.semana, dose: i.dose || null, via: i.via || null, frequencia: i.frequencia || null, responsavel_id: i.responsavel_id || null, incluso_padrao: i.incluso_padrao || 'depende_plano', observacao: (i.observacao && i.observacao.trim()) ? i.observacao.trim() : null }));
   if (!itens.length) { homeToast('Adicione ao menos um item com insumo.'); return; }
   const res = document.getElementById('inj-presc-result');
   res.innerHTML = '<div class="pac-empty" style="padding:10px">Prescrevendo…</div>';
@@ -11330,7 +11404,11 @@ function injPrescResumo(pr) {
   const om = { incluso: { t: 'Tudo incluso', c: '#3fb950' }, parcial: { t: 'Parcial', c: '#e3b341' }, nao_incluso: { t: 'Não incluso', c: 'var(--tx3)' } }[pr.origem_inclusao] || { t: pr.origem_inclusao, c: 'var(--tx3)' };
   let dt = ''; try { dt = new Date(pr.data).toLocaleDateString('pt-BR'); } catch (e) {}
   const head = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;color:var(--tx3)">${esc(pr.protocolo_id || 'Avulsa')} · ${dt}</div><span class="inj-badge" style="color:${om.c};border:1px solid ${om.c}">${esc(om.t)}</span></div>`;
-  const itens = (pr.itens || []).map((it) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:4px 0;border-top:1px solid var(--bg3)"><span>${esc(it.sku_ativo)} <span style="color:var(--tx4)">sem ${it.semana}${it.dose ? ' · ' + esc(it.dose) : ''}${it.frequencia ? ' · ' + esc(it.frequencia) : ''}${it.responsavel ? ' · <i class="ti ti-user"></i> ' + esc(it.responsavel) : ''}</span></span>${injBadge(it.status_item)}</div>`).join('');
+  const itens = (pr.itens || []).map((it) => {
+    const meta = `sem ${it.semana}${it.dose ? ' · ' + esc(it.dose) : ''}${it.frequencia ? ' · ' + esc(it.frequencia) : ''}${it.responsavel ? ' · <i class="ti ti-user"></i> ' + esc(it.responsavel) : ''}${it.incluso ? ' · <span style="color:#3fb950">no pacote</span>' : ''}`;
+    const obs = it.observacao ? `<div style="font-size:11px;color:var(--tx4);padding:0 0 4px 2px"><i class="ti ti-note"></i> ${esc(it.observacao)}</div>` : '';
+    return `<div style="border-top:1px solid var(--bg3)"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:4px 0"><span>${esc(it.sku_ativo)} <span style="color:var(--tx4)">${meta}</span></span>${injBadge(it.status_item)}</div>${obs}</div>`;
+  }).join('');
   return `<div class="dash-card" style="margin-bottom:10px;padding:12px;background:var(--bg2)">${head}${itens}</div>`;
 }
 
@@ -11384,7 +11462,7 @@ async function injCarregarLiberados() {
   try { const r = await pacApi('/api/clinico/prescricoes-inj/liberados'); if (r.ok) itens = r.data.itens || []; else err = true; } catch (e) { err = true; }
   const box = document.getElementById('inj-liberados'); if (!box) return;
   box.innerHTML = err ? INJ_ERRO : (itens.length
-    ? itens.map((it) => `<div class="inj-res-item"><div><strong>${esc(it.paciente || '—')}</strong> ${injBadge(it.status_item)}<div style="font-size:11px;color:var(--tx3)">${esc(it.sku_ativo)} · ${esc(it.dose || '')} · ${esc(it.via || '')} · sem ${it.semana}${it.frequencia ? ' · ' + esc(it.frequencia) : ''}${it.incluso ? ' · <span style="color:#3fb950">incluso</span>' : ''}${it.responsavel ? ' · <i class="ti ti-user"></i> ' + esc(it.responsavel) : ''}</div></div><button class="tk-btn primary" onclick="injAplicar('${it.id}',this)"><i class="ti ti-vaccine"></i> Aplicar</button></div>`).join('')
+    ? itens.map((it) => `<div class="inj-res-item"><div><strong>${esc(it.paciente || '—')}</strong> ${injBadge(it.status_item)}<div style="font-size:11px;color:var(--tx3)">${esc(it.sku_ativo)} · ${esc(it.dose || '')} · ${esc(it.via || '')} · sem ${it.semana}${it.frequencia ? ' · ' + esc(it.frequencia) : ''}${it.incluso ? ' · <span style="color:#3fb950">incluso</span>' : ''}${it.responsavel ? ' · <i class="ti ti-user"></i> ' + esc(it.responsavel) : ''}</div>${it.observacao ? `<div style="font-size:11px;color:var(--ac);margin-top:2px"><i class="ti ti-note"></i> ${esc(it.observacao)}</div>` : ''}</div><button class="tk-btn primary" onclick="injAplicar('${it.id}',this)"><i class="ti ti-vaccine"></i> Aplicar</button></div>`).join('')
     : '<div class="pac-empty" style="padding:12px">Nenhum item liberado.</div>');
 }
 async function injAplicar(itemId, btn) {
