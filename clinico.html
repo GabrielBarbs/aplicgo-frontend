@@ -6660,7 +6660,7 @@
       <button class="pt-tab active" data-tab="vender" onclick="varTab('vender')"><i class="ti ti-shopping-cart-plus"></i> Vender</button>
       <button class="pt-tab" data-tab="vendas" onclick="varTab('vendas')"><i class="ti ti-receipt"></i> Vendas</button>
       <button class="pt-tab" data-tab="recompras" onclick="varTab('recompras')"><i class="ti ti-refresh"></i> Recompras</button>
-      <button class="pt-tab" data-tab="retirada" onclick="varTab('retirada')"><i class="ti ti-package-export"></i> Retirada</button>
+      <button class="pt-tab" data-tab="retirada" id="var-tab-retirada" style="display:none" onclick="varTab('retirada')"><i class="ti ti-package-export"></i> Retirada</button>
       <button class="pt-tab" data-tab="produtos" id="var-tab-produtos" style="display:none" onclick="varTab('produtos')"><i class="ti ti-package"></i> Produtos</button>
     </div>
     <div id="var-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
@@ -11777,11 +11777,13 @@ function varBadgeEntrega(s) { const m = { pendente: '#e3b341', separado: '#e3b34
 function varBadgeRecompra(s) { const m = { vencida: '#f85149', oferecer: '#e3b341', em_dia: '#3fb950' }, l = { vencida: 'Vencida', oferecer: 'Oferecer', em_dia: 'Em dia' }; const c = m[s] || 'var(--tx3)'; return `<span class="inj-badge" style="color:${c};border:1px solid ${c}">${esc(l[s] || s)}</span>`; }
 function varInit() {
   const pt = document.getElementById('var-tab-produtos'); if (pt) pt.style.display = temPermissao('custo.ver') ? '' : 'none';
+  const rt = document.getElementById('var-tab-retirada'); if (rt) rt.style.display = temPermissao('estoque.ver') ? '' : 'none';
   varTab('vender');
 }
 function varTab(t) {
   if (!temPermissao('financeiro.ver')) return;
   if (t === 'produtos' && !temPermissao('custo.ver')) t = 'vender';
+  if (t === 'retirada' && !temPermissao('estoque.ver')) t = 'vender';
   varState.tab = t;
   document.querySelectorAll('#view-varejo .pt-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
   if (t === 'vender') varRenderVender();
@@ -11794,6 +11796,7 @@ function varTab(t) {
 // --- Aba VENDER ---
 function varRenderVender() {
   const c = document.getElementById('var-conteudo'); if (!c) return;
+  varState.patient = null;   // zera paciente obsoleto (senão pode gravar venda pro paciente errado)
   c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Nova venda</div><div id="var-form"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
   varCarregarProdutos();
 }
@@ -11805,6 +11808,7 @@ async function varCarregarProdutos() {
   if (!varState.usuarios) {
     try { const r = await pacApi('/api/clinico/mentions/usuarios'); varState.usuarios = (r.ok && r.data.usuarios) ? r.data.usuarios : []; } catch (e) { varState.usuarios = []; }
   }
+  await varCarregarUnidades();
   const f = document.getElementById('var-form'); if (!f) return;
   if (varState.prodErr && !varState.produtos) { f.innerHTML = INJ_ERRO; return; }
   const prods = varState.produtos || [];
@@ -11830,9 +11834,16 @@ async function varCarregarProdutos() {
   varAtualizarPreco();
 }
 function varProdAtual() { const sel = document.getElementById('var-sku'); return (varState.produtos || []).find((p) => p.sku === (sel ? sel.value : '')); }
-// Select de unidade (padrão = primária) a partir de meData.unidades.
+// Carrega unidades pro seletor: usa meData.unidades; se vazio (ex.: gestor sem vínculo), busca todas via /units.
+async function varCarregarUnidades() {
+  if (varState.unidades && varState.unidades.length) return;
+  const md = (typeof meData !== 'undefined' && meData && meData.unidades) ? meData.unidades : [];
+  if (md.length) { varState.unidades = md; return; }
+  try { const r = await pacApi('/api/clinico/units'); varState.unidades = (r.ok && r.data.unidades) ? r.data.unidades : []; } catch (e) { varState.unidades = []; }
+}
+// Select de unidade (padrão = primária) a partir de varState.unidades (fallback meData.unidades).
 function varUnidadesSelect(id) {
-  const uns = (typeof meData !== 'undefined' && meData && meData.unidades) ? meData.unidades : [];
+  const uns = (varState.unidades && varState.unidades.length) ? varState.unidades : ((typeof meData !== 'undefined' && meData && meData.unidades) ? meData.unidades : []);
   const prim = uns.find(function (u) { return u.primaria; });
   const defId = (prim && prim.id) || (uns[0] && uns[0].id) || '';
   if (!uns.length) return '<select id="' + id + '" class="pac-search"><option value="">—</option></select>';
@@ -11949,10 +11960,13 @@ async function varRenderRecompras() {
 // --- Aba RETIRADA (evento / bonificação / dado a paciente + motivo) ---
 async function varRenderRetirada() {
   const c = document.getElementById('var-conteudo'); if (!c) return;
-  if (!varState.produtos) { try { const r = await pacApi('/api/clinico/varejo/produtos'); if (r.ok) varState.produtos = r.data.produtos || []; } catch (e) {} }
+  if (!varState.produtos) { varState.prodErr = false; try { const r = await pacApi('/api/clinico/varejo/produtos'); if (r.ok) varState.produtos = r.data.produtos || []; else varState.prodErr = true; } catch (e) { varState.prodErr = true; } }
+  await varCarregarUnidades();
   const prods = varState.produtos || [];
   varState.retPatient = null;
-  const form = prods.length
+  const form = (varState.prodErr && !varState.produtos)
+    ? '<div class="dash-card">' + INJ_ERRO + '</div>'
+    : prods.length
     ? '<div class="dash-card"><div class="cart-blk-ttl">Nova retirada</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:640px">'
       + '<div><label>Produto</label><select id="ret-sku" class="pac-search">' + prods.map((p) => `<option value="${esc(p.sku)}">${esc(p.nome)}</option>`).join('') + '</select></div>'
@@ -12027,9 +12041,10 @@ async function varCarregarRetiradas() {
 // --- Aba PRODUTOS (gestão do catálogo de varejo — custo.ver) ---
 async function varRenderProdutos() {
   const c = document.getElementById('var-conteudo'); if (!c) return;
+  const veVinculo = temPermissao('estoque.ver');
   c.innerHTML = '<div class="dash-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="cart-blk-ttl" style="margin:0">Produtos de varejo</div><button class="tk-btn primary" onclick="varProdEditar(null)"><i class="ti ti-plus"></i> Novo produto</button></div><div id="var-prods"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>'
-    + '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Vínculo com o estoque <span style="text-transform:none;font-weight:400;color:var(--tx4)">· produto vinculado baixa do estoque (FEFO) na venda/retirada</span></div><div id="var-vinculos"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
-  varCarregarVinculos();
+    + (veVinculo ? '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Vínculo com o estoque <span style="text-transform:none;font-weight:400;color:var(--tx4)">· produto vinculado baixa do estoque (FEFO) na venda/retirada</span></div><div id="var-vinculos"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>' : '');
+  if (veVinculo) varCarregarVinculos();
   let prods = [], err = false;
   try { const r = await pacApi('/api/clinico/varejo/produtos?todos=1'); if (r.ok) prods = r.data.produtos || []; else err = true; } catch (e) { err = true; }
   varState.prodsMgmt = prods;
