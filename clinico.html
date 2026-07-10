@@ -3391,6 +3391,8 @@
     .ia-rg.active { background: #7B68EE; border-color: #7B68EE; color: #fff; }
     .ia-barmini { height: 3px; border-radius: 2px; background: rgba(123,104,238,0.15); margin-top: 4px; overflow: hidden; }
     .ia-barmini > span { display: block; height: 100%; background: #7B68EE; border-radius: 2px; }
+    .ia-aviso { background: rgba(227,179,65,0.1); border: 1px solid rgba(227,179,65,0.35); color: #e3b341; border-radius: 10px; padding: 10px 14px; font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
+    .ia-aviso code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; font-family: 'SF Mono', Consolas, monospace; }
 
     /* ====== BOTÃO FLUTUANTE DE REPORT ====== */
     .bug-fab {
@@ -17224,7 +17226,7 @@ function devIARender(d) {
     + `<div class="row"><span class="k">Último registro</span><span class="v">${devIADataHora(d.ultimo_registro)}</span></div>`
     + `<div class="row"><span class="k">Total (todo período)</span><span class="v">${devIAFmtNum(d.total_registros_all_time)}</span></div></div></div>`
     + '<div class="dev-stat-card"><div class="titulo"><i class="ti ti-cpu"></i> Custo por modelo</div><div class="lista">'
-    + (d.por_modelo.length ? d.por_modelo.map((m) => `<div class="row"><span class="k" style="font-size:10px;">${esc(m.modelo)}</span><span class="v">${devIAFmtUsd(m.custo_usd_micros)}</span></div>`).join('') : '<div class="small">—</div>')
+    + (d.por_modelo.length ? d.por_modelo.map((m) => `<div class="row"><span class="k" style="font-size:10px;">${esc(m.modelo)}</span><span class="v${m.sem_preco ? ' dim' : ''}">${m.sem_preco ? 'sem preço' : devIAFmtUsd(m.custo_usd_micros)}</span></div>`).join('') : '<div class="small">—</div>')
     + '</div></div></div>';
 
   const linhasAg = d.por_agente.map((a) => {
@@ -17255,7 +17257,11 @@ function devIARender(d) {
     + d.precos.map((p) => `<tr><td>${esc(p.modelo)}</td><td class="num">$${Number(p.input_usd_1m).toFixed(2)}</td><td class="num">$${Number(p.output_usd_1m).toFixed(2)}</td><td class="num">$${Number(p.cache_read_usd_1m).toFixed(2)}</td><td class="num">$${Number(p.cache_write_usd_1m).toFixed(2)}</td></tr>`).join('')
     + '</tbody></table></div></div>';
 
-  box.innerHTML = cards + tabelaAg + tabelaDia + precos;
+  const semPreco = d.modelos_sem_preco || [];
+  const aviso = semPreco.length
+    ? `<div class="ia-aviso"><i class="ti ti-alert-triangle"></i> Modelo(s) sem preço catalogado: ${semPreco.map((m) => esc(m.modelo) + ' (' + devIAFmtNum(m.chamadas) + ' chamadas)').join(', ')} — o custo dessas chamadas <strong>não é contabilizado</strong> (não chutamos). Adicione o preço em <code>ai-usage.ts</code>.</div>`
+    : '';
+  box.innerHTML = aviso + cards + tabelaAg + tabelaDia + precos;
 }
 
 async function devCarregar() {
