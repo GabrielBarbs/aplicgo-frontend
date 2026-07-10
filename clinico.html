@@ -4832,6 +4832,8 @@
     .es-mov-tipo.SAIDA_VENDA { background: rgba(74,144,226,0.15); color: #4A90E2; }
     .es-mov-tipo.AJUSTE { background: rgba(var(--tx3b-rgb),0.15); color: var(--tx2); }
     .es-mov-tipo.PERDA { background: rgba(248,81,73,0.15); color: #f85149; }
+    .es-mov-tipo.TRANSFERENCIA_ENTRADA { background: rgba(29,158,117,0.15); color: #1D9E75; }
+    .es-mov-tipo.TRANSFERENCIA_SAIDA { background: rgba(155,120,220,0.16); color: #b18bec; }
 
     /* =================== AUDITORIA (Etapa 7) =================== */
     .au-summary-grid {
@@ -6658,6 +6660,7 @@
       <button class="pt-tab active" data-tab="vender" onclick="varTab('vender')"><i class="ti ti-shopping-cart-plus"></i> Vender</button>
       <button class="pt-tab" data-tab="vendas" onclick="varTab('vendas')"><i class="ti ti-receipt"></i> Vendas</button>
       <button class="pt-tab" data-tab="recompras" onclick="varTab('recompras')"><i class="ti ti-refresh"></i> Recompras</button>
+      <button class="pt-tab" data-tab="retirada" onclick="varTab('retirada')"><i class="ti ti-package-export"></i> Retirada</button>
       <button class="pt-tab" data-tab="produtos" id="var-tab-produtos" style="display:none" onclick="varTab('produtos')"><i class="ti ti-package"></i> Produtos</button>
     </div>
     <div id="var-conteudo"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
@@ -8871,6 +8874,51 @@
         <button class="pac-btn-secondary" onclick="esFecharLote()">Cancelar</button>
         <button class="pac-btn-primary" onclick="esSalvarLote()">
           <i class="ti ti-device-floppy"></i> Dar entrada
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL: TRANSFERIR ENTRE UNIDADES (realocação de lote/produto) ============== -->
+<div class="ag-modal-overlay" id="es-transf-modal" onclick="if(event.target.id==='es-transf-modal') esFecharTransf()">
+  <div class="ag-modal" style="max-width: 560px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-transfer"></i> Transferir entre unidades</div>
+      <button class="pac-modal-close" onclick="esFecharTransf()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="es-transf-erro"></div>
+      <div class="pac-form-grid">
+        <div class="pac-field" style="grid-column:1/-1">
+          <label>Lote / produto a mover <span class="req">*</span></label>
+          <select id="es-transf-lote" onchange="esTransfLoteChange()" required></select>
+          <div id="es-transf-origem" style="font-size:11.5px;color:var(--tx3b);margin-top:5px"></div>
+        </div>
+        <div class="pac-field">
+          <label>Unidade de destino <span class="req">*</span></label>
+          <select id="es-transf-destino" required></select>
+        </div>
+        <div class="pac-field">
+          <label>Quantidade <span class="req">*</span></label>
+          <input type="number" id="es-transf-qtd" min="1" step="1" placeholder="ex: 5">
+        </div>
+        <div class="pac-field">
+          <label>Data da transferência <span class="req">*</span></label>
+          <input type="date" id="es-transf-data">
+        </div>
+        <div class="pac-field">
+          <label>Observação / responsável</label>
+          <input type="text" id="es-transf-obs" maxlength="500" placeholder="opcional (ex: motivo, quem levou)">
+        </div>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="esFecharTransf()">Cancelar</button>
+        <button class="pac-btn-primary" id="es-transf-btn" onclick="esSalvarTransf()">
+          <i class="ti ti-transfer"></i> Transferir
         </button>
       </div>
     </div>
@@ -11739,6 +11787,7 @@ function varTab(t) {
   if (t === 'vender') varRenderVender();
   else if (t === 'vendas') varRenderVendas();
   else if (t === 'produtos') varRenderProdutos();
+  else if (t === 'retirada') varRenderRetirada();
   else varRenderRecompras();
 }
 
@@ -11771,6 +11820,7 @@ async function varCarregarProdutos() {
     + '<div><label>Canal</label><select id="var-canal" class="pac-search"><option value="presencial">Presencial</option><option value="ecommerce">E-commerce</option><option value="clinica">Clínica</option></select></div>'
     + `<div><label>Vendedor</label><select id="var-vendedor" class="pac-search">${meNaLista ? '' : '<option value="" selected>— você —</option>'}${usuarios.map((u) => `<option value="${esc(u.id)}"${meId === u.id ? ' selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></div>`
     + `<div><label>Data da venda</label><input id="var-data" type="date" max="${hoje}" value="${hoje}" class="pac-search"></div>`
+    + `<div><label>Unidade <span style="color:var(--tx4);font-weight:400">(baixa do estoque)</span></label>${varUnidadesSelect('var-unidade')}</div>`
     + '<div><label>Forma de pagamento</label><select id="var-forma" class="pac-search"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option></select></div>'
     + '<div><label>Pagamento</label><select id="var-pag" class="pac-search"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>'
     + '</div>'
@@ -11780,6 +11830,14 @@ async function varCarregarProdutos() {
   varAtualizarPreco();
 }
 function varProdAtual() { const sel = document.getElementById('var-sku'); return (varState.produtos || []).find((p) => p.sku === (sel ? sel.value : '')); }
+// Select de unidade (padrão = primária) a partir de meData.unidades.
+function varUnidadesSelect(id) {
+  const uns = (typeof meData !== 'undefined' && meData && meData.unidades) ? meData.unidades : [];
+  const prim = uns.find(function (u) { return u.primaria; });
+  const defId = (prim && prim.id) || (uns[0] && uns[0].id) || '';
+  if (!uns.length) return '<select id="' + id + '" class="pac-search"><option value="">—</option></select>';
+  return '<select id="' + id + '" class="pac-search">' + uns.map(function (u) { return '<option value="' + esc(u.id) + '"' + (u.id === defId ? ' selected' : '') + '>' + esc(u.nome) + '</option>'; }).join('') + '</select>';
+}
 function varInclusoMarcado() {
   const tipo = (document.getElementById('var-tipo') || {}).value;
   const chk = document.getElementById('var-incluso');
@@ -11832,6 +11890,7 @@ async function varRegistrar() {
     canal: document.getElementById('var-canal').value, tipo_cliente: tipo,
     patient_id: tipo === 'paciente_ativo' ? varState.patient.id : undefined,
     vendedor_id: vend, data: dataVenda, incluso: incluso,
+    unit_id: (document.getElementById('var-unidade') || {}).value || undefined,
     forma_pagamento: incluso ? undefined : document.getElementById('var-forma').value,
     status_pagamento: incluso ? undefined : document.getElementById('var-pag').value,
   };
@@ -11887,10 +11946,90 @@ async function varRenderRecompras() {
     : '<div class="pac-empty" style="padding:12px">Nenhuma recompra próxima.</div>';
 }
 
+// --- Aba RETIRADA (evento / bonificação / dado a paciente + motivo) ---
+async function varRenderRetirada() {
+  const c = document.getElementById('var-conteudo'); if (!c) return;
+  if (!varState.produtos) { try { const r = await pacApi('/api/clinico/varejo/produtos'); if (r.ok) varState.produtos = r.data.produtos || []; } catch (e) {} }
+  const prods = varState.produtos || [];
+  varState.retPatient = null;
+  const form = prods.length
+    ? '<div class="dash-card"><div class="cart-blk-ttl">Nova retirada</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:640px">'
+      + '<div><label>Produto</label><select id="ret-sku" class="pac-search">' + prods.map((p) => `<option value="${esc(p.sku)}">${esc(p.nome)}</option>`).join('') + '</select></div>'
+      + '<div><label>Quantidade</label><input id="ret-qtd" type="number" min="1" value="1" class="pac-search"></div>'
+      + '<div><label>Motivo</label><select id="ret-motivo" class="pac-search" onchange="varRetMotivoMudou()"><option value="evento">Evento</option><option value="bonificacao">Bonificação</option><option value="paciente">Dado a paciente</option></select></div>'
+      + `<div><label>Unidade <span style="color:var(--tx4);font-weight:400">(baixa do estoque)</span></label>${varUnidadesSelect('ret-unidade')}</div>`
+      + '</div>'
+      + '<div id="ret-pac-wrap" style="display:none;margin-top:10px;max-width:400px"><label>Paciente</label><input id="ret-pac-q" class="pac-search" oninput="varRetPacBusca(this.value)" placeholder="🔍 buscar paciente…"><div id="ret-pac-res"></div><div id="ret-pac-sel" style="font-size:12px;color:#3fb950;margin-top:4px"></div></div>'
+      + '<div style="margin-top:10px;max-width:640px"><label>Descrição do motivo</label><input id="ret-desc" class="pac-search" placeholder="Ex.: brinde no evento X · cortesia · reposição"></div>'
+      + '<div style="margin-top:14px"><button class="tk-btn primary" onclick="varRetRegistrar()"><i class="ti ti-package-export"></i> Registrar retirada</button></div>'
+      + '</div>'
+    : '<div class="dash-card"><div class="pac-empty" style="padding:12px">Nenhum produto de varejo cadastrado.</div></div>';
+  c.innerHTML = form + '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Retiradas recentes</div><div id="var-retirada-lista"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  varCarregarRetiradas();
+}
+function varRetMotivoMudou() {
+  const m = document.getElementById('ret-motivo').value;
+  const w = document.getElementById('ret-pac-wrap'); if (w) w.style.display = m === 'paciente' ? '' : 'none';
+  if (m !== 'paciente') { varState.retPatient = null; const s = document.getElementById('ret-pac-sel'); if (s) s.textContent = ''; }
+}
+let _varRetPacTimer = null;
+function varRetPacBusca(q) {
+  clearTimeout(_varRetPacTimer);
+  _varRetPacTimer = setTimeout(async () => {
+    const box = document.getElementById('ret-pac-res'); if (!box) return;
+    if ((q || '').trim().length < 2) { box.innerHTML = ''; return; }
+    let pacs = [];
+    try { const r = await pacApi('/api/clinico/patients?limit=8&q=' + encodeURIComponent(q.trim())); if (r.ok) pacs = r.data.pacientes || []; } catch (e) {}
+    varState.retPacResults = pacs;
+    box.innerHTML = pacs.length
+      ? '<div class="inj-pick">' + pacs.map((p, i) => `<div class="inj-pick-row" onclick="varRetPacPick(${i})"><strong>${esc(p.nome_completo || '')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(p.codigo || '')}</span></div>`).join('') + '</div>'
+      : '<div class="pac-empty" style="padding:8px">Nenhum paciente.</div>';
+  }, 300);
+}
+function varRetPacPick(i) {
+  const p = (varState.retPacResults || [])[i]; if (!p) return;
+  varState.retPatient = { id: p.id, nome: p.nome_completo };
+  document.getElementById('ret-pac-res').innerHTML = '';
+  const q = document.getElementById('ret-pac-q'); if (q) q.value = p.nome_completo;
+  document.getElementById('ret-pac-sel').textContent = '✓ ' + p.nome_completo;
+}
+async function varRetRegistrar() {
+  const sku = (document.getElementById('ret-sku') || {}).value;
+  const qtd = Math.max(1, parseInt((document.getElementById('ret-qtd') || {}).value, 10) || 1);
+  const motivo = (document.getElementById('ret-motivo') || {}).value;
+  const desc = ((document.getElementById('ret-desc') || {}).value || '').trim();
+  const unit = (document.getElementById('ret-unidade') || {}).value || undefined;
+  if (!sku) { homeToast('Escolha um produto.'); return; }
+  if (motivo === 'paciente' && !varState.retPatient) { homeToast('Selecione o paciente.'); return; }
+  const body = { sku: sku, qtd: qtd, motivo: motivo, descricao: desc || undefined, unit_id: unit, patient_id: motivo === 'paciente' ? varState.retPatient.id : undefined };
+  let ok = false, msg = '';
+  try { const r = await pacApi('/api/clinico/varejo/retiradas', { method: 'POST', body: JSON.stringify(body) }); ok = r.ok; if (!ok && r.data) msg = r.data.erro || ''; } catch (e) {}
+  homeToast(ok ? 'Retirada registrada.' : ('Não foi possível registrar: ' + (msg || 'erro')));
+  if (ok) { varState.retPatient = null; varRenderRetirada(); }
+}
+async function varCarregarRetiradas() {
+  let dados = [], err = false;
+  try { const r = await pacApi('/api/clinico/varejo/retiradas'); if (r.ok) dados = r.data.retiradas || []; else err = true; } catch (e) { err = true; }
+  const box = document.getElementById('var-retirada-lista'); if (!box) return;
+  if (err) { box.innerHTML = INJ_ERRO; return; }
+  const MOT = { evento: 'Evento', bonificacao: 'Bonificação', paciente: 'Paciente' };
+  box.innerHTML = dados.length
+    ? '<table class="gst-table"><thead><tr><th>Data</th><th>Produto</th><th>Motivo</th><th>Descrição</th><th>Estoque</th><th>Por</th></tr></thead><tbody>'
+      + dados.map((r) => {
+          const alvo = r.motivo === 'paciente' && r.paciente ? (' · ' + esc(r.paciente)) : '';
+          const est = r.baixou_estoque ? '<span style="color:#3fb950">baixou</span>' : '<span style="color:var(--tx4)">sem vínculo</span>';
+          return `<tr><td>${dataDiaBR(r.data)}</td><td>${esc(r.produto)} ×${r.qtd}</td><td>${(MOT[r.motivo] || esc(r.motivo))}${alvo}</td><td style="font-size:12px;color:var(--tx3)">${r.descricao ? esc(r.descricao) : '—'}</td><td style="font-size:11px">${est}</td><td style="font-size:12px;color:var(--tx3)">${esc(r.por || '—')}</td></tr>`;
+        }).join('') + '</tbody></table>'
+    : '<div class="pac-empty" style="padding:12px">Nenhuma retirada ainda.</div>';
+}
+
 // --- Aba PRODUTOS (gestão do catálogo de varejo — custo.ver) ---
 async function varRenderProdutos() {
   const c = document.getElementById('var-conteudo'); if (!c) return;
-  c.innerHTML = '<div class="dash-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="cart-blk-ttl" style="margin:0">Produtos de varejo</div><button class="tk-btn primary" onclick="varProdEditar(null)"><i class="ti ti-plus"></i> Novo produto</button></div><div id="var-prods"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  c.innerHTML = '<div class="dash-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="cart-blk-ttl" style="margin:0">Produtos de varejo</div><button class="tk-btn primary" onclick="varProdEditar(null)"><i class="ti ti-plus"></i> Novo produto</button></div><div id="var-prods"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>'
+    + '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Vínculo com o estoque <span style="text-transform:none;font-weight:400;color:var(--tx4)">· produto vinculado baixa do estoque (FEFO) na venda/retirada</span></div><div id="var-vinculos"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>';
+  varCarregarVinculos();
   let prods = [], err = false;
   try { const r = await pacApi('/api/clinico/varejo/produtos?todos=1'); if (r.ok) prods = r.data.produtos || []; else err = true; } catch (e) { err = true; }
   varState.prodsMgmt = prods;
@@ -11901,6 +12040,39 @@ async function varRenderProdutos() {
       + prods.map((p) => `<tr${p.ativo === false ? ' style="opacity:.5"' : ''}><td style="color:var(--tx3)">${esc(p.sku)}</td><td>${esc(p.nome)}${p.ativo === false ? ' <span style="font-size:10px;color:var(--tx4)">(inativo)</span>' : ''}</td><td class="num">${homeGestorFmtBRL(p.preco_paciente_cents)}</td><td class="num">${homeGestorFmtBRL(p.preco_nao_paciente_cents)}</td><td class="num">${homeGestorFmtBRL(p.preco_colaborador_cents)}</td><td><button class="tk-btn" style="padding:5px 10px;font-size:12px" onclick="varProdEditar('${esc(p.sku)}')"><i class="ti ti-pencil"></i> Editar</button></td></tr>`).join('') + '</tbody></table>'
     : '<div class="pac-empty" style="padding:12px">Nenhum produto de varejo.</div>';
 }
+
+// --- Vínculo produto de varejo <-> estoque (ClinProduct) ---
+async function varCarregarVinculos() {
+  let d = null, err = false;
+  try { const r = await pacApi('/api/clinico/varejo/vinculos'); if (r.ok) d = r.data; else err = true; } catch (e) { err = true; }
+  const box = document.getElementById('var-vinculos'); if (!box) return;
+  if (err || !d) { box.innerHTML = (d && d.erro) ? ('<div class="pac-empty" style="padding:12px">' + esc(d.erro) + '</div>') : INJ_ERRO; return; }
+  varState.vincItens = d.itens || [];
+  const itens = d.itens || [];
+  const rows = itens.map((it) => {
+    let acao;
+    if (it.product_id) {
+      acao = '<span style="color:#3fb950;font-size:12px"><i class="ti ti-link"></i> ' + esc(it.product_nome || 'vinculado') + '</span> <button class="tk-btn" style="padding:4px 8px;font-size:11px;background:transparent;color:var(--tx4)" onclick="varVincular(\'' + esc(it.sku) + '\', null)">desvincular</button>';
+    } else {
+      const sug = it.sugestao ? '<button class="tk-btn" style="padding:4px 8px;font-size:11px" onclick="varVincular(\'' + esc(it.sku) + '\',\'' + esc(it.sugestao.product_id) + '\')"><i class="ti ti-link"></i> vincular a ' + esc(it.sugestao.nome) + '</button> ' : '';
+      acao = sug + '<button class="tk-btn primary" style="padding:4px 8px;font-size:11px" onclick="varVincCriar(\'' + esc(it.sku) + '\')"><i class="ti ti-plus"></i> criar produto</button>';
+    }
+    return '<tr><td style="color:var(--tx3)">' + esc(it.sku) + '</td><td>' + esc(it.nome) + '</td><td>' + acao + '</td></tr>';
+  }).join('');
+  box.innerHTML = '<div style="font-size:12px;color:var(--tx4);margin-bottom:8px">' + (d.vinculados || 0) + '/' + (d.total || 0) + ' vinculados ao estoque</div>'
+    + (itens.length ? '<table class="gst-table"><thead><tr><th>SKU</th><th>Produto</th><th>Estoque</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="pac-empty" style="padding:12px">Nenhum produto de varejo.</div>');
+}
+async function varVincular(sku, productId) {
+  let ok = false; try { const r = await pacApi('/api/clinico/varejo/' + encodeURIComponent(sku) + '/produto', { method: 'PUT', body: JSON.stringify({ product_id: productId }) }); ok = r.ok; } catch (e) {}
+  homeToast(ok ? (productId ? 'Vinculado ao estoque.' : 'Desvinculado.') : 'Não foi possível.');
+  if (ok) { varState.produtos = null; varCarregarVinculos(); }
+}
+async function varVincCriar(sku) {
+  let ok = false, msg = ''; try { const r = await pacApi('/api/clinico/varejo/' + encodeURIComponent(sku) + '/produto/criar', { method: 'POST', body: JSON.stringify({}) }); ok = r.ok; if (!ok && r.data) msg = r.data.erro || ''; } catch (e) {}
+  homeToast(ok ? 'Produto criado no estoque e vinculado.' : ('Não foi possível: ' + (msg || 'erro')));
+  if (ok) { varState.produtos = null; varCarregarVinculos(); }
+}
+
 function varProdEditar(sku) {
   if (!temPermissao('custo.ver')) { homeToast('Sem permissão.'); return; }
   const p = sku ? ((varState.prodsMgmt || []).find((x) => x.sku === sku) || {}) : {};
@@ -22617,6 +22789,7 @@ function esRenderActions() {
     wrap.innerHTML = `<button class="pac-btn-primary" onclick="esAbrirNovoProd()"><i class="ti ti-plus"></i> Novo produto</button>`;
   } else if (esState.tab === 'lotes') {
     wrap.innerHTML = `<button class="pac-btn-primary" onclick="esAbrirNovoLote()"><i class="ti ti-plus"></i> Entrada de lote</button>
+      <button class="pac-btn-secondary" onclick="esAbrirTransf()"><i class="ti ti-transfer"></i> Transferir entre unidades</button>
       <button class="pac-btn-secondary" onclick="esCarregarTab()"><i class="ti ti-refresh"></i> Atualizar</button>`;
   } else {
     wrap.innerHTML = `<button class="pac-btn-secondary" onclick="esCarregarTab()"><i class="ti ti-refresh"></i> Atualizar</button>`;
@@ -22853,6 +23026,77 @@ async function esSalvarLote() {
   esFecharLote();
   esCarregarDashboard();
   esCarregarTab();
+}
+
+// ===== TRANSFERÊNCIA entre unidades (realocação de lote / produto solto) =====
+let esTransfLotes = [];
+let esTransfEnviando = false;
+async function esAbrirTransf() {
+  document.getElementById('es-transf-erro').style.display = 'none';
+  if (pacState.unidades.length < 2) { alert('É preciso ter pelo menos 2 unidades cadastradas pra transferir estoque.'); return; }
+  const sel = document.getElementById('es-transf-lote');
+  sel.innerHTML = '<option value="">Carregando…</option>';
+  document.getElementById('es-transf-obs').value = '';
+  document.getElementById('es-transf-qtd').value = '';
+  const dataEl = document.getElementById('es-transf-data');
+  dataEl.value = gtHojeStr();
+  dataEl.max = gtHojeStr();   // não deixa escolher data futura
+  document.getElementById('es-transf-origem').textContent = '';
+  document.getElementById('es-transf-destino').innerHTML = '<option value="">Escolha o lote primeiro</option>';
+  document.getElementById('es-transf-modal').classList.add('aberto');
+  const r = await pacApi('/api/clinico/estoque/batches?com_estoque=1&ordenar=lote');
+  if (!r.ok) {
+    sel.innerHTML = '<option value="">Erro ao carregar lotes</option>';
+    const e = document.getElementById('es-transf-erro'); e.textContent = (r.data && r.data.erro) || 'Falha ao carregar os lotes. Tente de novo.'; e.style.display = 'block';
+    return;
+  }
+  esTransfLotes = (r.data.lotes || []).filter(l => l.qtd_atual > 0);
+  if (!esTransfLotes.length) { sel.innerHTML = '<option value="">Nenhum lote com saldo disponível</option>'; return; }
+  sel.innerHTML = '<option value="">—</option>' + esTransfLotes.map(l =>
+    `<option value="${esc(l.id)}">${esc(l.produto.nome)} · lote ${esc(l.lote)} · ${esc(l.unidade.nome)} (saldo ${l.qtd_atual})</option>`).join('');
+}
+function esFecharTransf() { document.getElementById('es-transf-modal').classList.remove('aberto'); }
+function esTransfLoteChange() {
+  const l = esTransfLotes.find(x => x.id === document.getElementById('es-transf-lote').value);
+  const info = document.getElementById('es-transf-origem');
+  const destSel = document.getElementById('es-transf-destino');
+  const qtd = document.getElementById('es-transf-qtd');
+  if (!l) { info.textContent = ''; destSel.innerHTML = '<option value="">Escolha o lote primeiro</option>'; qtd.value = ''; qtd.removeAttribute('max'); return; }
+  info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${l.qtd_atual}</strong> · validade ${esc(l.validade)}`;
+  qtd.max = l.qtd_atual;
+  qtd.value = l.qtd_atual;   // padrão = mover o lote inteiro (editável)
+  destSel.innerHTML = '<option value="">—</option>' +
+    pacState.unidades.filter(u => u.id !== l.unidade.id).map(u => `<option value="${esc(u.id)}">${esc(u.nome)}</option>`).join('');
+}
+async function esSalvarTransf() {
+  const erroEl = document.getElementById('es-transf-erro'); erroEl.style.display = 'none';
+  const show = (m) => { erroEl.textContent = m; erroEl.style.display = 'block'; };
+  const batchId = document.getElementById('es-transf-lote').value;
+  const l = esTransfLotes.find(x => x.id === batchId);
+  const destino = document.getElementById('es-transf-destino').value;
+  const qtd = parseInt(document.getElementById('es-transf-qtd').value) || 0;
+  const data = document.getElementById('es-transf-data').value;
+  if (!batchId || !l) return show('Escolha o lote/produto a mover.');
+  if (!destino) return show('Escolha a unidade de destino.');
+  if (destino === l.unidade.id) return show('A unidade de destino tem que ser diferente da origem.');
+  if (qtd < 1) return show('A quantidade tem que ser ≥ 1.');
+  if (qtd > l.qtd_atual) return show(`Máximo disponível nesse lote: ${l.qtd_atual}.`);
+  if (!data) return show('Informe a data da transferência.');
+  if (data > gtHojeStr()) return show('A data não pode ser futura.');
+  if (esTransfEnviando) return;                       // trava duplo-clique (senão transfere em dobro)
+  esTransfEnviando = true;
+  const btn = document.getElementById('es-transf-btn'); if (btn) btn.disabled = true;
+  try {
+    const body = { batch_id: batchId, unidade_destino_id: destino, quantidade: qtd, data, observacao: document.getElementById('es-transf-obs').value.trim() || null };
+    const r = await pacApi('/api/clinico/estoque/transferencias', { method: 'POST', body: JSON.stringify(body) });
+    if (!r.ok) return show((r.data && r.data.erro) || 'Erro ao transferir.');
+    esFecharTransf();
+    esCarregarDashboard();
+    esCarregarTab();
+  } finally {
+    esTransfEnviando = false;
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ============================================================
