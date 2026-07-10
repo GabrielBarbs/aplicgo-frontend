@@ -5691,9 +5691,6 @@
 
     <div class="sidebar-group" data-grupo-clinico>
       <div class="sidebar-group-label"><i class="ti ti-syringe"></i> Clínico</div>
-      <button class="sidebar-item" data-view="aplicacoes" data-perm="prontuario.aplicacao.registrar|prontuario.bioimpedancia.registrar">
-        <i class="ti ti-vaccine"></i> Aplicações
-      </button>
       <button class="sidebar-item" data-view="estoque" data-perm="estoque.ver">
         <i class="ti ti-package"></i> Estoque
       </button>
@@ -6130,24 +6127,10 @@
           <div class="sub">disponível agora</div>
         </div>
       </button>
-      <button class="quick-btn" onclick="trocarView('agenda'); setTimeout(agAbrirNovoModal, 200);">
-        <div class="ico"><i class="ti ti-calendar-plus"></i></div>
-        <div class="txt">
-          <div class="ttl">Novo agendamento</div>
-          <div class="sub">disponível agora</div>
-        </div>
-      </button>
       <button class="quick-btn" onclick="trocarView('prontuario')">
         <div class="ico"><i class="ti ti-clipboard-plus"></i></div>
         <div class="txt">
           <div class="ttl">Nova evolução</div>
-          <div class="sub">selecione o paciente</div>
-        </div>
-      </button>
-      <button class="quick-btn" onclick="trocarView('aplicacoes')">
-        <div class="ico"><i class="ti ti-vaccine"></i></div>
-        <div class="txt">
-          <div class="ttl">Registrar aplicação</div>
           <div class="sub">selecione o paciente</div>
         </div>
       </button>
@@ -11769,6 +11752,9 @@ async function varCarregarProdutos() {
   if (!varState.produtos) {
     varState.prodErr = false;
     try { const r = await pacApi('/api/clinico/varejo/produtos'); if (r.ok) varState.produtos = r.data.produtos || []; else varState.prodErr = true; } catch (e) { varState.prodErr = true; }
+  }
+  if (!varState.usuarios) {
+    try { const r = await pacApi('/api/clinico/mentions/usuarios'); varState.usuarios = (r.ok && r.data.usuarios) ? r.data.usuarios : []; } catch (e) { varState.usuarios = []; }
   }
   const f = document.getElementById('var-form'); if (!f) return;
   if (varState.prodErr && !varState.produtos) { f.innerHTML = INJ_ERRO; return; }
