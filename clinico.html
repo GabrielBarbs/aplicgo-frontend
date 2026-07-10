@@ -5930,7 +5930,7 @@
   .foco-tag{font-size:11px;color:#e3b341;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
   .foco-txt{font-size:14px;color:var(--tx1b)}
   .foco-btn{background:var(--ac);color:#2a1608;border:0;border-radius:8px;padding:8px 15px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:inherit}
-  .op-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+  .op-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,260px));gap:10px;margin-bottom:16px;justify-content:start}
   .op-card{position:relative;background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;padding:13px 15px;cursor:pointer;transition:border-color .15s}
   .op-card:hover{border-color:var(--bd2)}
   .op-card-head{display:flex;align-items:center;justify-content:space-between;font-size:12.5px;color:var(--tx3);margin-bottom:6px}
@@ -5940,8 +5940,26 @@
   .em-constr-inline{display:inline-block;font-size:9px;color:var(--tx3);background:var(--bg3);border:1px solid var(--bd1);border-radius:5px;padding:1px 6px;margin-left:5px;text-transform:uppercase;letter-spacing:.3px;vertical-align:middle}
   .em-constr{position:absolute;top:11px;right:12px;font-size:9px;color:var(--tx3);background:var(--bg3);border:1px solid var(--bd1);border-radius:5px;padding:2px 6px;letter-spacing:.3px;text-transform:uppercase}
   .op-lower{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+  .op-lower.op-lower-solo{grid-template-columns:1fr}
   .op-lower-card{position:relative;min-height:120px}
   .op-lower-empty{font-size:12px;color:var(--tx4);line-height:1.5;padding:6px 2px}
+  /* Home: filtro de prazo das "Minhas tarefas" */
+  .mt-filtros{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .mt-fbtn{background:var(--bg1);border:1px solid var(--bd1);color:var(--tx3);font:inherit;font-size:12px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all .15s}
+  .mt-fbtn:hover{border-color:var(--bd2);color:var(--tx2)}
+  .mt-fbtn.ativo{background:var(--ac);border-color:var(--ac);color:#2a1608}
+  /* Home: linha de tarefa/pendência (lista explícita) */
+  .mt-row{display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid var(--hair);cursor:pointer}
+  .mt-row:last-of-type{border-bottom:0}
+  .mt-row:hover{background:var(--bg1)}
+  .mt-row .mt-body{min-width:0;flex:1}
+  .mt-row .mt-ttl{font-size:13px;color:var(--tx1);font-weight:500;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .mt-row .mt-desc{font-size:12px;color:var(--tx3);margin-top:3px;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .mt-row .mt-meta{font-size:11px;color:var(--tx4);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .mt-row .mt-meta .prio{font-size:13px;line-height:1}
+  .mt-chevron{color:var(--tx4);flex-shrink:0;align-self:center}
+  .mt-vertodas{font-size:12px;color:var(--ac);text-align:center;padding:9px 0 2px;cursor:pointer;font-weight:500}
+  .mt-vertodas:hover{text-decoration:underline}
   /* Ranking do mês (motor de pontos por evento) */
   .rk-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--hair)}
   .rk-row:last-of-type{border-bottom:0}
@@ -6164,11 +6182,6 @@
 
       <!-- 5: Cards -->
       <div class="op-cards">
-        <div class="op-card" onclick="homeAtencaoAbrir()">
-          <div class="op-card-head"><span>Em atenção</span><i class="ti ti-alert-triangle" style="color:#f85149"></i></div>
-          <div class="op-card-val" id="op-atencao-val">—</div>
-          <div class="op-card-ext" id="op-atencao-ext">pacientes precisam de ação</div>
-        </div>
         <div class="op-card" onclick="homeRenovAbrir()">
           <div class="op-card-head"><span>Renovações em risco</span><i class="ti ti-refresh-alert" style="color:#d29922"></i></div>
           <div class="op-card-val" id="op-renov-val">—</div>
@@ -6179,62 +6192,53 @@
           <div class="op-card-val" id="op-agenda-val">—</div>
           <div class="op-card-ext" id="op-agenda-ext">consultas de hoje</div>
         </div>
-        <div class="op-card" onclick="homeTarefasAbrir()">
-          <div class="op-card-head"><span>Minhas tarefas</span><i class="ti ti-checklist" style="color:var(--ac)"></i></div>
-          <div class="op-card-val" id="op-tarefas-val">—</div>
-          <div class="op-card-ext" id="op-tarefas-ext">vencidas · hoje · próximas</div>
-        </div>
       </div>
 
-      <!-- 6: Agenda de hoje + amanhã não confirmados -->
+      <!-- 6: Minhas tarefas (lista explícita, filtro por prazo) + Deleguei + Pendências -->
       <div class="dash-grid">
-        <div class="dash-card dash-agenda">
+        <div class="dash-card">
           <div class="dash-card-head">
-            <div class="ttl"><i class="ti ti-calendar-event"></i> Agenda de hoje + amanhã</div>
-            <span class="dash-count" id="dash-ag-count">—</span>
+            <div class="ttl"><i class="ti ti-checklist"></i> Minhas tarefas</div>
+            <button class="pac-btn-primary" style="padding:6px 12px;font-size:12px" onclick="homeTarefaNova()"><i class="ti ti-plus"></i> Nova</button>
           </div>
-          <div id="dash-agenda-lista">
+          <div class="mt-filtros">
+            <button class="mt-fbtn ativo" data-f="hoje" onclick="homeMTFiltro('hoje')">Hoje</button>
+            <button class="mt-fbtn" data-f="amanha" onclick="homeMTFiltro('amanha')">Amanhã</button>
+            <button class="mt-fbtn" data-f="7dias" onclick="homeMTFiltro('7dias')">Próximos 7 dias</button>
+          </div>
+          <div id="home-mt-lista">
             <div class="dash-vazio">Carregando…</div>
           </div>
-          <div id="home-amanha"></div>
         </div>
 
         <div class="dash-side">
           <div class="dash-card">
             <div class="dash-card-head">
-              <div class="ttl"><i class="ti ti-alert-square"></i> Pendências</div>
+              <div class="ttl"><i class="ti ti-arrow-right-circle"></i> Deleguei</div>
+              <span class="dash-count" id="home-del-count">—</span>
             </div>
-            <div class="dash-mini" onclick="trocarView('pendencias')" style="cursor:pointer;">
-              <span><i class="ti ti-rocket" style="color:#EF9F27;"></i> Onboarding em aberto</span>
-              <strong id="dash-pend-onb">—</strong>
-            </div>
-            <div class="dash-mini" onclick="marcAbrir()" style="cursor:pointer;">
-              <span><i class="ti ti-at" style="color:#4A90E2;"></i> Minhas marcações</span>
-              <strong id="dash-marcacoes">—</strong>
+            <div id="home-del-lista">
+              <div class="dash-vazio">Carregando…</div>
             </div>
           </div>
 
           <div class="dash-card">
             <div class="dash-card-head">
-              <div class="ttl"><i class="ti ti-cake"></i> Aniversariantes</div>
-              <button class="dash-cfg-btn" onclick="anivAbrirConfig()" title="Configurar mensagem"><i class="ti ti-settings"></i></button>
+              <div class="ttl"><i class="ti ti-alert-square"></i> Pendências</div>
+              <span class="dash-count" id="home-pend-count">—</span>
             </div>
-            <div id="dash-aniversariantes">
+            <div id="home-pend-lista">
               <div class="dash-vazio">Carregando…</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 7 + 8: Ranking do mês + Vitórias dos pacientes (motor de pontos por evento) -->
-      <div class="op-lower">
+      <!-- 7: Ranking do mês -->
+      <div class="op-lower op-lower-solo">
         <div class="dash-card op-lower-card">
           <div class="dash-card-head"><div class="ttl"><i class="ti ti-trophy" style="color:#e3b341"></i> Ranking do mês</div></div>
           <div id="home-ranking-body"><div class="op-lower-empty">Carregando…</div></div>
-        </div>
-        <div class="dash-card op-lower-card">
-          <div class="dash-card-head"><div class="ttl"><i class="ti ti-confetti" style="color:#3fb950"></i> Vitórias dos pacientes</div></div>
-          <div id="home-vitorias-body"><div class="op-lower-empty">Carregando…</div></div>
         </div>
       </div>
 
@@ -9491,48 +9495,17 @@ async function dashCarregar() {
   const d = r.data;
   window.homeResumo = d;
 
-  // Agenda de hoje
-  window.dashAgHoje = d.hoje.agendamentos || []; // lookup p/ abrir sem interpolar nome no onclick
-  const agWrap = document.getElementById('dash-agenda-lista');
-  document.getElementById('dash-ag-count').textContent = d.hoje.total + (d.hoje.total === 1 ? ' hoje' : ' hoje');
-  if (d.hoje.agendamentos.length === 0) {
-    agWrap.innerHTML = '<div class="dash-vazio"><i class="ti ti-calendar-off"></i> Nenhum agendamento hoje.</div>';
-  } else {
-    agWrap.innerHTML = d.hoje.agendamentos.map(a => {
-      const hora = new Date(a.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      return `
-        <div class="dash-ag-item" style="border-left-color:${a.cor || '#4A90E2'};" onclick="dashAbrirAgHoje('${a.paciente_id}')">
-          <div class="hora">${hora}</div>
-          <div class="info">
-            <div class="pac">${esc(a.paciente)}</div>
-            <div class="det">${esc(a.tipo)} · ${esc(a.profissional)}${a.unidade ? ' · ' + esc(a.unidade) : ''}</div>
-          </div>
-          <span class="st ${a.status}">${a.status}</span>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // Pendências
-  document.getElementById('dash-pend-onb').textContent = d.pendencias_onboarding;
-  document.getElementById('dash-marcacoes').textContent = d.minhas_marcacoes;
-
-  // Aniversariantes
-  dashState.aniversariantes = d.aniversariantes || [];
-  dashRenderAniversariantes();
-
-  // Home nova: card "Agenda hoje" + foco do dia + nota de amanhã + hero de impacto
+  // Card-resumo "Agenda hoje" (a lista de agenda saiu da home — foco em tarefas)
+  window.dashAgHoje = d.hoje.agendamentos || [];
   const ov = document.getElementById('op-agenda-val'); if (ov) ov.textContent = d.hoje.total;
   const oe = document.getElementById('op-agenda-ext');
   if (oe) { const conf = (d.hoje.agendamentos || []).filter(a => a.status === 'CONFIRMADO').length; oe.textContent = `${d.hoje.total} consulta${d.hoje.total === 1 ? '' : 's'} · ${conf} confirmada${conf === 1 ? '' : 's'}`; }
-  homeRenderAmanha(d.amanha);
   homeFocoRender(d);
   homeImpactoCarregar();
-  homeAtencaoCarregar();
   homeRenovCarregar();
-  homeTarefasCarregar();
-  homeRankingCarregar();   // preenche Operacional E Gestor (mesmo motor)
-  homeVitoriasCarregar();
+  homeMinhasCarregar();       // card grande "Minhas tarefas" (lista + filtro) + "Deleguei"
+  homePendListCarregar(d);    // Pendências como lista explícita (fallback: contagem do resumo)
+  homeRankingCarregar();      // preenche Operacional E Gestor (mesmo motor)
   if (homeMode === 'gestor') homeGestorCarregar();
 }
 
@@ -9718,8 +9691,7 @@ function homeFocoRender(d) {
   const amNaoConf = (d.amanha && d.amanha.nao_confirmados) || 0;
   const hojeNaoConf = (d.hoje && d.hoje.agendamentos || []).filter(a => a.status && !CONF.includes(a.status)).length;
   let foco = null;
-  if (amNaoConf > 0) foco = { txt: `<strong>${amNaoConf} agendamento${amNaoConf > 1 ? 's' : ''} de amanhã</strong> ainda não confirmado${amNaoConf > 1 ? 's' : ''}`, acao: () => { const el = document.getElementById('home-amanha'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, btn: 'Confirmar' };
-  else if (homeAtencaoTotal > 0) foco = { txt: `<strong>${homeAtencaoTotal} ${homeAtencaoTotal > 1 ? 'itens' : 'item'} em atenção</strong> ${homeAtencaoTotal > 1 ? 'precisam' : 'precisa'} de ação`, acao: () => homeAtencaoAbrir(), btn: 'Ver lista' };
+  if (amNaoConf > 0) foco = { txt: `<strong>${amNaoConf} agendamento${amNaoConf > 1 ? 's' : ''} de amanhã</strong> ainda não confirmado${amNaoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
   else if (homeRenovTotal > 0) foco = { txt: `<strong>${homeRenovTotal} renovaç${homeRenovTotal > 1 ? 'ões' : 'ão'}</strong> em risco sem abordagem`, acao: () => homeRenovAbrir(), btn: 'Ver lista' };
   else if (homeTarefasVencidas > 0) foco = { txt: `<strong>${homeTarefasVencidas} tarefa${homeTarefasVencidas > 1 ? 's' : ''} vencida${homeTarefasVencidas > 1 ? 's' : ''}</strong> aguardando você`, acao: () => homeTarefasAbrir(), btn: 'Ver tarefas' };
   else if (hojeNaoConf > 0) foco = { txt: `<strong>${hojeNaoConf} agendamento${hojeNaoConf > 1 ? 's' : ''} de hoje</strong> ainda não confirmado${hojeNaoConf > 1 ? 's' : ''}`, acao: () => trocarView('agenda'), btn: 'Ver agenda' };
@@ -9974,6 +9946,152 @@ function homeTkHora(iso) {
 }
 function homeTkDataBR(iso) { const p = String(iso).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso; }
 
+// ============================================================
+// HOME: card grande "Minhas tarefas" (lista explícita + filtro por prazo) + "Deleguei" + Pendências
+// ============================================================
+let homeMTData = { recebidas: [], deleguei: [] };
+let homeMTFiltroAtual = 'hoje';
+
+async function homeMinhasCarregar() {
+  let d = null;
+  try { const r = await pacApi('/api/clinico/tarefas'); if (r.ok) d = r.data; } catch (e) {}
+  const box = document.getElementById('home-mt-lista');
+  if (!d || !d.ok) {
+    homeMTData = { recebidas: [], deleguei: [] };
+    if (box) box.innerHTML = '<div class="dash-vazio">Não consegui carregar as tarefas.</div>';
+    homeDelRender();   // senão o card "Deleguei" trava em "Carregando…"
+    return;
+  }
+  homeMTData = { recebidas: d.recebidas || [], deleguei: d.deleguei || [] };
+  // foco do dia usa a contagem de vencidas das minhas tarefas abertas
+  homeTarefasVencidas = homeMTData.recebidas.filter(i => i.status === 'aberta' && i.vencida).length;
+  if (window.homeResumo) homeFocoRender(window.homeResumo);
+  homeMTRender();
+  homeDelRender();
+}
+function homeMTFiltro(f) {
+  homeMTFiltroAtual = f;
+  document.querySelectorAll('.mt-fbtn').forEach(b => b.classList.toggle('ativo', b.dataset.f === f));
+  homeMTRender();
+}
+// vencidas e sem-prazo sempre aparecem (são "pra fazer"); o filtro alarga a janela futura.
+function homeMTDentroDoFiltro(i) {
+  if (i.prazo_dias == null || i.prazo_dias <= 0) return true;
+  if (homeMTFiltroAtual === 'hoje') return false;
+  if (homeMTFiltroAtual === 'amanha') return i.prazo_dias <= 1;
+  return i.prazo_dias <= 7;
+}
+function homeMTQuem(i) {
+  if (i.de_rotina) return '<i class="ti ti-repeat" style="font-size:11px"></i> rotina';
+  if (i.sou_criador && i.sou_dono) return '<i class="ti ti-user" style="font-size:11px"></i> própria';
+  return `<i class="ti ti-user-plus" style="font-size:11px"></i> ${esc(i.criador_nome)}`;
+}
+function homeMTRender() {
+  const box = document.getElementById('home-mt-lista'); if (!box) return;
+  const abertas = (homeMTData.recebidas || [])
+    .filter(i => i.status === 'aberta' && i.aceite !== 'recusada' && homeMTDentroDoFiltro(i))
+    .sort((a, b) => (a.prazo_dias == null ? Infinity : a.prazo_dias) - (b.prazo_dias == null ? Infinity : b.prazo_dias));
+  if (!abertas.length) {
+    const lbl = homeMTFiltroAtual === 'hoje' ? 'para hoje' : (homeMTFiltroAtual === 'amanha' ? 'até amanhã' : 'nos próximos 7 dias');
+    // dica: se há tarefas mais à frente, sugere alargar o filtro (evita parecer "sem nada a fazer")
+    const futuras = (homeMTData.recebidas || []).filter(i => i.status === 'aberta' && i.aceite !== 'recusada' && i.prazo_dias != null && i.prazo_dias > 0 && i.prazo_dias <= 7).length;
+    const dica = (homeMTFiltroAtual !== '7dias' && futuras) ? `<div style="font-size:11.5px;color:var(--tx4);margin-top:5px">${futuras} tarefa${futuras > 1 ? 's' : ''} nos próximos 7 dias — toque em “Próximos 7 dias”.</div>` : '';
+    box.innerHTML = `<div class="dash-vazio">Nenhuma tarefa ${lbl}. 🎉${dica}</div>`;
+    return;
+  }
+  box.innerHTML = abertas.map(homeMTRow).join('');
+}
+function homeMTRow(i) {
+  const prioCor = i.prioridade === 'alta' ? '#f85149' : (i.prioridade === 'baixa' ? 'var(--tx4)' : '#e3b341');
+  const check = (i.sou_dono && i.aceite !== 'recusada')
+    ? `<button class="tk-check" onclick="event.stopPropagation();homeMTConcluir('${i.id}', this)" title="Concluir"><i class="ti ti-check"></i></button>`
+    : `<span class="tk-check" style="border-color:transparent;color:var(--tx4);cursor:default"><i class="ti ti-point"></i></span>`;
+  const badges = homeTarefaBadge(i) + homeTarefaAceiteBadge(i)
+    + (i.coment_count ? `<span class="tk-badge chat"><i class="ti ti-message-circle" style="font-size:10px"></i> ${i.coment_count}</span>` : '');
+  const pac = i.paciente_nome ? ` · <i class="ti ti-user" style="font-size:11px"></i> ${esc(i.paciente_nome)}` : '';
+  return `<div class="mt-row" onclick="homeTarefaDetalhe('${i.id}')">
+    ${check}
+    <div class="mt-body">
+      <div class="mt-ttl">${esc(i.titulo)} ${badges}</div>
+      ${i.descricao ? `<div class="mt-desc">${esc(i.descricao)}</div>` : ''}
+      <div class="mt-meta"><span class="prio" style="color:${prioCor}">●</span> ${homeMTQuem(i)}${pac}</div>
+    </div>
+    <i class="ti ti-chevron-right mt-chevron"></i>
+  </div>`;
+}
+async function homeMTConcluir(id, btnEl) {
+  if (btnEl) btnEl.disabled = true;
+  const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
+  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
+  homeToast('Tarefa concluída. ✓');
+  homeMinhasCarregar();   // recarrega recebidas/deleguei (rotina pode ter gerado a próxima)
+}
+// "Deleguei" — o que atribuí a outras pessoas (aberto).
+function homeDelRender() {
+  const box = document.getElementById('home-del-lista'); const cnt = document.getElementById('home-del-count');
+  if (!box) return;
+  const abertas = (homeMTData.deleguei || [])
+    .filter(i => i.status === 'aberta')
+    .sort((a, b) => (a.prazo_dias == null ? Infinity : a.prazo_dias) - (b.prazo_dias == null ? Infinity : b.prazo_dias));
+  if (cnt) cnt.textContent = abertas.length;
+  if (!abertas.length) { box.innerHTML = '<div class="dash-vazio">Você não delegou tarefas em aberto.</div>'; return; }
+  let html = abertas.slice(0, 8).map(i => {
+    const badges = homeTarefaBadge(i) + homeTarefaAceiteBadge(i);
+    return `<div class="mt-row" onclick="homeTarefaDetalhe('${i.id}')">
+      <div class="mt-body">
+        <div class="mt-ttl">${esc(i.titulo)} ${badges}</div>
+        <div class="mt-meta"><i class="ti ti-arrow-right" style="font-size:11px"></i> ${esc(i.dono_nome)}</div>
+      </div>
+      <i class="ti ti-chevron-right mt-chevron"></i>
+    </div>`;
+  }).join('');
+  if (abertas.length > 8) html += `<div class="mt-vertodas" onclick="homeAbrirDeleguei()">ver todas (${abertas.length})</div>`;
+  box.innerHTML = html;
+}
+function homeAbrirDeleguei() { homeTkBox = 'deleguei'; homeTarefasAbrir(); }
+// Pendências como LISTA explícita (onboarding em aberto). Sem permissão → cai na contagem do resumo.
+async function homePendListCarregar(resumo) {
+  const box = document.getElementById('home-pend-lista'); const cnt = document.getElementById('home-pend-count');
+  if (!box) return;
+  let lista = null;
+  try { const r = await pacApi('/api/clinico/patients/onboarding/pendencias'); if (r.ok) lista = r.data.pendencias || []; } catch (e) {}
+  if (lista == null) {
+    const nOnb = resumo ? (resumo.pendencias_onboarding || 0) : 0;
+    const nMarc = resumo ? (resumo.minhas_marcacoes || 0) : 0;
+    if (cnt) cnt.textContent = nOnb;
+    box.innerHTML = `<div class="dash-mini" onclick="trocarView('pendencias')" style="cursor:pointer"><span><i class="ti ti-rocket" style="color:#EF9F27"></i> Onboarding em aberto</span><strong>${nOnb}</strong></div>
+      <div class="dash-mini" onclick="marcAbrir()" style="cursor:pointer"><span><i class="ti ti-at" style="color:#4A90E2"></i> Minhas marcações</span><strong>${nMarc}</strong></div>`;
+    return;
+  }
+  lista.sort((a, b) => (b.dias_parado || 0) - (a.dias_parado || 0));
+  if (cnt) cnt.textContent = lista.length;
+  // marcações aparecem nos dois caminhos (sucesso e fallback), pra não sumirem por permissão
+  const nMarc = resumo ? (resumo.minhas_marcacoes || 0) : 0;
+  const marcHtml = nMarc ? `<div class="dash-mini" onclick="marcAbrir()" style="cursor:pointer;margin-top:6px"><span><i class="ti ti-at" style="color:#4A90E2"></i> Minhas marcações</span><strong>${nMarc}</strong></div>` : '';
+  if (!lista.length) { box.innerHTML = '<div class="dash-vazio">Nenhuma pendência de onboarding. Tudo em dia! 🎉</div>' + marcHtml; return; }
+  let html = lista.slice(0, 8).map(homePendRow).join('');
+  if (lista.length > 8) html += `<div class="mt-vertodas" onclick="trocarView('pendencias')">ver todas (${lista.length})</div>`;
+  box.innerHTML = html + marcHtml;
+}
+function homePendRow(p) {
+  const falta = [];
+  if (!p.checks.kit_entregue) falta.push('kit');
+  if (!p.checks.contrato_assinado) falta.push('contrato');
+  if (!p.checks.termo_assinado) falta.push('termo');
+  if (!p.checks.cronograma_montado) falta.push('cronograma');
+  const faltaTxt = falta.length ? 'falta ' + falta.join(', ') : 'quase lá';
+  const dias = p.dias_parado || 0;
+  const diasCor = dias >= 15 ? '#f85149' : (dias >= 7 ? '#d29922' : 'var(--tx4)');
+  const diasTxt = dias === 0 ? 'hoje' : `${dias}d parado`;
+  return `<div class="mt-row" onclick="pendAbrirOnboarding('${p.id}')">
+    <div class="mt-body">
+      <div class="mt-ttl">${esc(p.nome)} <span style="font-size:11px;color:var(--tx4)">${esc(p.codigo || '')}</span></div>
+      <div class="mt-meta"><i class="ti ti-list-check" style="font-size:11px"></i> ${faltaTxt} · <span style="color:${diasCor}">${diasTxt}</span>${p.pct != null ? ' · ' + p.pct + '%' : ''}</div>
+    </div>
+    <i class="ti ti-chevron-right mt-chevron"></i>
+  </div>`;
+}
+
 // ===== estado de navegação do modal de tarefas =====
 let homeTkData = null;   // payload do GET /tarefas (recebidas/deleguei/resumo)
 let homeTkBox = 'recebidas';
@@ -10154,8 +10272,7 @@ async function homeTarefaComentar(id, inputEl) {
 // Após mutar uma tarefa: atualiza o card "Minhas tarefas" + o "Em atenção" + (se a Agenda estiver
 // aberta) os chips de prazo — senão essas telas ficam com dado obsoleto.
 function homeTarefasSync() {
-  homeTarefasCarregar();
-  if (typeof homeAtencaoCarregar === 'function') homeAtencaoCarregar();
+  if (typeof homeMinhasCarregar === 'function') homeMinhasCarregar();  // refaz o card grande + "Deleguei" + foco
   const agView = document.getElementById('view-agenda');
   if (agView && agView.classList.contains('active') && typeof agCarregar === 'function') agCarregar();
 }
@@ -10244,7 +10361,10 @@ async function homeTarefaEditarSalvar(id) {
   homeToast('Tarefa atualizada.'); homeTarefasSync(); homeTarefaDetalhe(id);
 }
 
+let homeTkNovaOrigem = 'home';   // 'home' (lista inline) ou 'modal' (aberto de dentro do modal de tarefas)
 async function homeTarefaNova() {
+  // se já há um overlay aberto, a "Nova" veio de dentro do modal de tarefas; senão, da home inline.
+  homeTkNovaOrigem = document.getElementById('atn-overlay') ? 'modal' : 'home';
   let usuarios = [];
   try { const r = await pacApi('/api/clinico/mentions/usuarios'); if (r.ok) usuarios = r.data.usuarios || []; } catch (e) {}
   const meuId = authUser && authUser.id;
@@ -10288,9 +10408,13 @@ async function homeTarefaSalvar(btnEl) {
   const r = await pacApi('/api/clinico/tarefas', { method: 'POST', body: JSON.stringify(body) });
   if (!r.ok || !r.data || !r.data.ok) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-check"></i> Criar tarefa'; } homeToast('Não consegui criar a tarefa.'); return; }
   homeToast('Tarefa criada.');
-  homeTarefasSync();
-  homeTkBox = (r.data && r.data.delegada) ? 'deleguei' : 'recebidas'; // flag do backend (não infere pelo donoId)
-  homeTarefasAbrir();
+  homeTarefasSync();   // atualiza a lista inline da home (home-mt-lista / home-del-lista)
+  if (homeTkNovaOrigem === 'modal') {
+    homeTkBox = (r.data && r.data.delegada) ? 'deleguei' : 'recebidas'; // flag do backend (não infere pelo donoId)
+    homeTarefasAbrir();
+  } else {
+    homeAtencaoFechar();  // veio da home: fecha o form; a lista inline já mostra a nova tarefa
+  }
 }
 
 // ============================================================
@@ -11846,7 +11970,8 @@ let dashState = { aniversariantes: [] };
 
 function dashRenderAniversariantes() {
   const wrap = document.getElementById('dash-aniversariantes');
-  const lista = dashState.aniversariantes;
+  if (!wrap) return; // card saiu da home
+  const lista = dashState.aniversariantes || [];
   if (lista.length === 0) {
     wrap.innerHTML = '<div class="dash-vazio"><i class="ti ti-cake-off"></i> Ninguém faz aniversário nos próximos 7 dias.</div>';
     return;
