@@ -6805,12 +6805,10 @@
       <button class="gt-tab active" data-gt="painel" onclick="gtTab('painel')"><i class="ti ti-checklist"></i> Acompanhamento</button>
       <button class="gt-tab" data-gt="rotinas" onclick="gtTab('rotinas')"><i class="ti ti-repeat"></i> Rotinas &amp; Tarefas</button>
       <button class="gt-tab" data-gt="grupos" onclick="gtTab('grupos')"><i class="ti ti-users-group"></i> Grupos</button>
-      <button class="gt-tab" data-gt="equipe" onclick="gtTab('equipe')"><i class="ti ti-stairs-up"></i> Níveis</button>
     </div>
     <div id="gt-painel" class="gt-pane"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div></div>
     <div id="gt-rotinas" class="gt-pane" style="display:none;"></div>
     <div id="gt-grupos" class="gt-pane" style="display:none;"></div>
-    <div id="gt-equipe" class="gt-pane" style="display:none;"></div>
   </div>
 
   <!-- VIEW: Comunicação Interna (esquema funcional) -->
@@ -6822,6 +6820,9 @@
       </button>
       <button class="admin-tab" data-admin-tab="usuarios" onclick="adminTrocarTab('usuarios')">
         <i class="ti ti-user-cog"></i> Usuários
+      </button>
+      <button class="admin-tab" data-admin-tab="niveis" onclick="adminTrocarTab('niveis')">
+        <i class="ti ti-stairs-up"></i> Níveis
       </button>
     </div>
 
@@ -6852,6 +6853,18 @@
       </div>
       <div id="admin-usuarios-wrap">
         <div class="pac-empty"><i class="ti ti-loader"></i>Carregando usuários...</div>
+      </div>
+    </div>
+
+    <!-- TAB: Níveis (senioridade) -->
+    <div class="admin-tab-content" id="admin-tab-niveis" style="display:none;">
+      <div class="admin-toolbar">
+        <div class="admin-toolbar-info">
+          <strong>Senioridade:</strong> júnior, pleno ou sênior — separado do cargo. Usado para direcionar rotinas e tarefas (ex.: "todos os Recepção nível júnior").
+        </div>
+      </div>
+      <div id="admin-niveis-wrap">
+        <div class="pac-empty"><i class="ti ti-loader"></i>Carregando níveis...</div>
       </div>
     </div>
   </div>
@@ -17351,7 +17364,6 @@ function gtTab(t) {
   if (t === 'painel') gtPainelCarregar();
   else if (t === 'rotinas') gtRotinasCarregar();
   else if (t === 'grupos') gtGruposRender();
-  else if (t === 'equipe') gtEquipeRender();
 }
 // ---- Acompanhamento ----
 async function gtPainelCarregar() {
@@ -17397,9 +17409,14 @@ function gtRotinasRender(rotinas) {
   const lista = rotinas.map((r) => {
     const alvos = (r.alvos || []).map((a) => `<span class="gt-chip" style="padding:2px 10px">${gtAlvoLabel(a)}</span>`).join('');
     const rec = `<span class="gt-badge" style="background:rgba(232,148,90,0.12);color:var(--ac)">${GT_RECORR[r.recorrencia] || r.recorrencia}</span>`;
+    let fimBadge = '';
+    if (r.recorrencia !== 'unica') {
+      if (!r.fim) fimBadge = '<span class="gt-badge" style="background:rgba(63,185,80,0.12);color:#3fb950"><i class="ti ti-infinity"></i> pra sempre</span>';
+      else { let f = '?'; try { f = new Date(r.fim).toLocaleDateString('pt-BR', { timeZone: 'UTC' }); } catch (e) {} fimBadge = `<span class="gt-badge"><i class="ti ti-calendar-off"></i> até ${f}</span>`; }
+    }
     return `<div class="gt-card${r.ativo ? '' : ' dim'}">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-        <div style="min-width:0"><strong style="font-size:14px">${esc(r.titulo)}</strong> ${rec} ${r.contagem ? '<span class="gt-badge"><i class="ti ti-hourglass-low"></i> contagem</span>' : ''} ${r.ativo ? '' : '<span class="gt-badge" style="color:#f85149">pausada</span>'}
+        <div style="min-width:0"><strong style="font-size:14px">${esc(r.titulo)}</strong> ${rec} ${fimBadge} ${r.contagem ? '<span class="gt-badge"><i class="ti ti-hourglass-low"></i> contagem</span>' : ''} ${r.ativo ? '' : '<span class="gt-badge" style="color:#f85149">pausada</span>'}
           ${r.descricao ? `<div style="font-size:12px;color:var(--tx3);margin-top:3px">${esc(r.descricao)}</div>` : ''}
           <div style="margin-top:6px">${alvos}</div></div>
         <div style="text-align:right;min-width:110px">
@@ -17424,13 +17441,14 @@ function gtRotinaNovaForm() {
     <label>Título</label><input class="pac-search" id="gt-nt-titulo" placeholder="Ex.: Conferir estoque de insumos">
     <label>Descrição (opcional)</label><textarea class="pac-search" id="gt-nt-desc" rows="2" placeholder="Detalhes"></textarea>
     <div class="gt-row2">
-      <div><label>Recorrência</label><select class="pac-search" id="gt-nt-rec">${Object.entries(GT_RECORR).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div><label>Recorrência</label><select class="pac-search" id="gt-nt-rec" onchange="gtRecChange()">${Object.entries(GT_RECORR).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
       <div><label>Prioridade</label><select class="pac-search" id="gt-nt-prio"><option value="media">Média</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select></div>
     </div>
     <div class="gt-row2">
-      <div><label>Início / prazo</label><input class="pac-search" type="date" id="gt-nt-inicio" value="${gtHojeStr()}"></div>
-      <div><label>Fim da recorrência (opcional)</label><input class="pac-search" type="date" id="gt-nt-fim"></div>
+      <div><label id="gt-nt-inicio-lbl">Início / prazo</label><input class="pac-search" type="date" id="gt-nt-inicio" value="${gtHojeStr()}"></div>
+      <div id="gt-nt-fim-wrap"><label>Fim da recorrência</label><input class="pac-search" type="date" id="gt-nt-fim"></div>
     </div>
+    <label id="gt-nt-forever-wrap" style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--tx2);cursor:pointer;font-weight:400"><input type="checkbox" id="gt-nt-forever" checked onchange="gtForeverChange()"> Repetir <strong style="color:var(--tx1);font-weight:600">pra sempre</strong> — até alguém pausar (ex.: Recepção nível júnior faz isso todo dia, sem data de fim)</label>
     <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--tx2);cursor:pointer;font-weight:400"><input type="checkbox" id="gt-nt-cont"> Mostrar contagem regressiva ("dia X/N") até o prazo</label>
     <label>Atribuir a</label>
     <div class="gt-row2">
@@ -17444,7 +17462,27 @@ function gtRotinaNovaForm() {
       <button class="tk-btn" onclick="document.getElementById('gt-nova-wrap').innerHTML=''">Cancelar</button>
     </div>
     <div id="gt-nova-msg" style="margin-top:8px;font-size:12px"></div></div>`;
-  gtAlvoTipoChange(); gtAlvosRender();
+  gtAlvoTipoChange(); gtAlvosRender(); gtRecChange();
+}
+// "Pra sempre" (fim=null + scheduler materializa continuamente) vs. fim com data. Única não tem recorrência.
+function gtRecChange() {
+  const rec = document.getElementById('gt-nt-rec'); if (!rec) return;
+  const unica = rec.value === 'unica';
+  const iniLbl = document.getElementById('gt-nt-inicio-lbl');
+  const foreverWrap = document.getElementById('gt-nt-forever-wrap');
+  if (iniLbl) iniLbl.textContent = unica ? 'Data / prazo' : 'Início';
+  if (foreverWrap) foreverWrap.style.display = unica ? 'none' : 'flex';
+  gtForeverChange();
+}
+function gtForeverChange() {
+  const rec = document.getElementById('gt-nt-rec'); if (!rec) return;
+  const unica = rec.value === 'unica';
+  const forever = document.getElementById('gt-nt-forever');
+  const fimWrap = document.getElementById('gt-nt-fim-wrap');
+  if (!fimWrap) return;
+  // Campo "Fim" só aparece quando é recorrente E não é pra sempre.
+  const showFim = !unica && forever && !forever.checked;
+  fimWrap.style.display = showFim ? '' : 'none';
 }
 function gtAlvoTipoChange() {
   const tipo = document.getElementById('gt-alvo-tipo').value;
@@ -17486,11 +17524,15 @@ async function gtRotinaCriar() {
   if (!titulo) { msg.innerHTML = '<span style="color:#f85149">Informe o título.</span>'; return; }
   if (!inicio) { msg.innerHTML = '<span style="color:#f85149">Informe a data de início.</span>'; return; }
   if (!gtState.novaAlvos.length) { msg.innerHTML = '<span style="color:#f85149">Adicione ao menos um alvo.</span>'; return; }
-  const fim = document.getElementById('gt-nt-fim').value;
+  const recorrencia = document.getElementById('gt-nt-rec').value;
+  const foreverEl = document.getElementById('gt-nt-forever');
+  const forever = foreverEl ? foreverEl.checked : true;
+  // Única = sem recorrência; "pra sempre" = fim null (scheduler materializa continuamente até pausar).
+  const fim = (recorrencia === 'unica' || forever) ? null : (document.getElementById('gt-nt-fim').value || null);
   const body = {
     titulo, descricao: document.getElementById('gt-nt-desc').value.trim() || null,
-    prioridade: document.getElementById('gt-nt-prio').value, recorrencia: document.getElementById('gt-nt-rec').value,
-    inicio, fim: fim || null, contagem: document.getElementById('gt-nt-cont').checked, alvos: gtState.novaAlvos,
+    prioridade: document.getElementById('gt-nt-prio').value, recorrencia,
+    inicio, fim, contagem: document.getElementById('gt-nt-cont').checked, alvos: gtState.novaAlvos,
   };
   msg.innerHTML = 'Criando…';
   const r = await pacApi('/api/clinico/tarefas-gestao/rotinas', { method: 'POST', body: JSON.stringify(body) });
@@ -17547,22 +17589,7 @@ async function gtGrupoExcluir(id) {
   const r = await pacApi('/api/clinico/tarefas-gestao/grupos/' + id, { method: 'DELETE' });
   if (r.ok) { await gtCarregarBase(); gtGruposRender(); } else homeToast('Não foi possível excluir.');
 }
-// ---- Níveis ----
-function gtEquipeRender() {
-  const box = document.getElementById('gt-equipe');
-  const linhas = gtState.pessoas.map((p) => {
-    const opts = ['', 'junior', 'pleno', 'senior'].map((n) => `<option value="${n}"${(p.nivel || '') === n ? ' selected' : ''}>${n ? gtNivelLabel(n) : '—'}</option>`).join('');
-    const cargos = p.cargos.map((c) => `<span class="gt-badge" style="margin-right:4px">${esc(c.nome)}</span>`).join('') || '<span style="color:var(--tx4);font-size:11px">sem cargo</span>';
-    return `<tr><td><span class="ator">${esc(p.nome)}</span></td><td>${cargos}</td><td><select class="pac-search" style="max-width:140px" onchange="gtNivelSet('${p.id}',this.value)">${opts}</select></td></tr>`;
-  }).join('');
-  box.innerHTML = `<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">A senioridade é separada do cargo — dá pra atribuir tarefa a "todos os Sêniores" ou a "Nutricionistas Plenos".</div>
-    <div class="dev-table-wrap"><div style="overflow-x:auto;"><table class="dev-table"><thead><tr><th>Pessoa</th><th>Cargos</th><th>Nível</th></tr></thead><tbody>${linhas || '<tr><td colspan="3" style="text-align:center;color:var(--tx4)">Sem pessoas.</td></tr>'}</tbody></table></div></div>`;
-}
-async function gtNivelSet(id, nivel) {
-  const r = await pacApi('/api/clinico/tarefas-gestao/pessoas/' + id + '/nivel', { method: 'PUT', body: JSON.stringify({ nivel: nivel || null }) });
-  if (r.ok) { const p = gtState.pessoas.find((x) => x.id === id); if (p) p.nivel = nivel || null; homeToast('Nível atualizado.'); }
-  else homeToast('Não foi possível atualizar.');
-}
+// ---- Níveis: a edição de senioridade foi movida para Administração › Níveis (admCarregarNiveis). ----
 
 async function devCarregar() {
   devIACarregar(devIARange);
@@ -18257,6 +18284,7 @@ function adminTrocarTab(tab) {
   document.getElementById('admin-tab-' + tab).style.display = '';
   if (tab === 'cargos') admCarregarMatriz();
   else if (tab === 'usuarios') admCarregarUsuarios();
+  else if (tab === 'niveis') admCarregarNiveis();
 }
 
 async function admCarregarMatriz() {
@@ -18476,6 +18504,38 @@ async function admCarregarUsuarios() {
       </div>
     `;
   }).join('');
+}
+
+// ---- Níveis (senioridade) -- movido de Gestão de Tarefas para cá ----
+async function admCarregarNiveis() {
+  const wrap = document.getElementById('admin-niveis-wrap');
+  wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando níveis...</div>';
+  const r = await pacApi('/api/clinico/admin/usuarios');
+  if (!r.ok) { wrap.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (r.data.erro || '--') + '</div>'; return; }
+  admState.usuarios = r.data.usuarios;
+  if (admState.usuarios.length === 0) {
+    wrap.innerHTML = '<div class="pac-empty">Nenhum usuário cadastrado.</div>';
+    return;
+  }
+  const nivelLabel = (n) => ({ junior: 'Júnior', pleno: 'Pleno', senior: 'Sênior' })[n] || n;
+  const linhas = admState.usuarios.map(u => {
+    const cargos = (u.cargos || []).map(c => {
+      const cor = c.cor || 'var(--tx3b)';
+      return `<span class="cargo-pill" style="color:${cor}; border-color:${cor}40; background:${cor}10;">${c.icone ? `<i class="ti ${c.icone}"></i>` : ''}${esc(c.nome)}</span>`;
+    }).join('') || '<span style="font-size:10px; color:var(--tx4); font-style:italic;">Sem cargos</span>';
+    const opts = ['', 'junior', 'pleno', 'senior'].map(n => `<option value="${n}"${(u.nivel || '') === n ? ' selected' : ''}>${n ? nivelLabel(n) : '—'}</option>`).join('');
+    return `<tr>
+      <td><span class="ator">${esc(u.nome || u.email)}</span></td>
+      <td>${cargos}</td>
+      <td><select class="pac-search" style="max-width:150px" onchange="admNivelSet('${u.id}',this.value)">${opts}</select></td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<div class="dev-table-wrap"><div style="overflow-x:auto;"><table class="dev-table"><thead><tr><th>Usuário</th><th>Cargos</th><th>Nível</th></tr></thead><tbody>${linhas}</tbody></table></div></div>`;
+}
+async function admNivelSet(id, nivel) {
+  const r = await pacApi('/api/clinico/admin/usuarios/' + id + '/nivel', { method: 'PUT', body: JSON.stringify({ nivel: nivel || null }) });
+  if (r.ok) { const u = admState.usuarios.find(x => x.id === id); if (u) u.nivel = nivel || null; homeToast('Nível atualizado.'); }
+  else homeToast('Não foi possível atualizar: ' + (r.data.erro || '--'));
 }
 
 async function admEditarCargosUser(userId) {
