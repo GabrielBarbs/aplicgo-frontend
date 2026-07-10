@@ -6046,6 +6046,7 @@
   .tk-badge.ace{background:rgba(63,185,80,.15);color:#3fb950}
   .tk-badge.done{background:var(--bg3);color:var(--tx3)}
   .tk-badge.chat{background:var(--bg3);color:var(--tx3)}
+  .tk-badge.cont{background:rgba(232,148,90,.16);color:var(--ac)}
   .tkd-back{background:transparent;border:0;color:var(--tx3);cursor:pointer;font-size:19px;line-height:1;margin-right:4px;padding:0}
   .tkd-badges{display:flex;flex-wrap:wrap;gap:6px;padding:12px 18px 2px}
   .tkd-meta{display:grid;grid-template-columns:1fr 1fr;gap:11px 16px;padding:12px 18px 6px}
@@ -9942,7 +9943,8 @@ async function homeTarefasCarregar() {
 function homeTarefaBadge(i) {
   if (i.status === 'concluida' || i.prazo_dias == null) return '';
   if (i.vencida) return `<span class="tk-badge rec">vencida há ${Math.abs(i.prazo_dias)}d</span>`;
-  if (i.hoje) return `<span class="tk-badge pend">hoje</span>`;
+  if (i.hoje) return `<span class="tk-badge pend">${i.contagem ? 'tarefa do dia' : 'hoje'}</span>`;
+  if (i.contagem) return `<span class="tk-badge cont"><i class="ti ti-hourglass-low" style="font-size:10px"></i> dia ${i.contagem.dia}/${i.contagem.total}</span>`;
   return `<span class="tk-badge done">em ${i.prazo_dias}d</span>`;
 }
 function homeTarefaAceiteBadge(i) {
@@ -10052,9 +10054,11 @@ function homeTkRenderDetalhe() {
   else badges.push('<span class="tk-badge done">aberta</span>');
   if (!concl && t.prazo_dias != null) {
     if (t.vencida) badges.push(`<span class="tk-badge rec">vencida há ${Math.abs(t.prazo_dias)}d</span>`);
-    else if (t.hoje) badges.push('<span class="tk-badge pend">vence hoje</span>');
+    else if (t.hoje) badges.push(`<span class="tk-badge pend">${t.contagem ? 'tarefa do dia' : 'vence hoje'}</span>`);
+    else if (t.contagem) badges.push(`<span class="tk-badge cont"><i class="ti ti-hourglass-low" style="font-size:10px"></i> dia ${t.contagem.dia}/${t.contagem.total} · faltam ${t.contagem.restam}</span>`);
     else badges.push(`<span class="tk-badge done">em ${t.prazo_dias}d</span>`);
   }
+  if (t.de_rotina) badges.push('<span class="tk-badge" style="background:rgba(123,104,238,.14);color:#a99cf0"><i class="ti ti-repeat" style="font-size:10px"></i> rotina</span>');
   if (t.aceite === 'pendente') badges.push('<span class="tk-badge pend">aceite pendente</span>');
   else if (t.aceite === 'aceita') badges.push('<span class="tk-badge ace">aceita</span>');
   else if (t.aceite === 'recusada') badges.push('<span class="tk-badge rec">recusada</span>');
