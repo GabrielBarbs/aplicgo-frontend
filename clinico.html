@@ -18834,8 +18834,27 @@ function prRenderAppMonitor() {
     cards.push(pacAppDia('Hoje', d.wearables.hoje));
     cards.push(pacAppDia('Ontem', d.wearables.ontem));
   }
-  // Fotos de evolução (o paciente envia pelo app) — igual à aba antiga (placeholder)
-  cards.push('<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="display:flex;gap:8px;">' + [0, 1, 2].map(function(){ return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>'; }).join('') + '</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">Linha do tempo de fotos (frente/costas/perfil) pelo app — em construção.</div></div>');
+  // Fotos de evolução — enviadas pelo paciente no app (ClinPatientDocument tipo=foto_evolucao)
+  (function(){
+    var fotosArr = ((d.fotos_evolucao || {}).fotos) || [];
+    var tok = encodeURIComponent(getToken());
+    var srcOf = function(id){ return API_BASE + '/api/clinico/documentos/' + id + '/download?token=' + tok; };
+    var thumbs = fotosArr.map(function(f){
+      var src = srcOf(f.id);
+      var lbl = (f.semana != null) ? ('Semana ' + f.semana) : pacAppData(f.data);
+      return '<div style="flex:0 0 auto;width:88px;cursor:pointer;" onclick="window.open(\'' + src + '\',\'_blank\')" title="' + lbl + '">'
+        + '<div style="width:88px;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--bg1);border:1px solid var(--bd1);">'
+        + '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx4);&quot;><i class=&quot;ti ti-photo-off&quot;></i></div>\'">'
+        + '</div>'
+        + '<div style="font-size:10px;color:var(--tx3);text-align:center;margin-top:4px;">' + lbl + '</div></div>';
+    }).join('');
+    cards.push('<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div>'
+      + (fotosArr.length ? '<div class="dash-count">' + fotosArr.length + ' foto' + (fotosArr.length > 1 ? 's' : '') + '</div>' : '') + '</div>'
+      + (fotosArr.length
+          ? '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">' + thumbs + '</div><div style="font-size:10px;color:var(--tx4);margin-top:8px;">Enviadas pelo paciente no app · clique pra ampliar.</div>'
+          : '<div style="display:flex;gap:8px;">' + [0, 1, 2].map(function(){ return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>'; }).join('') + '</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">O paciente ainda não enviou fotos de evolução pelo app.</div>'
+      ) + '</div>');
+  })();
   // Coach IA — conversa do paciente com os agentes (igual à aba antiga, placeholder)
   var coachCard = function(nome, ic, c){ return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ' + ic + '"></i> Coach IA — ' + nome + '</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="font-size:12px;color:var(--tx3);min-height:40px;">' + ((c && c.disponivel && c.resumo) ? c.resumo : ('Resumo da conversa do paciente com o coach ' + nome.toLowerCase() + ' (ainda não disponível).')) + '</div><button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button></div>'; };
   cards.push(coachCard('Nutricional', 'ti-apple', d.coach_ia && d.coach_ia.nutricional));
