@@ -21073,6 +21073,23 @@ function rxRerender(scroll) {
   sec.innerHTML = rxState.aberto ? prRenderPrescritor() : '';
   if (scroll && rxState.aberto) setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
 }
+// "Injetáveis" no seletor de documentos: leva pro módulo de Injetáveis (aba Prescrever)
+// já com o paciente atual selecionado — o builder semana-a-semana vive lá.
+function prAbrirInjetaveis() {
+  if (typeof temPermissao === 'function' && !temPermissao('prescricao_inj.criar')) {
+    if (typeof homeToast === 'function') homeToast('Você não tem permissão pra prescrever injetáveis.');
+    return;
+  }
+  const p = prState.pacienteAtual;
+  if (!p || !p.id) { if (typeof homeToast === 'function') homeToast('Abra o paciente primeiro.'); return; }
+  if (typeof injState !== 'undefined') {
+    injState.patient = { id: p.id, nome: p.nome || p.nome_completo || p.nomeCompleto || '', codigo: p.codigo || '' };
+    injState.builder = null; // começa uma prescrição nova pra esse paciente
+  }
+  if (typeof rxFechar === 'function') rxFechar();
+  trocarView('injetaveis');
+  setTimeout(() => { if (typeof injTab === 'function') injTab('prescrever'); }, 0);
+}
 function rxSetTipoDoc(t) {
   if (t === 'exames') {
     // gate que antes ficava no botão da barra (removido de lá — exames vive aqui)
@@ -21082,6 +21099,7 @@ function rxSetTipoDoc(t) {
     }
     prAbrirNovoExam(); return;
   }
+  if (t === 'injetaveis') { prAbrirInjetaveis(); return; }
   if (t === 'breve') { if (typeof homeToast === 'function') homeToast('Em construção — por enquanto: Receituário, Atestado e Exames.'); return; }
   rxState.tipoDoc = t;
   rxRerender(false);
@@ -21202,6 +21220,7 @@ function prRenderPrescritor() {
         ${docBtn('declaracao', 'Declaração', 'file-text', 'breve')}
         ${docBtn('carta', 'Carta', 'mail', 'breve')}
         ${docBtn('exames', 'Solicitação de Exames', 'flask')}
+        ${docBtn('injetaveis', 'Injetáveis', 'vaccine')}
         ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
         ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
       </div>
