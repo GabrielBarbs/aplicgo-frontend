@@ -11767,8 +11767,8 @@ async function varRenderProdutos() {
   const box = document.getElementById('var-prods'); if (!box) return;
   if (err) { box.innerHTML = INJ_ERRO; return; }
   box.innerHTML = prods.length
-    ? '<table class="gst-table"><thead><tr><th>SKU</th><th>Produto</th><th style="text-align:right">Pac. ativo</th><th style="text-align:right">Não pac.</th><th style="text-align:right">Estoque</th><th></th></tr></thead><tbody>'
-      + prods.map((p) => `<tr${p.ativo === false ? ' style="opacity:.5"' : ''}><td style="color:var(--tx3)">${esc(p.sku)}</td><td>${esc(p.nome)}${p.ativo === false ? ' <span style="font-size:10px;color:var(--tx4)">(inativo)</span>' : ''}</td><td class="num">${homeGestorFmtBRL(p.preco_paciente_cents)}</td><td class="num">${homeGestorFmtBRL(p.preco_nao_paciente_cents)}</td><td class="num" style="${p.estoque_baixo ? 'color:#e3b341' : ''}">${p.estoque_atual}</td><td><button class="tk-btn" style="padding:5px 10px;font-size:12px" onclick="varProdEditar('${esc(p.sku)}')"><i class="ti ti-pencil"></i> Editar</button></td></tr>`).join('') + '</tbody></table>'
+    ? '<table class="gst-table"><thead><tr><th>SKU</th><th>Produto</th><th style="text-align:right">Pac. ativo</th><th style="text-align:right">Não pac.</th><th style="text-align:right">Colab.</th><th></th></tr></thead><tbody>'
+      + prods.map((p) => `<tr${p.ativo === false ? ' style="opacity:.5"' : ''}><td style="color:var(--tx3)">${esc(p.sku)}</td><td>${esc(p.nome)}${p.ativo === false ? ' <span style="font-size:10px;color:var(--tx4)">(inativo)</span>' : ''}</td><td class="num">${homeGestorFmtBRL(p.preco_paciente_cents)}</td><td class="num">${homeGestorFmtBRL(p.preco_nao_paciente_cents)}</td><td class="num">${homeGestorFmtBRL(p.preco_colaborador_cents)}</td><td><button class="tk-btn" style="padding:5px 10px;font-size:12px" onclick="varProdEditar('${esc(p.sku)}')"><i class="ti ti-pencil"></i> Editar</button></td></tr>`).join('') + '</tbody></table>'
     : '<div class="pac-empty" style="padding:12px">Nenhum produto de varejo.</div>';
 }
 function varProdEditar(sku) {
@@ -11785,7 +11785,6 @@ function varProdEditar(sku) {
     + F('var-f-dias', 'Dias de uso', p.dias_de_uso, true) + F('var-f-custo', 'Custo (R$)', brl(p.custo_cents), true)
     + F('var-f-ppac', 'Preço paciente ativo (R$)', brl(p.preco_paciente_cents), true) + F('var-f-pnao', 'Preço não paciente (R$)', brl(p.preco_nao_paciente_cents), true)
     + F('var-f-pcol', 'Preço colaborador (R$)', brl(p.preco_colaborador_cents), true)
-    + F('var-f-est', 'Estoque atual', p.estoque_atual, true) + F('var-f-estmin', 'Estoque mínimo', p.estoque_minimo, true)
     + `<div style="align-self:flex-end;padding-bottom:6px"><label style="font-size:12px;color:var(--tx2)"><input type="checkbox" id="var-f-ativo" ${p.ativo !== false ? 'checked' : ''}> Ativo</label></div>`
     + '</div>'
     + `<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('var-modal').remove()">Cancelar</button><button class="tk-btn primary" onclick="varProdSalvar(${sku ? `'${esc(sku)}'` : 'null'})"><i class="ti ti-check"></i> Salvar</button></div>`;
@@ -11806,7 +11805,7 @@ async function varProdSalvar(sku) {
     sku: skuFinal, nome: v('var-f-nome'), categoria: v('var-f-cat') || null, dias_de_uso: intg('var-f-dias') || 30,
     custo_cents: cents('var-f-custo'), preco_paciente_cents: cents('var-f-ppac') || 0, preco_nao_paciente_cents: cents('var-f-pnao') || 0,
     preco_colaborador_cents: cents('var-f-pcol') || 0,
-    estoque_atual: intg('var-f-est'), estoque_minimo: intg('var-f-estmin'), ativo: chk('var-f-ativo'),
+    ativo: chk('var-f-ativo'),
   };
   let ok = false, msg = '';
   try { const r = await pacApi('/api/clinico/varejo/produtos', { method: 'POST', body: JSON.stringify(body) }); ok = r.ok; if (!ok && r.data) msg = r.data.erro || ''; } catch (e) {}
@@ -17448,8 +17447,8 @@ function gtRotinaNovaForm() {
       <div><label>Prioridade</label><select class="pac-search" id="gt-nt-prio"><option value="media">Média</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select></div>
     </div>
     <div class="gt-row2">
-      <div><label id="gt-nt-inicio-lbl">Início / prazo</label><input class="pac-search" type="date" id="gt-nt-inicio" value="${gtHojeStr()}"></div>
-      <div id="gt-nt-fim-wrap"><label>Fim da recorrência</label><input class="pac-search" type="date" id="gt-nt-fim"></div>
+      <div><label id="gt-nt-inicio-lbl">Início / prazo</label><input class="pac-search" type="date" id="gt-nt-inicio" value="${gtHojeStr()}" min="${gtHojeStr()}" onchange="const f=document.getElementById('gt-nt-fim'); if(f) f.min=this.value;"></div>
+      <div id="gt-nt-fim-wrap"><label>Fim da recorrência</label><input class="pac-search" type="date" id="gt-nt-fim" min="${gtHojeStr()}"></div>
     </div>
     <label id="gt-nt-forever-wrap" style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--tx2);cursor:pointer;font-weight:400"><input type="checkbox" id="gt-nt-forever" checked onchange="gtForeverChange()"> Repetir <strong style="color:var(--tx1);font-weight:600">pra sempre</strong> — até alguém pausar (ex.: Recepção nível júnior faz isso todo dia, sem data de fim)</label>
     <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--tx2);cursor:pointer;font-weight:400"><input type="checkbox" id="gt-nt-cont"> Mostrar contagem regressiva ("dia X/N") até o prazo</label>
@@ -17533,6 +17532,7 @@ async function gtRotinaCriar() {
   const forever = foreverEl ? foreverEl.checked : true;
   // Única = sem recorrência; "pra sempre" = fim null (scheduler materializa continuamente até pausar).
   const fim = (recorrencia === 'unica' || forever) ? null : (document.getElementById('gt-nt-fim').value || null);
+  if (fim && fim < inicio) { msg.innerHTML = '<span style="color:#f85149">A data de fim não pode ser antes do início.</span>'; return; }
   const body = {
     titulo, descricao: document.getElementById('gt-nt-desc').value.trim() || null,
     prioridade: document.getElementById('gt-nt-prio').value, recorrencia,
