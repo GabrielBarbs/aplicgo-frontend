@@ -3386,6 +3386,11 @@
       padding: 3px 9px; border-radius: 5px; cursor: pointer; font-size: 10px; font-family: inherit;
     }
     .dev-report-item .acoes button:hover { border-color: var(--ac); color: var(--ac); }
+    .ia-range { display: inline-flex; gap: 4px; }
+    .ia-rg { background: var(--bg3); border: 1px solid var(--bd1); border-radius: 7px; color: var(--tx3); font-size: 11px; font-weight: 600; padding: 5px 11px; cursor: pointer; }
+    .ia-rg.active { background: #7B68EE; border-color: #7B68EE; color: #fff; }
+    .ia-barmini { height: 3px; border-radius: 2px; background: rgba(123,104,238,0.15); margin-top: 4px; overflow: hidden; }
+    .ia-barmini > span { display: block; height: 100%; background: #7B68EE; border-radius: 2px; }
 
     /* ====== BOTÃO FLUTUANTE DE REPORT ====== */
     .bug-fab {
@@ -6748,6 +6753,21 @@
     </div>
     <div id="seg-conteudo" style="margin-bottom:20px;">
       <div class="pac-empty">Clique em "Rodar auditoria" para ver o status de segurança.</div>
+    </div>
+
+    <!-- IA: consumo REAL de tokens da API Claude, por agente -->
+    <div class="dev-toolbar" style="margin-bottom:12px;">
+      <div class="dev-info"><strong><i class="ti ti-brain"></i> IA · Consumo de tokens (Claude):</strong> uso REAL reportado pela API, por agente. Só há dado a partir do 1º deploy com registro — nada estimado.</div>
+      <div class="dev-acoes">
+        <span class="ia-range">
+          <button class="ia-rg" data-d="7" onclick="devIACarregar(7)">7d</button>
+          <button class="ia-rg active" data-d="30" onclick="devIACarregar(30)">30d</button>
+          <button class="ia-rg" data-d="90" onclick="devIACarregar(90)">90d</button>
+        </span>
+      </div>
+    </div>
+    <div id="dev-ia" style="margin-bottom:20px;">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando consumo de IA...</div>
     </div>
 
     <div id="dev-conteudo">
@@ -12023,7 +12043,24 @@ function renderPacAppDetalhe(d){
   const medHtml=meds.length?meds.map(function(m){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);font-size:12px;"><span style="color:var(--tx2)">'+(m.nome||'—')+(m.dose?(' · '+m.dose):'')+' <span style="color:var(--tx4);font-size:10px;">'+(m.tipo||'')+'</span></span><span style="color:var(--tx3)">'+(m.proxima_dose?('próx '+pacAppData(m.proxima_dose)):'')+'</span></div>';}).join(''):'<div style="color:var(--tx4);font-size:12px;">Nenhuma.</div>';
   const medBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-pill"></i> Medicações ativas</div></div>'+medHtml+'</div>';
 
-  const fotosBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="display:flex;gap:8px;">'+[0,1,2].map(function(){return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>';}).join('')+'</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">Linha do tempo de fotos (frente/costas/perfil) pelo app — em construção.</div></div>';
+  const fotosArr=((d.fotos_evolucao||{}).fotos)||[];
+  const fotoTok=encodeURIComponent(getToken());
+  const fotoSrc=function(id){ return API_BASE+'/api/clinico/documentos/'+id+'/download?token='+fotoTok; };
+  const fotosThumbs=fotosArr.map(function(f){
+    var src=fotoSrc(f.id);
+    var lbl=(f.semana!=null)?('Semana '+f.semana):pacAppData(f.data);
+    return '<div style="flex:0 0 auto;width:96px;cursor:pointer;" onclick="window.open(\''+src+'\',\'_blank\')" title="'+lbl+'">'
+      +'<div style="width:96px;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--bg1);border:1px solid var(--bd1);">'
+      +'<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx4);&quot;><i class=&quot;ti ti-photo-off&quot;></i></div>\'">'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--tx3);text-align:center;margin-top:4px;">'+lbl+'</div></div>';
+  }).join('');
+  const fotosBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div>'
+    +(fotosArr.length?'<div class="dash-count">'+fotosArr.length+' foto'+(fotosArr.length>1?'s':'')+'</div>':'')+'</div>'
+    +(fotosArr.length
+      ? '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">'+fotosThumbs+'</div><div style="font-size:10px;color:var(--tx4);margin-top:8px;">Enviadas pelo paciente no app · clique pra ampliar.</div>'
+      : '<div style="display:flex;gap:8px;">'+[0,1,2].map(function(){return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>';}).join('')+'</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">O paciente ainda não enviou fotos de evolução pelo app.</div>'
+    )+'</div>';
 
   function coachCard(nome,ic,c){ return '<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti '+ic+'"></i> Coach IA — '+nome+'</div><span class="badge-mini em-breve">EM BREVE</span></div><div style="font-size:12px;color:var(--tx3);min-height:40px;">'+((c&&c.disponivel&&c.resumo)?c.resumo:('Resumo da conversa do paciente com o coach '+nome.toLowerCase()+' (ainda não disponível).'))+'</div><button class="pac-btn-secondary" style="margin-top:8px;opacity:.55;cursor:not-allowed;" disabled><i class="ti ti-message-circle"></i> Entrar no chat</button></div>'; }
 
@@ -17141,7 +17178,88 @@ function segRender(rel) {
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:10px;">${cards}</div>`;
 }
 
+let devIARange = 30;
+function devIAFmtNum(n) { return (Number(n) || 0).toLocaleString('pt-BR'); }
+function devIAFmtUsd(micros) { const v = (Number(micros) || 0) / 1e6; const dec = v > 0 && v < 0.01 ? 4 : 2; return '$' + v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+function devIAData(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('pt-BR'); } catch (e) { return '—'; } }
+function devIADataHora(iso) { if (!iso) return '—'; try { return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return '—'; } }
+
+async function devIACarregar(dias) {
+  devIARange = dias || devIARange || 30;
+  document.querySelectorAll('.ia-rg').forEach((b) => b.classList.toggle('active', Number(b.dataset.d) === devIARange));
+  const box = document.getElementById('dev-ia'); if (!box) return;
+  box.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando consumo de IA...</div>';
+  const r = await pacApi('/api/clinico/dev/ia-usage?dias=' + devIARange);
+  if (!r.ok) { box.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + esc(r.data && r.data.erro || '--') + '</div>'; return; }
+  devIARender(r.data);
+}
+
+function devIARender(d) {
+  const box = document.getElementById('dev-ia'); if (!box) return;
+  if (!d.total_registros_all_time) {
+    box.innerHTML = '<div class="pac-empty" style="padding:24px;line-height:1.7;">'
+      + '<i class="ti ti-brain" style="font-size:26px;opacity:.4;"></i><br>Ainda não há chamadas de IA registradas.<br>'
+      + '<span style="font-size:12px;color:var(--tx4);">O registro começa no próximo deploy do backend (rodar <code>ai-usage.sql</code> no DBGate). A partir daí, este painel mostra tokens e custo <strong>reais</strong> por agente — nada estimado.</span></div>';
+    return;
+  }
+  const t = d.totais;
+  const totTok = (t.input_tokens || 0) + (t.output_tokens || 0) + (t.cache_read_tokens || 0) + (t.cache_creation_tokens || 0);
+  const maxCusto = Math.max(1, ...d.por_agente.map((a) => a.custo_usd_micros || 0));
+  const maxDia = Math.max(1, ...d.por_dia.map((x) => x.custo_usd_micros || 0));
+
+  const cards = '<div class="dev-grid">'
+    + '<div class="dev-stat-card" style="border-left-color:#7B68EE;">'
+    + '<div class="titulo"><i class="ti ti-currency-dollar"></i> Custo total (USD)</div>'
+    + `<div class="big" style="color:#7B68EE;">${devIAFmtUsd(t.custo_usd_micros)}</div>`
+    + `<div class="small">${d.dias} dias · ${devIAFmtNum(t.chamadas)} chamadas</div></div>`
+    + '<div class="dev-stat-card"><div class="titulo"><i class="ti ti-arrows-exchange"></i> Tokens</div>'
+    + `<div class="big">${devIAFmtNum(totTok)}</div>`
+    + `<div class="small">${devIAFmtNum(t.input_tokens)} entrada · ${devIAFmtNum(t.output_tokens)} saída</div>`
+    + '<div class="lista" style="margin-top:8px;">'
+    + `<div class="row"><span class="k">Cache leitura</span><span class="v">${devIAFmtNum(t.cache_read_tokens)}</span></div>`
+    + `<div class="row"><span class="k">Cache escrita</span><span class="v">${devIAFmtNum(t.cache_creation_tokens)}</span></div></div></div>`
+    + '<div class="dev-stat-card"><div class="titulo"><i class="ti ti-calendar-stats"></i> Registro</div>'
+    + `<div class="small">registrando desde ${devIAData(d.registrando_desde)}</div>`
+    + '<div class="lista" style="margin-top:8px;">'
+    + `<div class="row"><span class="k">Último registro</span><span class="v">${devIADataHora(d.ultimo_registro)}</span></div>`
+    + `<div class="row"><span class="k">Total (todo período)</span><span class="v">${devIAFmtNum(d.total_registros_all_time)}</span></div></div></div>`
+    + '<div class="dev-stat-card"><div class="titulo"><i class="ti ti-cpu"></i> Custo por modelo</div><div class="lista">'
+    + (d.por_modelo.length ? d.por_modelo.map((m) => `<div class="row"><span class="k" style="font-size:10px;">${esc(m.modelo)}</span><span class="v">${devIAFmtUsd(m.custo_usd_micros)}</span></div>`).join('') : '<div class="small">—</div>')
+    + '</div></div></div>';
+
+  const linhasAg = d.por_agente.map((a) => {
+    const pct = Math.round((a.custo_usd_micros || 0) / maxCusto * 100);
+    return '<tr>'
+      + `<td><span class="ator">${esc(a.nome)}</span><div class="ia-barmini"><span style="width:${pct}%"></span></div></td>`
+      + `<td class="num">${devIAFmtNum(a.chamadas)}</td>`
+      + `<td class="num">${devIAFmtNum(a.input_tokens)}</td>`
+      + `<td class="num">${devIAFmtNum(a.output_tokens)}</td>`
+      + `<td class="num">${devIAFmtNum((a.cache_read_tokens || 0) + (a.cache_creation_tokens || 0))}</td>`
+      + `<td class="num" style="color:#7B68EE;font-weight:600;">${devIAFmtUsd(a.custo_usd_micros)}</td></tr>`;
+  }).join('');
+  const tabelaAg = '<div class="dev-table-wrap"><div class="dev-table-head">'
+    + `<div class="ttl"><i class="ti ti-brain"></i> Custo por agente de IA</div><div class="count">${d.por_agente.length} agentes</div></div>`
+    + '<div style="overflow-x:auto;"><table class="dev-table"><thead><tr>'
+    + '<th>Agente</th><th class="num">Chamadas</th><th class="num">Entrada</th><th class="num">Saída</th><th class="num">Cache</th><th class="num">Custo (USD)</th>'
+    + `</tr></thead><tbody>${linhasAg || '<tr><td colspan="6" style="text-align:center;color:var(--tx4);">Sem chamadas neste período.</td></tr>'}</tbody></table></div></div>`;
+
+  const barrasDia = d.por_dia.map((x) => {
+    const pct = Math.round((x.custo_usd_micros || 0) / maxDia * 100);
+    return `<div class="dev-bar-row"><span class="tab" style="min-width:82px;">${esc(x.dia)}</span><span class="bar-track"><span style="width:${pct}%;background:#7B68EE;"></span></span><span class="num">${devIAFmtUsd(x.custo_usd_micros)}</span><span class="size">${devIAFmtNum(x.tokens)} tok</span></div>`;
+  }).join('');
+  const tabelaDia = '<div class="dev-table-wrap" style="margin-top:14px;"><div class="dev-table-head"><div class="ttl"><i class="ti ti-chart-bar"></i> Custo por dia</div></div>'
+    + `<div style="padding:8px 12px;">${barrasDia || '<div class="pac-empty">Sem dados no período.</div>'}</div></div>`;
+
+  const precos = '<div class="dev-table-wrap" style="margin-top:14px;"><div class="dev-table-head"><div class="ttl"><i class="ti ti-tag"></i> Preços usados (USD por 1M tokens)</div></div>'
+    + '<div style="overflow-x:auto;"><table class="dev-table"><thead><tr><th>Modelo</th><th class="num">Entrada</th><th class="num">Saída</th><th class="num">Cache leitura</th><th class="num">Cache escrita</th></tr></thead><tbody>'
+    + d.precos.map((p) => `<tr><td>${esc(p.modelo)}</td><td class="num">$${Number(p.input_usd_1m).toFixed(2)}</td><td class="num">$${Number(p.output_usd_1m).toFixed(2)}</td><td class="num">$${Number(p.cache_read_usd_1m).toFixed(2)}</td><td class="num">$${Number(p.cache_write_usd_1m).toFixed(2)}</td></tr>`).join('')
+    + '</tbody></table></div></div>';
+
+  box.innerHTML = cards + tabelaAg + tabelaDia + precos;
+}
+
 async function devCarregar() {
+  devIACarregar(devIARange);
   const wrap = document.getElementById('dev-conteudo');
   wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando snapshot técnico...</div>';
   const r = await pacApi('/api/clinico/dev/overview');
