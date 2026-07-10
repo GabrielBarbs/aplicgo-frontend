@@ -17386,8 +17386,8 @@ function gtRotinasRender(rotinas) {
           <div style="margin-top:6px">${alvos}</div></div>
         <div style="text-align:right;min-width:110px">
           <div style="font-size:20px;font-weight:700;color:var(--ac)">${r.taxa == null ? '—' : r.taxa + '%'}</div>
-          <div style="font-size:11px;color:var(--tx3)">${r.concluidas}/${r.total} concluídas</div>
-          <div style="font-size:11px;color:${r.vencidas ? '#f85149' : 'var(--tx4)'}">${r.vencidas} vencidas</div></div>
+          <div style="font-size:11px;color:var(--tx3)">${r.cumpridas}/${r.due} no prazo</div>
+          <div style="font-size:11px;color:${r.vencidas ? '#f85149' : 'var(--tx4)'}">${r.vencidas} vencidas · ${r.total} geradas</div></div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
         <button class="tk-btn" onclick="gtRotinaAcao('${r.id}','${r.ativo ? 'pausar' : 'ativar'}')">${r.ativo ? '<i class="ti ti-player-pause"></i> Pausar' : '<i class="ti ti-player-play"></i> Ativar'}</button>
