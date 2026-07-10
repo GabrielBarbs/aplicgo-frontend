@@ -11760,21 +11760,34 @@ async function varCarregarProdutos() {
   if (varState.prodErr && !varState.produtos) { f.innerHTML = INJ_ERRO; return; }
   const prods = varState.produtos || [];
   if (!prods.length) { f.innerHTML = '<div class="pac-empty" style="padding:12px">Nenhum produto de varejo.</div>'; return; }
+  const usuarios = varState.usuarios || [];
+  const meId = (typeof meData !== 'undefined' && meData && meData.user) ? meData.user.id : null;   // id vive em meData.user.id
+  const meNaLista = usuarios.some((u) => u.id === meId);
+  const hoje = new Date().toLocaleDateString('en-CA');   // yyyy-mm-dd local
   f.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:640px">'
     + `<div><label>Produto</label><select id="var-sku" class="pac-search" onchange="varAtualizarPreco()">${prods.map((p) => `<option value="${esc(p.sku)}">${esc(p.nome)}</option>`).join('')}</select></div>`
     + '<div><label>Quantidade</label><input id="var-qtd" type="number" min="1" value="1" class="pac-search" oninput="varAtualizarPreco()"></div>'
     + '<div><label>Cliente</label><select id="var-tipo" class="pac-search" onchange="varTipoMudou()"><option value="nao_paciente">Não paciente</option><option value="paciente_ativo">Paciente ativo</option><option value="colaborador">Colaborador</option></select></div>'
     + '<div><label>Canal</label><select id="var-canal" class="pac-search"><option value="presencial">Presencial</option><option value="ecommerce">E-commerce</option><option value="clinica">Clínica</option></select></div>'
+    + `<div><label>Vendedor</label><select id="var-vendedor" class="pac-search">${meNaLista ? '' : '<option value="" selected>— você —</option>'}${usuarios.map((u) => `<option value="${esc(u.id)}"${meId === u.id ? ' selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></div>`
+    + `<div><label>Data da venda</label><input id="var-data" type="date" max="${hoje}" value="${hoje}" class="pac-search"></div>`
     + '<div><label>Forma de pagamento</label><select id="var-forma" class="pac-search"><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option></select></div>'
     + '<div><label>Pagamento</label><select id="var-pag" class="pac-search"><option value="pago">Pago</option><option value="pendente">Pendente</option></select></div>'
     + '</div>'
-    + '<div id="var-pac-wrap" style="display:none;margin-top:10px;max-width:400px"><label>Paciente ativo</label><input id="var-pac-q" class="pac-search" oninput="varPacBusca(this.value)" placeholder="🔍 buscar paciente…"><div id="var-pac-res"></div><div id="var-pac-sel" style="font-size:12px;color:#3fb950;margin-top:4px"></div></div>'
+    + '<div id="var-pac-wrap" style="display:none;margin-top:10px;max-width:400px"><label>Paciente ativo</label><input id="var-pac-q" class="pac-search" oninput="varPacBusca(this.value)" placeholder="🔍 buscar paciente…"><div id="var-pac-res"></div><div id="var-pac-sel" style="font-size:12px;color:#3fb950;margin-top:4px"></div>'
+    + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);margin-top:8px;cursor:pointer"><input type="checkbox" id="var-incluso" onchange="varAtualizarPreco()"> Incluso no plano (entrega sem cobrança)</label></div>'
     + '<div style="margin-top:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div id="var-preco" style="font-size:20px;font-weight:700;color:#3fb950"></div><button class="tk-btn primary" onclick="varRegistrar()"><i class="ti ti-check"></i> Registrar venda</button></div>';
   varAtualizarPreco();
 }
 function varProdAtual() { const sel = document.getElementById('var-sku'); return (varState.produtos || []).find((p) => p.sku === (sel ? sel.value : '')); }
+function varInclusoMarcado() {
+  const tipo = (document.getElementById('var-tipo') || {}).value;
+  const chk = document.getElementById('var-incluso');
+  return tipo === 'paciente_ativo' && chk && chk.checked;
+}
 function varAtualizarPreco() {
   const p = varProdAtual(), box = document.getElementById('var-preco'); if (!p || !box) return;
+  if (varInclusoMarcado()) { box.textContent = 'Incluso no plano'; return; }
   const tipo = (document.getElementById('var-tipo') || {}).value || 'nao_paciente';
   const qtd = Math.max(1, parseInt((document.getElementById('var-qtd') || {}).value, 10) || 1);
   const unit = tipo === 'paciente_ativo' ? p.preco_paciente_cents : tipo === 'colaborador' ? p.preco_colaborador_cents : p.preco_nao_paciente_cents;
@@ -11783,7 +11796,7 @@ function varAtualizarPreco() {
 function varTipoMudou() {
   const tipo = document.getElementById('var-tipo').value;
   document.getElementById('var-pac-wrap').style.display = tipo === 'paciente_ativo' ? '' : 'none';
-  if (tipo !== 'paciente_ativo') { varState.patient = null; const s = document.getElementById('var-pac-sel'); if (s) s.textContent = ''; }
+  if (tipo !== 'paciente_ativo') { varState.patient = null; const s = document.getElementById('var-pac-sel'); if (s) s.textContent = ''; const ck = document.getElementById('var-incluso'); if (ck) ck.checked = false; }
   varAtualizarPreco();
 }
 let _varPacTimer = null;
@@ -11811,11 +11824,16 @@ async function varRegistrar() {
   const p = varProdAtual(); if (!p) { homeToast('Escolha um produto.'); return; }
   const tipo = document.getElementById('var-tipo').value;
   if (tipo === 'paciente_ativo' && !varState.patient) { homeToast('Selecione o paciente ativo.'); return; }
+  const incluso = varInclusoMarcado();
+  const vend = (document.getElementById('var-vendedor') || {}).value || undefined;
+  const dataVenda = (document.getElementById('var-data') || {}).value || undefined;
   const body = {
     sku: p.sku, qtd: Math.max(1, parseInt(document.getElementById('var-qtd').value, 10) || 1),
     canal: document.getElementById('var-canal').value, tipo_cliente: tipo,
     patient_id: tipo === 'paciente_ativo' ? varState.patient.id : undefined,
-    forma_pagamento: document.getElementById('var-forma').value, status_pagamento: document.getElementById('var-pag').value,
+    vendedor_id: vend, data: dataVenda, incluso: incluso,
+    forma_pagamento: incluso ? undefined : document.getElementById('var-forma').value,
+    status_pagamento: incluso ? undefined : document.getElementById('var-pag').value,
   };
   let ok = false, msg = '';
   try { const r = await pacApi('/api/clinico/varejo/vendas', { method: 'POST', body: JSON.stringify(body) }); ok = r.ok; if (!ok && r.data && r.data.erro) msg = r.data.erro; } catch (e) {}
@@ -11832,13 +11850,15 @@ async function varRenderVendas() {
   const box = document.getElementById('var-vendas'); if (!box) return;
   if (err) { box.innerHTML = INJ_ERRO; return; }
   box.innerHTML = vendas.length
-    ? '<table class="gst-table"><thead><tr><th>Data</th><th>Produto</th><th>Cliente</th><th style="text-align:right">Valor</th><th>Entrega</th><th>Pgto</th><th></th></tr></thead><tbody>'
+    ? '<table class="gst-table"><thead><tr><th>Data</th><th>Produto</th><th>Cliente</th><th>Vendedor</th><th style="text-align:right">Valor</th><th>Entrega</th><th>Pgto</th><th></th></tr></thead><tbody>'
       + vendas.map((v) => {
-          let dt = ''; try { dt = new Date(v.data).toLocaleDateString('pt-BR'); } catch (e) {}
+          const dt = dataDiaBR(v.data);
           const cli = v.tipo_cliente === 'paciente_ativo' ? esc(v.paciente || 'paciente') : v.tipo_cliente === 'colaborador' ? '<span style="color:var(--tx4)">colaborador</span>' : '<span style="color:var(--tx4)">não paciente</span>';
+          const valor = v.incluso ? '<span style="color:#3fb950">incluso</span>' : homeGestorFmtBRL(v.valor_total_cents);
+          const pgto = v.incluso ? '<span style="color:#3fb950">incluso</span>' : esc(v.status_pagamento);
           const entregar = (v.status_entrega !== 'cancelado' && v.status_entrega !== 'entregue' && v.status_entrega !== 'retirado') ? `<button class="tk-btn" style="padding:5px 9px;font-size:11px" onclick="varPatch('${v.id}','entregue',this)">Entregar</button>` : '';
           const cancelar = v.status_entrega !== 'cancelado' ? `<button class="tk-btn" style="padding:5px 9px;font-size:11px;background:transparent;color:#f85149" onclick="varPatch('${v.id}','cancelado',this)">Cancelar</button>` : '';
-          return `<tr><td>${dt}</td><td>${esc(v.sku)} ×${v.qtd}</td><td>${cli}</td><td class="num">${homeGestorFmtBRL(v.valor_total_cents)}</td><td>${varBadgeEntrega(v.status_entrega)}</td><td style="font-size:11px;color:var(--tx3)">${esc(v.status_pagamento)}</td><td style="white-space:nowrap">${entregar} ${cancelar}</td></tr>`;
+          return `<tr><td>${dt}</td><td>${esc(v.sku)} ×${v.qtd}</td><td>${cli}</td><td style="font-size:12px;color:var(--tx3)">${esc(v.vendedor || '—')}</td><td class="num">${valor}</td><td>${varBadgeEntrega(v.status_entrega)}</td><td style="font-size:11px;color:var(--tx3)">${pgto}</td><td style="white-space:nowrap">${entregar} ${cancelar}</td></tr>`;
         }).join('') + '</tbody></table>'
     : '<div class="pac-empty" style="padding:12px">Nenhuma venda ainda.</div>';
 }
@@ -11861,7 +11881,7 @@ async function varRenderRecompras() {
   if (err) { box.innerHTML = INJ_ERRO; return; }
   box.innerHTML = recs.length
     ? recs.map((r) => {
-        let dt = '—'; try { if (r.recompra_prevista) dt = new Date(r.recompra_prevista).toLocaleDateString('pt-BR'); } catch (e) {}
+        const dt = dataDiaBR(r.recompra_prevista);
         return `<div class="inj-res-item"><div><strong>${esc(r.paciente || '—')}</strong> ${varBadgeRecompra(r.status_recompra)}<div style="font-size:11px;color:var(--tx3)">${esc(r.sku)} ×${r.qtd} · recompra prevista ${dt}</div></div></div>`;
       }).join('')
     : '<div class="pac-empty" style="padding:12px">Nenhuma recompra próxima.</div>';
@@ -12040,6 +12060,9 @@ const PACAPP_PROV = { APPLE:'Apple Watch', OURA:'Oura', GARMIN:'Garmin', FITBIT:
 function pacAppProv(p){ return PACAPP_PROV[(p||'').toUpperCase()] || p || '—'; }
 function pacAppTempo(iso){ if(!iso) return '—'; const min=Math.floor((Date.now()-new Date(iso).getTime())/60000); if(min<1) return 'agora'; if(min<60) return 'há '+min+' min'; const h=Math.floor(min/60); if(h<24) return 'há '+h+'h'; return 'há '+Math.floor(h/24)+'d'; }
 function pacAppData(iso){ if(!iso) return '—'; try { return new Date(iso).toLocaleDateString('pt-BR'); } catch(e){ return '—'; } }
+// Data-only (calendário) ancorada em meia-noite UTC pelo backend -> formata SEM converter fuso
+// (senão, no Brasil UTC-3, mostraria o dia anterior). Não usar em timestamps com hora.
+function dataDiaBR(iso){ if(!iso) return '—'; try { return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'UTC' }); } catch(e){ return '—'; } }
 function pacAppSono(min){ if(min==null) return '—'; return Math.floor(min/60)+'h '+(min%60)+'m'; }
 function pacAppEsc(s){ return String(s==null?'':s).replace(/[<>'"\\]/g,''); }
 
@@ -19133,12 +19156,9 @@ async function prCarregarProdutos(id) {
 function prRenderProdutosRecompra() {
   const D = prState.produtosRec;
   if (!D) return ''; // ainda carregando -> o loader preenche
-  const head = '<div class="dash-card-head"><div class="ttl"><i class="ti ti-shopping-bag"></i> Produtos &amp; recompra</div>'
-    + '<div style="display:flex;gap:6px;"><button class="pac-btn-secondary" style="padding:5px 10px;font-size:12px;" onclick="prSaldoEditor()"><i class="ti ti-pencil"></i> Saldo</button>'
-    + '<button class="pac-btn-primary" style="padding:5px 10px;font-size:12px;" onclick="prRepasseForm()"><i class="ti ti-package"></i> Registrar entrega</button></div></div>';
+  const head = '<div class="dash-card-head"><div class="ttl"><i class="ti ti-shopping-bag"></i> Produtos &amp; recompra</div></div>';
   if (D.erro) return '<div class="dash-card" style="margin-top:12px;">' + head + '<div style="color:var(--tx4);font-size:12px;">Não foi possível carregar os produtos.</div></div>';
   const contagens = D.contagens || [];
-  const saldoBySku = {}; (D.saldos || []).forEach(function (s) { saldoBySku[s.sku] = s.unidades; });
   const linhas = contagens.map(function (c) {
     const total = c.duracao_dias || c.dias_de_uso || 30;
     const rest = c.dias_restantes;
@@ -19146,78 +19166,21 @@ function prRenderProdutosRecompra() {
     const cor = c.vencido ? '#E5534B' : rest <= 5 ? '#EF9F27' : 'var(--ac)';
     const absR = Math.abs(rest);
     const label = c.vencido ? ('Vencido há ' + absR + (absR === 1 ? ' dia' : ' dias')) : ('Faltam ' + rest + (rest === 1 ? ' dia' : ' dias'));
-    const sld = saldoBySku[c.sku];
     return '<div style="padding:10px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
       + '<div style="min-width:0;"><span style="color:var(--tx1);font-weight:600;">' + esc(c.nome) + '</span>'
-      + (c.categoria ? ' <span style="color:var(--tx4);font-size:10px;">' + esc(c.categoria) + '</span>' : '')
-      + (sld != null ? ' <span style="color:var(--tx3);font-size:11px;">· saldo ' + sld + '</span>' : '') + '</div>'
+      + (c.qtd > 1 ? ' <span style="color:var(--tx3);font-size:11px;">×' + c.qtd + '</span>' : '')
+      + (c.incluso ? ' <span style="color:#3fb950;font-size:10px;">incluso no plano</span>' : '')
+      + ' <span style="color:var(--tx4);font-size:10px;">· ' + dataDiaBR(c.data) + '</span></div>'
       + '<button class="pac-btn-secondary" style="padding:5px 10px;font-size:12px;" onclick="prProdutoAvisar(\'' + esc(c.sku) + '\')"><i class="ti ti-brand-whatsapp"></i> Avisar recompra</button>'
       + '</div>'
       + '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;">'
       + '<div style="flex:1;height:5px;border-radius:3px;background:rgba(var(--bg3-rgb),.6);overflow:hidden;"><div style="height:100%;width:' + pct + '%;background:' + cor + ';border-radius:3px;"></div></div>'
       + '<span style="font-size:11px;color:' + cor + ';white-space:nowrap;">' + label + '</span></div>'
-      + (c.avisado_em ? '<div style="font-size:10px;color:var(--tx4);margin-top:3px;">Avisado em ' + pacAppData(c.avisado_em) + '</div>' : '')
       + '</div>';
   }).join('');
-  const vazio = !contagens.length ? '<div style="color:var(--tx4);font-size:12px;padding:6px 0;">Nenhuma entrega registrada ainda. Use “Registrar entrega” pra iniciar a contagem de recompra.</div>' : '';
+  const vazio = !contagens.length ? '<div style="color:var(--tx4);font-size:12px;padding:6px 0;">Nenhuma venda ou entrega registrada pra este paciente. Registre em Varejo → Vender (marque “Incluso no plano” se for do plano dele).</div>' : '';
   return '<div class="dash-card" style="margin-top:12px;">' + head + vazio + linhas + '</div>';
-}
-
-function prProdModal(titulo, corpo) {
-  let ov = document.getElementById('pr-prod-modal'); if (ov) ov.remove();
-  ov = document.createElement('div'); ov.id = 'pr-prod-modal'; ov.className = 'ag-modal-overlay aberto';
-  ov.onclick = function (e) { if (e.target.id === 'pr-prod-modal') ov.remove(); };
-  ov.innerHTML = '<div class="pac-modal" style="max-width:440px;"><div class="pac-modal-head"><div class="ttl">' + titulo + '</div>'
-    + '<button class="pac-modal-close" onclick="document.getElementById(\'pr-prod-modal\').remove()"><i class="ti ti-x"></i></button></div>'
-    + '<div class="pac-modal-body">' + corpo + '</div></div>';
-  document.body.appendChild(ov);
-}
-
-function prRepasseForm() {
-  const D = prState.produtosRec; if (!D || !D.catalogo) return;
-  if (!D.catalogo.length) { homeToast('Cadastre um produto de varejo primeiro.'); return; }
-  const opts = D.catalogo.map(function (p) { return '<option value="' + esc(p.sku) + '">' + esc(p.nome) + ' (' + p.dias_de_uso + 'd)</option>'; }).join('');
-  prProdModal('<i class="ti ti-package"></i> Registrar entrega',
-    '<label style="font-size:11px;color:var(--tx3);display:block;">Produto</label><select id="pr-rep-sku" class="pac-search">' + opts + '</select>'
-    + '<label style="font-size:11px;color:var(--tx3);display:block;margin-top:8px;">Quantidade</label><input id="pr-rep-qtd" type="number" min="1" value="1" class="pac-search">'
-    + '<div style="font-size:11px;color:var(--tx4);margin-top:6px;">Baixa do saldo do paciente e inicia a contagem de recompra a partir de hoje.</div>'
-    + '<div style="margin-top:14px;text-align:right;"><button class="pac-btn-primary" onclick="prRepasseSalvar()"><i class="ti ti-check"></i> Registrar</button></div>');
-}
-async function prRepasseSalvar() {
-  const id = prState.pacienteAtual && prState.pacienteAtual.id; if (!id) return;
-  const sku = (document.getElementById('pr-rep-sku') || {}).value;
-  const qtd = Math.max(1, parseInt((document.getElementById('pr-rep-qtd') || {}).value, 10) || 1);
-  if (!sku) return;
-  let ok = false; try { const r = await pacApi('/api/clinico/varejo/paciente/' + id + '/repasse', { method: 'POST', body: JSON.stringify({ sku: sku, qtd: qtd }) }); ok = r.ok; } catch (e) {}
-  homeToast(ok ? 'Entrega registrada.' : 'Não foi possível registrar.');
-  if (ok) { const ov = document.getElementById('pr-prod-modal'); if (ov) ov.remove(); prCarregarProdutos(id); }
-}
-
-function prSaldoEditor() {
-  const D = prState.produtosRec; if (!D || !D.catalogo) return;
-  if (!D.catalogo.length) { homeToast('Cadastre um produto de varejo primeiro.'); return; }
-  const saldoBySku = {}; (D.saldos || []).forEach(function (s) { saldoBySku[s.sku] = s.unidades; });
-  const rows = D.catalogo.map(function (p) {
-    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="flex:1;color:var(--tx2);font-size:13px;">' + esc(p.nome) + '</span>'
-      + '<input data-sku="' + esc(p.sku) + '" class="pr-saldo-inp pac-search" type="number" min="0" style="width:90px;" value="' + (saldoBySku[p.sku] != null ? saldoBySku[p.sku] : 0) + '"></div>';
-  }).join('');
-  prProdModal('<i class="ti ti-pencil"></i> Saldo de produtos',
-    '<div style="font-size:11px;color:var(--tx4);margin-bottom:8px;">Unidades que o paciente tem de cada produto (ex.: o que é incluso no plano).</div>'
-    + rows + '<div style="margin-top:14px;text-align:right;"><button class="pac-btn-primary" onclick="prSaldoSalvar()"><i class="ti ti-check"></i> Salvar</button></div>');
-}
-async function prSaldoSalvar() {
-  const id = prState.pacienteAtual && prState.pacienteAtual.id; if (!id) return;
-  const inps = Array.prototype.slice.call(document.querySelectorAll('.pr-saldo-inp'));
-  const saldoBySku = {}; ((prState.produtosRec || {}).saldos || []).forEach(function (s) { saldoBySku[s.sku] = s.unidades; });
-  let erros = 0;
-  for (const el of inps) {
-    const sku = el.getAttribute('data-sku'); const val = Math.max(0, parseInt(el.value, 10) || 0);
-    if ((saldoBySku[sku] || 0) === val) continue; // só grava o que mudou
-    try { const r = await pacApi('/api/clinico/varejo/paciente/' + id + '/saldo', { method: 'PUT', body: JSON.stringify({ sku: sku, unidades: val }) }); if (!r.ok) erros++; } catch (e) { erros++; }
-  }
-  homeToast(erros ? ('Alguns saldos falharam (' + erros + ').') : 'Saldo atualizado.');
-  const ov = document.getElementById('pr-prod-modal'); if (ov) ov.remove(); prCarregarProdutos(id);
 }
 
 async function prProdutoAvisar(sku) {
@@ -19231,7 +19194,6 @@ async function prProdutoAvisar(sku) {
   if (!escolhido) return; // cancelou
   const full = escolhido.length <= 11 ? '55' + escolhido : escolhido;
   window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
-  if (c && c.repasse_id) { try { await pacApi('/api/clinico/varejo/repasse/' + c.repasse_id + '/avisado', { method: 'PATCH' }); } catch (e) {} prCarregarProdutos(pac.id); }
 }
 function prProdutoMsgRecompra(nome, primeiro) {
   const ola = primeiro ? ('Oi, ' + primeiro + '!') : 'Oi!';
