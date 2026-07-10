@@ -19189,11 +19189,18 @@ async function prProdutoAvisar(sku) {
   const c = ((D && D.contagens) || []).find(function (x) { return x.sku === sku; });
   const nome = c ? c.nome : sku;
   const primeiro = (pac.nome || '').trim().split(/\s+/)[0] || '';
-  const msg = prProdutoMsgRecompra(nome, primeiro);
   const escolhido = await confirmarEnvioWhatsapp(pac.telefone || '', pac.nome); // confere/edita o número
   if (!escolhido) return; // cancelou
-  const full = escolhido.length <= 11 ? '55' + escolhido : escolhido;
-  window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
+  // Envia DIRETO pela nossa API (Evolution). Fallback pro wa.me só se o envio falhar.
+  let r = null;
+  try { r = await pacApi('/api/clinico/varejo/paciente/' + pac.id + '/avisar-recompra', { method: 'POST', body: JSON.stringify({ sku: sku, numero: escolhido }) }); } catch (e) {}
+  if (r && r.ok && r.data && r.data.ok) { homeToast('Aviso de recompra enviado no WhatsApp.'); return; }
+  const erro = (r && r.data && r.data.erro) || 'falha';
+  const msg = (r && r.data && r.data.mensagem) || prProdutoMsgRecompra(nome, primeiro);
+  if (confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
+    const full = escolhido.length <= 11 ? '55' + escolhido : escolhido;
+    window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
+  }
 }
 function prProdutoMsgRecompra(nome, primeiro) {
   const ola = primeiro ? ('Oi, ' + primeiro + '!') : 'Oi!';
