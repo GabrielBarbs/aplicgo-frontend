@@ -1535,6 +1535,24 @@
       display: flex; align-items: center; gap: 6px;
     }
     .ag-recorrencia-info i { color: var(--ac); }
+    /* Bisemanal: os dois dias, cada um com seu horário */
+    .ag-bisem { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bd1); display: grid; gap: 8px; }
+    .ag-bisem-hint { font-size: 11.5px; color: var(--tx3); line-height: 1.5; }
+    .ag-bisem-linha { display: flex; align-items: center; gap: 8px; }
+    .ag-bisem-n { font-size: 11px; color: var(--tx3); width: 18px; flex-shrink: 0; }
+    .ag-bisem-as { font-size: 12px; color: var(--tx3); flex-shrink: 0; }
+    /* mesmo visual dos campos do formulário (.pac-field): fora dele, o navegador jogaria branco */
+    .ag-bisem-linha select, .ag-bisem-linha input {
+      background: var(--bg2); border: 1px solid var(--bg3);
+      color: var(--tx1); padding: 8px 10px;
+      border-radius: 7px; font-size: 12px; font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .ag-bisem-linha select:focus, .ag-bisem-linha input:focus { outline: none; border-color: var(--ac); }
+    .ag-bisem-linha select { flex: 1; min-width: 0; }
+    .ag-bisem-linha input { width: 90px; flex-shrink: 0; }
+    .ag-bisem-prev { font-size: 11.5px; color: var(--tx3); line-height: 1.5; min-height: 17px; }
+    .ag-bisem-prev b { color: var(--ac); font-weight: 600; }
 
     /* Modal de escolha cancelar recorrência */
     .ag-recur-cancel-overlay {
@@ -7563,11 +7581,12 @@
         <div class="pac-form-section-title"><i class="ti ti-clock"></i> Quando</div>
         <div class="pac-form-grid col-3">
           <div class="pac-field">
-            <label>Data <span class="req">*</span></label>
-            <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-data" oninput="mascararData(this, event)"><input type="hidden" id="ag-data">
+            <label id="ag-data-label">Data <span class="req">*</span></label>
+            <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-data" oninput="mascararData(this, event); agBisemPreview()">
+            <input type="hidden" id="ag-data">
           </div>
           <div class="pac-field">
-            <label>Hora início <span class="req">*</span></label>
+            <label id="ag-hora-label">Hora início <span class="req">*</span></label>
             <input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" id="ag-hora" oninput="mascararHora(this, event)">
           </div>
           <div class="pac-field">
@@ -7603,16 +7622,35 @@
           <div class="opts">
             <div class="pac-field">
               <label>Quando</label>
-              <select id="ag-recor-pattern">
-                <option value="WEEKLY">Semanalmente</option>
-                <option value="BIWEEKLY">Quinzenalmente</option>
-                <option value="MONTHLY">Mensalmente</option>
+              <select id="ag-recor-pattern" onchange="agRecorPatternMudou()">
+                <option value="WEEKLY">Semanal</option>
+                <option value="TWICE_WEEKLY">Bisemanal (2x por semana)</option>
+                <option value="EVERY_10_DAYS">A cada 10 dias</option>
+                <option value="EVERY_15_DAYS">A cada 15 dias</option>
+                <option value="MONTHLY">Mensal</option>
               </select>
             </div>
             <div class="pac-field">
               <label>Termina em</label>
               <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-recor-until" oninput="mascararData(this, event)"><input type="hidden" id="ag-recor-until">
             </div>
+          </div>
+          <!-- Bisemanal: cada um dos dois dias tem o seu horário -->
+          <div class="ag-bisem" id="ag-bisem" style="display:none;">
+            <div class="ag-bisem-hint">Escolha os dois dias da semana e o horário de cada um. A partir da data acima, repete toda semana.</div>
+            <div class="ag-bisem-linha">
+              <span class="ag-bisem-n">1º</span>
+              <select id="ag-bisem-dia1" onchange="agBisemPreview()"></select>
+              <span class="ag-bisem-as">às</span>
+              <input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" id="ag-bisem-hora1" oninput="mascararHora(this, event); agBisemPreview()">
+            </div>
+            <div class="ag-bisem-linha">
+              <span class="ag-bisem-n">2º</span>
+              <select id="ag-bisem-dia2" onchange="agBisemPreview()"></select>
+              <span class="ag-bisem-as">às</span>
+              <input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" id="ag-bisem-hora2" oninput="mascararHora(this, event); agBisemPreview()">
+            </div>
+            <div class="ag-bisem-prev" id="ag-bisem-prev"></div>
           </div>
         </div>
         <!-- Info de recorrência existente (somente edição) -->
@@ -16295,18 +16333,20 @@ function agTrocarTab(tab) {
   document.querySelectorAll('.ag-modal-tab').forEach(t => t.classList.remove('active'));
   const ag = document.getElementById('ag-tab-agendamento');
   const bl = document.getElementById('ag-tab-bloqueio');
+  // O rótulo é reescrito por innerHTML ao salvar. Se algum dia sumir de novo, trocar de aba não
+  // pode derrubar o modal inteiro por causa do texto de um botão.
   const btnSalvarTxt = document.getElementById('ag-modal-salvar-txt');
   if (tab === 'bloqueio') {
     document.getElementById('ag-tab-btn-bloqueio').classList.add('active');
     ag.style.display = 'none';
     bl.style.display = '';
-    btnSalvarTxt.textContent = 'Bloquear';
+    if (btnSalvarTxt) btnSalvarTxt.textContent = 'Bloquear';
     agPopularSelectsBloqueio();
   } else {
     document.getElementById('ag-tab-btn-agendamento').classList.add('active');
     ag.style.display = '';
     bl.style.display = 'none';
-    btnSalvarTxt.textContent = 'Salvar';
+    if (btnSalvarTxt) btnSalvarTxt.textContent = 'Salvar';
   }
   document.getElementById('ag-modal-erro').style.display = 'none';
   document.getElementById('ag-block-tab-erro').style.display = 'none';
@@ -16454,7 +16494,12 @@ async function agAbrirEditarModal(id) {
       pattern: a.recurrencePattern,
       until: a.recurrenceUntil ? new Date(a.recurrenceUntil).toLocaleDateString('pt-BR') : null,
     };
-    const PAD = { WEEKLY: 'semanal', BIWEEKLY: 'quinzenal', MONTHLY: 'mensal' };
+    // BIWEEKLY é legado e anda de 14 dias — nomear de "quinzenal" ao lado da opção nova de 15 dias
+    // confundiria duas coisas diferentes na mesma agenda. Diz o passo real.
+    const PAD = {
+      WEEKLY: 'semanal', TWICE_WEEKLY: '2x por semana', EVERY_10_DAYS: 'a cada 10 dias',
+      EVERY_15_DAYS: 'a cada 15 dias', MONTHLY: 'mensal', BIWEEKLY: 'a cada 14 dias',
+    };
     const info = document.getElementById('ag-recor-info');
     info.style.display = 'flex';
     document.getElementById('ag-recor-info-text').textContent =
@@ -16582,6 +16627,16 @@ function agResetForm() {
   if (info) info.style.display = 'none';
   const recSec = document.getElementById('ag-recorrencia-section');
   if (recSec) recSec.style.display = '';
+  // Bisemanal reset: sem isso o campo Hora ficaria travado no próximo agendamento
+  ['ag-bisem-hora1', 'ag-bisem-hora2'].forEach((idh) => {
+    const el = document.getElementById(idh);
+    if (el) el.value = '';
+  });
+  ['ag-bisem-dia1', 'ag-bisem-dia2'].forEach((idd) => {
+    const el = document.getElementById(idd);
+    if (el) el.innerHTML = ''; // zerado: agRecorPatternMudou() repovoa a partir da data escolhida
+  });
+  agRecorPatternMudou();
   // Pré-seleciona unidade primária
   const primaria = pacState.unidades.find(u => u.primaria);
   if (primaria) document.getElementById('ag-unit').value = primaria.id;
@@ -16623,6 +16678,104 @@ function agToggleRecorrencia() {
   } else {
     box.classList.remove('aberto');
   }
+  agRecorPatternMudou();
+}
+
+// ===== BISEMANAL: dois dias por semana, cada um com seu horário =====
+// Nome por extenso pro seletor. O AG_DIAS_SEMANA (linha ~13819) é abreviado e serve ao calendário.
+const AG_BISEM_DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+function agBisemAtiva() {
+  const tog = document.getElementById('ag-recorrente-toggle');
+  return !!(tog && tog.checked && document.getElementById('ag-recor-pattern').value === 'TWICE_WEEKLY');
+}
+
+// Na bisemanal quem manda são os dois dias abaixo: a HORA do topo passaria a ser um campo
+// obrigatório que o sistema ignora — melhor desligar e dizer o porquê do que mentir.
+function agRecorPatternMudou() {
+  const bisem = agBisemAtiva();
+  document.getElementById('ag-bisem').style.display = bisem ? '' : 'none';
+  const hora = document.getElementById('ag-hora');
+  const horaLabel = document.getElementById('ag-hora-label');
+  hora.disabled = bisem;
+  hora.style.opacity = bisem ? '.45' : '';
+  if (horaLabel) horaLabel.innerHTML = bisem
+    ? 'Hora início <span style="font-size:10px;color:var(--tx3)">— definida por dia abaixo</span>'
+    : 'Hora início <span class="req">*</span>';
+  const dataLabel = document.getElementById('ag-data-label');
+  if (dataLabel) dataLabel.innerHTML = bisem
+    ? 'A partir de <span class="req">*</span>'
+    : 'Data <span class="req">*</span>';
+  if (bisem) {
+    const d1 = document.getElementById('ag-bisem-dia1');
+    if (!d1.options.length) {
+      const opts = AG_BISEM_DIAS.map((n, i) => `<option value="${i}">${n}</option>`).join('');
+      d1.innerHTML = opts;
+      document.getElementById('ag-bisem-dia2').innerHTML = opts;
+      // 1º dia = o da data escolhida; 2º = três dias depois (ex.: seg -> qui), só como ponto de partida
+      const base = agBisemDataBase();
+      const w = base ? base.getDay() : 1;
+      d1.value = String(w);
+      document.getElementById('ag-bisem-dia2').value = String((w + 3) % 7);
+      const h = document.getElementById('ag-hora').value;
+      if (h && !document.getElementById('ag-bisem-hora1').value) document.getElementById('ag-bisem-hora1').value = h;
+    }
+    agBisemPreview();
+  }
+}
+
+// Data-base da série (campo "A partir de"), meia-noite local.
+function agBisemDataBase() {
+  const data = document.getElementById('ag-data').value;
+  if (!data) return null;
+  const d = new Date(data + 'T00:00:00');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// 1ª ocorrência de um dia-da-semana a partir da data-base, no horário dado.
+// Resolvido AQUI (e não no servidor) porque o navegador está no fuso da clínica e o
+// servidor roda em UTC: "sexta 21h" viraria sábado se a conta fosse feita lá.
+function agBisemPrimeira(weekday, hora) {
+  const base = agBisemDataBase();
+  if (!base || !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora || '')) return null;
+  const [hh, mi] = hora.split(':').map(Number);
+  const d = new Date(base);
+  d.setDate(d.getDate() + ((Number(weekday) - base.getDay() + 7) % 7));
+  d.setHours(hh, mi, 0, 0);
+  return d;
+}
+
+// Fim da série ("Termina em"), no fim do dia, fuso local — mesmo critério do servidor.
+function agBisemFimSerie() {
+  const u = document.getElementById('ag-recor-until').value;
+  if (!u) return null;
+  const d = new Date(u + 'T23:59:59');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function agBisemPreview() {
+  const el = document.getElementById('ag-bisem-prev');
+  if (!el) return;
+  if (!agBisemAtiva()) { el.innerHTML = ''; return; }
+  const w1 = document.getElementById('ag-bisem-dia1').value;
+  const w2 = document.getElementById('ag-bisem-dia2').value;
+  const h1 = document.getElementById('ag-bisem-hora1').value;
+  const h2 = document.getElementById('ag-bisem-hora2').value;
+  if (w1 === w2) { el.innerHTML = '<span style="color:#EF9F27">Escolha dois dias diferentes.</span>'; return; }
+  const p1 = agBisemPrimeira(w1, h1);
+  const p2 = agBisemPrimeira(w2, h2);
+  if (!p1 || !p2) { el.innerHTML = ''; return; }
+  const [a, b] = p1 <= p2 ? [p1, p2] : [p2, p1];
+  // Tudo daqui sai do fuso LOCAL (o da clínica). dataDiaBR() formata em UTC e é só pra data-only do
+  // backend: usada aqui, às 21h ela pularia pro dia seguinte e a frase diria "Sexta 18/07" (um sábado).
+  const f = (d) => `${AG_BISEM_DIAS[d.getDay()].replace('-feira', '')} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} às ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  // Não anunciar um dia que o fim da série vai descartar.
+  const fim = agBisemFimSerie();
+  if (fim && b > fim) {
+    el.innerHTML = `<span style="color:#EF9F27">${esc(f(b))} fica depois do fim da série — só ${esc(f(a))} seria criado. Ajuste a data em "Termina em".</span>`;
+    return;
+  }
+  el.innerHTML = `Começa em <b>${esc(f(a))}</b> e <b>${esc(f(b))}</b>, repetindo toda semana.`;
 }
 
 function agFecharModal() {
@@ -16810,9 +16963,35 @@ async function agSalvar() {
   if (!profId) { erroEl.textContent = 'Selecione o profissional'; erroEl.style.display = 'block'; return; }
   if (!unitId) { erroEl.textContent = 'Selecione a unidade'; erroEl.style.display = 'block'; return; }
   if (!typeId) { erroEl.textContent = 'Selecione o tipo de atendimento'; erroEl.style.display = 'block'; return; }
-  if (!data || !hora) { erroEl.textContent = 'Informe data e hora'; erroEl.style.display = 'block'; return; }
+  const bisem = !id && agBisemAtiva();
+  if (!data) { erroEl.textContent = bisem ? 'Informe a partir de quando a série começa' : 'Informe data e hora'; erroEl.style.display = 'block'; return; }
+  if (!bisem && !hora) { erroEl.textContent = 'Informe data e hora'; erroEl.style.display = 'block'; return; }
 
-  const startAt = new Date(`${data}T${hora}:00`);
+  // Na bisemanal os dois dias mandam: o 1º atendimento é a âncora mais cedo, não a hora do topo.
+  let ancoras = null;
+  if (bisem) {
+    const w1 = document.getElementById('ag-bisem-dia1').value;
+    const w2 = document.getElementById('ag-bisem-dia2').value;
+    const h1 = document.getElementById('ag-bisem-hora1').value;
+    const h2 = document.getElementById('ag-bisem-hora2').value;
+    if (w1 === w2) { erroEl.textContent = 'Na bisemanal, escolha dois dias diferentes da semana'; erroEl.style.display = 'block'; return; }
+    const p1 = agBisemPrimeira(w1, h1);
+    const p2 = agBisemPrimeira(w2, h2);
+    if (!p1 || !p2) { erroEl.textContent = 'Informe o horário dos dois dias (hh:mm)'; erroEl.style.display = 'block'; return; }
+    ancoras = [p1, p2].sort((a, b) => a - b);
+    // Âncora depois do fim da série seria descartada em silêncio no servidor, e o paciente ficaria
+    // só com o outro dia — depois de ver os dois escritos na tela. Barra antes de mandar.
+    const fim = agBisemFimSerie();
+    const fora = fim ? ancoras.filter((a) => a > fim) : [];
+    if (fora.length) {
+      const q = fora.map((d) => AG_BISEM_DIAS[d.getDay()].replace('-feira', '') + ' ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')).join(' e ');
+      erroEl.textContent = `${q} ${fora.length > 1 ? 'ficam' : 'fica'} depois do fim da série. Ajuste os dias ou a data em "Termina em".`;
+      erroEl.style.display = 'block';
+      return;
+    }
+  }
+
+  const startAt = bisem ? ancoras[0] : new Date(`${data}T${hora}:00`);
   const endAt = new Date(startAt.getTime() + dur * 60_000);
 
   const body = {
@@ -16839,18 +17018,23 @@ async function agSalvar() {
       }
       body.recurrence_pattern = pattern;
       body.recurrence_until = until;
+      if (pattern === 'TWICE_WEEKLY') {
+        body.recurrence_dias = ancoras.map((d) => ({ start_at: d.toISOString() }));
+      }
     }
   }
 
+  // O <span id="ag-modal-salvar-txt"> tem que sobreviver aos dois estados: agTrocarTab() lê ele, e
+  // sem o span o próximo "Novo agendamento" quebrava antes de abrir o modal.
   const btn = document.getElementById('ag-modal-salvar');
-  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Salvando…';
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> <span id="ag-modal-salvar-txt">Salvando…</span>';
 
   const r = await pacApi(
     id ? '/api/clinico/appointments/' + id : '/api/clinico/appointments',
     { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }
   );
 
-  btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar';
+  btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> <span id="ag-modal-salvar-txt">Salvar</span>';
 
   if (!r.ok) {
     erroEl.textContent = r.data.erro || 'Erro ao salvar';
