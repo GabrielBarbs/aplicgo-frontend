@@ -5773,7 +5773,7 @@
     </div>
 
     <div class="sidebar-group" data-grupo-clinico>
-      <div class="sidebar-group-label"><i class="ti ti-syringe"></i> Clínico</div>
+      <div class="sidebar-group-label"><i class="ti ti-stethoscope"></i> Clínico</div>
       <button class="sidebar-item" data-view="estoque" data-perm="estoque.ver">
         <i class="ti ti-package"></i> Estoque
       </button>
@@ -6895,7 +6895,7 @@
 
     <!-- Manutenção de dados -->
     <div class="dev-toolbar" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div class="dev-info"><strong><i class="ti ti-wrench"></i> Manutenção:</strong> conserta exames antigos com o bug de deslocamento de coluna (unidade/referência trocadas na leitura por IA).</div>
+      <div class="dev-info"><strong><i class="ti ti-tool"></i> Manutenção:</strong> conserta exames antigos com o bug de deslocamento de coluna (unidade/referência trocadas na leitura por IA).</div>
       <button class="pac-btn-secondary" style="white-space:nowrap" onclick="devCorrigirExames(this)"><i class="ti ti-wand"></i> Corrigir exames deslocados</button>
     </div>
 
@@ -21121,7 +21121,7 @@ function prRenderItem(it) {
         <button class="pac-btn-secondary" style="font-size:11px; padding:5px 10px;" onclick="rxEnviarWhatsappPresc('${d.id}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar WhatsApp</button>
         ${_assinaBtn}
         ${_icpBtn}
-        ${d.assinado ? '<span class="rx-assinada-chip"><i class="ti ti-rosette-discount-check"></i> Assinada</span>' : ''}
+        ${d.assinado ? '<span class="rx-assinada-chip"><i class="ti ti-discount-check"></i> Assinada</span>' : ''}
         ${_icpChip}
         ${_podeAssinar ? `<button class="pr-rx-del" style="margin-left:auto;" onclick="rxExcluirPresc('${d.id}', this)" title="Excluir receita"><i class="ti ti-trash"></i> Excluir</button>` : ''}
       </div>`;
@@ -22019,7 +22019,7 @@ function prIcpResultadoModal(prescricaoId, assinante) {
   let ov = document.getElementById('pr-icp-modal'); if (ov) ov.remove();
   ov = document.createElement('div'); ov.id = 'pr-icp-modal'; ov.className = 'ag-modal-overlay aberto';
   ov.onclick = function (e) { if (e.target.id === 'pr-icp-modal') ov.remove(); };
-  ov.innerHTML = '<div class="pac-modal" style="max-width:420px;"><div class="pac-modal-head"><div class="ttl"><i class="ti ti-rosette-discount-check"></i> Receita assinada</div>'
+  ov.innerHTML = '<div class="pac-modal" style="max-width:420px;"><div class="pac-modal-head"><div class="ttl"><i class="ti ti-discount-check"></i> Receita assinada</div>'
     + '<button class="pac-modal-close" onclick="document.getElementById(\'pr-icp-modal\').remove()"><i class="ti ti-x"></i></button></div>'
     + '<div class="pac-modal-body" style="text-align:center;">'
     + '<div class="wa-num" style="border-color:rgba(29,158,117,0.3);"><i class="ti ti-certificate-2"></i> ICP-Brasil</div>'
@@ -22509,7 +22509,7 @@ function prRenderPrescritor() {
         ${docBtn('carta', 'Carta', 'mail', 'breve')}
         ${docBtn('exames', 'Solicitação de Exames', 'flask')}
         ${docBtn('injetaveis', 'Injetáveis', 'vaccine')}
-        ${docBtn('medbase', 'Medicamento base (GLP-1)', 'syringe')}
+        ${docBtn('medbase', 'Medicamento base (GLP-1)', 'vaccine-bottle')}
         ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
         ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
       </div>
