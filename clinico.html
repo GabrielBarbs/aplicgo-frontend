@@ -3393,6 +3393,50 @@
     .ia-barmini > span { display: block; height: 100%; background: #7B68EE; border-radius: 2px; }
     .ia-aviso { background: rgba(227,179,65,0.1); border: 1px solid rgba(227,179,65,0.35); color: #e3b341; border-radius: 10px; padding: 10px 14px; font-size: 12px; margin-bottom: 12px; line-height: 1.5; }
     .ia-aviso code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; font-family: 'SF Mono', Consolas, monospace; }
+    /* Agentes de IA (painel dev) */
+    .devag-grid { display: flex; flex-direction: column; gap: 8px; }
+    .devag-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; overflow: hidden; }
+    .devag-card.aberto { border-color: var(--bd2); }
+    .devag-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 15px; cursor: pointer; }
+    .devag-head:hover { background: var(--bg1); }
+    .devag-nome { font-size: 13.5px; font-weight: 600; color: var(--tx1); }
+    .devag-desc { font-size: 12px; color: var(--tx3); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .devag-badge { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; padding: 2px 8px; border-radius: 20px; background: var(--bg3); color: var(--tx3); border: 1px solid var(--bd1); }
+    .devag-badge.edit { background: rgba(123,104,238,0.15); color: #9b8bec; border-color: rgba(123,104,238,0.4); }
+    .devag-doc { padding: 4px 15px 12px; border-top: 1px solid var(--hair); }
+    .devag-row { display: flex; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--hair); }
+    .devag-row .k { color: var(--tx3); min-width: 66px; }
+    .devag-row .v { color: var(--tx1); }
+    .devag-row .v.mono { font-family: 'SF Mono', Consolas, monospace; font-size: 11px; color: var(--tx2); word-break: break-word; }
+    .devag-blk { margin-top: 11px; }
+    .devag-blk-t { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--tx3); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .devag-blk ul { margin: 0; padding-left: 18px; }
+    .devag-blk li { font-size: 12px; color: var(--tx2); line-height: 1.5; margin-bottom: 3px; }
+    .devag-fluxo { font-size: 12px; color: var(--tx2); line-height: 1.55; }
+    .devag-prompt { padding: 12px 15px 15px; border-top: 1px solid var(--hair); }
+    .devag-ph { font-size: 11.5px; color: var(--tx3); background: rgba(227,179,65,0.08); border: 1px solid rgba(227,179,65,0.28); border-radius: 8px; padding: 7px 10px; margin-bottom: 8px; line-height: 1.5; }
+    .devag-ph code { background: rgba(0,0,0,0.25); padding: 1px 5px; border-radius: 4px; font-family: 'SF Mono', Consolas, monospace; color: #e3b341; }
+    .devag-ta { width: 100%; min-height: 220px; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 10px; color: var(--tx1); font-family: 'SF Mono', Consolas, monospace; font-size: 12px; line-height: 1.55; padding: 11px 13px; resize: vertical; }
+    .devag-ta:focus { outline: none; border-color: var(--ac); }
+    .devag-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .devag-editinfo { font-size: 11px; color: var(--tx4); font-style: italic; }
+    .devag-chat { margin-top: 14px; background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; overflow: hidden; }
+    .devag-chat-h { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--tx2); padding: 12px 15px; border-bottom: 1px solid var(--hair); }
+    .devag-typing { font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ac); }
+    .devag-chat-body { max-height: 460px; overflow-y: auto; padding: 14px 15px; display: flex; flex-direction: column; gap: 10px; }
+    .devag-chat-vazio { font-size: 12.5px; color: var(--tx4); line-height: 1.6; text-align: center; padding: 18px 8px; }
+    .devag-msg { font-size: 13px; line-height: 1.55; border-radius: 12px; padding: 10px 13px; max-width: 92%; word-wrap: break-word; }
+    .devag-msg.user { align-self: flex-end; background: var(--ac); color: #2a1608; }
+    .devag-msg.bot { align-self: flex-start; background: var(--bg1); border: 1px solid var(--bd1); color: var(--tx1); }
+    .devag-mtext { margin: 2px 0; }
+    .devag-proposta { margin: 9px 0 4px; border: 1px solid rgba(123,104,238,0.4); border-radius: 10px; overflow: hidden; }
+    .devag-proposta-h { font-size: 12px; font-weight: 600; color: #9b8bec; background: rgba(123,104,238,0.12); padding: 7px 11px; display: flex; align-items: center; gap: 6px; }
+    .devag-proposta-p { margin: 0; padding: 10px 12px; font-family: 'SF Mono', Consolas, monospace; font-size: 11px; line-height: 1.5; color: var(--tx2); white-space: pre-wrap; word-break: break-word; max-height: 240px; overflow-y: auto; background: var(--bg1); }
+    .devag-proposta button { margin: 9px 12px 11px; }
+    .devag-chat-in { display: flex; gap: 8px; padding: 11px 13px; border-top: 1px solid var(--hair); }
+    .devag-chat-in textarea { flex: 1; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 10px; color: var(--tx1); font: inherit; font-size: 13px; padding: 9px 12px; resize: none; }
+    .devag-chat-in textarea:focus { outline: none; border-color: var(--ac); }
+    .devag-chat-in button { flex-shrink: 0; }
     #view-gtarefas .gt-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd1); margin-bottom: 16px; flex-wrap: wrap; }
     #view-gtarefas .gt-tab { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--tx3); font: inherit; font-weight: 500; padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 7px; margin-bottom: -1px; }
     #view-gtarefas .gt-tab.active { color: var(--tx1); border-bottom-color: var(--ac); }
@@ -6784,6 +6828,14 @@
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando consumo de IA...</div>
     </div>
 
+    <!-- Agentes de IA: catálogo + fluxo de dados + prompt editável ao vivo + chat especialista -->
+    <div class="dev-toolbar" style="margin-bottom:12px;">
+      <div class="dev-info"><strong><i class="ti ti-robot"></i> Agentes de IA:</strong> cada agente com o fluxo de dados (de onde vem, para onde vai, como é usado), o prompt <strong>editável ao vivo</strong>, e um chat especialista que responde e propõe mudanças.</div>
+    </div>
+    <div id="dev-agentes" style="margin-bottom:20px;">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando agentes de IA…</div>
+    </div>
+
     <div id="dev-conteudo">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
     </div>
@@ -7144,11 +7196,17 @@
           <div class="pac-form-grid">
             <div class="pac-field">
               <label>Telefone 1 <span class="req">*</span></label>
-              <input type="text" id="pac-telefone1" required placeholder="(34) 9 9999-9999" onblur="pacLookupTelefone()">
+              <div style="display:flex;gap:6px">
+                <select id="pac-telefone1-ddi" class="pac-search tel-ddi" style="max-width:120px;flex:0 0 auto" title="País (DDI)"></select>
+                <input type="text" id="pac-telefone1" required placeholder="(34) 9 9999-9999" onblur="pacLookupTelefone()" style="flex:1">
+              </div>
             </div>
             <div class="pac-field">
               <label>Telefone 2</label>
-              <input type="text" id="pac-telefone2">
+              <div style="display:flex;gap:6px">
+                <select id="pac-telefone2-ddi" class="pac-search tel-ddi" style="max-width:120px;flex:0 0 auto" title="País (DDI)"></select>
+                <input type="text" id="pac-telefone2" style="flex:1">
+              </div>
             </div>
             <div class="pac-field full">
               <label>Email</label>
@@ -7600,7 +7658,10 @@
           </div>
           <div class="pac-field">
             <label>Telefone <span class="req">*</span></label>
-            <input type="tel" id="ag-quick-tel" placeholder="(00) 90000-0000" required>
+            <div style="display:flex;gap:6px">
+              <select id="ag-quick-tel-ddi" class="pac-search tel-ddi" style="max-width:120px;flex:0 0 auto" title="País (DDI)"></select>
+              <input type="tel" id="ag-quick-tel" placeholder="(00) 90000-0000" required style="flex:1">
+            </div>
           </div>
           <div class="pac-field">
             <label>CPF</label>
@@ -9759,7 +9820,7 @@ async function homeConfirmarAmanha(idx, btnEl) {
   if (!a) return;
   const num = await confirmarEnvioWhatsapp(a.telefone || '', a.paciente);
   if (!num) return;
-  const full = num.length <= 11 ? '55' + num : num;
+  const full = telWa(num);
   const hora = new Date(a.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const primeiro = (a.paciente || '').split(' ')[0];
   const msg = `Olá ${primeiro}! Aqui é da Aplic & Go. Passando pra confirmar seu horário amanhã às ${hora}. Podemos confirmar? 😊`;
@@ -9842,7 +9903,7 @@ async function homeAtencaoWa(idx) {
   const i = homeAtencaoItens[idx]; if (!i) return;
   const num = await confirmarEnvioWhatsapp(i.telefone || '', i.nome);
   if (!num) return;
-  const full = num.length <= 11 ? '55' + num : num;
+  const full = telWa(num);
   const primeiro = (i.nome || '').split(' ')[0];
   const msg = i.tipo === 'no_show'
     ? `Olá ${primeiro}! Aqui é da Aplic & Go. Sentimos sua falta no último horário — vamos remarcar seu acompanhamento? 😊`
@@ -9927,7 +9988,7 @@ async function homeRenovWa(pid) {
   const i = (homeRenovItens || []).find(x => x.patient_id === pid); if (!i) return;
   const num = await confirmarEnvioWhatsapp(i.telefone || '', i.nome);
   if (!num) return;
-  const full = num.length <= 11 ? '55' + num : num;
+  const full = telWa(num);
   const primeiro = (i.nome || '').split(' ')[0];
   const msg = `Olá ${primeiro}! Aqui é da Aplic & Go. Seu protocolo está chegando ao fim — vamos conversar sobre a renovação pra manter seus resultados? 💚`;
   window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
@@ -12942,9 +13003,74 @@ function renderListaPacientes() {
   document.getElementById('pac-next').disabled = pacState.page >= totalPages;
 }
 
+// ===== Telefone internacional (DDI + bandeira). Brasil = pipeline atual (dígitos nacionais);
+// outro país = guarda E.164 com '+' (marcador que evita o "cola 55" no envio). =====
+const TEL_PAISES = [
+  { f: '🇧🇷', n: 'Brasil', d: '55' }, { f: '🇵🇹', n: 'Portugal', d: '351' }, { f: '🇺🇸', n: 'EUA/Canadá', d: '1' },
+  { f: '🇦🇷', n: 'Argentina', d: '54' }, { f: '🇺🇾', n: 'Uruguai', d: '598' }, { f: '🇵🇾', n: 'Paraguai', d: '595' },
+  { f: '🇨🇱', n: 'Chile', d: '56' }, { f: '🇧🇴', n: 'Bolívia', d: '591' }, { f: '🇵🇪', n: 'Peru', d: '51' },
+  { f: '🇨🇴', n: 'Colômbia', d: '57' }, { f: '🇻🇪', n: 'Venezuela', d: '58' }, { f: '🇲🇽', n: 'México', d: '52' },
+  { f: '🇪🇸', n: 'Espanha', d: '34' }, { f: '🇫🇷', n: 'França', d: '33' }, { f: '🇮🇹', n: 'Itália', d: '39' },
+  { f: '🇩🇪', n: 'Alemanha', d: '49' }, { f: '🇬🇧', n: 'Reino Unido', d: '44' }, { f: '🇨🇭', n: 'Suíça', d: '41' },
+  { f: '🇳🇱', n: 'Holanda', d: '31' }, { f: '🇮🇪', n: 'Irlanda', d: '353' }, { f: '🇯🇵', n: 'Japão', d: '81' },
+  { f: '🇨🇳', n: 'China', d: '86' }, { f: '🇦🇴', n: 'Angola', d: '244' }, { f: '🇲🇿', n: 'Moçambique', d: '258' },
+  { f: '🇦🇺', n: 'Austrália', d: '61' }, { f: '🇿🇦', n: 'África do Sul', d: '27' },
+];
+function telIntlSelectHtml(selId, ddiSel) {
+  const sel = ddiSel || '55';
+  return '<select id="' + selId + '" class="pac-search tel-ddi" style="max-width:120px;flex:0 0 auto" title="País (DDI)">'
+    + TEL_PAISES.map(function (p) { return '<option value="' + p.d + '"' + (p.d === sel ? ' selected' : '') + '>' + p.f + ' +' + p.d + '</option>'; }).join('')
+    + '</select>';
+}
+// Popula selects .tel-ddi vazios (forms estáticos). Idempotente.
+function telIntlPopular() {
+  document.querySelectorAll('select.tel-ddi').forEach(function (sel) {
+    if (sel.options.length) return;
+    sel.innerHTML = TEL_PAISES.map(function (p) { return '<option value="' + p.d + '">' + p.f + ' +' + p.d + '</option>'; }).join('');
+    sel.value = '55';
+  });
+}
+// Valor guardado: Brasil (55) = dígitos nacionais; outro país = '+' + DDI + número.
+function telIntlValor(inputId, selId) {
+  const numEl = document.getElementById(inputId);
+  const numRaw = numEl ? (numEl.value || '').trim() : '';
+  if (numRaw.startsWith('+')) return '+' + numRaw.replace(/\D/g, '');   // internacional já completo no campo (DDI fora da lista)
+  const num = numRaw.replace(/\D/g, '');
+  if (!num) return '';
+  const ddiEl = document.getElementById(selId);
+  const ddi = ddiEl ? ddiEl.value : '55';
+  return ddi === '55' ? num : ('+' + ddi + num);
+}
+// Preenche select (DDI) + input (número) a partir do valor guardado.
+function telIntlSet(inputId, selId, valor) {
+  telIntlPopular();   // garante que o select tem as opções antes de setar o value
+  const numEl = document.getElementById(inputId);
+  const ddiEl = document.getElementById(selId);
+  const v = String(valor || '').trim();
+  if (v.startsWith('+')) {
+    const dig = v.replace(/\D/g, '');
+    const p = TEL_PAISES.slice().sort(function (a, b) { return b.d.length - a.d.length; }).find(function (x) { return dig.startsWith(x.d); });
+    const ddi = p ? p.d : '';
+    if (ddiEl && ddi) ddiEl.value = ddi;
+    // DDI fora da lista -> mantém o '+' + número completo no campo (telIntlValor honra o '+').
+    if (numEl) numEl.value = ddi ? dig.slice(ddi.length) : ('+' + dig);
+  } else {
+    if (ddiEl) ddiEl.value = '55';
+    if (numEl) numEl.value = v ? fmtTel(v) : '';
+  }
+}
+// Número pro wa.me/jid: com '+' usa os dígitos (tem DDI); senão <=11 cola 55 (BR).
+function telWa(num) {
+  const s = String(num || '').trim();
+  if (s.startsWith('+')) return s.replace(/\D/g, '');
+  const d = s.replace(/\D/g, '');
+  return d.length <= 11 ? ('55' + d) : d;
+}
 function fmtTel(t) {
   if (!t) return '—';
-  const s = String(t).replace(/\D/g, '');
+  const raw = String(t).trim();
+  if (raw.startsWith('+')) return '+' + raw.replace(/\D/g, '');   // internacional: mostra com o DDI
+  const s = raw.replace(/\D/g, '');
   if (s.length === 11) return `(${s.slice(0,2)}) ${s.slice(2,3)} ${s.slice(3,7)}-${s.slice(7)}`;
   if (s.length === 10) return `(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`;
   return t;
@@ -13002,8 +13128,8 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-cpf').value = p.cpf || '';
   document.getElementById('pac-data-nasc').value = p.data_nascimento || '';
   document.getElementById('pac-sexo').value = p.sexo || '';
-  document.getElementById('pac-telefone1').value = fmtTel(p.telefone1);
-  document.getElementById('pac-telefone2').value = p.telefone2 ? fmtTel(p.telefone2) : '';
+  telIntlSet('pac-telefone1', 'pac-telefone1-ddi', p.telefone1);
+  telIntlSet('pac-telefone2', 'pac-telefone2-ddi', p.telefone2 || '');
   document.getElementById('pac-email').value = p.email || '';
   { const _cepEl = document.getElementById('pac-cep'); _cepEl.value = p.cep || ''; _cepEl.dataset.cepBusca = (p.cep || '').replace(/\D/g, ''); }  // guarda o CEP carregado -> blur sem mudança não re-busca
   document.getElementById('pac-endereco').value = p.endereco || '';
@@ -13183,8 +13309,8 @@ async function pacSalvar() {
     cpf: document.getElementById('pac-cpf').value.trim() || null,
     data_nascimento: document.getElementById('pac-data-nasc').value || null,
     sexo: document.getElementById('pac-sexo').value || null,
-    telefone1: document.getElementById('pac-telefone1').value.trim(),
-    telefone2: document.getElementById('pac-telefone2').value.trim() || null,
+    telefone1: telIntlValor('pac-telefone1', 'pac-telefone1-ddi'),
+    telefone2: telIntlValor('pac-telefone2', 'pac-telefone2-ddi') || null,
     email: document.getElementById('pac-email').value.trim() || null,
     cep: document.getElementById('pac-cep').value.trim() || null,
     endereco: document.getElementById('pac-endereco').value.trim() || null,
@@ -13458,6 +13584,7 @@ function configurarMascarasData() {
   });
 }
 document.addEventListener('DOMContentLoaded', configurarMascarasData);
+document.addEventListener('DOMContentLoaded', telIntlPopular);   // popula os selects de país (DDI) dos telefones
 
 // Inicializa pacientes quando entrar na view
 let pacJaInicializou = false;
@@ -14670,10 +14797,9 @@ function abrirChatPorTelefone(nome, telefone) {
   cpMostrarConversaWa(nome, telefone);
 }
 function ligarParaPaciente(telefone) {
-  const limpo = String(telefone || '').replace(/\D/g, '');
-  if (!limpo) return alert('Paciente sem telefone.');
-  const num = limpo.length === 10 || limpo.length === 11 ? '+55' + limpo : '+' + limpo;
-  window.location.href = 'tel:' + num;
+  const raw = String(telefone || '').trim();
+  if (!raw.replace(/\D/g, '')) return alert('Paciente sem telefone.');
+  window.location.href = 'tel:+' + telWa(raw);   // telWa respeita o '+' (internacional) e cola 55 só no BR
 }
 
 // ============================================================
@@ -15026,9 +15152,9 @@ function chatPopVoltar() {
 // ---- WhatsApp (conversas reais via Evolution) ----
 // Aberto a partir da lista de pacientes (telefone cru) -> normaliza com DDI 55
 function cpMostrarConversaWa(nome, telefone) {
-  let num = String(telefone || '').replace(/\D/g, '');
-  if (!num) { alert('Paciente sem telefone.'); return; }
-  if (num.length <= 11) num = '55' + num;
+  const raw = String(telefone || '').trim();
+  if (!raw.replace(/\D/g, '')) { alert('Paciente sem telefone.'); return; }
+  const num = telWa(raw);   // telWa respeita o '+' (internacional); não pré-limpar antes (perderia o marcador)
   cpAbrirConversaWa(num, nome, num); // chave = numero (backend monta o jid), numero real = num
 }
 // chave: jid completo (da lista) OU numero (paciente). numero: telefone real p/ exibir/ligar (pode ser '')
@@ -15169,14 +15295,14 @@ function cpLigar() {
   if (!t) return;
   const l = String(t).replace(/\D/g, '');
   if (!l) return;
-  window.location.href = 'tel:+' + (l.length <= 11 ? '55' + l : l);
+  window.location.href = 'tel:+' + telWa(l);
 }
 function cpWaWeb() {
   const c = cpState.waContato;
   if (!c || !c.telefone) return;
   const l = String(c.telefone).replace(/\D/g, '');
   if (!l) return;
-  window.open('https://wa.me/' + (l.length <= 11 ? '55' + l : l), '_blank');
+  window.open('https://wa.me/' + telWa(l), '_blank');
 }
 
 // ============================================================
@@ -15328,8 +15454,7 @@ function wvIrProntuario() {
 function wvLigar() {
   const t = wvState.contato && wvState.contato.telefone;
   if (!t) return;
-  const l = String(t).replace(/\D/g, '');
-  window.location.href = 'tel:+' + (l.length <= 11 ? '55' + l : l);
+  window.location.href = 'tel:+' + telWa(String(t).trim());   // não pré-limpar: telWa respeita o '+'
 }
 async function wvCarregarMsgs(scroll) {
   const jid = wvState.jid;
@@ -15459,9 +15584,9 @@ function wvNovaBusca(q) {
 function wvNovaAbrir(i) {
   const p = (window._wvNovaPacs || [])[i];
   if (!p) return;
-  let num = String(p.telefone1 || '').replace(/\D/g, '');
-  if (!num) { if (typeof homeToast === 'function') homeToast('Esse paciente não tem telefone no cadastro.'); return; }
-  if (num.length <= 11) num = '55' + num;
+  const raw = String(p.telefone1 || '').trim();
+  if (!raw.replace(/\D/g, '')) { if (typeof homeToast === 'function') homeToast('Esse paciente não tem telefone no cadastro.'); return; }
+  const num = telWa(raw);   // não pré-limpar: telWa respeita o '+' (internacional)
   wvNovaToggle();
   wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: p.nome_completo, paciente_id: p.id });
 }
@@ -16420,7 +16545,7 @@ async function agSalvarQuickPat() {
   const body = {
     unit_id: document.getElementById('ag-quick-unit').value || null,
     nome_completo: document.getElementById('ag-quick-nome').value.trim(),
-    telefone1: document.getElementById('ag-quick-tel').value.trim(),
+    telefone1: telIntlValor('ag-quick-tel', 'ag-quick-tel-ddi'),
     data_nascimento: document.getElementById('ag-quick-nasc').value || null,
     cpf: document.getElementById('ag-quick-cpf').value.trim() || null,
     email: document.getElementById('ag-quick-email').value.trim() || null,
@@ -17681,6 +17806,122 @@ function devIARender(d) {
   box.innerHTML = aviso + cards + tabelaAg + tabelaDia + precos;
 }
 
+// ==================== Agentes de IA (catálogo + doc + prompt editável + chat especialista) ====================
+let devAgState = { agentes: [], aberto: null, chat: [], propostas: [], enviando: false };
+
+async function devAgentesCarregar() {
+  const box = document.getElementById('dev-agentes'); if (!box) return;
+  const r = await pacApi('/api/clinico/dev/agentes');
+  if (!r.ok) { box.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro ao carregar agentes: ' + esc(r.data.erro || '--') + '</div>'; return; }
+  devAgState.agentes = r.data.agentes || [];
+  devAgRender();
+}
+function devAgRender() {
+  const box = document.getElementById('dev-agentes'); if (!box) return;
+  devAgState.propostas = []; // reconstruídas pelas mensagens do chat (índices estáveis)
+  box.innerHTML = `<div class="devag-grid">${devAgState.agentes.map(devAgCard).join('')}</div>` + devAgChatHtml();
+}
+function devAgCard(a) {
+  const aberto = devAgState.aberto === a.key;
+  const badge = a.tem_override ? '<span class="devag-badge edit">editado</span>' : '<span class="devag-badge">padrão</span>';
+  const head = `<div class="devag-head" onclick="devAgToggle('${a.key}')">
+    <div style="min-width:0"><div class="devag-nome">${esc(a.nome)}</div><div class="devag-desc">${esc(a.descricao)}</div></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${badge}<i class="ti ti-chevron-${aberto ? 'up' : 'down'}"></i></div></div>`;
+  if (!aberto) return `<div class="devag-card">${head}</div>`;
+  const doc = `<div class="devag-doc">
+    <div class="devag-row"><span class="k">Modelo</span><span class="v">${esc(a.modelo)}</span></div>
+    <div class="devag-row"><span class="k">Gatilho</span><span class="v mono">${esc(a.endpoint)}</span></div>
+    <div class="devag-blk"><div class="devag-blk-t"><i class="ti ti-login"></i> De onde vêm os dados</div><ul>${a.entradas.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>
+    <div class="devag-blk"><div class="devag-blk-t"><i class="ti ti-logout"></i> Para onde vai a saída</div><ul>${a.saidas.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>
+    <div class="devag-blk"><div class="devag-blk-t"><i class="ti ti-route"></i> Como é usado (fluxo)</div><div class="devag-fluxo">${esc(a.fluxo)}</div></div></div>`;
+  const phHint = a.placeholders.length
+    ? `<div class="devag-ph"><i class="ti ti-alert-triangle"></i> Não apague ${a.placeholders.map((p) => `<code>{{${esc(p)}}}</code>`).join(' ')} — são preenchidos com os dados reais do paciente a cada chamada.</div>`
+    : '<div class="devag-ph">Prompt estático (o paciente entra como arquivo, não como texto).</div>';
+  const meta = a.tem_override ? `<span class="devag-editinfo">editado${a.editado_por ? ' por ' + esc(a.editado_por) : ''}${a.editado_em ? ' · ' + devIAData(a.editado_em) : ''}</span>` : '';
+  const prompt = `<div class="devag-prompt">
+    <div class="devag-blk-t"><i class="ti ti-message-code"></i> Prompt ${a.tem_override ? '(editado)' : '(padrão)'}</div>
+    ${phHint}
+    <textarea id="devag-ta-${a.key}" class="devag-ta" spellcheck="false">${esc(a.prompt_atual)}</textarea>
+    <div class="devag-acts">
+      <button class="pac-btn-primary" onclick="devAgSalvar('${a.key}')"><i class="ti ti-device-floppy"></i> Salvar (aplica ao vivo)</button>
+      ${a.tem_override ? `<button class="pac-btn-secondary" onclick="devAgReverter('${a.key}')"><i class="ti ti-arrow-back-up"></i> Voltar ao padrão</button>` : ''}
+      ${meta}</div></div>`;
+  return `<div class="devag-card aberto">${head}${doc}${prompt}</div>`;
+}
+function devAgToggle(key) { devAgState.aberto = devAgState.aberto === key ? null : key; devAgRender(); }
+async function devAgSalvar(key) {
+  const ta = document.getElementById('devag-ta-' + key); if (!ta) return;
+  const a = devAgState.agentes.find((x) => x.key === key);
+  if (!confirm(`Salvar o novo prompt do agente "${a ? a.nome : key}"? Passa a valer JÁ na próxima chamada do agente, em produção. Dá pra voltar ao padrão quando quiser.`)) return;
+  const r = await pacApi('/api/clinico/dev/agentes/' + key + '/prompt', { method: 'PUT', body: JSON.stringify({ prompt: ta.value }) });
+  if (!r.ok) { homeToast('Não salvou: ' + (r.data.erro || '--')); return; }
+  homeToast('Prompt salvo — vale a partir de agora.');
+  devAgentesCarregar();
+}
+async function devAgReverter(key) {
+  const a = devAgState.agentes.find((x) => x.key === key);
+  if (!confirm(`Voltar o agente "${a ? a.nome : key}" ao prompt PADRÃO? Descarta sua edição.`)) return;
+  const r = await pacApi('/api/clinico/dev/agentes/' + key + '/prompt', { method: 'DELETE' });
+  if (!r.ok) { homeToast('Não reverteu: ' + (r.data.erro || '--')); return; }
+  homeToast('Voltou ao prompt padrão.');
+  devAgentesCarregar();
+}
+// ---- Chat especialista ----
+function devAgChatHtml() {
+  const msgs = devAgState.chat.map(devAgMsgHtml).join('')
+    || '<div class="devag-chat-vazio">Pergunte qualquer coisa sobre os agentes, ou peça pra melhorar um prompt.<br>Ex.: <em>"o coach tá formal demais, deixa mais leve"</em> · <em>"de onde vem o dado do plano alimentar?"</em></div>';
+  return `<div class="devag-chat">
+    <div class="devag-chat-h"><i class="ti ti-message-chatbot"></i> Especialista dos agentes ${devAgState.enviando ? '<span class="devag-typing">pensando…</span>' : ''}</div>
+    <div class="devag-chat-body" id="devag-chat-body">${msgs}</div>
+    <div class="devag-chat-in">
+      <textarea id="devag-chat-input" rows="2" placeholder="Pergunte ou peça uma mudança… (Enter envia)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();devAgChatEnviar();}"></textarea>
+      <button class="pac-btn-primary" onclick="devAgChatEnviar()" ${devAgState.enviando ? 'disabled' : ''}><i class="ti ti-send"></i></button></div></div>`;
+}
+function devAgMsgHtml(m) {
+  if (m.role === 'user') return `<div class="devag-msg user">${devAgTextHtml(m.content)}</div>`;
+  return `<div class="devag-msg bot">${devAgParseReply(m.content)}</div>`;
+}
+function devAgTextHtml(s) { return esc(s).replace(/\n/g, '<br>'); }
+function devAgParseReply(txt) {
+  let html = '', last = 0, m;
+  const re = /\[\[EDIT:([a-z_]+)\]\]([\s\S]*?)\[\[\/EDIT\]\]/g;
+  while ((m = re.exec(txt)) !== null) {
+    if (m.index > last) html += `<div class="devag-mtext">${devAgTextHtml(txt.slice(last, m.index).trim())}</div>`;
+    const key = m[1], novo = m[2].trim();
+    const ag = devAgState.agentes.find((x) => x.key === key);
+    const idx = devAgState.propostas.push({ key, prompt: novo }) - 1;
+    html += `<div class="devag-proposta">
+      <div class="devag-proposta-h"><i class="ti ti-wand"></i> Proposta para <strong>${esc(ag ? ag.nome : key)}</strong></div>
+      <pre class="devag-proposta-p">${esc(novo)}</pre>
+      <button class="pac-btn-primary" onclick="devAgAplicarProposta(${idx})"><i class="ti ti-check"></i> Aplicar ao vivo</button></div>`;
+    last = re.lastIndex;
+  }
+  if (last < txt.length) html += `<div class="devag-mtext">${devAgTextHtml(txt.slice(last).trim())}</div>`;
+  return html;
+}
+async function devAgAplicarProposta(idx) {
+  const p = devAgState.propostas[idx]; if (!p) return;
+  const ag = devAgState.agentes.find((x) => x.key === p.key);
+  if (!confirm(`Aplicar essa mudança no prompt do "${ag ? ag.nome : p.key}" ao vivo (produção)? Reversível depois.`)) return;
+  const r = await pacApi('/api/clinico/dev/agentes/' + p.key + '/prompt', { method: 'PUT', body: JSON.stringify({ prompt: p.prompt }) });
+  if (!r.ok) { homeToast('Não aplicou: ' + (r.data.erro || '--')); return; }
+  homeToast('Aplicado — vale a partir de agora.');
+  devAgentesCarregar();
+}
+async function devAgChatEnviar() {
+  const inp = document.getElementById('devag-chat-input'); if (!inp) return;
+  const txt = inp.value.trim(); if (!txt || devAgState.enviando) return;
+  devAgState.enviando = true;
+  devAgState.chat.push({ role: 'user', content: txt });
+  devAgRender();
+  let body = document.getElementById('devag-chat-body'); if (body) body.scrollTop = body.scrollHeight;
+  const r = await pacApi('/api/clinico/dev/agentes/chat', { method: 'POST', body: JSON.stringify({ mensagens: devAgState.chat.map((m) => ({ role: m.role, content: m.content })) }) });
+  devAgState.enviando = false;
+  devAgState.chat.push({ role: 'assistant', content: (r.ok ? (r.data.resposta || '(sem resposta)') : ('Erro: ' + (r.data.erro || 'não consegui responder.'))) });
+  devAgRender();
+  body = document.getElementById('devag-chat-body'); if (body) body.scrollTop = body.scrollHeight;
+}
+
 // ==================== Gestão de Tarefas (painel do gestor) ====================
 const gtState = { pessoas: [], cargos: [], grupos: [], niveis: ['junior', 'pleno', 'senior'], painelDias: 30, novaAlvos: [] };
 const GT_RECORR = { unica: 'Única', diaria: 'Diária', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
@@ -17947,6 +18188,7 @@ async function gtGrupoExcluir(id) {
 
 async function devCarregar() {
   devIACarregar(devIARange);
+  devAgentesCarregar();
   const wrap = document.getElementById('dev-conteudo');
   wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando snapshot técnico...</div>';
   const r = await pacApi('/api/clinico/dev/overview');
@@ -19412,7 +19654,7 @@ async function prProdutoAvisar(sku) {
   const erro = (r && r.data && r.data.erro) || 'falha';
   const msg = (r && r.data && r.data.mensagem) || prProdutoMsgRecompra(nome, primeiro);
   if (confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
-    const full = escolhido.length <= 11 ? '55' + escolhido : escolhido;
+    const full = telWa(escolhido);
     window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
   }
 }
@@ -21076,7 +21318,7 @@ async function prPlanoWhatsapp(btn) {
     }
     const erro = (r.data && r.data.erro) || 'falha';
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
-    const full = escolhido.length <= 11 ? '55' + escolhido : escolhido;
+    const full = telWa(escolhido);
     const msg = (prState.planoData && prState.planoData.whatsapp) || '';
     const link = msg ? ('https://wa.me/' + full + '?text=' + encodeURIComponent(msg)) : null;
     if (link) {
@@ -21095,13 +21337,15 @@ async function prPlanoAbrirWa() {
   const nome = (d.paciente && d.paciente.nome) || '';
   const escolhido = await confirmarEnvioWhatsapp(d.telefone || '', nome);
   if (!escolhido) return;
-  const full = escolhido.length <= 11 ? '55' + escolhido : escolhido;
+  const full = telWa(escolhido);
   const msg = d.whatsapp || '';
   window.open('https://wa.me/' + full + (msg ? '?text=' + encodeURIComponent(msg) : ''), '_blank');
 }
 // Formata telefone brasileiro pra exibição: +55 (34) 99920-4296.
 function prFmtTelefone(t) {
-  const d = String(t || '').replace(/\D/g, '');
+  const raw = String(t || '').trim();
+  if (raw.startsWith('+')) return '+' + raw.replace(/\D/g, '');   // internacional: mostra com o DDI
+  const d = raw.replace(/\D/g, '');
   if (!d) return '';
   let n = d, ddi = '';
   if (n.length > 11 && n.slice(0, 2) === '55') { ddi = '+55 '; n = n.slice(2); }
@@ -21133,9 +21377,10 @@ function confirmarEnvioWhatsapp(numero, nome) {
     const hint = ov.querySelector('#wa-num-hint');
     ov.querySelector('#wa-cancelar').onclick = function () { fim(null); };
     const confirmar = function () {
-      const dig = String(input.value || '').replace(/\D/g, '');
+      const raw = String(input.value || '').trim();
+      const dig = raw.replace(/\D/g, '');
       if (dig.length < 10) { hint.textContent = 'Número inválido — inclua o DDD (ex.: (34) 99920-4296).'; hint.classList.add('erro'); input.focus(); return; }
-      fim(dig);
+      fim(raw.startsWith('+') ? '+' + dig : dig);   // preserva o '+' (internacional)
     };
     ov.querySelector('#wa-confirmar').onclick = confirmar;
     input.onkeydown = function (e) { if (e.key === 'Enter') confirmar(); };
@@ -21945,7 +22190,7 @@ async function rxEnviarWhatsappPresc(id, btn) {
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
     const erro = (r.data && r.data.erro) || 'falha';
     const msg = (r.data && r.data.mensagem) || '';
-    const full = numero.length <= 11 ? '55' + numero : numero;
+    const full = telWa(numero);
     if (msg && confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
       window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
     } else if (!msg) {
