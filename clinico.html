@@ -1399,13 +1399,14 @@
     }
     .ag-event .ev-paciente { font-weight: 500; color: var(--tx1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ag-event .ev-meta { color: var(--tx2); font-size: 9px; margin-top: 1px; }
-    /* Cores por status */
-    .ag-event.AGENDADO { border-left-color: #4A90E2; background: linear-gradient(135deg, rgba(74,144,226,0.18), rgba(74,144,226,0.10)); }
-    .ag-event.CONFIRMADO { border-left-color: #1D9E75; background: linear-gradient(135deg, rgba(29,158,117,0.18), rgba(29,158,117,0.10)); }
-    .ag-event.EM_ATENDIMENTO { border-left-color: #EF9F27; background: linear-gradient(135deg, rgba(239,159,39,0.20), rgba(239,159,39,0.10)); animation: pulse 2s infinite; }
-    .ag-event.ATENDIDO { border-left-color: #7B68EE; background: linear-gradient(135deg, rgba(123,104,238,0.18), rgba(123,104,238,0.10)); opacity: 0.85; }
-    .ag-event.NO_SHOW { border-left-color: #f85149; background: linear-gradient(135deg, rgba(248,81,73,0.18), rgba(248,81,73,0.10)); opacity: 0.7; }
-    .ag-event.CANCELADO { border-left-color: var(--tx3b); background: rgba(var(--tx3b-rgb),0.10); opacity: 0.5; text-decoration: line-through; }
+    /* A COR por status NÃO mora mais aqui: vem do JS (AG_STATUS_COR), a mesma fonte que
+       desenha a legenda. Eram três listas soltas (legenda, agStatusCor e estas regras) e elas
+       divergiram — "Atendido" saía roxo na grade e verde na legenda. Aqui fica só o
+       COMPORTAMENTO por status, que é de fato CSS. */
+    .ag-event.EM_ATENDIMENTO { animation: pulse 2s infinite; }
+    .ag-event.ATENDIDO { opacity: 0.85; }
+    .ag-event.NO_SHOW { opacity: 0.7; }
+    .ag-event.CANCELADO { opacity: 0.5; text-decoration: line-through; }
 
     @keyframes pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(239,159,39,0.3); }
@@ -6610,16 +6611,9 @@
               Carregando agenda…
             </div>
           </div>
-          <div class="ag-legenda">
-            <div class="ag-legenda-item"><span class="dot" style="background:#4A90E2;"></span> Agendado</div>
-            <div class="ag-legenda-item"><span class="dot" style="background:#F1C648;"></span> Confirmado</div>
-            <div class="ag-legenda-item"><span class="dot" style="background:#6FD89A;"></span> Aguardando</div>
-            <div class="ag-legenda-item"><span class="dot" style="background:#EF9F27;"></span> Em atendimento</div>
-            <div class="ag-legenda-item"><span class="dot" style="background:#2BB673;"></span> Atendido</div>
-            <div class="ag-legenda-item"><span class="dot" style="background:#E55266;"></span> Faltou</div>
-            <div class="ag-legenda-item"><span class="dot" style="background:#E68A47;"></span> Cancelada (clínica)</div>
-            <div class="ag-legenda-item"><span class="dot" style="background:#C56847;"></span> Cancelada (paciente)</div>
-          </div>
+          <!-- Preenchida por agRenderLegenda() a partir de AG_STATUS_COR — a MESMA fonte que
+               pinta o evento na grade. Hex fixo aqui foi o que deixou legenda e grade divergirem. -->
+          <div class="ag-legenda" id="ag-legenda"></div>
         </div>
       </div>
     </div>
@@ -13990,6 +13984,7 @@ function agPreencherSelectsCustom() {
       </div>`;
     }).join('') + addBtn;
   agProfLabelSync();
+  agRenderLegenda();   // legenda sai da mesma fonte de cor dos eventos
 }
 
 // Rótulo do filtro: "Todos profissionais" | o nome (1 só) | "N profissionais" (grupo).
@@ -14400,15 +14395,39 @@ function agListaRowTarefa(t) {
 }
 
 // Cor de cada status pra render (combina com o modal)
+// FONTE ÚNICA da cor por status. A legenda, o chip da lista, o mini calendário e o evento na
+// grade leem daqui. Antes eram três listas independentes (legenda em HTML, esta função e as
+// regras .ag-event.X no CSS) — e divergiram: "Atendido" saía roxo na grade e verde na legenda.
+// Sempre hex (nada de var()): os call sites concatenam alpha (`cor + '30'`), o que quebraria.
+const AG_STATUS_COR = {
+  AGENDADO: '#4A90E2',
+  CONFIRMADO: '#F1C648',
+  AGUARDANDO: '#6FD89A',
+  EM_ATENDIMENTO: '#EF9F27',
+  ATENDIDO: '#2BB673',
+  NO_SHOW: '#E55266',
+  CANCELADO_CLINICA: '#E68A47',
+  CANCELADO_PACIENTE: '#C56847',
+  REAGENDADO: '#8B8578',
+};
+// Ordem e rótulos da legenda — mesma lista que pinta os eventos.
+const AG_STATUS_LEGENDA = [
+  ['AGENDADO', null, 'Agendado'], ['CONFIRMADO', null, 'Confirmado'], ['AGUARDANDO', null, 'Aguardando'],
+  ['EM_ATENDIMENTO', null, 'Em atendimento'], ['ATENDIDO', null, 'Atendido'], ['NO_SHOW', null, 'Faltou'],
+  ['CANCELADO', 'CLINICA', 'Cancelada (clínica)'], ['CANCELADO', 'PACIENTE', 'Cancelada (paciente)'],
+];
 function agStatusCor(status, origem) {
-  if (status === 'AGENDADO') return '#4A90E2';
-  if (status === 'CONFIRMADO') return '#F1C648';
-  if (status === 'AGUARDANDO') return '#6FD89A';
-  if (status === 'EM_ATENDIMENTO') return '#EF9F27';
-  if (status === 'ATENDIDO') return '#2BB673';
-  if (status === 'NO_SHOW') return '#E55266';
-  if (status === 'CANCELADO') return origem === 'PACIENTE' ? '#C56847' : '#E68A47';
-  return 'var(--tx3b)';
+  // Cancelamento tem duas cores: quem cancelou muda a leitura (clínica x paciente).
+  if (status === 'CANCELADO') return origem === 'PACIENTE' ? AG_STATUS_COR.CANCELADO_PACIENTE : AG_STATUS_COR.CANCELADO_CLINICA;
+  return AG_STATUS_COR[status] || AG_STATUS_COR.REAGENDADO;
+}
+// Fundo do evento a partir da cor do status (2E ~ 18% e 1A ~ 10% de alpha).
+function agStatusFundo(cor) { return `linear-gradient(135deg, ${cor}2E, ${cor}1A)`; }
+function agRenderLegenda() {
+  const el = document.getElementById('ag-legenda');
+  if (!el) return;
+  el.innerHTML = AG_STATUS_LEGENDA.map(([st, org, lbl]) =>
+    `<div class="ag-legenda-item"><span class="dot" style="background:${agStatusCor(st, org)};"></span> ${lbl}</div>`).join('');
 }
 function agStatusLabel(status, origem) {
   if (status === 'AGENDADO') return 'Agendado';
@@ -14461,6 +14480,10 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
   const altura = Math.max(1, slotFinal - slotInicial) * 30 - 2;
   const ev = document.createElement('div');
   ev.className = 'ag-event ' + a.status;
+  // Cor da MESMA fonte da legenda (a classe só carrega comportamento: pulse/opacidade/riscado).
+  const corEv = agStatusCor(a.status, a.cancelado_por_origem);
+  ev.style.borderLeftColor = corEv;
+  ev.style.background = agStatusFundo(corEv);
   ev.style.top = '1px';
   ev.style.height = altura + 'px';
   ev.dataset.id = a.id;
