@@ -17063,6 +17063,15 @@ async function prCarregarHeader() {
         <div class="meta"><span class="cod">${h.codigo}</span> · ${fmtTel(h.telefone1)}</div>
       </div>
     </div>
+    <button class="pac-btn-secondary" onclick="prEditarPacienteDoHeader()">
+      <i class="ti ti-edit"></i> Editar
+    </button>
+    <button class="pac-btn-secondary" onclick="prLimparPaciente()">
+      <i class="ti ti-arrow-back"></i> Trocar paciente
+    </button>
+  `;
+}
+
 // Novo agendamento pro paciente já aberto: abre o MESMO modal da agenda, sem sair do prontuário.
 // Os selects do modal (tipo/unidade/profissional) são preenchidos por agInit(), que só roda quando
 // a agenda abre — quem entra direto no prontuário abriria o modal vazio. Daí carregar o apoio antes.
@@ -17093,15 +17102,6 @@ async function prNovoAgendamento(btn) {
   }
   agAbrirNovoModal(); // chama agResetForm(): o paciente tem que ser escolhido DEPOIS
   agSelecionarPaciente({ id: h.id, codigo: h.codigo, nome: h.nome_completo, telefone: h.telefone1, status: h.status });
-}
-
-    <button class="pac-btn-secondary" onclick="prEditarPacienteDoHeader()">
-      <i class="ti ti-edit"></i> Editar
-    </button>
-    <button class="pac-btn-secondary" onclick="prLimparPaciente()">
-      <i class="ti ti-arrow-back"></i> Trocar paciente
-    </button>
-  `;
 }
 
 async function prEditarPacienteDoHeader() {
