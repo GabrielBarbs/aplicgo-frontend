@@ -1164,6 +1164,13 @@
     .ag-select-popup-item:last-child { border-bottom: 0; }
     .ag-select-popup-item:hover { background: rgba(var(--bg3-rgb),0.6); color: var(--tx1); }
     .ag-select-popup-item.selecionado { background: rgba(29,158,117,0.10); color: #1D9E75; font-weight: 500; }
+    /* Caixa de marcação do filtro multi-profissional (agenda de grupo) */
+    .ag-prof-check {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; margin-right: 7px; vertical-align: -2px;
+      border: 1px solid var(--bd1); border-radius: 3px; font-size: 10px; flex-shrink: 0;
+    }
+    .ag-select-popup-item.selecionado .ag-prof-check { border-color: #1D9E75; background: rgba(29,158,117,0.18); }
     .ag-select-popup-item.ag-select-popup-add {
       color: var(--ac); font-weight: 500;
       border-top: 1px solid rgba(var(--bg3-rgb),0.9);
@@ -13847,7 +13854,7 @@ const AG_DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 let agState = {
   semanaRef: null,                // qualquer dia da semana atual
   unidade: '',
-  prof: '',
+  profs: [],                      // ids dos profissionais filtrados. [] = todos (agenda de grupo)
   tipos: [],
   agendamentos: [],
   bloqueios: [],                  // schedule blocks
@@ -13946,13 +13953,48 @@ function agPreencherSelectsCustom() {
   const addBtn = temPermissao('admin.gerenciar_usuarios')
     ? `<div class="ag-select-popup-item ag-select-popup-add" onclick="event.stopPropagation(); admAbrirNovoUser('agenda')"><i class="ti ti-user-plus"></i> Adicionar usuário</div>`
     : '';
-  popProf.innerHTML = `<div class="ag-select-popup-item ${!agState.prof ? 'selecionado' : ''}" onclick="agSelectProf('', 'Todos profissionais')">Todos profissionais</div>` +
+  // Multi-seleção: dá pra marcar quantos profissionais quiser e ver a agenda do grupo.
+  // O popup NÃO fecha a cada clique (agToggleProf segura o evento) — fecha ao clicar fora.
+  const todos = agState.profs.length === 0;
+  popProf.innerHTML = `<div class="ag-select-popup-item ${todos ? 'selecionado' : ''}" onclick="agProfTodos(event)">
+      <span class="ag-prof-check">${todos ? '<i class="ti ti-check"></i>' : ''}</span> Todos profissionais
+    </div>` +
     profs.map(p => {
-      const label = (p.nome || p.email).replace(/'/g, "\\'");
+      const marcado = agState.profs.includes(p.id);
       const role = ({ medico: 'Dr.', nutricionista: 'Nutri', enfermagem: 'Enf.', gestor: '' })[p.role] || '';
       const lblFull = role ? `${role} ${p.nome || p.email}` : (p.nome || p.email);
-      return `<div class="ag-select-popup-item ${agState.prof === p.id ? 'selecionado' : ''}" onclick="agSelectProf('${p.id}', '${lblFull.replace(/'/g, "\\'")}')">${lblFull}</div>`;
+      return `<div class="ag-select-popup-item ${marcado ? 'selecionado' : ''}" onclick="agToggleProf(event, '${p.id}')">
+        <span class="ag-prof-check">${marcado ? '<i class="ti ti-check"></i>' : ''}</span> ${esc(lblFull)}
+      </div>`;
     }).join('') + addBtn;
+  agProfLabelSync();
+}
+
+// Rótulo do filtro: "Todos profissionais" | o nome (1 só) | "N profissionais" (grupo).
+function agProfLabelSync() {
+  const el = document.getElementById('ag-sel-prof-label');
+  if (!el) return;
+  const n = agState.profs.length;
+  if (n === 0) { el.textContent = 'Todos profissionais'; return; }
+  if (n === 1) {
+    const p = (pacState.profissionais || []).find(x => x.id === agState.profs[0]);
+    const role = p ? (({ medico: 'Dr.', nutricionista: 'Nutri', enfermagem: 'Enf.', gestor: '' })[p.role] || '') : '';
+    el.textContent = p ? (role ? `${role} ${p.nome || p.email}` : (p.nome || p.email)) : '1 profissional';
+    return;
+  }
+  el.textContent = `${n} profissionais`;
+}
+function agProfAplicar() { agPreencherSelectsCustom(); agCarregar(); agCarregarMiniCal(); }
+function agProfTodos(ev) {
+  if (ev) ev.stopPropagation();
+  agState.profs = [];
+  agProfAplicar();
+}
+function agToggleProf(ev, id) {
+  if (ev) ev.stopPropagation();   // segura o clique: o popup fica aberto pra marcar vários
+  const i = agState.profs.indexOf(id);
+  if (i >= 0) agState.profs.splice(i, 1); else agState.profs.push(id);
+  agProfAplicar();
 }
 
 function agToggleSelect(qual) {
@@ -13971,14 +14013,6 @@ function agSelectUnit(id, label) {
   agState.unidade = id;
   document.getElementById('ag-sel-unit-label').textContent = label;
   document.getElementById('ag-sel-unit-popup').classList.remove('aberto');
-  agPreencherSelectsCustom();
-  agCarregar();
-  agCarregarMiniCal();
-}
-function agSelectProf(id, label) {
-  agState.prof = id;
-  document.getElementById('ag-sel-prof-label').textContent = label;
-  document.getElementById('ag-sel-prof-popup').classList.remove('aberto');
   agPreencherSelectsCustom();
   agCarregar();
   agCarregarMiniCal();
@@ -14020,7 +14054,7 @@ async function agCarregarMiniCal() {
   params.set('year', String(ano));
   params.set('month', String(mes));
   if (agState.unidade) params.set('unit', agState.unidade);
-  if (agState.prof) params.set('prof', agState.prof);
+  if (agState.profs.length) params.set('prof', agState.profs.join(','));   // 1 ou vários
   const r = await pacApi('/api/clinico/appointments/calendar?' + params.toString());
   if (!r.ok) return;
   agState.miniCalDias = {};
@@ -14094,7 +14128,7 @@ async function agCarregar() {
   params.set('start', range.ini.toISOString());
   params.set('end', range.fim.toISOString());
   if (agState.unidade) params.set('unit', agState.unidade);
-  if (agState.prof) params.set('prof', agState.prof);
+  if (agState.profs.length) params.set('prof', agState.profs.join(','));   // 1 ou vários
 
   const [r, rb, rt] = await Promise.all([
     pacApi('/api/clinico/appointments?' + params.toString()),
@@ -16204,7 +16238,8 @@ function agAbrirBlockModal(isoLocal) {
     unitSel.innerHTML += `<option value="${u.id}">${u.nome}</option>`;
   });
   // Pré-seleciona filtros atuais
-  if (agState.prof) profSel.value = agState.prof;
+  // Só pré-seleciona quando o filtro tem UM profissional; com um grupo, qual seria? Deixa em branco.
+  if (agState.profs.length === 1) profSel.value = agState.profs[0];
   if (agState.unidade) unitSel.value = agState.unidade;
 
   // Defaults: agora + 1h
@@ -16382,7 +16417,8 @@ function agPopularSelectsBloqueio() {
   unitSel.innerHTML = '<option value="">Todas</option>' +
     (pacState.unidades || []).map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
   // Pré-selecionar baseado nos filtros atuais ou no agendamento
-  if (agState.prof) profSel.value = agState.prof;
+  // Só pré-seleciona quando o filtro tem UM profissional; com um grupo, qual seria? Deixa em branco.
+  if (agState.profs.length === 1) profSel.value = agState.profs[0];
   if (agState.unidade) unitSel.value = agState.unidade;
   const agProf = document.getElementById('ag-prof')?.value;
   const agUnit = document.getElementById('ag-unit')?.value;
