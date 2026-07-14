@@ -2489,7 +2489,11 @@
     .pr-grafico-svg .linha {
       fill: none; stroke-width: 2;
       transition: stroke-width 0.12s;
+      pointer-events: none;  /* só o .ponto-hit captura o mouse (senão a linha rouba o hover) */
     }
+    /* A área preenchida cobria os pontos das outras métricas e engolia o hover:
+       o mouse batia nela (sem data-tooltip) e o balão sumia. Ela é decoração. */
+    .pr-grafico-svg .area { pointer-events: none; }
     .pr-grafico-svg .ponto {
       r: 4;                 /* base explicito em CSS: evita o colapso a r=0 no hover */
       pointer-events: none; /* quem captura o hover e o .ponto-hit por cima */
@@ -2524,7 +2528,11 @@
     }
 
     /* Botão no card clínico */
-    .pr-card-clinico-head .pac-btn-mini-acao {
+    /* Também no cabeçalho dos gráficos: lá a classe não pegava nada e os botões
+       ("Importar PDF", "Nova bioimpedância", "Nova medida", "Fechar") saíam com o
+       visual padrão do browser, destoando do resto do prontuário. */
+    .pr-card-clinico-head .pac-btn-mini-acao,
+    .pr-grafico-card-head .pac-btn-mini-acao {
       background: rgba(var(--ac-rgb),0.10);
       border: 1px solid rgba(var(--ac-rgb),0.25);
       color: var(--ac);
@@ -2535,7 +2543,8 @@
       font-family: inherit;
       display: inline-flex; align-items: center; gap: 4px;
     }
-    .pr-card-clinico-head .pac-btn-mini-acao:hover {
+    .pr-card-clinico-head .pac-btn-mini-acao:hover,
+    .pr-grafico-card-head .pac-btn-mini-acao:hover {
       background: rgba(var(--ac-rgb),0.18);
     }
 
@@ -18026,12 +18035,15 @@ function grafSerie(cfg) {
     return `<text x="${x(i)}" y="${H - padB + 14}" text-anchor="middle">${lbl}</text>`;
   }).join('');
 
-  // Linhas + pontos
+  // Monta cada métrica em CAMADAS separadas. Desenhar área+linha+pontos por métrica
+  // (como era) faz a área da métrica seguinte cobrir os pontos da anterior: o ponto some
+  // sob o preenchimento e o hover não acha o alvo. Por isso: áreas, depois linhas,
+  // depois TODOS os pontos por cima.
   const baseY = padT + innerH;  // linha de base pro preenchimento (área sob a curva)
-  const linhas = visMetricas.map(m => {
+  const camadas = visMetricas.map(m => {
     const campo = cfg.campos[m];
     const pontos = serie.map((p, i) => ({ i, v: p[campo] })).filter(p => p.v != null);
-    if (pontos.length === 0) return '';
+    if (pontos.length === 0) return null;
     const xy = pontos.map(p => ({ x: x(p.i), y: y(p.v) }));
     const path = bioSmoothPath(xy);                       // curva suave
     const areaD = `${path} L${xy[xy.length - 1].x.toFixed(1)},${baseY} L${xy[0].x.toFixed(1)},${baseY} Z`;
@@ -18044,9 +18056,15 @@ function grafSerie(cfg) {
       return `<circle class="ponto" cx="${cx}" cy="${cy}" r="3" fill="${cfg.cores[m]}"/>`
            + `<circle class="ponto-hit" cx="${cx}" cy="${cy}" r="9" data-tooltip="${tip}"/>`;
     }).join('');
-    return `<path class="area" d="${areaD}" fill="url(#${cfg.gradId}-${m})"/>`
-         + `<path class="linha" d="${path}" stroke="${cfg.cores[m]}" pathLength="1"/>${ptsSvg}`;
-  }).join('');
+    return {
+      area: `<path class="area" d="${areaD}" fill="url(#${cfg.gradId}-${m})"/>`,
+      linha: `<path class="linha" d="${path}" stroke="${cfg.cores[m]}" pathLength="1"/>`,
+      pontos: ptsSvg,
+    };
+  }).filter(Boolean);
+  const linhas = camadas.map(c => c.area).join('')
+    + camadas.map(c => c.linha).join('')
+    + camadas.map(c => c.pontos).join('');
 
   // Gradientes sutis sob cada curva (dashboard premium)
   const defs = `<defs>${visMetricas.map(m => `<linearGradient id="${cfg.gradId}-${m}" x1="0" y1="0" x2="0" y2="1">`
