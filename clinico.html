@@ -8641,53 +8641,8 @@
 </div>
 
 <!-- ============== MODAL MEDICAMENTO-BASE (GLP-1) ============== -->
-<div class="ag-modal-overlay" id="pbase-modal" onclick="if(event.target.id==='pbase-modal') pbaseFechar()">
-  <div class="ag-modal" style="max-width: 600px;">
-    <div class="ag-modal-header">
-      <div class="ttl"><i class="ti ti-syringe"></i> Prescrever medicamento-base (GLP-1)</div>
-      <button class="pac-modal-close" onclick="pbaseFechar()"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="ag-modal-body">
-      <div class="pac-modal-erro" id="pbase-erro"></div>
-      <input type="hidden" id="pbase-patient-id">
-      <div id="pbase-lista-ativos"></div>
-      <div class="pac-form-grid col-2">
-        <div class="pac-field" style="grid-column: span 2;">
-          <label>Droga <span class="req">*</span></label>
-          <select id="pbase-droga" onchange="pbaseDrogaMudou()"></select>
-        </div>
-        <div class="pac-field">
-          <label>Dose inicial <span class="req">*</span></label>
-          <select id="pbase-dose"></select>
-        </div>
-        <div class="pac-field">
-          <label>Frequência <span class="req">*</span></label>
-          <select id="pbase-freq"></select>
-        </div>
-      </div>
-      <div id="pbase-alertas" style="margin-top:8px;"></div>
-      <div class="pbase-titul-head">
-        <span class="pro-grp-lbl">Plano de titulação (escalonamento)</span>
-        <button type="button" class="pbase-titul-add" onclick="pbaseAddTitul()"><i class="ti ti-plus"></i> Degrau</button>
-      </div>
-      <div id="pbase-titul"></div>
-      <label class="pro-confirma" style="color:var(--tx2); margin-top:10px;"><input type="checkbox" id="pbase-auto" checked> Auto-administrado (paciente aplica em casa)</label>
-      <div class="pac-field" style="margin-top:10px;">
-        <label>Observações</label>
-        <textarea id="pbase-obs" placeholder="Notas do médico"></textarea>
-      </div>
-    </div>
-    <div class="ag-modal-footer">
-      <div></div>
-      <div class="ag-modal-actions-right">
-        <button class="pac-btn-secondary" onclick="pbaseFechar()">Cancelar</button>
-        <button class="pac-btn-primary" id="pbase-salvar" onclick="pbaseSalvar()">
-          <i class="ti ti-device-floppy"></i> Prescrever
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Medicamento-base (GLP-1) não é mais modal: o formulário é renderizado DENTRO da aba de
+     prescrição (#pr-medbase-wrap), igual ao receituário. Markup em pbaseFormHtml(). -->
 
 <!-- ============== MODAL EXAMES ============== -->
 <div class="ag-modal-overlay" id="pr-exam-modal" onclick="if(event.target.id==='pr-exam-modal') prFecharExam()">
@@ -22409,8 +22364,8 @@ function prAbrirInjetaveis() {
   rxRerender(false);                     // re-renderiza o modal com o container #pr-inj-wrap
   injRenderPrescrever();                 // preenche o container (paciente + builder)
 }
-// "Medicamento base (GLP-1)" saiu da barra de ações e virou um tipo da aba de prescrição.
-// Mesmo gate do botão antigo (prontuario.prescrever) + paciente aberto, igual prAbrirInjetaveis.
+// "Medicamento base (GLP-1)" saiu da barra de ações e virou um tipo DENTRO da aba de prescrição:
+// o form renderiza no painel (#pr-medbase-wrap), igual ao receituário. Mesmo gate do botão antigo.
 function prAbrirMedBase() {
   if (typeof temPermissao === 'function' && !temPermissao('prontuario.prescrever')) {
     if (typeof homeToast === 'function') homeToast('Você não tem permissão pra prescrever.');
@@ -22418,7 +22373,9 @@ function prAbrirMedBase() {
   }
   const p = prState.pacienteAtual;
   if (!p || !p.id) { if (typeof homeToast === 'function') homeToast('Abra o paciente primeiro.'); return; }
-  pbaseAbrirModal(p.id);
+  rxState.tipoDoc = 'medbase';
+  rxRerender(false);        // re-renderiza o painel com o container #pr-medbase-wrap
+  pbaseMontarInline(p.id);  // preenche o container
 }
 function rxSetTipoDoc(t) {
   if (t === 'exames') {
@@ -22556,7 +22513,8 @@ function prRenderPrescritor() {
         ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
         ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
       </div>
-      ${rxState.tipoDoc === 'injetaveis' ? `<div id="pr-inj-wrap" style="margin-top:14px"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando módulo de injetáveis…</div></div>` : `
+      ${rxState.tipoDoc === 'injetaveis' ? `<div id="pr-inj-wrap" style="margin-top:14px"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando módulo de injetáveis…</div></div>`
+        : rxState.tipoDoc === 'medbase' ? `<div id="pr-medbase-wrap" style="margin-top:14px"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando medicamento base…</div></div>` : `
       ${ehAtestado ? `
         <div class="rx-lbl">Selecione o modelo de atestado</div>
         <div class="rx-row">
@@ -22966,21 +22924,58 @@ async function proStatus(id, novo) {
 const PBASE_FREQ_LBL = { semanal: 'Semanal', '2x_semana': '2x na semana', quinzenal: 'Quinzenal (a cada 15 dias)', dose_unica: 'Dose única' };
 let pbaseState = { patientId: null, medicamentos: [], titul: [] };
 
-async function pbaseAbrirModal(patientId) {
-  pbaseState.patientId = patientId;
-  document.getElementById('pbase-patient-id').value = patientId;
-  document.getElementById('pbase-erro').style.display = 'none';
-  document.getElementById('pbase-obs').value = '';
-  document.getElementById('pbase-auto').checked = true;
-  document.getElementById('pbase-lista-ativos').innerHTML = '';
-  if (!pbaseState.medicamentos.length) await pbaseCarregarCatalogo();
-  pbasePopularDrogas();
-  pbaseCarregarLista(patientId);
-  pbaseDrogaMudou();
-  document.getElementById('pbase-modal').classList.add('aberto');
+// Formulário do medicamento-base. Vive DENTRO da aba de prescrição (#pr-medbase-wrap), igual ao
+// receituário — não é mais modal. Mesmos ids de antes, então o resto do módulo segue funcionando.
+function pbaseFormHtml() {
+  return `
+    <div class="pac-modal-erro" id="pbase-erro"></div>
+    <div id="pbase-lista-ativos"></div>
+    <div class="pac-form-grid col-2">
+      <div class="pac-field" style="grid-column: span 2;">
+        <label>Droga <span class="req">*</span></label>
+        <select id="pbase-droga" onchange="pbaseDrogaMudou()"></select>
+      </div>
+      <div class="pac-field">
+        <label>Dose inicial <span class="req">*</span></label>
+        <select id="pbase-dose"></select>
+      </div>
+      <div class="pac-field">
+        <label>Frequência <span class="req">*</span></label>
+        <select id="pbase-freq"></select>
+      </div>
+    </div>
+    <div id="pbase-alertas" style="margin-top:8px;"></div>
+    <div class="pbase-titul-head">
+      <span class="pro-grp-lbl">Plano de titulação (escalonamento)</span>
+      <button type="button" class="pbase-titul-add" onclick="pbaseAddTitul()"><i class="ti ti-plus"></i> Degrau</button>
+    </div>
+    <div id="pbase-titul"></div>
+    <label class="pro-confirma" style="color:var(--tx2); margin-top:10px;"><input type="checkbox" id="pbase-auto" checked> Auto-administrado (paciente aplica em casa)</label>
+    <div class="pac-field" style="margin-top:10px;">
+      <label>Observações</label>
+      <textarea id="pbase-obs" placeholder="Notas do médico"></textarea>
+    </div>
+    <div class="rx-actions">
+      <button class="pac-btn-primary" id="pbase-salvar" onclick="pbaseSalvar()"><i class="ti ti-device-floppy"></i> Prescrever</button>
+      <button class="pac-btn-secondary" onclick="rxFechar()">Cancelar</button>
+    </div>`;
 }
 
-function pbaseFechar() { document.getElementById('pbase-modal').classList.remove('aberto'); }
+// Monta o formulário dentro do painel de prescrição e preenche (catálogo/drogas/lista).
+async function pbaseMontarInline(patientId) {
+  const wrap = document.getElementById('pr-medbase-wrap');
+  if (!wrap) return;
+  pbaseState.patientId = patientId;
+  pbaseState.titul = [];
+  wrap.innerHTML = pbaseFormHtml();
+  document.getElementById('pbase-erro').style.display = 'none';
+  if (!pbaseState.medicamentos.length) await pbaseCarregarCatalogo();
+  // O painel pode ter sido re-renderizado durante o await (troca de tipo/fechar) — o form some.
+  if (!document.getElementById('pbase-droga')) return;
+  pbasePopularDrogas();
+  pbaseDrogaMudou();
+  pbaseCarregarLista(patientId);
+}
 
 async function pbaseCarregarCatalogo() {
   const r = await pacApi('/api/clinico/protocolos/medicamentos-base');
@@ -23046,7 +23041,7 @@ async function pbaseSalvar() {
     err.style.display = 'block'; btn.disabled = false; return;
   }
   btn.disabled = false;
-  pbaseFechar();
+  rxFechar();   // fecha o painel de prescrição (o form vive dentro dele)
   if (typeof prCarregarTimeline === 'function') prCarregarTimeline();
 }
 
