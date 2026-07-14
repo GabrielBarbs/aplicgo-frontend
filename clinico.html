@@ -3446,6 +3446,28 @@
     #view-gtarefas .gt-chip button { background: 0; border: 0; color: var(--tx4); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
     #view-gtarefas .gt-chip button:hover { color: #f85149; }
     #view-gtarefas .gt-form label { display: block; font-size: 11px; color: var(--tx3); text-transform: uppercase; letter-spacing: .3px; margin: 12px 0 5px; font-weight: 600; }
+    /* Metas de Movimento (painel dev) */
+    .movm-box { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; padding: 14px 15px 15px; }
+    .movm-sec { margin-top: 16px; }
+    .movm-sec:first-child { margin-top: 0; }
+    .movm-sec-t { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--tx3); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+    .movm-hint { font-size: 12px; color: var(--tx3); line-height: 1.55; margin-bottom: 9px; }
+    .movm-in { background: var(--bg1); border: 1px solid var(--bd1); border-radius: 8px; color: var(--tx1); font: inherit; font-size: 13px; padding: 6px 9px; width: 100%; }
+    .movm-in:focus { outline: none; border-color: var(--ac); }
+    .movm-in.num { max-width: 120px; text-align: right; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; }
+    .movm-nivel-n { font-family: 'SF Mono', Consolas, monospace; font-size: 11px; color: var(--tx3); }
+    .movm-pol { display: flex; flex-direction: column; gap: 8px; }
+    .movm-opt { display: block; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 10px; padding: 11px 13px; cursor: pointer; }
+    .movm-opt:hover { border-color: var(--bd2); }
+    .movm-opt.sel { border-color: var(--ac); background: rgba(var(--ac-rgb),0.06); }
+    .movm-opt-h { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--tx1); }
+    .movm-opt-e { font-size: 12px; color: var(--tx3); line-height: 1.55; margin-top: 5px; padding-left: 22px; }
+    .movm-opt-sel-wrap { margin-top: 8px; padding-left: 22px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .movm-opt-sel-wrap select { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 8px; color: var(--tx1); font: inherit; font-size: 12.5px; padding: 6px 9px; }
+    .movm-opt-sel-wrap select:disabled { opacity: .45; }
+    .movm-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hair); }
+    .movm-erro { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.35); color: #f85149; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; line-height: 1.55; }
+    .movm-erro button { margin-top: 9px; }
     #view-gtarefas .gt-form .pac-search { width: 100%; }
     #view-gtarefas .gt-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     #view-gtarefas .gt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: 20px; background: var(--bg3); color: var(--tx2); white-space: nowrap; }
@@ -6855,6 +6877,17 @@
     <div id="dev-conteudo">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
     </div>
+    <!-- Metas de Movimento: níveis, política de quem não tem prescrição e piso de dia ativo -->
+    <div class="dev-toolbar" style="margin-bottom:12px;">
+      <div class="dev-info"><strong><i class="ti ti-run"></i> Metas de Movimento:</strong> o alvo contra o qual o anel "Movimento" do app é medido (metade passos/dia, metade exercício/semana). Entra com peso no Longevity Score — mudar aqui muda o score de paciente.</div>
+      <div class="dev-acoes">
+        <button class="pac-btn-secondary" onclick="movmCarregar()" title="Atualizar"><i class="ti ti-refresh"></i></button>
+      </div>
+    </div>
+    <div id="dev-movmetas" style="margin-bottom:20px;">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando metas de movimento…</div>
+    </div>
+
   </div>
 
   <!-- VIEW: Gestão de Tarefas (rotinas recorrentes + acompanhamento do gestor) -->
@@ -18142,6 +18175,215 @@ function gtTab(t) {
   if (t === 'painel') gtPainelCarregar();
   else if (t === 'rotinas') gtRotinasCarregar();
   else if (t === 'grupos') gtGruposRender();
+// ==================== Metas de Movimento (níveis + política sem prescrição + piso de dia ativo) ====================
+// Tudo que aparece na tela vem de /api/clinico/dev/metas-movimento. Erro de rede != "não tem config":
+// sem resposta do endpoint a tela mostra o erro e NADA de número, em vez de exibir o padrão como se fosse o vigente.
+const MOVM_ORDEM = [1, 2, 3, 4];
+let movmState = { cfg: null, stats: null, form: null, erro: null, salvando: false };
+
+async function movmCarregar() {
+  const box = document.getElementById('dev-movmetas'); if (!box) return;
+  box.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando metas de movimento…</div>';
+  let r;
+  try {
+    r = await pacApi('/api/clinico/dev/metas-movimento');
+  } catch (e) {
+    if (String(e && e.message) === '401') throw e; // sessão expirada: pacApi já mandou pro login
+    movmState.erro = 'Não consegui falar com o servidor.';
+    movmState.cfg = null; movmState.form = null; movmState.stats = null;
+    movmRender(); return;
+  }
+  if (!r.ok) {
+    movmState.erro = r.data.erro || 'Erro ao carregar as metas de movimento.';
+    movmState.cfg = null; movmState.form = null; movmState.stats = null;
+    movmRender(); return;
+  }
+  movmState.erro = null;
+  movmState.cfg = r.data.config;
+  movmState.stats = { comNivel: r.data.pacientes_com_nivel_prescrito, total: r.data.total_pacientes };
+  movmState.form = movmFormDe(r.data.config, r.data.padrao);
+  movmRender();
+}
+
+// Espelha a config num rascunho editável. nivelSel guarda a escolha do seletor mesmo com a
+// política "não pontuar" ativa, pra alternar entre as duas opções não perder o que foi digitado.
+function movmFormDe(cfg, padrao) {
+  const niveis = {};
+  for (const n of MOVM_ORDEM) {
+    const v = cfg.niveis[String(n)] || cfg.niveis[n];
+    niveis[n] = { nome: v.nome, passosDia: v.passosDia, exercicioSemana: v.exercicioSemana };
+  }
+  const fallbackSel = (padrao && padrao.nivelPadrao != null) ? padrao.nivelPadrao : MOVM_ORDEM[0];
+  return {
+    niveis,
+    politica: cfg.nivelPadrao != null ? 'padrao' : 'nenhuma',
+    nivelSel: cfg.nivelPadrao != null ? cfg.nivelPadrao : fallbackSel,
+    aderenciaPassosDiaAtivo: cfg.aderenciaPassosDiaAtivo,
+  };
+}
+
+function movmSetNivel(n, campo, valor) {
+  if (!movmState.form) return;
+  movmState.form.niveis[n][campo] = campo === 'nome' ? valor : (valor === '' ? '' : Number(valor));
+}
+function movmSetAderencia(valor) {
+  if (!movmState.form) return;
+  movmState.form.aderenciaPassosDiaAtivo = valor === '' ? '' : Number(valor);
+}
+function movmSetPolitica(p) {
+  if (!movmState.form) return;
+  movmState.form.politica = p;
+  movmRender();
+}
+function movmSetNivelSel(n) {
+  if (!movmState.form) return;
+  movmState.form.nivelSel = Number(n);
+  movmRender();
+}
+
+function movmRender() {
+  const box = document.getElementById('dev-movmetas'); if (!box) return;
+  if (movmState.erro) {
+    box.innerHTML = '<div class="movm-erro"><i class="ti ti-alert-triangle"></i> <strong>Não deu pra carregar as metas de movimento.</strong><br>'
+      + esc(movmState.erro)
+      + '<br>Isso é uma falha de leitura, não quer dizer que a config esteja vazia — por isso a tela não mostra nenhum número.'
+      + '<br><button class="pac-btn-secondary" onclick="movmCarregar()"><i class="ti ti-refresh"></i> Tentar de novo</button></div>';
+    return;
+  }
+  const f = movmState.form, cfg = movmState.cfg, st = movmState.stats;
+  if (!f || !cfg || !st) { box.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando metas de movimento…</div>'; return; }
+
+  const badge = cfg.padraoConfigurado
+    ? '<span class="devag-badge edit">edição salva pela clínica</span>'
+    : '<span class="devag-badge">padrão do código (ninguém salvou ainda)</span>';
+
+  const linhas = MOVM_ORDEM.map((n) => {
+    const v = f.niveis[n];
+    return `<tr>
+      <td class="movm-nivel-n">${n}</td>
+      <td><input class="movm-in" maxlength="40" value="${esc(String(v.nome))}" oninput="movmSetNivel(${n},'nome',this.value)"></td>
+      <td class="num"><input class="movm-in num" type="number" min="100" max="60000" step="100" value="${esc(String(v.passosDia))}" oninput="movmSetNivel(${n},'passosDia',this.value)"></td>
+      <td class="num"><input class="movm-in num" type="number" min="10" max="2000" step="10" value="${esc(String(v.exercicioSemana))}" oninput="movmSetNivel(${n},'exercicioSemana',this.value)"></td>
+    </tr>`;
+  }).join('');
+
+  const tabela = `<div class="movm-sec">
+    <div class="movm-sec-t"><i class="ti ti-stairs-up"></i> Os 4 níveis de movimento</div>
+    <div class="movm-hint">O nível prescrito pra cada paciente define a meta dele. O anel "Movimento" é metade <strong>passos/dia</strong> (média dos últimos 7 dias contra a meta) e metade <strong>exercício/semana</strong> (soma dos últimos 7 dias contra a meta).</div>
+    <div class="dev-table-wrap"><div style="overflow-x:auto;"><table class="dev-table">
+      <thead><tr><th style="width:34px">Nº</th><th>Nome do nível</th><th class="num">Passos/dia</th><th class="num">Exercício/semana (min)</th></tr></thead>
+      <tbody>${linhas}</tbody></table></div></div></div>`;
+
+  const semPrescricao = movmSemPrescricao(st);
+  const opcoes = MOVM_ORDEM.map((n) => `<option value="${n}" ${f.nivelSel === n ? 'selected' : ''}>${n} — ${esc(String(f.niveis[n].nome))} (${esc(String(f.niveis[n].passosDia))} passos/dia)</option>`).join('');
+  const politica = `<div class="movm-sec">
+    <div class="movm-sec-t"><i class="ti ti-adjustments"></i> Quem não tem nível prescrito</div>
+    <div class="movm-hint">Decisão clínica: o que o sistema faz com o paciente cujo nível ninguém definiu${st.total > 0 && semPrescricao != null ? ` — hoje são <strong>${esc(String(semPrescricao))}</strong> de ${esc(String(st.total))} paciente(s)` : ''}.</div>
+    <div class="movm-pol">
+      <label class="movm-opt ${f.politica === 'padrao' ? 'sel' : ''}">
+        <span class="movm-opt-h"><input type="radio" name="movm-politica" ${f.politica === 'padrao' ? 'checked' : ''} onchange="movmSetPolitica('padrao')"> Usar um nível padrão</span>
+        <span class="movm-opt-e">Quem não tem prescrição é medido contra esse nível. O anel aparece normalmente no app, e a meta é identificada como <strong>meta da clínica</strong> — não como a meta daquele paciente.</span>
+        <span class="movm-opt-sel-wrap">
+          <span style="font-size:12px;color:var(--tx3)">Nível:</span>
+          <select ${f.politica === 'padrao' ? '' : 'disabled'} onchange="movmSetNivelSel(this.value)">${opcoes}</select>
+        </span>
+      </label>
+      <label class="movm-opt ${f.politica === 'nenhuma' ? 'sel' : ''}">
+        <span class="movm-opt-h"><input type="radio" name="movm-politica" ${f.politica === 'nenhuma' ? 'checked' : ''} onchange="movmSetPolitica('nenhuma')"> Não pontuar movimento sem prescrição</span>
+        <span class="movm-opt-e">O anel "Movimento" fica <strong>—</strong> pra quem não tem nível prescrito, e o Longevity Score é calculado sem esse componente (ele renormaliza sozinho — não zera nem penaliza). Nada é medido contra um alvo que ninguém definiu.</span>
+      </label>
+    </div></div>`;
+
+  const aderencia = `<div class="movm-sec">
+    <div class="movm-sec-t"><i class="ti ti-calendar-check"></i> Passos/dia que contam como dia ativo</div>
+    <div class="movm-hint"><strong>Não é a meta do nível.</strong> É um piso de consistência: o mínimo de passos pro dia ser contado como "dia ativo" no índice de Aderência. A meta acima mede o quanto o paciente chega perto do alvo; isso aqui só diz se o dia contou ou não.</div>
+    <input class="movm-in num" type="number" min="100" max="60000" step="100" value="${esc(String(f.aderenciaPassosDiaAtivo))}" oninput="movmSetAderencia(this.value)"> <span style="font-size:12px;color:var(--tx3)">passos/dia</span></div>`;
+
+  const acts = `<div class="movm-acts">
+    <button class="pac-btn-primary" ${movmState.salvando ? 'disabled' : ''} onclick="movmSalvar(this)"><i class="ti ti-device-floppy"></i> Salvar</button>
+    ${cfg.padraoConfigurado ? '<button class="pac-btn-secondary" onclick="movmReverter()"><i class="ti ti-arrow-back-up"></i> Voltar ao padrão</button>' : ''}
+    <span style="margin-left:auto">${badge}</span></div>`;
+
+  box.innerHTML = `<div class="movm-box">${movmAvisoHtml(st)}${tabela}${politica}${aderencia}${acts}</div>`;
+}
+
+// Quantos pacientes caem na política. A chave clin_config 'movnivel:<pid>' é string sem FK:
+// paciente excluído deixa a linha órfã e a contagem pode passar o total dos pacientes. Aí o
+// derivado não se sustenta e devolvemos null — melhor não afirmar do que afirmar negativo.
+function movmSemPrescricao(st) {
+  const com = Number(st.comNivel), total = Number(st.total);
+  if (!Number.isFinite(com) || !Number.isFinite(total) || com > total) return null;
+  return total - com;
+}
+
+// Aviso factual: quantos pacientes têm nível prescrito, direto do endpoint. Zero invenção.
+function movmAvisoHtml(st) {
+  const com = Number(st.comNivel), total = Number(st.total);
+  if (!Number.isFinite(com) || !Number.isFinite(total)) return '';
+  if (total === 0) return '<div class="ia-aviso"><i class="ti ti-info-circle"></i> Nenhum paciente cadastrado — não há movimento sendo pontuado no momento.</div>';
+  if (com === 0) {
+    return `<div class="ia-aviso"><i class="ti ti-alert-triangle"></i> <strong>Nenhum dos ${esc(String(total))} paciente(s) tem nível de movimento prescrito.</strong>
+      Enquanto ninguém prescrever, <strong>todos</strong> caem na política escolhida abaixo — o que você decidir aqui vale pra base inteira.</div>`;
+  }
+  const sem = movmSemPrescricao(st);
+  return `<div class="ia-aviso"><i class="ti ti-info-circle"></i> <strong>${esc(String(com))} de ${esc(String(total))} paciente(s)</strong> têm nível de movimento prescrito e são medidos contra a meta deles.
+    ${sem == null ? 'Os demais caem na política escolhida abaixo.' : `Os outros <strong>${esc(String(sem))}</strong> caem na política escolhida abaixo.`}</div>`;
+}
+
+// Mesmas faixas do zod do backend (mov-config.ts). Validar aqui evita que campo vazio vire 0 e
+// o erro volte em inglês — e que o diálogo de efeito clínico apareça pra um save que não vai passar.
+function movmNumOk(v, min, max) {
+  const s = String(v).trim();
+  if (s === '') return false;
+  const n = Number(s);
+  return Number.isInteger(n) && n >= min && n <= max;
+}
+
+function movmSalvar(btn) {
+  const f = movmState.form; if (!f || movmState.salvando) return;
+  const niveis = {};
+  for (const n of MOVM_ORDEM) {
+    const v = f.niveis[n];
+    if (!String(v.nome || '').trim()) return homeToast(`Preencha o nome do nível ${n}.`);
+    if (!movmNumOk(v.passosDia, 100, 60000)) return homeToast(`Passos/dia do nível ${n}: use um número inteiro entre 100 e 60.000.`);
+    if (!movmNumOk(v.exercicioSemana, 10, 2000)) return homeToast(`Exercício/semana do nível ${n}: use um número inteiro entre 10 e 2.000 minutos.`);
+    niveis[String(n)] = { nome: String(v.nome || '').trim(), passosDia: Number(v.passosDia), exercicioSemana: Number(v.exercicioSemana) };
+  }
+  if (!movmNumOk(f.aderenciaPassosDiaAtivo, 100, 60000)) return homeToast('Passos/dia que contam como dia ativo: use um número inteiro entre 100 e 60.000.');
+  const nivelPadrao = f.politica === 'padrao' ? Number(f.nivelSel) : null;
+  const efeito = nivelPadrao != null
+    ? `Quem não tem prescrição passa a ser medido contra o nível ${nivelPadrao} (${niveis[String(nivelPadrao)].nome}), exibido como meta da clínica.`
+    : 'Quem não tem prescrição fica com o anel Movimento em "—", e o Longevity Score é recalculado sem esse componente.';
+  // o backend cacheia a config por 60s: não prometer efeito instantâneo.
+  if (!confirm(`Salvar as metas de movimento?\n\n${efeito}\n\nIsso muda o anel Movimento e o Longevity Score dos pacientes (leva até 1 minuto pra valer). Dá pra voltar ao padrão quando quiser.`)) return;
+  movmState.salvando = true;
+  if (btn) btn.disabled = true;
+  const body = JSON.stringify({ niveis, nivelPadrao, aderenciaPassosDiaAtivo: Number(f.aderenciaPassosDiaAtivo) });
+  pacApi('/api/clinico/dev/metas-movimento', { method: 'PUT', body })
+    .then((r) => {
+      movmState.salvando = false;
+      if (!r.ok) { homeToast('Não salvou: ' + (r.data.erro || '--')); if (btn) btn.disabled = false; return; }
+      homeToast('Metas de movimento salvas — valem a partir de agora.');
+      movmCarregar();
+    })
+    .catch((e) => {
+      movmState.salvando = false;
+      if (String(e && e.message) === '401') return;
+      if (btn) btn.disabled = false;
+      homeToast('Não salvou: falha de conexão com o servidor.');
+    });
+}
+
+async function movmReverter() {
+  if (!confirm('Voltar as metas de movimento ao PADRÃO do código? Descarta a configuração da clínica e muda o score dos pacientes.')) return;
+  let r;
+  try { r = await pacApi('/api/clinico/dev/metas-movimento', { method: 'DELETE' }); }
+  catch (e) { if (String(e && e.message) === '401') return; homeToast('Não reverteu: falha de conexão com o servidor.'); return; }
+  if (!r.ok) { homeToast('Não reverteu: ' + (r.data.erro || '--')); return; }
+  homeToast('Voltou ao padrão do código.');
+  movmCarregar();
+}
+
 }
 // ---- Acompanhamento ----
 async function gtPainelCarregar() {
@@ -18409,6 +18651,7 @@ function devRender(d) {
   const sess = d.sessoes || { ativas: 0, total: 0, recentes: [] };
   const errs = d.erros || { total: 0, ultimas_24h: 0, por_level_24h: [], recentes: [] };
 
+  movmCarregar();
   // Calcula max size pras barras
   const maxSize = Math.max(...db.tabelas.map(t => t.size_bytes || 0), 1);
 
