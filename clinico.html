@@ -4727,14 +4727,15 @@
       border-radius: 5px;
     }
     /* Resultado de exame no timeline — tabela de marcadores (nunca JSON cru) */
-    .pr-exres { margin-top: 7px; border: 1px solid var(--bd1); border-radius: 8px; overflow: hidden; }
-    .pr-exres-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 10px; align-items: baseline; padding: 6px 11px; font-size: 12px; border-bottom: 1px solid var(--hair); }
-    .pr-exres-row:last-child { border-bottom: 0; }
-    .pr-exres-row .n { color: var(--tx2); overflow: hidden; text-overflow: ellipsis; }
-    .pr-exres-row .v { color: var(--tx1); font-weight: 500; font-variant-numeric: tabular-nums; }
-    .pr-exres-row .r { color: var(--tx4); font-size: 11px; white-space: nowrap; }
-    .pr-exres-row.alt { background: rgba(248,81,73,0.06); }
-    .pr-exres-row.alt .v { color: #f85149; }
+    .pr-exres { width: 100%; margin-top: 7px; border: 1px solid var(--bd1); border-radius: 8px; border-collapse: separate; border-spacing: 0; overflow: hidden; font-size: 12px; table-layout: auto; }
+    .pr-exres td { padding: 6px 0; border-top: 1px solid var(--hair); vertical-align: baseline; }
+    .pr-exres tr:first-child td { border-top: 0; }
+    .pr-exres .n { color: var(--tx2); width: 100%; padding-left: 11px; padding-right: 14px; }
+    .pr-exres .v { color: var(--tx1); font-weight: 500; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .pr-exres .u { color: var(--tx4); font-size: 11px; text-align: left; white-space: nowrap; padding-left: 5px; }
+    .pr-exres .r { color: var(--tx4); font-size: 11px; text-align: right; white-space: nowrap; padding-left: 16px; padding-right: 11px; }
+    .pr-exres tr.alt td { background: rgba(248,81,73,0.06); }
+    .pr-exres tr.alt .v { color: #f85149; }
 
     /* Cores específicas por tipo do timeline */
     .pr-item.tipo-evolucao { border-left-color: #7B68EE; }
@@ -20852,14 +20853,15 @@ function prRenderItem(it) {
       body = `<div style="font-size:12px; color:var(--tx1);">${esc(d.exame || '')}</div>`;
       const marc = (d.resultado && Array.isArray(d.resultado.marcadores)) ? d.resultado.marcadores : null;
       if (marc && marc.length) {
-        body += '<div class="pr-exres">' + marc.map((m) => {
+        const linhas = marc.map((m) => {
           const val = (m.valor != null && m.valor !== '') ? m.valor : (m.valor_texto != null && m.valor_texto !== '' ? m.valor_texto : '—');
-          const un = m.unidade ? ' ' + esc(String(m.unidade)) : '';
+          const un = m.unidade ? esc(String(m.unidade)) : '';
           const refTxt = (m.ref_texto && m.ref_texto !== 'false' && m.ref_texto !== 'true') ? esc(String(m.ref_texto)) : '';
           const refNum = (m.ref_min != null || m.ref_max != null) ? `${m.ref_min != null ? m.ref_min : ''}${(m.ref_min != null && m.ref_max != null) ? '–' : ''}${m.ref_max != null ? m.ref_max : ''}` : '';
           const ref = refTxt || refNum;
-          return `<div class="pr-exres-row${m.alterado === true ? ' alt' : ''}"><span class="n">${esc(String(m.rotulo || m.codigo || '—'))}</span><span class="v">${esc(String(val))}${un}</span><span class="r">${ref ? 'ref ' + ref : ''}</span></div>`;
-        }).join('') + '</div>';
+          return `<tr${m.alterado === true ? ' class="alt"' : ''}><td class="n">${esc(String(m.rotulo || m.codigo || '—'))}</td><td class="v">${esc(String(val))}</td><td class="u">${un}</td><td class="r">${ref ? esc(String(ref)) : ''}</td></tr>`;
+        }).join('');
+        body += `<table class="pr-exres"><tbody>${linhas}</tbody></table>`;
         if (d.resultado.origem) body += `<div style="font-size:10px; color:var(--tx4); margin-top:6px;"><i class="ti ti-file-text"></i> ${esc(String(d.resultado.origem))}</div>`;
       } else if (d.resultado) {
         body += `<div style="font-size:11px; color:var(--tx3b); margin-top:6px;">${esc(typeof d.resultado === 'string' ? d.resultado : 'Resultado sem marcadores estruturados.')}</div>`;
