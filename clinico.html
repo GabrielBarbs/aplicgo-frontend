@@ -8185,6 +8185,16 @@
       </div>
 
       <div class="pac-form-section">
+        <div class="pac-form-section-title"><i class="ti ti-hand-grab"></i> Força</div>
+        <div class="pac-form-grid col-3">
+          <div class="pac-field">
+            <label>Força de preensão palmar (kg)</label>
+            <input type="number" id="bio-forca-palmar" min="0" max="150" step="0.1" placeholder="dinamômetro">
+          </div>
+        </div>
+      </div>
+
+      <div class="pac-form-section">
         <div class="pac-form-section-title"><i class="ti ti-droplet"></i> Hidratação (opcional)</div>
         <div class="pac-form-grid col-3">
           <div class="pac-field">
@@ -17983,6 +17993,8 @@ async function bioSalvar() {
     circ_abdomen_cm: num('bio-c-abdomen'),
     circ_braco_d_cm: num('bio-c-braco'),
     circ_coxa_d_cm: num('bio-c-coxa'),
+    forca_palmar_kg: num('bio-forca-palmar'),   // manual: nem InBody nem laudo trazem
+    // RCQ não vai daqui: o servidor calcula de cintura/quadril e grava (fonte única).
     agua_total_litros: num('bio-agua-total'),
     agua_intracelular: num('bio-agua-intra'),
     agua_extracelular: num('bio-agua-extra'),
@@ -18053,6 +18065,8 @@ async function bioCarregarSerie(patientId) {
       circ_abdomen_cm: b.circ_abdomen_cm,
       circ_braco_d_cm: b.circ_braco_d_cm,
       circ_coxa_d_cm: b.circ_coxa_d_cm,
+      forca_palmar_kg: b.forca_palmar_kg,
+      rcq: b.rcq,
     };
   });
   bioMontarSerie();
@@ -18145,10 +18159,15 @@ function grafSerie(cfg) {
     if (v != null) { if (v < minV) minV = v; if (v > maxV) maxV = v; }
   }));
   if (!isFinite(minV)) { minV = 0; maxV = 100; }
-  if (minV === maxV) { minV -= 2; maxV += 2; }
+  // Casas decimais pela MAGNITUDE do dado. A RCQ vive em ~0,85: arredondar a escala pra inteiro
+  // (o que sempre se fez) colapsaria tudo em 0..1 e o eixo marcaria "0,0,1,1". Peso/cm/kg/%
+  // são >= 10 e continuam idênticos ao de antes (casas=0).
+  const casas = maxV < 10 ? 2 : 0;
+  const q = Math.pow(10, casas);
+  if (minV === maxV) { const d = casas ? Math.max(Math.abs(minV) * 0.05, 0.02) : 2; minV -= d; maxV += d; }
   const range = maxV - minV;
-  minV = Math.floor(minV - range * 0.05);
-  maxV = Math.ceil(maxV + range * 0.05);
+  minV = Math.floor((minV - range * 0.05) * q) / q;
+  maxV = Math.ceil((maxV + range * 0.05) * q) / q;
 
   // X positions (linear pelos pontos)
   const N = serie.length;
@@ -18158,7 +18177,7 @@ function grafSerie(cfg) {
   // Eixo Y: 4 marcas (menos linhas de grade -> visual mais limpo)
   const yMarks = [0, 1, 2, 3].map(k => {
     const v = minV + (maxV - minV) * k / 3;
-    return { y: y(v), label: v.toFixed(0) };
+    return { y: y(v), label: v.toFixed(casas).replace('.', ',') };
   });
 
   // Grid horizontal
@@ -18284,11 +18303,13 @@ function grafTooltipHide(e) {
 // as circunferências lá) e a "medida corporal" isolada daqui (registro só com as medidas
 // — o backend já aceita peso nulo). Assim as duas entradas nunca divergem.
 // ============================================================
-const FIS_METRICAS = ['cintura', 'quadril', 'abdomen', 'braco', 'coxa'];
-const FIS_CAMPOS = { cintura: 'circ_cintura_cm', quadril: 'circ_quadril_cm', abdomen: 'circ_abdomen_cm', braco: 'circ_braco_d_cm', coxa: 'circ_coxa_d_cm' };
-const FIS_CORES = { cintura: '#E8945A', quadril: '#4A90E2', abdomen: '#f85149', braco: '#6FD89A', coxa: '#B98CE0' };
-const FIS_LABELS = { cintura: 'Cintura (cm)', quadril: 'Quadril (cm)', abdomen: 'Abdômen (cm)', braco: 'Braço D (cm)', coxa: 'Coxa D (cm)' };
-let fisState = { visiveis: { cintura: true, quadril: true, abdomen: true, braco: false, coxa: false }, formAberto: false };
+const FIS_METRICAS = ['cintura', 'quadril', 'abdomen', 'braco', 'coxa', 'forca', 'rcq'];
+const FIS_CAMPOS = { cintura: 'circ_cintura_cm', quadril: 'circ_quadril_cm', abdomen: 'circ_abdomen_cm', braco: 'circ_braco_d_cm', coxa: 'circ_coxa_d_cm', forca: 'forca_palmar_kg', rcq: 'rcq' };
+const FIS_CORES = { cintura: '#E8945A', quadril: '#4A90E2', abdomen: '#f85149', braco: '#6FD89A', coxa: '#B98CE0', forca: '#E3B341', rcq: '#5AD1C4' };
+const FIS_LABELS = { cintura: 'Cintura (cm)', quadril: 'Quadril (cm)', abdomen: 'Abdômen (cm)', braco: 'Braço D (cm)', coxa: 'Coxa D (cm)', forca: 'Força palmar (kg)', rcq: 'RCQ (cintura/quadril)' };
+// rcq começa DESLIGADA de propósito: ela vive em ~0,8 e as outras em ~100 — juntas no mesmo eixo
+// a RCQ vira uma reta colada no chão, sem informação. Ligada sozinha, a escala se ajusta a ela.
+let fisState = { visiveis: { cintura: true, quadril: true, abdomen: true, braco: false, coxa: false, forca: true, rcq: false }, formAberto: false };
 
 // Só entram pontos que TÊM alguma circunferência. Sem isso, uma bioimpedância sem medidas
 // viraria uma data no eixo X sem nada plotado — furo no gráfico.
@@ -18328,7 +18349,9 @@ function fisFormHtml() {
         <div class="pac-form-grid col-3" style="margin-top:10px;">
           ${campo('cintura', 'Cintura')}${campo('quadril', 'Quadril')}${campo('abdomen', 'Abdômen')}
           ${campo('braco', 'Braço direito')}${campo('coxa', 'Coxa direita')}
+          <div class="pac-field"><label>Força palmar (kg)</label><input type="number" id="fis-forca" min="0" max="150" step="0.1" placeholder="dinamômetro"></div>
         </div>
+        <div class="rx-hint" style="margin-top:6px;">A relação cintura/quadril (RCQ) é calculada e gravada sozinha quando as duas medidas são preenchidas.</div>
         <div class="pac-field" style="margin-top:10px;">
           <label>Observações</label>
           <textarea id="fis-obs" placeholder="Opcional"></textarea>
@@ -18351,6 +18374,7 @@ async function fisSalvarMedida(btn) {
   const circ = {
     circ_cintura_cm: num('fis-cintura'), circ_quadril_cm: num('fis-quadril'), circ_abdomen_cm: num('fis-abdomen'),
     circ_braco_d_cm: num('fis-braco'), circ_coxa_d_cm: num('fis-coxa'),
+    forca_palmar_kg: num('fis-forca'),
   };
   // Registro sem nenhuma medida seria um ponto vazio no gráfico — barra aqui.
   if (Object.values(circ).every((v) => v == null)) { falhar('Preencha ao menos uma medida.'); return; }
@@ -21662,6 +21686,8 @@ function prRenderItem(it) {
        ['circ_braco_d_cm', 'braço D'], ['circ_coxa_d_cm', 'coxa D']].forEach(([k, lbl]) => {
         if (d[k] != null) vitais.push(`<span><strong>${String(d[k]).replace('.', ',')} cm</strong> ${lbl}</span>`);
       });
+      if (d.forca_palmar_kg != null) vitais.push(`<span><strong>${String(d.forca_palmar_kg).replace('.', ',')} kg</strong> força palmar</span>`);
+      if (d.rcq != null) vitais.push(`<span>RCQ <strong>${String(d.rcq).replace('.', ',')}</strong></span>`);
       body = vitais.length
         ? `<div class="pr-vitais" style="border-top: 0; padding-top: 0; margin-top: 0;">${vitais.join('')}</div>`
         : '<div style="font-size:11px; color:var(--tx3b);">Registro sem valores.</div>';
