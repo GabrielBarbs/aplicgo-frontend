@@ -2867,7 +2867,16 @@
     }
     .ci-msg.mine .hora { text-align:right; }
     .ci-msg .autor { font-size:10px; color:var(--tx3b); font-weight:500; margin:0 0 2px 4px; }
-    .ci-input-bar { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--bd1); align-items:flex-end; }
+    .ci-input-bar { position:relative; display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--bd1); align-items:flex-end; }
+    /* Popup de @menção (aparece acima do campo) */
+    .ci-mention-pop { position:absolute; left:12px; right:56px; bottom:calc(100% - 4px); background:var(--bg2); border:1px solid var(--bd1); border-radius:10px; box-shadow:0 -6px 22px rgba(0,0,0,.35); overflow:hidden; max-height:230px; overflow-y:auto; z-index:40; }
+    .ci-mrow { display:flex; align-items:center; gap:9px; padding:8px 11px; cursor:pointer; }
+    .ci-mrow.sel, .ci-mrow:hover { background:rgba(29,158,117,.14); }
+    .ci-mav { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; }
+    .ci-mnm { color:var(--tx1); font-size:12.5px; font-weight:500; }
+    .ci-msub { color:var(--tx4); font-size:11px; margin-left:auto; white-space:nowrap; }
+    .ci-menc { color:#1D9E75; font-weight:600; }
+    .ci-msg.mine .ci-menc { color:#bff0dd; }
     .ci-input-bar textarea { flex:1; background:var(--bg2); border:1px solid var(--bd1); border-radius:10px; padding:9px 12px; color:var(--tx1); font-size:13px; resize:none; max-height:120px; font-family:inherit; }
     .ci-send { background:#1D9E75; border:none; color:#fff; width:40px; height:40px; border-radius:10px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .ci-send:hover { background:#17875f; }
@@ -6888,6 +6897,15 @@
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando metas de movimento…</div>
     </div>
 
+    <!-- Manutenção de dados -->
+    <div class="dev-toolbar" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div class="dev-info"><strong><i class="ti ti-wrench"></i> Manutenção:</strong> conserta exames antigos com o bug de deslocamento de coluna (unidade/referência trocadas na leitura por IA).</div>
+      <button class="pac-btn-secondary" style="white-space:nowrap" onclick="devCorrigirExames(this)"><i class="ti ti-wand"></i> Corrigir exames deslocados</button>
+    </div>
+
+    <div id="dev-conteudo">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
+    </div>
   </div>
 
   <!-- VIEW: Gestão de Tarefas (rotinas recorrentes + acompanhamento do gestor) -->
@@ -6981,7 +6999,8 @@
           <div class="ci-conversa-head" id="ci-conversa-head"></div>
           <div class="ci-msgs" id="ci-msgs"></div>
           <div class="ci-input-bar">
-            <textarea id="ci-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" onkeydown="ciInputKey(event)"></textarea>
+            <div class="ci-mention-pop" id="ci-mention-pop" style="display:none;"></div>
+            <textarea id="ci-input" placeholder="Escreva uma mensagem... (@ marca alguém e vira tarefa de 1h)" rows="1" oninput="ciInput(this)" onkeydown="ciInputKey(event)"></textarea>
             <button class="ci-send" onclick="ciEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
           </div>
         </div>
@@ -10103,8 +10122,42 @@ async function homeTarefasCarregar() {
   if (window.homeResumo) homeFocoRender(window.homeResumo);
 }
 
+// Contagem regressiva de prazo com HORA (ex.: marcação no chat = 1h). null se não tem prazo_em.
+function tkCountdown(iso) {
+  if (!iso) return null;
+  const alvo = new Date(iso).getTime();
+  if (Number.isNaN(alvo)) return null;
+  const remMs = alvo - Date.now();
+  if (remMs < 0) {
+    const m = Math.max(1, Math.ceil(-remMs / 60000));
+    return { venc: true, txt: m < 60 ? `venceu há ${m} min` : `venceu há ${Math.floor(m / 60)}h${m % 60 ? ' ' + (m % 60) + 'min' : ''}` };
+  }
+  const m = Math.floor(remMs / 60000);
+  if (m < 1) return { venc: false, txt: 'vence em <1 min' };
+  if (m < 60) return { venc: false, txt: `vence em ${m} min` };
+  return { venc: false, txt: `vence em ${Math.floor(m / 60)}h${m % 60 ? ' ' + (m % 60) + 'min' : ''}` };
+}
+function tkBadgeHora(iso) {
+  const c = tkCountdown(iso);
+  if (!c) return '';
+  return `<span class="tk-badge ${c.venc ? 'rec' : 'pend'}"><i class="ti ti-clock-hour-4" style="font-size:10px"></i> ${c.txt}</span>`;
+}
+// Ordenação: vencidas (por dia OU por hora) no topo; entre vencidas, a que venceu há mais tempo
+// primeiro (prazo_em mais antigo). Sem isso, marcação vencida por hora (prazo_dias===0) afundava
+// junto das tarefas de hoje ainda no prazo.
+function tkCmpPrazo(a, b) {
+  if (!!a.vencida !== !!b.vencida) return a.vencida ? -1 : 1;
+  const av = a.prazo_dias == null ? Infinity : a.prazo_dias;
+  const bv = b.prazo_dias == null ? Infinity : b.prazo_dias;
+  if (av !== bv) return av - bv;
+  const at = a.prazo_em ? new Date(a.prazo_em).getTime() : Infinity;
+  const bt = b.prazo_em ? new Date(b.prazo_em).getTime() : Infinity;
+  return at - bt;
+}
 function homeTarefaBadge(i) {
-  if (i.status === 'concluida' || i.prazo_dias == null) return '';
+  if (i.status === 'concluida') return '';
+  if (i.prazo_em) return tkBadgeHora(i.prazo_em);   // prazo com hora manda: contagem no nível de minuto
+  if (i.prazo_dias == null) return '';
   if (i.vencida) return `<span class="tk-badge rec">vencida há ${Math.abs(i.prazo_dias)}d</span>`;
   if (i.hoje) return `<span class="tk-badge pend">${i.contagem ? 'tarefa do dia' : 'hoje'}</span>`;
   if (i.contagem) return `<span class="tk-badge cont"><i class="ti ti-hourglass-low" style="font-size:10px"></i> dia ${i.contagem.dia}/${i.contagem.total}</span>`;
@@ -10166,7 +10219,7 @@ function homeMTRender() {
   const box = document.getElementById('home-mt-lista'); if (!box) return;
   const abertas = (homeMTData.recebidas || [])
     .filter(i => i.status === 'aberta' && i.aceite !== 'recusada' && homeMTDentroDoFiltro(i))
-    .sort((a, b) => (a.prazo_dias == null ? Infinity : a.prazo_dias) - (b.prazo_dias == null ? Infinity : b.prazo_dias));
+    .sort(tkCmpPrazo);
   if (!abertas.length) {
     const lbl = homeMTFiltroAtual === 'hoje' ? 'para hoje' : (homeMTFiltroAtual === 'amanha' ? 'até amanhã' : 'nos próximos 7 dias');
     // dica: se há tarefas mais à frente, sugere alargar o filtro (evita parecer "sem nada a fazer")
@@ -10208,7 +10261,7 @@ function homeDelRender() {
   if (!box) return;
   const abertas = (homeMTData.deleguei || [])
     .filter(i => i.status === 'aberta')
-    .sort((a, b) => (a.prazo_dias == null ? Infinity : a.prazo_dias) - (b.prazo_dias == null ? Infinity : b.prazo_dias));
+    .sort(tkCmpPrazo);
   if (cnt) cnt.textContent = abertas.length;
   if (!abertas.length) { box.innerHTML = '<div class="dash-vazio">Você não delegou tarefas em aberto.</div>'; return; }
   let html = abertas.slice(0, 8).map(i => {
@@ -10361,7 +10414,9 @@ function homeTkRenderDetalhe() {
   const badges = [];
   if (concl) badges.push('<span class="tk-badge ace">✓ concluída</span>');
   else badges.push('<span class="tk-badge done">aberta</span>');
-  if (!concl && t.prazo_dias != null) {
+  if (!concl && t.prazo_em) {
+    badges.push(tkBadgeHora(t.prazo_em));   // marcação no chat / prazo por hora
+  } else if (!concl && t.prazo_dias != null) {
     if (t.vencida) badges.push(`<span class="tk-badge rec">vencida há ${Math.abs(t.prazo_dias)}d</span>`);
     else if (t.hoje) badges.push(`<span class="tk-badge pend">${t.contagem ? 'tarefa do dia' : 'vence hoje'}</span>`);
     else if (t.contagem) badges.push(`<span class="tk-badge cont"><i class="ti ti-hourglass-low" style="font-size:10px"></i> dia ${t.contagem.dia}/${t.contagem.total} · faltam ${t.contagem.restam}</span>`);
@@ -14094,6 +14149,7 @@ function agTarefasDoDia(dayKey) {
   return (agState.tarefas || []).filter(t => t.prazo === dayKey);
 }
 function agTarefaContagem(t) {
+  if (t.prazo_em) { const c = tkCountdown(t.prazo_em); if (c) return c.txt; }  // marcação: contagem no minuto
   if (t.vencida) return `atrasada ${Math.abs(t.prazo_dias)}d`;
   if (t.hoje) return 'vence hoje';
   return `faltam ${t.prazo_dias}d`;
@@ -15843,7 +15899,7 @@ function chatPopRenderMsgs(scroll) {
   wrap.innerHTML = msgs.map(m => `
     <div class="ci-msg ${m.de_mim ? 'mine' : ''}">
       ${grupo && !m.de_mim ? `<div class="autor">${(m.de_nome || '').replace(/</g, '&lt;')}</div>` : ''}
-      <div class="bolha">${(m.texto || '').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
+      <div class="bolha">${ciHi(m.texto || '')}</div>
       <div class="hora">${ciFmtHora(m.data)}${m.de_mim && !grupo && m.lida ? ' · lida' : ''}</div>
     </div>`).join('');
   if (scroll) wrap.scrollTop = wrap.scrollHeight;
@@ -23974,7 +24030,9 @@ let auJaInicializou = false;
 // ============================================================
 // CHAT INTERNO (1:1 entre a equipe) -- atualiza por polling
 // ============================================================
-let ciState = { usuarios: [], conversas: {}, peer: null, lastTs: null, msgsCache: [], pollTimer: null };
+let ciState = { usuarios: [], conversas: {}, peer: null, lastTs: null, msgsCache: [], pollTimer: null,
+  // @menções: escolhidas={id,label}; mentionAtiva=token sendo digitado; matches/idx do popup
+  mencoes: [], mentionAtiva: null, mentionMatches: [], mentionIdx: 0 };
 
 async function ciCarregar() {
   const [ru, rc] = await Promise.all([
@@ -24038,6 +24096,9 @@ async function ciAbrir(peerId) {
   ciState.peer = peerId;
   ciState.lastTs = null;
   ciState.msgsCache = [];
+  ciState.mencoes = [];
+  ciMentionFechar();
+  const _inp = document.getElementById('ci-input'); if (_inp) { _inp.value = ''; _inp.style.height = 'auto'; }
   document.getElementById('ci-vazio').style.display = 'none';
   document.getElementById('ci-conversa').style.display = 'flex';
   const ehEquipe = peerId === 'equipe';
@@ -24075,7 +24136,7 @@ function ciRenderMsgs(scroll) {
   wrap.innerHTML = msgs.map(m => `
     <div class="ci-msg ${m.de_mim ? 'mine' : ''}">
       ${grupo && !m.de_mim ? `<div class="autor">${(m.de_nome || '').replace(/</g, '&lt;')}</div>` : ''}
-      <div class="bolha">${(m.texto || '').replace(/</g, '&lt;').replace(/\n/g, '<br>')}</div>
+      <div class="bolha">${ciHi(m.texto || '')}</div>
       <div class="hora">${ciFmtHora(m.data)}${m.de_mim && !grupo && m.lida ? ' · lida' : ''}</div>
     </div>`).join('');
   if (scroll) wrap.scrollTop = wrap.scrollHeight;
@@ -24090,14 +24151,26 @@ function ciFmtHora(iso) {
 }
 
 async function ciEnviar() {
+  ciMentionFechar();
   const inp = document.getElementById('ci-input');
   const texto = inp.value.trim();
   if (!texto || !ciState.peer) return;
+  // Menções = @tokens do texto que casam EXATAMENTE um colega (nome/email). A fonte da verdade
+  // é o TEXTO enviado (não um set escondido): @Nome digitado/colado também vira tarefa e um @Nome
+  // apagado não vira; ambíguo (2 colegas de mesmo nome) é ignorado. Igual ao que o realce destaca.
+  const mencoes = [...new Set(ciMatchColegas(texto, ciState.usuarios).map(s => s.id))];
   inp.value = '';
-  const r = await pacApi('/api/clinico/chat/mensagens', { method: 'POST', body: JSON.stringify({ para: ciState.peer, texto }) });
+  inp.style.height = 'auto';
+  ciState.mencoes = [];
+  const r = await pacApi('/api/clinico/chat/mensagens', { method: 'POST', body: JSON.stringify({ para: ciState.peer, texto, mencoes }) });
   if (!r.ok) { alert('Erro ao enviar: ' + (r.data.erro || '--')); inp.value = texto; return; }
   ciState.msgsCache.push(r.data.mensagem);
   ciRenderMsgs(true);
+  const tc = r.data.tarefas_criadas || [];
+  if (tc.length) {
+    const nomes = tc.map(t => t.dono_nome).join(', ');
+    homeToast(`Tarefa de 1h criada para ${nomes}`);
+  }
   if (ciState.peer === 'equipe') {
     ciState.equipe = { ...(ciState.equipe || { id: 'equipe', nome: 'Equipe', grupo: true }), ultima: 'Você: ' + texto, ultima_em: r.data.mensagem.data, de_mim: true, nao_lidas: 0 };
   } else {
@@ -24106,7 +24179,149 @@ async function ciEnviar() {
   ciRenderLista(document.getElementById('ci-busca')?.value || '');
 }
 
+// Acha spans de @menção que casam EXATAMENTE o nome/email de um colega (token inteiro, o label
+// mais longo primeiro, case-insensitive). Ambíguo (2 colegas mesmo nome) => ignorado. É a fonte
+// única de verdade das menções: o envio decide quais viram tarefa e o realce decide o que fica
+// verde a partir DAQUI — assim o verde sempre corresponde a uma menção real de colega.
+function ciMatchColegas(texto, usuarios) {
+  const t = texto || '';
+  const cands = [];
+  for (const u of (usuarios || [])) {
+    for (const label of [(u.nome || '').trim(), (u.email || '').trim()]) {
+      if (label) cands.push({ id: u.id, label, low: label.toLowerCase() });
+    }
+  }
+  cands.sort((a, b) => b.label.length - a.label.length);
+  const nameCh = /[\p{L}0-9._'-]/u;
+  const spans = [];
+  let i = 0;
+  while ((i = t.indexOf('@', i)) !== -1) {
+    const leftOk = i === 0 || /\s/.test(t[i - 1]);           // '@' inicia token
+    if (leftOk) {
+      const restoLow = t.slice(i + 1).toLowerCase();
+      let matchLen = -1; const ids = new Set();
+      for (const c of cands) {
+        if (matchLen !== -1 && c.label.length < matchLen) break; // passou do maior que casou
+        if (restoLow.startsWith(c.low)) {
+          const next = t[i + 1 + c.label.length];
+          if (next === undefined || !nameCh.test(next)) {        // borda à direita (fim/não-nome)
+            if (matchLen === -1) matchLen = c.label.length;
+            if (c.label.length === matchLen) ids.add(c.id);
+          }
+        }
+      }
+      if (matchLen > 0) {
+        if (ids.size === 1) spans.push({ start: i, end: i + 1 + matchLen, id: [...ids][0] });
+        i = i + 1 + matchLen;                                   // consome o token (mesmo se ambíguo)
+        continue;
+      }
+    }
+    i += 1;
+  }
+  return spans;
+}
+// Realça só menções de COLEGA nas bolhas (cosmético). Escapa '<' (padrão do chat). @palavra
+// qualquer NÃO fica verde. Recebe a lista de usuários da conversa (view ou popup).
+function ciHi(txt, usuarios) {
+  const t = txt || '';
+  // lista de colegas: a passada; senão a da view; senão a do popup flutuante (cpState)
+  const us = (usuarios && usuarios.length) ? usuarios
+    : ((ciState.usuarios && ciState.usuarios.length) ? ciState.usuarios
+      : ((typeof cpState !== 'undefined' && cpState && cpState.intUsuarios) || []));
+  const spans = ciMatchColegas(t, us);
+  const escp = (s) => s.replace(/</g, '&lt;');
+  let out = '', pos = 0;
+  for (const sp of spans) {
+    out += escp(t.slice(pos, sp.start));
+    out += '<span class="ci-menc">' + escp(t.slice(sp.start, sp.end)) + '</span>';
+    pos = sp.end;
+  }
+  out += escp(t.slice(pos));
+  return out.replace(/\n/g, '<br>');
+}
+
+// ---- Autocomplete de @menção no campo de mensagem ----
+function ciInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  ciMentionDetectar(el);
+}
+function ciMentionDetectar(el) {
+  const val = el.value;
+  const caret = el.selectionStart;
+  // Acha o '@' que inicia a menção: começo do texto ou precedido de espaço; não atravessa \n; até 40 chars atrás.
+  let at = -1;
+  const minK = Math.max(0, caret - 40);
+  for (let k = caret - 1; k >= minK; k--) {
+    const ch = val[k];
+    if (ch === '\n') break;
+    if (ch === '@') { const prev = k === 0 ? ' ' : val[k - 1]; if (/\s/.test(prev)) at = k; break; }
+  }
+  if (at < 0) { ciMentionFechar(); return; }
+  const frag = val.slice(at + 1, caret).toLowerCase();
+  const matches = (ciState.usuarios || []).filter(u =>
+    (u.nome || '').toLowerCase().includes(frag) || (u.email || '').toLowerCase().includes(frag)
+  ).slice(0, 6);
+  if (!matches.length) { ciMentionFechar(); return; }
+  ciState.mentionAtiva = { start: at };
+  ciState.mentionMatches = matches;
+  ciState.mentionIdx = 0;
+  ciMentionRender();
+}
+function ciMentionRender() {
+  const pop = document.getElementById('ci-mention-pop'); if (!pop) return;
+  pop.innerHTML = ciState.mentionMatches.map((u, idx) => {
+    // cor vem de cargo.cor (validado só como string no backend) -> só aceita hex antes de injetar no style
+    const cor = /^#[0-9a-fA-F]{3,8}$/.test(u.cor || '') ? u.cor : '#1D9E75';
+    const ini = (u.nome || '?').charAt(0).toUpperCase();
+    return `<div class="ci-mrow ${idx === ciState.mentionIdx ? 'sel' : ''}" onmousedown="event.preventDefault();ciMentionEscolher(${idx})">
+      <span class="ci-mav" style="background:${cor}22;color:${cor}">${ini}</span>
+      <span class="ci-mnm">${esc(u.nome || '')}</span>
+      <span class="ci-msub">${esc(u.cargo || u.email || '')}</span>
+    </div>`;
+  }).join('');
+  pop.style.display = '';
+}
+function ciMentionEscolher(idx) {
+  const u = ciState.mentionMatches[idx];
+  if (!u || !ciState.mentionAtiva) return;
+  const el = document.getElementById('ci-input');
+  const start = ciState.mentionAtiva.start;
+  const caret = el.selectionStart;
+  // O caret pode ter saído de cima do token @… (setas/Home/End/clique não re-detectam): nesse
+  // caso 'start' está obsoleto e substituir slice(start,caret) corromperia o texto. Aborta.
+  const frag = el.value.slice(start, caret);
+  if (caret < start || el.value[start] !== '@' || /[\s\n]/.test(frag)) { ciMentionFechar(); return; }
+  const label = (u.nome || u.email || '').trim();
+  const before = el.value.slice(0, start);
+  const after = el.value.slice(caret);
+  const insert = '@' + label + ' ';
+  el.value = before + insert + after;
+  const novoCaret = (before + insert).length;
+  el.focus();
+  el.setSelectionRange(novoCaret, novoCaret);
+  if (!ciState.mencoes.some(m => m.id === u.id)) ciState.mencoes.push({ id: u.id, label });
+  ciMentionFechar();
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+function ciMentionFechar() {
+  ciState.mentionAtiva = null;
+  ciState.mentionMatches = [];
+  ciState.mentionIdx = 0;
+  const pop = document.getElementById('ci-mention-pop');
+  if (pop) { pop.style.display = 'none'; pop.innerHTML = ''; }
+}
 function ciInputKey(e) {
+  const aberto = !!ciState.mentionAtiva && ciState.mentionMatches.length > 0;
+  if (aberto) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); ciState.mentionIdx = (ciState.mentionIdx + 1) % ciState.mentionMatches.length; ciMentionRender(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); ciState.mentionIdx = (ciState.mentionIdx - 1 + ciState.mentionMatches.length) % ciState.mentionMatches.length; ciMentionRender(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); ciMentionEscolher(ciState.mentionIdx); return; }
+    if (e.key === 'Escape') { e.preventDefault(); ciMentionFechar(); return; }
+    // mover o caret com o popup aberto invalida 'start' -> fecha (a guarda de ciMentionEscolher cobre o clique)
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') { ciMentionFechar(); return; }
+  }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ciEnviar(); }
 }
 
