@@ -7102,6 +7102,41 @@
       #view-pontuacao .pt-st.aprovado{background:rgba(63,185,80,.16);color:#3fb950}
       #view-pontuacao .pt-st.rejeitado{background:rgba(248,81,73,.16);color:#f85149}
       #view-pontuacao .pt-st.estornado,#view-pontuacao .pt-st.expirado{background:var(--bg3);color:var(--tx3)}
+      #view-pontuacao .pt-list-row.pt-val-click{cursor:pointer;border-radius:8px}
+      #view-pontuacao .pt-list-row.pt-val-click:hover{background:var(--bg1)}
+      /* Modal de detalhe do registro (fica fora de #view-pontuacao — reescopo dos utilitários) */
+      #pt-reg-overlay .pt-btn{border:0;border-radius:9px;padding:9px 16px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+      #pt-reg-overlay .pt-btn.ok{background:#3fb950;color:#04260d}
+      #pt-reg-overlay .pt-btn.no{background:transparent;color:#f85149;border:1px solid rgba(248,81,73,.4)}
+      #pt-reg-overlay .pt-st{font-size:10px;font-weight:600;border-radius:20px;padding:2px 9px;white-space:nowrap}
+      #pt-reg-overlay .pt-st.enviado{background:rgba(210,153,34,.16);color:#e3b341}
+      #pt-reg-overlay .pt-st.aprovado{background:rgba(63,185,80,.16);color:#3fb950}
+      #pt-reg-overlay .pt-st.rejeitado{background:rgba(248,81,73,.16);color:#f85149}
+      #pt-reg-overlay .pt-st.estornado,#pt-reg-overlay .pt-st.expirado{background:var(--bg3);color:var(--tx3)}
+      #pt-reg-overlay .atn-modal-body{padding:4px 18px 18px}
+      .pt-reg-det{display:flex;flex-direction:column;margin-bottom:6px}
+      .pt-reg-row{display:flex;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--hair)}
+      .pt-reg-row .k{color:var(--tx3);min-width:96px;flex-shrink:0}
+      .pt-reg-row .v{color:var(--tx1);word-break:break-word}
+      .pt-reg-blk{margin-top:15px}
+      .pt-reg-blk-t{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+      .pt-reg-prova{border:1px solid var(--bd1);border-radius:10px;overflow:hidden;background:var(--bg1);min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:var(--tx4);padding:6px}
+      .pt-reg-img{max-width:100%;max-height:420px;border-radius:8px;cursor:zoom-in;display:block}
+      .pt-reg-media{max-width:100%;max-height:420px;border-radius:8px}
+      .pt-reg-pdf{width:100%;height:420px;border:0}
+      .pt-reg-abrir{font-size:13px;color:var(--ac);padding:10px;display:inline-flex;align-items:center;gap:6px}
+      .pt-reg-semprova{font-size:12.5px;color:#d29922;padding:12px;text-align:center;line-height:1.5;display:flex;align-items:center;gap:7px;justify-content:center}
+      .pt-reg-decisao{display:flex;gap:8px;margin-top:15px}
+      .pt-reg-aviso{margin-top:15px;font-size:12.5px;color:var(--tx3);background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:9px 12px;line-height:1.5}
+      .pt-reg-coms{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;padding:2px}
+      .pt-reg-com{background:var(--bg1);border:1px solid var(--bd1);border-radius:10px;padding:8px 11px;max-width:88%;align-self:flex-start}
+      .pt-reg-com.eu{align-self:flex-end;background:rgba(232,148,90,.12);border-color:rgba(232,148,90,.3)}
+      .pt-reg-com .a{font-size:10.5px;color:var(--tx4);margin-bottom:3px}
+      .pt-reg-com .t{font-size:13px;color:var(--tx1);line-height:1.5;word-wrap:break-word}
+      .pt-reg-com-vazio{font-size:12.5px;color:var(--tx4);text-align:center;padding:14px 8px;font-style:italic}
+      .pt-reg-cin{display:flex;gap:8px;margin-top:10px}
+      .pt-reg-cin textarea{flex:1;background:var(--bg1);border:1px solid var(--bd1);border-radius:10px;color:var(--tx1);font:inherit;font-size:13px;padding:9px 12px;resize:none}
+      .pt-reg-cin textarea:focus{outline:none;border-color:var(--ac)}
       #view-pontuacao .pt-rank{display:flex;align-items:center;gap:14px;padding:12px 8px;border-bottom:1px solid var(--bg2)}
       #view-pontuacao .pt-rank:last-child{border-bottom:0}
       #view-pontuacao .pt-rank .pos{font-size:16px;font-weight:700;color:var(--tx3);width:34px;text-align:center;font-variant-numeric:tabular-nums;flex-shrink:0}
@@ -10689,7 +10724,7 @@ async function pontRenderExtrato() {
 }
 function pontExtratoRow(i) {
   const det = i.tipo_acao === 'venda' ? `${esc(pontLabelProd(i.produto))} · ${pontBRL(i.valor_venda_cents)}` : (i.paciente_nome ? esc(i.paciente_nome) : (i.indicado_nome ? esc(i.indicado_nome) : ''));
-  return `<div class="pt-list-row">
+  return `<div class="pt-list-row pt-val-click" onclick="pontRegDetalhe('${i.id}')" title="Ver detalhes e conversa">
     <div style="min-width:0;flex:1"><div style="font-size:14px;color:var(--tx1)">${esc(pontLabelTipo(i.tipo_acao))} <span style="color:var(--tx4);font-size:12px">${det}</span></div>
     <div style="font-size:11px;color:var(--tx4)">${pontData(i.created_at)}${i.status === 'rejeitado' && i.motivo_rejeicao ? ' · ' + esc(i.motivo_rejeicao) : ''}</div></div>
     <div style="font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums">${i.pontos}</div>
@@ -10731,15 +10766,15 @@ async function pontRenderValidacao() {
 function pontValRow(i, aprovada) {
   const det = i.tipo_acao === 'venda' ? `${esc(pontLabelProd(i.produto))} · ${pontBRL(i.valor_venda_cents)}` : '';
   const who = i.paciente_nome ? (' · ' + esc(i.paciente_nome)) : (i.indicado_nome ? (' · ' + esc(i.indicado_nome)) : '');
-  const anexo = i.tem_anexo ? ` · <a href="#" onclick="pontAbrirAnexo('${i.anexo_id}');return false;" style="color:var(--ac)">ver comprovante</a>` : '';
+  const clip = i.tem_anexo ? ' · <i class="ti ti-paperclip" style="font-size:11px" title="tem comprovante"></i> comprovante' : ' · <span style="color:#d29922">sem comprovante</span>';
   const acoes = aprovada
     ? `<button class="pt-btn no" style="padding:6px 12px;font-size:13px" onclick="pontEstornar('${i.id}')"><i class="ti ti-arrow-back-up"></i> Estornar</button>`
     : `<button class="pt-btn ok" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','aprovar','${i.tipo_acao}',${i.valor_venda_cents || 0})">Aprovar</button><button class="pt-btn no" style="padding:6px 12px;font-size:13px" onclick="pontValidar('${i.id}','rejeitar')">Rejeitar</button>`;
-  return `<div class="pt-list-row" id="pt-val-${i.id}">
+  return `<div class="pt-list-row pt-val-click" id="pt-val-${i.id}" onclick="pontRegDetalhe('${i.id}')" title="Abrir: ver prova, conversa e decidir">
     <div style="min-width:0;flex:1"><div style="font-size:14px;color:var(--tx1)">${esc(i.colaborador_nome)} <span style="color:var(--tx4);font-size:12px">${esc(pontLabelTipo(i.tipo_acao))} ${det}${who}</span></div>
-    <div style="font-size:11px;color:var(--tx4)">${esc(i.trilha)} · ${pontData(i.created_at)}${i.observacao ? ' · ' + esc(i.observacao) : ''}${anexo}</div></div>
+    <div style="font-size:11px;color:var(--tx4)">${esc(i.trilha)} · ${pontData(i.created_at)}${i.observacao ? ' · ' + esc(i.observacao) : ''}${clip}</div></div>
     <div style="font-weight:700;color:var(--ac);font-variant-numeric:tabular-nums">${i.pontos}</div>
-    <div style="display:flex;gap:6px;flex-shrink:0">${acoes}</div>
+    <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">${acoes}</div>
   </div>`;
 }
 function pontValFilaVazia(id) {
@@ -10748,7 +10783,7 @@ function pontValFilaVazia(id) {
   const card = row.parentElement; row.remove();
   if (card && !card.querySelector('.pt-list-row')) pontRenderValidacao();
 }
-async function pontValidar(id, acao, tipo, valorCents) {
+async function pontValidar(id, acao, tipo, valorCents, after) {
   const body = { acao };
   if (acao === 'rejeitar') {
     const m = prompt('Motivo da rejeição (opcional):');
@@ -10763,18 +10798,19 @@ async function pontValidar(id, acao, tipo, valorCents) {
     body.valor_venda_cents = Math.round(n * 100);
   }
   const r = await pacApi('/api/clinico/pontuacao/registros/' + id, { method: 'PATCH', body: JSON.stringify(body) });
-  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui validar.'); return; }
+  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui validar.'); return false; }
   homeToast(acao === 'aprovar' ? 'Aprovado. ✓' : 'Rejeitado.');
-  pontValFilaVazia(id);
-  pontValBadge();
+  if (after) after(); else { pontValFilaVazia(id); pontValBadge(); }
+  return true;
 }
-async function pontEstornar(id) {
+async function pontEstornar(id, after) {
   const motivo = prompt('Motivo do estorno (reembolso / no-show / calote):');
   if (motivo === null) return;
   const r = await pacApi('/api/clinico/pontuacao/registros/' + id + '/estorno', { method: 'POST', body: JSON.stringify({ motivo: motivo || '' }) });
-  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui estornar.'); return; }
+  if (!r.ok || !r.data || !r.data.ok) { homeToast((r.data && r.data.erro) || 'Não consegui estornar.'); return false; }
   homeToast('Registro estornado. Pontos revertidos.');
-  pontValFilaVazia(id);
+  if (after) after(); else pontValFilaVazia(id);
+  return true;
 }
 async function pontAbrirAnexo(id) {
   try {
@@ -10783,6 +10819,109 @@ async function pontAbrirAnexo(id) {
     const blob = await resp.blob(); const url = URL.createObjectURL(blob); window.open(url, '_blank', 'noopener,noreferrer');
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   } catch (e) { homeToast('Não consegui abrir o comprovante.'); }
+}
+
+// ---- DETALHE DO REGISTRO (prova + conversa + decisão) ----
+let pontRegAtual = null;
+let pontRegProvaUrl = null;
+function pontRegFechar() {
+  const ov = document.getElementById('pt-reg-overlay'); if (ov) ov.remove();
+  if (pontRegProvaUrl) { try { URL.revokeObjectURL(pontRegProvaUrl); } catch (e) {} pontRegProvaUrl = null; }
+  pontRegAtual = null;
+}
+async function pontRegDetalhe(id) {
+  let ov = document.getElementById('pt-reg-overlay'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'pt-reg-overlay'; ov.className = 'atn-overlay';
+  ov.onclick = (e) => { if (e.target.id === 'pt-reg-overlay') pontRegFechar(); };
+  ov.innerHTML = '<div class="atn-modal"><div class="atn-modal-head"><div class="ttl"><i class="ti ti-clipboard-check" style="color:var(--ac)"></i> Registro</div><button class="x" onclick="pontRegFechar()">×</button></div><div class="atn-modal-body"><div class="atn-empty">Carregando…</div></div></div>';
+  document.body.appendChild(ov);
+  let d = null; try { const r = await pacApi('/api/clinico/pontuacao/registros/' + id); if (r.ok) d = r.data; } catch (e) {}
+  if (!document.getElementById('pt-reg-overlay')) return;      // fechou enquanto carregava
+  if (!d || !d.ok) { const b = ov.querySelector('.atn-modal-body'); if (b) b.innerHTML = '<div class="atn-empty">Não consegui abrir o registro.</div>'; return; }
+  pontRegAtual = d;
+  pontRegRender();
+}
+function pontRegRender() {
+  const ov = document.getElementById('pt-reg-overlay'); if (!ov || !pontRegAtual) return;
+  const d = pontRegAtual, i = d.registro;
+  const linha = (k, v) => v ? `<div class="pt-reg-row"><span class="k">${k}</span><span class="v">${v}</span></div>` : '';
+  const alvo = i.paciente_nome ? esc(i.paciente_nome) + (i.paciente_codigo ? ' · ' + esc(i.paciente_codigo) : '') : (i.indicado_nome ? esc(i.indicado_nome) + (i.indicado_tel ? ' · ' + esc(i.indicado_tel) : '') : '');
+  const detalhes = `<div class="pt-reg-det">
+    ${linha('Colaborador', esc(i.colaborador_nome))}
+    ${linha('Ação', esc(pontLabelTipo(i.tipo_acao)) + (i.tipo_acao === 'venda' && i.produto ? ' · ' + esc(pontLabelProd(i.produto)) : ''))}
+    ${i.tipo_acao === 'venda' ? linha('Valor', pontBRL(i.valor_venda_cents)) : ''}
+    ${alvo ? linha(i.paciente_nome ? 'Paciente' : 'Indicado', alvo) : ''}
+    ${linha('Trilha', esc(i.trilha))}
+    ${linha('Pontos', `<strong style="color:var(--ac)">${i.pontos}</strong>`)}
+    ${linha('Ciclo', i.ciclo_nome ? esc(i.ciclo_nome) : '—')}
+    ${linha('Enviado', pontData(i.created_at))}
+    ${linha('Status', `<span class="pt-st ${esc(i.status)}">${pontStLabel(i.status)}</span>${i.motivo_rejeicao ? ' · ' + esc(i.motivo_rejeicao) : ''}${i.aprovador_nome ? ' · por ' + esc(i.aprovador_nome) : ''}`)}
+    ${i.observacao ? linha('Observação', esc(i.observacao)) : ''}
+  </div>`;
+  const prova = `<div class="pt-reg-blk"><div class="pt-reg-blk-t"><i class="ti ti-photo"></i> Comprovante (a prova)</div>${i.anexo ? '<div id="pt-reg-prova" class="pt-reg-prova">carregando comprovante…</div>' : '<div class="pt-reg-semprova"><i class="ti ti-alert-triangle"></i> Nenhum comprovante anexado — decida com cuidado ou peça a prova na conversa abaixo.</div>'}</div>`;
+  let decisao = '';
+  if (d.pode_validar) {
+    decisao = `<div class="pt-reg-decisao"><button class="pt-btn ok" onclick="pontRegDecidir('aprovar')"><i class="ti ti-check"></i> Aprovar</button><button class="pt-btn no" onclick="pontRegDecidir('rejeitar')"><i class="ti ti-x"></i> Rejeitar</button></div>`;
+  } else if (d.pode_estornar) {
+    decisao = `<div class="pt-reg-decisao"><button class="pt-btn no" onclick="pontRegEstornar()"><i class="ti ti-arrow-back-up"></i> Estornar (reverter pontos)</button></div>`;
+  } else if (i.status === 'enviado' && d.sou_autor) {
+    decisao = '<div class="pt-reg-aviso">Seu registro está <strong>em análise</strong>. Use a conversa pra anexar mais provas ou explicar.</div>';
+  }
+  const coms = (d.comentarios || []).map((c) => `<div class="pt-reg-com ${c.sou_eu ? 'eu' : ''}"><div class="a">${esc(c.autor_nome)} · ${pontData(c.created_at)}</div><div class="t">${esc(c.texto).replace(/\n/g, '<br>')}</div></div>`).join('') || '<div class="pt-reg-com-vazio">Sem conversa ainda. Escreva pra pedir mais prova ou registrar o porquê da decisão.</div>';
+  const conversa = `<div class="pt-reg-blk"><div class="pt-reg-blk-t"><i class="ti ti-messages"></i> Conversa</div>
+    <div class="pt-reg-coms">${coms}</div>
+    <div class="pt-reg-cin"><textarea id="pt-reg-com-input" rows="2" placeholder="Escreva… (Enter envia)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pontRegComentar();}"></textarea><button class="pt-btn ok" style="flex-shrink:0" onclick="pontRegComentar()"><i class="ti ti-send"></i></button></div></div>`;
+  ov.querySelector('.atn-modal-body').innerHTML = detalhes + prova + decisao + conversa;
+  if (i.anexo) pontRegCarregarProva(i.anexo);
+  const cb = ov.querySelector('.pt-reg-coms'); if (cb) cb.scrollTop = cb.scrollHeight;
+}
+async function pontRegCarregarProva(anexo) {
+  const box = document.getElementById('pt-reg-prova'); if (!box) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/clinico/pontuacao/anexo/' + anexo.id, { headers: { 'Authorization': 'Bearer ' + getToken() } });
+    if (!resp.ok) { box.innerHTML = '<span style="color:#f85149">Não consegui carregar o comprovante.</span>'; return; }
+    const blob = await resp.blob();
+    if (pontRegProvaUrl) { try { URL.revokeObjectURL(pontRegProvaUrl); } catch (e) {} }
+    pontRegProvaUrl = URL.createObjectURL(blob);
+    const mime = (anexo.mime || '').toLowerCase();
+    if (mime.startsWith('image/')) box.innerHTML = `<img src="${pontRegProvaUrl}" alt="comprovante" class="pt-reg-img" onclick="window.open('${pontRegProvaUrl}','_blank','noopener')" title="clique pra ampliar">`;
+    else if (mime.startsWith('video/')) box.innerHTML = `<video src="${pontRegProvaUrl}" controls class="pt-reg-media"></video>`;
+    else if (mime.includes('pdf')) box.innerHTML = `<iframe src="${pontRegProvaUrl}" class="pt-reg-pdf"></iframe><a href="${pontRegProvaUrl}" target="_blank" rel="noopener" class="pt-reg-abrir"><i class="ti ti-external-link"></i> abrir o PDF</a>`;
+    else box.innerHTML = `<a href="${pontRegProvaUrl}" target="_blank" rel="noopener" class="pt-reg-abrir"><i class="ti ti-download"></i> ${esc(anexo.nome || 'comprovante')}</a>`;
+  } catch (e) { box.innerHTML = '<span style="color:#f85149">Erro ao carregar o comprovante.</span>'; }
+}
+async function pontRegComentar() {
+  const inp = document.getElementById('pt-reg-com-input'); if (!inp || !pontRegAtual) return;
+  const txt = inp.value.trim(); if (!txt) return;
+  const alvo = pontRegAtual;                 // captura antes do await (o modal pode fechar/trocar)
+  inp.disabled = true;
+  const r = await pacApi('/api/clinico/pontuacao/registros/' + alvo.registro.id + '/comentarios', { method: 'POST', body: JSON.stringify({ texto: txt }) });
+  if (!r.ok || !r.data || !r.data.ok) { if (inp) { inp.disabled = false; } homeToast((r.data && r.data.erro) || 'Não enviou o comentário.'); return; }
+  alvo.comentarios.push(r.data.comentario);
+  if (pontRegAtual !== alvo) return;         // fechou ou abriu outro registro durante o POST
+  // append incremental (NÃO re-renderiza tudo — não recarrega a prova nem reseta vídeo/PDF)
+  const box = document.querySelector('#pt-reg-overlay .pt-reg-coms');
+  if (box) {
+    const vazio = box.querySelector('.pt-reg-com-vazio'); if (vazio) vazio.remove();
+    const c = r.data.comentario;
+    const el = document.createElement('div'); el.className = 'pt-reg-com eu';
+    el.innerHTML = `<div class="a">${esc(c.autor_nome)} · ${pontData(c.created_at)}</div><div class="t">${esc(c.texto).replace(/\n/g, '<br>')}</div>`;
+    box.appendChild(el); box.scrollTop = box.scrollHeight;
+  }
+  inp.value = ''; inp.disabled = false; inp.focus();
+}
+function pontRegAposDecisao() { pontRegFechar(); pontValBadge(); if (pontTabAtual === 'validacao') pontRenderValidacao(); }
+async function pontRegDecidir(acao) {
+  if (!pontRegAtual) return;
+  const i = pontRegAtual.registro;
+  const ok = await pontValidar(i.id, acao, i.tipo_acao, i.valor_venda_cents || 0, pontRegAposDecisao);
+  if (ok === false && document.getElementById('pt-reg-overlay')) pontRegDetalhe(i.id); // falhou (ex.: outro já validou) → recarrega o modal com o status novo
+}
+async function pontRegEstornar() {
+  if (!pontRegAtual) return;
+  const id = pontRegAtual.registro.id;
+  const ok = await pontEstornar(id, pontRegAposDecisao);
+  if (ok === false && document.getElementById('pt-reg-overlay')) pontRegDetalhe(id);
 }
 
 // ---- FECHAMENTO (gestão): apuração, faturamento, fechar ciclo, relatório ----
