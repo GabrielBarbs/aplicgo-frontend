@@ -17807,7 +17807,7 @@ function devIARender(d) {
 }
 
 // ==================== Agentes de IA (catálogo + doc + prompt editável + chat especialista) ====================
-let devAgState = { agentes: [], aberto: null, chat: [], propostas: [], enviando: false };
+let devAgState = { agentes: [], aberto: null, chat: [], propostas: [], enviando: false, edits: {}, chatDraft: '' };
 
 async function devAgentesCarregar() {
   const box = document.getElementById('dev-agentes'); if (!box) return;
@@ -17841,7 +17841,7 @@ function devAgCard(a) {
   const prompt = `<div class="devag-prompt">
     <div class="devag-blk-t"><i class="ti ti-message-code"></i> Prompt ${a.tem_override ? '(editado)' : '(padrão)'}</div>
     ${phHint}
-    <textarea id="devag-ta-${a.key}" class="devag-ta" spellcheck="false">${esc(a.prompt_atual)}</textarea>
+    <textarea id="devag-ta-${a.key}" class="devag-ta" spellcheck="false" oninput="devAgState.edits['${a.key}']=this.value">${esc(devAgState.edits[a.key] != null ? devAgState.edits[a.key] : a.prompt_atual)}</textarea>
     <div class="devag-acts">
       <button class="pac-btn-primary" onclick="devAgSalvar('${a.key}')"><i class="ti ti-device-floppy"></i> Salvar (aplica ao vivo)</button>
       ${a.tem_override ? `<button class="pac-btn-secondary" onclick="devAgReverter('${a.key}')"><i class="ti ti-arrow-back-up"></i> Voltar ao padrão</button>` : ''}
@@ -17856,6 +17856,7 @@ async function devAgSalvar(key) {
   const r = await pacApi('/api/clinico/dev/agentes/' + key + '/prompt', { method: 'PUT', body: JSON.stringify({ prompt: ta.value }) });
   if (!r.ok) { homeToast('Não salvou: ' + (r.data.erro || '--')); return; }
   homeToast('Prompt salvo — vale a partir de agora.');
+  delete devAgState.edits[key];
   devAgentesCarregar();
 }
 async function devAgReverter(key) {
@@ -17864,6 +17865,7 @@ async function devAgReverter(key) {
   const r = await pacApi('/api/clinico/dev/agentes/' + key + '/prompt', { method: 'DELETE' });
   if (!r.ok) { homeToast('Não reverteu: ' + (r.data.erro || '--')); return; }
   homeToast('Voltou ao prompt padrão.');
+  delete devAgState.edits[key];
   devAgentesCarregar();
 }
 // ---- Chat especialista ----
@@ -17874,7 +17876,7 @@ function devAgChatHtml() {
     <div class="devag-chat-h"><i class="ti ti-message-chatbot"></i> Especialista dos agentes ${devAgState.enviando ? '<span class="devag-typing">pensando…</span>' : ''}</div>
     <div class="devag-chat-body" id="devag-chat-body">${msgs}</div>
     <div class="devag-chat-in">
-      <textarea id="devag-chat-input" rows="2" placeholder="Pergunte ou peça uma mudança… (Enter envia)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();devAgChatEnviar();}"></textarea>
+      <textarea id="devag-chat-input" rows="2" placeholder="Pergunte ou peça uma mudança… (Enter envia)" oninput="devAgState.chatDraft=this.value" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();devAgChatEnviar();}">${esc(devAgState.chatDraft || '')}</textarea>
       <button class="pac-btn-primary" onclick="devAgChatEnviar()" ${devAgState.enviando ? 'disabled' : ''}><i class="ti ti-send"></i></button></div></div>`;
 }
 function devAgMsgHtml(m) {
@@ -17896,7 +17898,18 @@ function devAgParseReply(txt) {
       <button class="pac-btn-primary" onclick="devAgAplicarProposta(${idx})"><i class="ti ti-check"></i> Aplicar ao vivo</button></div>`;
     last = re.lastIndex;
   }
-  if (last < txt.length) html += `<div class="devag-mtext">${devAgTextHtml(txt.slice(last).trim())}</div>`;
+  if (last < txt.length) {
+    const rest = txt.slice(last);
+    const aberto = rest.match(/\[\[EDIT:([a-z_]+)\]\]/); // marcador sem fechamento = resposta cortada
+    if (aberto) {
+      const antes = rest.slice(0, aberto.index).trim();
+      if (antes) html += `<div class="devag-mtext">${devAgTextHtml(antes)}</div>`;
+      const ag = devAgState.agentes.find((x) => x.key === aberto[1]);
+      html += `<div class="devag-proposta"><div class="devag-proposta-h"><i class="ti ti-alert-triangle"></i> Proposta cortada para <strong>${esc(ag ? ag.nome : aberto[1])}</strong></div><div style="padding:10px 12px;font-size:12px;color:var(--tx3)">A resposta atingiu o limite antes de fechar a proposta. Peça pro especialista repetir só esse prompt.</div></div>`;
+    } else {
+      html += `<div class="devag-mtext">${devAgTextHtml(rest.trim())}</div>`;
+    }
+  }
   return html;
 }
 async function devAgAplicarProposta(idx) {
@@ -17906,6 +17919,7 @@ async function devAgAplicarProposta(idx) {
   const r = await pacApi('/api/clinico/dev/agentes/' + p.key + '/prompt', { method: 'PUT', body: JSON.stringify({ prompt: p.prompt }) });
   if (!r.ok) { homeToast('Não aplicou: ' + (r.data.erro || '--')); return; }
   homeToast('Aplicado — vale a partir de agora.');
+  delete devAgState.edits[p.key];
   devAgentesCarregar();
 }
 async function devAgChatEnviar() {
@@ -17913,11 +17927,14 @@ async function devAgChatEnviar() {
   const txt = inp.value.trim(); if (!txt || devAgState.enviando) return;
   devAgState.enviando = true;
   devAgState.chat.push({ role: 'user', content: txt });
+  devAgState.chatDraft = '';
   devAgRender();
   let body = document.getElementById('devag-chat-body'); if (body) body.scrollTop = body.scrollHeight;
-  const r = await pacApi('/api/clinico/dev/agentes/chat', { method: 'POST', body: JSON.stringify({ mensagens: devAgState.chat.map((m) => ({ role: m.role, content: m.content })) }) });
+  const r = await pacApi('/api/clinico/dev/agentes/chat', { method: 'POST', body: JSON.stringify({ mensagens: devAgState.chat.slice(-20).map((m) => ({ role: m.role, content: m.content })) }) });
   devAgState.enviando = false;
-  devAgState.chat.push({ role: 'assistant', content: (r.ok ? (r.data.resposta || '(sem resposta)') : ('Erro: ' + (r.data.erro || 'não consegui responder.'))) });
+  let resp = r.ok ? (r.data.resposta || '(sem resposta)') : ('Erro: ' + (r.data.erro || 'não consegui responder.'));
+  if (r.ok && r.data.truncado) resp += '\n\n_(resposta cortada no limite — se faltou uma proposta, peça pra continuar.)_';
+  devAgState.chat.push({ role: 'assistant', content: resp });
   devAgRender();
   body = document.getElementById('devag-chat-body'); if (body) body.scrollTop = body.scrollHeight;
 }
