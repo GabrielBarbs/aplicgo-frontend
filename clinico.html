@@ -17899,9 +17899,17 @@ async function bioCarregarSerie(patientId) {
       massa_gordura_kg: massaGordura,
       massa_magra_kg: b.massa_magra_kg,
       massa_muscular_kg: massaMuscular,
+      // Circunferências: a API sempre devolveu, mas a série jogava fora. São a fonte do
+      // gráfico do "Físico" — vêm tanto da bioimpedância quanto da medida corporal isolada.
+      circ_cintura_cm: b.circ_cintura_cm,
+      circ_quadril_cm: b.circ_quadril_cm,
+      circ_abdomen_cm: b.circ_abdomen_cm,
+      circ_braco_d_cm: b.circ_braco_d_cm,
+      circ_coxa_d_cm: b.circ_coxa_d_cm,
     };
   });
   bioMontarSerie();
+  fisRenderSeCarregado();   // o gráfico do Físico vive da mesma série
 }
 
 // Junta a série da bioimpedância com os pontos de peso/gordura/massa vindos dos
@@ -17949,12 +17957,16 @@ function bioSmoothPath(pts) {
   return d;
 }
 
-function bioRenderGrafico() {
-  const serie = bioState.serie;
-  const togglesHtml = ['peso', 'massa_muscular', 'massa_gordura', 'gordura_pct'].map(m => `
-    <button class="pr-grafico-toggle ${bioState.visiveis[m] ? 'ativo' : ''}" onclick="bioToggleSerie('${m}')">
-      <span class="swatch" style="background:${BIO_CORES[m]};"></span>
-      ${BIO_LABELS[m]}
+// Gráfico de série temporal GENÉRICO. Mesma cara pra dados diferentes: a "Evolução corporal"
+// (peso/massa/gordura) e o "Físico" (circunferências) passam por aqui.
+// cfg: { serie, metricas[], campos{metrica:campoDoPonto}, cores{}, labels{}, visiveis{},
+//        onToggle:'fn', titulo, icone, gradId, acoesHtml, vazioMsg }
+function grafSerie(cfg) {
+  const serie = cfg.serie || [];
+  const togglesHtml = cfg.metricas.map(m => `
+    <button class="pr-grafico-toggle ${cfg.visiveis[m] ? 'ativo' : ''}" onclick="${cfg.onToggle}('${m}')">
+      <span class="swatch" style="background:${cfg.cores[m]};"></span>
+      ${cfg.labels[m]}
     </button>
   `).join('');
 
@@ -17962,19 +17974,12 @@ function bioRenderGrafico() {
     return `
       <div class="pr-grafico-card">
         <div class="pr-grafico-card-head">
-          <div class="ttl"><i class="ti ti-chart-line"></i> Evolução corporal</div>
-          <div class="acoes">
-            <button class="pac-btn-mini-acao" onclick="bioImportarAbrir()">
-              <i class="ti ti-file-upload"></i> Importar PDF
-            </button>
-            <button class="pac-btn-mini-acao" onclick="bioAbrirNovo()">
-              <i class="ti ti-plus"></i> Nova bioimpedância
-            </button>
-          </div>
+          <div class="ttl"><i class="ti ti-${cfg.icone}"></i> ${cfg.titulo}</div>
+          <div class="acoes">${cfg.acoesHtml || ''}</div>
         </div>
         <div class="pr-grafico-vazio">
-          <i class="ti ti-chart-line"></i>
-          Nenhuma bioimpedância registrada ainda. Adiciona a primeira para começar a evolução.
+          <i class="ti ti-${cfg.icone}"></i>
+          ${cfg.vazioMsg}
         </div>
       </div>
     `;
@@ -17986,10 +17991,10 @@ function bioRenderGrafico() {
   const innerH = H - padT - padB;
 
   // Calcula range
-  const visMetricas = ['peso', 'massa_muscular', 'massa_gordura', 'gordura_pct'].filter(m => bioState.visiveis[m]);
+  const visMetricas = cfg.metricas.filter(m => cfg.visiveis[m]);
   let minV = Infinity, maxV = -Infinity;
   serie.forEach(p => visMetricas.forEach(m => {
-    const v = p[m === 'peso' ? 'peso_kg' : (m === 'gordura_pct' ? 'gordura_pct' : m + '_kg')];
+    const v = p[cfg.campos[m]];
     if (v != null) { if (v < minV) minV = v; if (v > maxV) maxV = v; }
   }));
   if (!isFinite(minV)) { minV = 0; maxV = 100; }
@@ -18022,67 +18027,79 @@ function bioRenderGrafico() {
   }).join('');
 
   // Linhas + pontos
-  const camposChave = { peso: 'peso_kg', massa_muscular: 'massa_muscular_kg', massa_gordura: 'massa_gordura_kg', gordura_pct: 'gordura_pct' };
   const baseY = padT + innerH;  // linha de base pro preenchimento (área sob a curva)
   const linhas = visMetricas.map(m => {
-    const campo = camposChave[m];
+    const campo = cfg.campos[m];
     const pontos = serie.map((p, i) => ({ i, v: p[campo] })).filter(p => p.v != null);
     if (pontos.length === 0) return '';
     const xy = pontos.map(p => ({ x: x(p.i), y: y(p.v) }));
     const path = bioSmoothPath(xy);                       // curva suave
     const areaD = `${path} L${xy[xy.length - 1].x.toFixed(1)},${baseY} L${xy[0].x.toFixed(1)},${baseY} Z`;
     const ptsSvg = pontos.map(p => {
-      const lblBr = (BIO_LABELS[m] || '').replace(/"/g, '&quot;');
+      const lblBr = (cfg.labels[m] || '').replace(/"/g, '&quot;');
       const data = new Date(serie[p.i].data).toLocaleDateString('pt-BR');
       const tip = `${data} -- ${lblBr}: ${p.v.toString().replace('.', ',')}`;
       const cx = x(p.i), cy = y(p.v);
       // ponto visivel (estatico, nao muda no hover) + circulo-alvo transparente maior que captura o mouse
-      return `<circle class="ponto" cx="${cx}" cy="${cy}" r="3" fill="${BIO_CORES[m]}"/>`
+      return `<circle class="ponto" cx="${cx}" cy="${cy}" r="3" fill="${cfg.cores[m]}"/>`
            + `<circle class="ponto-hit" cx="${cx}" cy="${cy}" r="9" data-tooltip="${tip}"/>`;
     }).join('');
-    return `<path class="area" d="${areaD}" fill="url(#bioGrad-${m})"/>`
-         + `<path class="linha" d="${path}" stroke="${BIO_CORES[m]}" pathLength="1"/>${ptsSvg}`;
+    return `<path class="area" d="${areaD}" fill="url(#${cfg.gradId}-${m})"/>`
+         + `<path class="linha" d="${path}" stroke="${cfg.cores[m]}" pathLength="1"/>${ptsSvg}`;
   }).join('');
 
   // Gradientes sutis sob cada curva (dashboard premium)
-  const defs = `<defs>${visMetricas.map(m => `<linearGradient id="bioGrad-${m}" x1="0" y1="0" x2="0" y2="1">`
-    + `<stop offset="0%" stop-color="${BIO_CORES[m]}" stop-opacity="0.16"/>`
-    + `<stop offset="100%" stop-color="${BIO_CORES[m]}" stop-opacity="0"/>`
+  const defs = `<defs>${visMetricas.map(m => `<linearGradient id="${cfg.gradId}-${m}" x1="0" y1="0" x2="0" y2="1">`
+    + `<stop offset="0%" stop-color="${cfg.cores[m]}" stop-opacity="0.16"/>`
+    + `<stop offset="100%" stop-color="${cfg.cores[m]}" stop-opacity="0"/>`
     + `</linearGradient>`).join('')}</defs>`;
 
   return `
     <div class="pr-grafico-card">
       <div class="pr-grafico-card-head">
-        <div class="ttl"><i class="ti ti-chart-line"></i> Evolução corporal (${serie.length} medições)</div>
-        <div class="acoes">
-          <button class="pac-btn-mini-acao" onclick="bioImportarAbrir()">
-            <i class="ti ti-file-upload"></i> Importar PDF
-          </button>
-          <button class="pac-btn-mini-acao" onclick="bioAbrirNovo()">
-            <i class="ti ti-plus"></i> Nova bioimpedância
-          </button>
-        </div>
+        <div class="ttl"><i class="ti ti-${cfg.icone}"></i> ${cfg.titulo} (${serie.length} medições)</div>
+        <div class="acoes">${cfg.acoesHtml || ''}</div>
       </div>
       <div class="pr-grafico-toggles">${togglesHtml}</div>
-      <div class="pr-grafico-wrap" style="position:relative;" onmousemove="bioTooltip(event)" onmouseleave="bioTooltipHide()">
+      <div class="pr-grafico-wrap" style="position:relative;" onmousemove="grafTooltip(event)" onmouseleave="grafTooltipHide(event)">
         <svg class="pr-grafico-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
           ${defs}
           <g class="grid">${gridY}</g>
           <g class="axis">${axisY}${axisX}</g>
           ${linhas}
         </svg>
-        <div class="pr-grafico-tooltip" id="bio-tt" style="display:none;"></div>
+        <div class="pr-grafico-tooltip" style="display:none;"></div>
       </div>
     </div>
   `;
 }
 
-function bioTooltip(e) {
+// Evolução corporal (composição) — o gráfico de sempre, agora pelo renderer genérico.
+function bioRenderGrafico() {
+  return grafSerie({
+    serie: bioState.serie,
+    metricas: ['peso', 'massa_muscular', 'massa_gordura', 'gordura_pct'],
+    campos: { peso: 'peso_kg', massa_muscular: 'massa_muscular_kg', massa_gordura: 'massa_gordura_kg', gordura_pct: 'gordura_pct' },
+    cores: BIO_CORES, labels: BIO_LABELS, visiveis: bioState.visiveis,
+    onToggle: 'bioToggleSerie', titulo: 'Evolução corporal', icone: 'chart-line', gradId: 'bioGrad',
+    acoesHtml: `<button class="pac-btn-mini-acao" onclick="bioImportarAbrir()">
+            <i class="ti ti-file-upload"></i> Importar PDF
+          </button>
+          <button class="pac-btn-mini-acao" onclick="bioAbrirNovo()">
+            <i class="ti ti-plus"></i> Nova bioimpedância
+          </button>`,
+    vazioMsg: 'Nenhuma bioimpedância registrada ainda. Adiciona a primeira para começar a evolução.',
+  });
+}
+
+// Tooltip do gráfico. Acha o balão DENTRO do próprio wrap (não por id) -> serve a
+// qualquer gráfico do grafSerie sem colidir quando há mais de um na tela.
+function grafTooltip(e) {
   const target = e.target;
-  const tip = (target && target.dataset) ? target.dataset.tooltip : null;
-  if (!tip) { bioTooltipHide(); return; }
-  const tt = document.getElementById('bio-tt');
+  const tt = e.currentTarget.querySelector('.pr-grafico-tooltip');
   if (!tt) return;
+  const tip = (target && target.dataset) ? target.dataset.tooltip : null;
+  if (!tip) { tt.style.display = 'none'; return; }
   tt.textContent = tip;
   tt.style.display = 'block';
   const rect = e.currentTarget.getBoundingClientRect();
@@ -18099,9 +18116,128 @@ function bioTooltip(e) {
   tt.style.left = left + 'px';
   tt.style.top = top + 'px';
 }
-function bioTooltipHide() {
-  const tt = document.getElementById('bio-tt');
+function grafTooltipHide(e) {
+  const tt = e.currentTarget.querySelector('.pr-grafico-tooltip');
   if (tt) tt.style.display = 'none';
+}
+
+// ============================================================
+// FÍSICO — medidas do corpo (as 5 circunferências).
+// FONTE ÚNICA: os registros de clin_bioimpedance, que já guardam as circunferências.
+// São alimentados por DOIS caminhos: a bioimpedância completa (quando o médico preenche
+// as circunferências lá) e a "medida corporal" isolada daqui (registro só com as medidas
+// — o backend já aceita peso nulo). Assim as duas entradas nunca divergem.
+// ============================================================
+const FIS_METRICAS = ['cintura', 'quadril', 'abdomen', 'braco', 'coxa'];
+const FIS_CAMPOS = { cintura: 'circ_cintura_cm', quadril: 'circ_quadril_cm', abdomen: 'circ_abdomen_cm', braco: 'circ_braco_d_cm', coxa: 'circ_coxa_d_cm' };
+const FIS_CORES = { cintura: '#E8945A', quadril: '#4A90E2', abdomen: '#f85149', braco: '#6FD89A', coxa: '#B98CE0' };
+const FIS_LABELS = { cintura: 'Cintura (cm)', quadril: 'Quadril (cm)', abdomen: 'Abdômen (cm)', braco: 'Braço D (cm)', coxa: 'Coxa D (cm)' };
+let fisState = { visiveis: { cintura: true, quadril: true, abdomen: true, braco: false, coxa: false }, formAberto: false };
+
+// Só entram pontos que TÊM alguma circunferência. Sem isso, uma bioimpedância sem medidas
+// viraria uma data no eixo X sem nada plotado — furo no gráfico.
+function fisSerie() {
+  return (bioState.serieBio || [])
+    .filter(p => FIS_METRICAS.some(m => p[FIS_CAMPOS[m]] != null))
+    .slice()
+    .sort((a, b) => new Date(a.data) - new Date(b.data));
+}
+function fisRenderGrafico() {
+  return grafSerie({
+    serie: fisSerie(), metricas: FIS_METRICAS, campos: FIS_CAMPOS, cores: FIS_CORES,
+    labels: FIS_LABELS, visiveis: fisState.visiveis, onToggle: 'fisToggleSerie',
+    titulo: 'Evolução das medidas', icone: 'ruler-measure', gradId: 'fisGrad',
+    acoesHtml: `<button class="pac-btn-mini-acao" onclick="fisToggleForm()"><i class="ti ti-plus"></i> Nova medida</button>`,
+    vazioMsg: 'Nenhuma medida registrada ainda. Use "Nova medida" — ou preencha as circunferências numa bioimpedância.',
+  });
+}
+function fisToggleSerie(m) { fisState.visiveis[m] = !fisState.visiveis[m]; prRerenderFisico(); }
+function fisToggleForm() { fisState.formAberto = !fisState.formAberto; prRerenderFisico(); }
+// Chamado pelo bioCarregarSerie: a série mudou, redesenha o Físico se ele estiver aberto.
+function fisRenderSeCarregado() { if (prState.fisicoAberto) prRerenderFisico(); }
+
+function fisFormHtml() {
+  if (!fisState.formAberto) return '';
+  const agora = (() => { const a = new Date(); const p = (x) => String(x).padStart(2, '0'); return `${a.getFullYear()}-${p(a.getMonth() + 1)}-${p(a.getDate())}T${p(a.getHours())}:${p(a.getMinutes())}`; })();
+  const campo = (id, lbl) => `<div class="pac-field"><label>${lbl}</label><input type="number" id="fis-${id}" min="0" max="300" step="0.1" placeholder="cm"></div>`;
+  return `
+    <div class="pr-grafico-card" style="margin-bottom:12px;">
+      <div class="pr-grafico-card-head"><div class="ttl"><i class="ti ti-ruler-measure"></i> Nova medida corporal</div></div>
+      <div style="padding:0 14px 14px;">
+        <div class="pac-modal-erro" id="fis-erro" style="display:none;"></div>
+        <div class="pac-field" style="max-width:260px;">
+          <label>Data</label>
+          <input type="datetime-local" id="fis-data" value="${agora}">
+        </div>
+        <div class="pac-form-grid col-3" style="margin-top:10px;">
+          ${campo('cintura', 'Cintura')}${campo('quadril', 'Quadril')}${campo('abdomen', 'Abdômen')}
+          ${campo('braco', 'Braço direito')}${campo('coxa', 'Coxa direita')}
+        </div>
+        <div class="pac-field" style="margin-top:10px;">
+          <label>Observações</label>
+          <textarea id="fis-obs" placeholder="Opcional"></textarea>
+        </div>
+        <div class="rx-actions">
+          <button class="pac-btn-primary" id="fis-salvar" onclick="fisSalvarMedida(this)"><i class="ti ti-device-floppy"></i> Salvar medida</button>
+          <button class="pac-btn-secondary" onclick="fisToggleForm()">Cancelar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function fisSalvarMedida(btn) {
+  const pid = prState.pacienteAtual && prState.pacienteAtual.id;
+  if (!pid) return;
+  const erroEl = document.getElementById('fis-erro');
+  const falhar = (msg) => { if (erroEl) { erroEl.textContent = msg; erroEl.style.display = 'block'; } };
+  if (erroEl) erroEl.style.display = 'none';
+  const num = (id) => { const el = document.getElementById(id); const v = parseFloat(el ? el.value : ''); return isNaN(v) ? null : v; };
+  const circ = {
+    circ_cintura_cm: num('fis-cintura'), circ_quadril_cm: num('fis-quadril'), circ_abdomen_cm: num('fis-abdomen'),
+    circ_braco_d_cm: num('fis-braco'), circ_coxa_d_cm: num('fis-coxa'),
+  };
+  // Registro sem nenhuma medida seria um ponto vazio no gráfico — barra aqui.
+  if (Object.values(circ).every((v) => v == null)) { falhar('Preencha ao menos uma medida.'); return; }
+  const dataVal = document.getElementById('fis-data').value;
+  const dataIso = (() => { if (!dataVal) return null; const dt = new Date(dataVal); return isNaN(dt.getTime()) ? null : dt.toISOString(); })();
+  const obsEl = document.getElementById('fis-obs');
+  const body = { patient_id: pid, data: dataIso, ...circ, observacoes: (obsEl && obsEl.value.trim()) || null };
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Salvando...'; }
+  const r = await pacApi('/api/clinico/aplicacoes/bio', { method: 'POST', body: JSON.stringify(body) });
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar medida'; }
+  if (!r.ok) { falhar((r.data && r.data.erro) || 'Erro ao salvar a medida'); return; }
+  fisState.formAberto = false;
+  // Recarrega a série (redesenha os dois gráficos) e a timeline — best-effort no reload geral.
+  try { await bioCarregarSerie(pid); } catch (e) { console.warn('[fis] falha ao recarregar a série', e); }
+  prRerenderFisico();
+  try { await prCarregarTimeline(); } catch (e) { console.warn('[fis] falha no reload da timeline', e); }
+}
+
+// ---- Painel "Físico" (mesmo padrão do Plano alimentar) ----
+function prRenderFisicoSection() {
+  if (!prState.fisicoAberto) return '';
+  if (prState.fisicoPid && prState.pacienteAtual && prState.fisicoPid !== prState.pacienteAtual.id) { prState.fisicoAberto = false; return ''; }
+  return `
+    <div class="pr-plano-wrap">
+      <div class="pr-grafico-card-head" style="padding:12px 14px 0;">
+        <div class="ttl"><i class="ti ti-ruler-measure"></i> Físico — medidas do corpo</div>
+        <div class="acoes"><button class="pac-btn-mini-acao" onclick="prFecharFisico()"><i class="ti ti-x"></i> Fechar</button></div>
+      </div>
+      ${fisFormHtml()}
+      ${fisRenderGrafico()}
+    </div>`;
+}
+function prRerenderFisico() { const el = document.getElementById('pr-fisico-section'); if (el) el.innerHTML = prRenderFisicoSection(); }
+function prFecharFisico() { prState.fisicoAberto = false; fisState.formAberto = false; prRerenderFisico(); }
+async function prAbrirFisico() {
+  const pac = prState.pacienteAtual; if (!pac) return;
+  if (prState.fisicoAberto) { prFecharFisico(); return; }
+  prState.fisicoAberto = true; prState.fisicoPid = pac.id;
+  prRerenderFisico();
+  setTimeout(function () { const el = document.getElementById('pr-fisico-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+  // Série já carregada pelo header; se ainda não veio, busca (redesenha ao chegar).
+  if (!bioState.serieBio) { try { await bioCarregarSerie(pac.id); } catch (e) {} }
 }
 
 // ============================================================
@@ -20155,6 +20291,9 @@ function prRenderTimeline() {
       <button class="pac-btn-secondary" onclick="prAbrirPlano()" title="Plano alimentar personalizado por IA + envio no WhatsApp">
         <i class="ti ti-salad"></i> Plano alimentar
       </button>
+      <button class="pac-btn-secondary" onclick="prAbrirFisico()" title="Medidas do corpo: nova medida + evolução das circunferências">
+        <i class="ti ti-ruler-measure"></i> Físico
+      </button>
     </div>
   `;
 
@@ -20216,6 +20355,7 @@ function prRenderTimeline() {
     + `<div id="pr-prescritor-section">${rxState.aberto ? prRenderPrescritor() : ''}</div>`
     + `<div id="pr-exames-section">${prRenderExamesSection()}</div>`
     + `<div id="pr-plano-section">${prRenderPlanoSection()}</div>`
+    + `<div id="pr-fisico-section">${prRenderFisicoSection()}</div>`
     + receitasBar
     + anexosBar
     + histHtml;
@@ -21361,7 +21501,14 @@ function prRenderItem(it) {
       if (d.massa_magra_kg) vitais.push(`<span><strong>${d.massa_magra_kg} kg</strong> magra</span>`);
       if (d.gordura_visceral) vitais.push(`<span>Visceral <strong>${d.gordura_visceral}</strong></span>`);
       if (d.tmb_kcal) vitais.push(`<span>TMB <strong>${d.tmb_kcal}</strong> kcal</span>`);
-      body = `<div class="pr-vitais" style="border-top: 0; padding-top: 0; margin-top: 0;">${vitais.join('')}</div>`;
+      // Circunferências: sem isto, um registro só-de-medidas (vindo do "Físico") sairia com o card vazio.
+      [['circ_cintura_cm', 'cintura'], ['circ_quadril_cm', 'quadril'], ['circ_abdomen_cm', 'abdômen'],
+       ['circ_braco_d_cm', 'braço D'], ['circ_coxa_d_cm', 'coxa D']].forEach(([k, lbl]) => {
+        if (d[k] != null) vitais.push(`<span><strong>${String(d[k]).replace('.', ',')} cm</strong> ${lbl}</span>`);
+      });
+      body = vitais.length
+        ? `<div class="pr-vitais" style="border-top: 0; padding-top: 0; margin-top: 0;">${vitais.join('')}</div>`
+        : '<div style="font-size:11px; color:var(--tx3b);">Registro sem valores.</div>';
       break;
     }
     case 'atendimento': {
