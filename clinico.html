@@ -4726,6 +4726,15 @@
       border: 1px solid rgba(74,144,226,0.3);
       border-radius: 5px;
     }
+    /* Resultado de exame no timeline — tabela de marcadores (nunca JSON cru) */
+    .pr-exres { margin-top: 7px; border: 1px solid var(--bd1); border-radius: 8px; overflow: hidden; }
+    .pr-exres-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 10px; align-items: baseline; padding: 6px 11px; font-size: 12px; border-bottom: 1px solid var(--hair); }
+    .pr-exres-row:last-child { border-bottom: 0; }
+    .pr-exres-row .n { color: var(--tx2); overflow: hidden; text-overflow: ellipsis; }
+    .pr-exres-row .v { color: var(--tx1); font-weight: 500; font-variant-numeric: tabular-nums; }
+    .pr-exres-row .r { color: var(--tx4); font-size: 11px; white-space: nowrap; }
+    .pr-exres-row.alt { background: rgba(248,81,73,0.06); }
+    .pr-exres-row.alt .v { color: #f85149; }
 
     /* Cores específicas por tipo do timeline */
     .pr-item.tipo-evolucao { border-left-color: #7B68EE; }
@@ -20820,9 +20829,22 @@ function prRenderItem(it) {
     }
     case 'exame_resultado': {
       const d = it.dados;
-      body = `<div style="font-size:12px; color:var(--tx1);">${d.exame}</div>`;
-      if (d.resultado) body += `<pre style="font-size:11px; color:var(--tx2); background:rgba(var(--bg3-rgb),0.4); padding:8px; border-radius:6px; margin-top:6px; overflow-x:auto;">${typeof d.resultado === 'string' ? d.resultado : JSON.stringify(d.resultado, null, 2)}</pre>`;
-      if (d.observacoes) body += `<div style="font-size:11px; color:var(--tx3b); margin-top:8px;">${d.observacoes}</div>`;
+      body = `<div style="font-size:12px; color:var(--tx1);">${esc(d.exame || '')}</div>`;
+      const marc = (d.resultado && Array.isArray(d.resultado.marcadores)) ? d.resultado.marcadores : null;
+      if (marc && marc.length) {
+        body += '<div class="pr-exres">' + marc.map((m) => {
+          const val = (m.valor != null && m.valor !== '') ? m.valor : (m.valor_texto != null && m.valor_texto !== '' ? m.valor_texto : '—');
+          const un = m.unidade ? ' ' + esc(String(m.unidade)) : '';
+          const refTxt = (m.ref_texto && m.ref_texto !== 'false' && m.ref_texto !== 'true') ? esc(String(m.ref_texto)) : '';
+          const refNum = (m.ref_min != null || m.ref_max != null) ? `${m.ref_min != null ? m.ref_min : ''}${(m.ref_min != null && m.ref_max != null) ? '–' : ''}${m.ref_max != null ? m.ref_max : ''}` : '';
+          const ref = refTxt || refNum;
+          return `<div class="pr-exres-row${m.alterado === true ? ' alt' : ''}"><span class="n">${esc(String(m.rotulo || m.codigo || '—'))}</span><span class="v">${esc(String(val))}${un}</span><span class="r">${ref ? 'ref ' + ref : ''}</span></div>`;
+        }).join('') + '</div>';
+        if (d.resultado.origem) body += `<div style="font-size:10px; color:var(--tx4); margin-top:6px;"><i class="ti ti-file-text"></i> ${esc(String(d.resultado.origem))}</div>`;
+      } else if (d.resultado) {
+        body += `<div style="font-size:11px; color:var(--tx3b); margin-top:6px;">${esc(typeof d.resultado === 'string' ? d.resultado : 'Resultado sem marcadores estruturados.')}</div>`;
+      }
+      if (d.observacoes) body += `<div style="font-size:11px; color:var(--tx3b); margin-top:8px;">${esc(String(d.observacoes))}</div>`;
       break;
     }
     case 'aplicacao': {
