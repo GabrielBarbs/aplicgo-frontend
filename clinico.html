@@ -13856,6 +13856,7 @@ let agState = {
   pacientesSearchResults: [],
   recurCancelTarget: null,        // { id, statusAlvo, motivo, origem } para modal de escolha
   edicaoRecurInfo: null,          // { recurrenceId, pattern, until } para o modal de edição
+  recorOriginal: null,            // recorrência como estava ao abrir a edição (detecta mudança real)
 };
 
 function agInicioSemana(d) {
@@ -16495,13 +16496,50 @@ async function agAbrirEditarModal(id) {
   tagEl.textContent = a.status;
   tagEl.className = 'ag-status-tag ' + a.status;
 
-  // Recorrência: na edição esconde o toggle e mostra info se for parte de série
-  document.getElementById('ag-recorrencia-box').style.display = 'none';
+  // Recorrência na edição: a caixa fica EDITÁVEL e pré-preenchida com a série atual.
+  // Mudar aqui vale deste agendamento pra frente — o passado nunca é tocado.
+  document.getElementById('ag-recorrencia-box').style.display = '';
+  const tog = document.getElementById('ag-recorrente-toggle');
+  tog.checked = !!a.recurrenceId;
+  document.getElementById('ag-recorrencia-box').classList.toggle('aberto', !!a.recurrenceId);
+  if (a.recurrenceId) {
+    // BIWEEKLY é legado (14 dias) e não está mais no dropdown: sem isto o select cairia calado no
+    // 1º item (Semanal) e um "salvar" sem querer reescreveria a série toda pra 7 dias.
+    const pat = document.getElementById('ag-recor-pattern');
+    agLegadoNoSelect(pat, a.recurrencePattern);
+    pat.value = a.recurrencePattern || 'WEEKLY';
+    document.getElementById('ag-recor-until').value = a.recurrenceUntil ? String(a.recurrenceUntil).slice(0, 10) : '';
+  }
+  agRecorPatternMudou();
+  // Bisemanal: os dois dias reais vêm do servidor (serie_ancoras = as 2 primeiras ocorrências da
+  // série). Sem isso, agRecorPatternMudou teria acabado de CHUTAR o 2º dia como "+3 dias" e a tela
+  // afirmaria "quinta" numa série que é sexta. Sobrescreve o chute com o que é verdade.
+  const anc = r.data.serie_ancoras;
+  if (a.recurrencePattern === 'TWICE_WEEKLY' && Array.isArray(anc) && anc.length === 2) {
+    const d1 = new Date(anc[0]), d2 = new Date(anc[1]);
+    document.getElementById('ag-bisem-dia1').value = String(d1.getDay());
+    document.getElementById('ag-bisem-hora1').value = agHhMm(d1);
+    document.getElementById('ag-bisem-dia2').value = String(d2.getDay());
+    document.getElementById('ag-bisem-hora2').value = agHhMm(d2);
+    agBisemPreview();
+  }
+  // Guarda o estado ORIGINAL: só chama a rota que reescreve a série se algo aqui mudou de verdade.
+  agState.recorOriginal = {
+    ativo: !!a.recurrenceId,
+    pattern: a.recurrencePattern || null,
+    until: a.recurrenceUntil ? String(a.recurrenceUntil).slice(0, 10) : '',
+    // Os dias da bisemanal como estão salvos, pra saber se a pessoa mexeu neles de verdade.
+    bisem: a.recurrencePattern === 'TWICE_WEEKLY' && Array.isArray(anc) && anc.length === 2
+      ? anc.map((x) => { const d = new Date(x); return d.getDay() + '@' + agHhMm(d); }).sort().join('|')
+      : null,
+  };
   if (a.recurrenceId) {
     agState.edicaoRecurInfo = {
       recurrenceId: a.recurrenceId,
       pattern: a.recurrencePattern,
-      until: a.recurrenceUntil ? new Date(a.recurrenceUntil).toLocaleDateString('pt-BR') : null,
+      // recurrenceUntil é data-only ancorada em meia-noite UTC: com toLocaleDateString normal
+      // o Brasil (UTC-3) mostraria o dia ANTERIOR ("até 29/09" numa série que vai até 30/09).
+      until: a.recurrenceUntil ? dataDiaBR(a.recurrenceUntil) : null,
     };
     // BIWEEKLY é legado e anda de 14 dias — nomear de "quinzenal" ao lado da opção nova de 15 dias
     // confundiria duas coisas diferentes na mesma agenda. Diz o passo real.
@@ -16513,7 +16551,8 @@ async function agAbrirEditarModal(id) {
     info.style.display = 'flex';
     document.getElementById('ag-recor-info-text').textContent =
       'Faz parte de uma série recorrente (' + (PAD[a.recurrencePattern] || a.recurrencePattern) +
-      (agState.edicaoRecurInfo.until ? ', até ' + agState.edicaoRecurInfo.until : '') + ').';
+      (agState.edicaoRecurInfo.until ? ', até ' + agState.edicaoRecurInfo.until : '') + '). ' +
+      'Mudar a recorrência acima vale deste agendamento pra frente — os que já passaram não são tocados.';
   }
 
   // Botões de transição de status
@@ -16629,7 +16668,13 @@ function agResetForm() {
     box.style.display = '';   // restaura caso edição anterior tenha escondido
   }
   const pat = document.getElementById('ag-recor-pattern');
-  if (pat) pat.value = 'WEEKLY';
+  if (pat) {
+    agLegadoNoSelect(pat, null); // tira a opção de padrão legado injetada por uma série antiga
+    pat.value = 'WEEKLY';
+  }
+  // Estado da série aberta antes: sem zerar, um "salvar" no próximo agendamento poderia se achar
+  // uma mudança de recorrência e sair reescrevendo série.
+  agState.recorOriginal = null;
   const until = document.getElementById('ag-recor-until');
   if (until) until.value = '';
   const info = document.getElementById('ag-recor-info');
@@ -16688,6 +16733,20 @@ function agToggleRecorrencia() {
     box.classList.remove('aberto');
   }
   agRecorPatternMudou();
+}
+
+// Série antiga pode ter um padrão que saiu do dropdown (BIWEEKLY, 14 dias). Sem uma opção pra ele,
+// o select ficaria em branco e um "salvar" sem querer reescreveria a série inteira pra Semanal.
+// Injeta a opção do legado, marcada como tal, só enquanto essa série estiver aberta.
+function agLegadoNoSelect(sel, pattern) {
+  sel.querySelectorAll('option[data-legado]').forEach((o) => o.remove());
+  if (!pattern || [...sel.options].some((o) => o.value === pattern)) return;
+  const LEGADO = { BIWEEKLY: 'A cada 14 dias (série antiga)' };
+  const o = document.createElement('option');
+  o.value = pattern;
+  o.textContent = LEGADO[pattern] || pattern;
+  o.dataset.legado = '1';
+  sel.appendChild(o);
 }
 
 // ===== BISEMANAL: dois dias por semana, cada um com seu horário =====
@@ -16972,7 +17031,10 @@ async function agSalvar() {
   if (!profId) { erroEl.textContent = 'Selecione o profissional'; erroEl.style.display = 'block'; return; }
   if (!unitId) { erroEl.textContent = 'Selecione a unidade'; erroEl.style.display = 'block'; return; }
   if (!typeId) { erroEl.textContent = 'Selecione o tipo de atendimento'; erroEl.style.display = 'block'; return; }
-  const bisem = !id && agBisemAtiva();
+  // Sem `!id`: a recorrência agora também é editável, e o bloco lá embaixo monta recurrence_dias
+  // com ou sem id. Se este guard voltasse a ter `!id`, `ancoras` ficaria null na edição e o
+  // Salvar morreria calado num TypeError, antes de qualquer mensagem.
+  const bisem = agBisemAtiva();
   if (!data) { erroEl.textContent = bisem ? 'Informe a partir de quando a série começa' : 'Informe data e hora'; erroEl.style.display = 'block'; return; }
   if (!bisem && !hora) { erroEl.textContent = 'Informe data e hora'; erroEl.style.display = 'block'; return; }
 
@@ -17014,34 +17076,43 @@ async function agSalvar() {
     observacoes: document.getElementById('ag-observacoes').value.trim() || null,
   };
 
-  // Recorrência: só envia na criação (edit não permite mudar série)
-  if (!id) {
-    const recorTog = document.getElementById('ag-recorrente-toggle');
-    if (recorTog && recorTog.checked) {
-      const pattern = document.getElementById('ag-recor-pattern').value;
-      const until = document.getElementById('ag-recor-until').value;
-      if (!until) {
-        erroEl.textContent = 'Informe a data final da recorrência';
+  // Recorrência: vale na criação e também na edição (aí reescreve a série daqui pra frente).
+  const recorTog = document.getElementById('ag-recorrente-toggle');
+  if (recorTog && recorTog.checked) {
+    const pattern = document.getElementById('ag-recor-pattern').value;
+    const until = document.getElementById('ag-recor-until').value;
+    if (!until) {
+      erroEl.textContent = 'Informe a data final da recorrência';
+      erroEl.style.display = 'block';
+      return;
+    }
+    body.recurrence_pattern = pattern;
+    body.recurrence_until = until;
+    if (pattern === 'TWICE_WEEKLY') {
+      // Nunca deixar o Salvar estourar calado num TypeError: sem âncoras, diz o que falta.
+      if (!ancoras) {
+        erroEl.textContent = 'Escolha os dois dias da semana e o horário de cada um';
         erroEl.style.display = 'block';
         return;
       }
-      body.recurrence_pattern = pattern;
-      body.recurrence_until = until;
-      if (pattern === 'TWICE_WEEKLY') {
-        body.recurrence_dias = ancoras.map((d) => ({ start_at: d.toISOString() }));
-      }
+      body.recurrence_dias = ancoras.map((d) => ({ start_at: d.toISOString() }));
     }
   }
+
+  // Na edição, só reescreve a série se a recorrência mudou de verdade. Mexer só no horário ou nas
+  // observações continua sendo um PUT simples, que não encosta nos outros da série.
+  const mudouRecor = !!id && agRecorMudou(body);
+  if (mudouRecor && !confirm(agRecorConfirmTxt(body))) return;
 
   // O <span id="ag-modal-salvar-txt"> tem que sobreviver aos dois estados: agTrocarTab() lê ele, e
   // sem o span o próximo "Novo agendamento" quebrava antes de abrir o modal.
   const btn = document.getElementById('ag-modal-salvar');
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> <span id="ag-modal-salvar-txt">Salvando…</span>';
 
-  const r = await pacApi(
-    id ? '/api/clinico/appointments/' + id : '/api/clinico/appointments',
-    { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }
-  );
+  const rota = !id ? '/api/clinico/appointments'
+    : mudouRecor ? '/api/clinico/appointments/' + id + '/recorrencia'
+    : '/api/clinico/appointments/' + id;
+  const r = await pacApi(rota, { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
 
   btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> <span id="ag-modal-salvar-txt">Salvar</span>';
 
@@ -17050,8 +17121,39 @@ async function agSalvar() {
     erroEl.style.display = 'block';
     return;
   }
+  if (mudouRecor) homeToast(`Série atualizada: ${r.data.criados} agendamento(s) daqui pra frente.`);
   agFecharModal();
   agCarregar();
+}
+
+// A recorrência mudou em relação ao que estava salvo? Só isso justifica reescrever a série.
+function agRecorMudou(body) {
+  const o = agState.recorOriginal;
+  if (!o) return false;
+  const ativoAgora = !!body.recurrence_pattern;
+  if (ativoAgora !== o.ativo) return true;
+  if (!ativoAgora) return false;
+  if (body.recurrence_pattern !== o.pattern) return true;
+  if ((body.recurrence_until || '') !== (o.until || '')) return true;
+  // Bisemanal: o padrão sozinho não denuncia troca de dia/horário — compara as âncoras.
+  if (body.recurrence_pattern === 'TWICE_WEEKLY') {
+    if (!o.bisem) return true; // sem as âncoras salvas não dá pra afirmar que é igual
+    const agora = (body.recurrence_dias || []).map((x) => { const d = new Date(x.start_at); return d.getDay() + '@' + agHhMm(d); }).sort().join('|');
+    return agora !== o.bisem;
+  }
+  return false;
+}
+
+// hh:mm local (o fuso da clínica) — o mesmo critério do resto da bisemanal.
+function agHhMm(d) {
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function agRecorConfirmTxt(body) {
+  if (!body.recurrence_pattern) {
+    return 'Tirar a recorrência deste agendamento?\n\nOs agendamentos FUTUROS desta série serão apagados e só este ficará. Os que já passaram não são tocados.';
+  }
+  return 'Mudar a recorrência desta série?\n\nOs agendamentos futuros desta série serão APAGADOS e recriados no padrão novo, a partir deste. Os que já passaram não são tocados.\n\nSe algum futuro já estiver confirmado com o paciente, a mudança não vai passar — cancele ele antes.';
 }
 
 // ============================================================
