@@ -7163,7 +7163,7 @@
           <div class="pac-form-grid col-3">
             <div class="pac-field">
               <label>CEP</label>
-              <input type="text" id="pac-cep">
+              <input type="text" id="pac-cep" inputmode="numeric" placeholder="00000-000" oninput="pacCepAuto(this)">
             </div>
             <div class="pac-field" style="grid-column: span 2;">
               <label>Endereço</label>
@@ -12703,6 +12703,33 @@ async function pacApi(path, opts = {}) {
   return { ok: resp.ok, data };
 }
 
+// Autopreenche endereço pelo CEP (ViaCEP via nosso backend — a CSP bloqueia chamada direta).
+// mapa: { rua, bairro, cidade, uf, complemento?, foco? } = ids dos campos a preencher.
+async function cepBuscar(cepEl, mapa) {
+  if (!cepEl) return;
+  const cep = (cepEl.value || '').replace(/\D/g, '');
+  if (cep.length !== 8) return;
+  if (cepEl.dataset.cepBusca === cep) return;   // já buscou esse CEP -> não repete nem sobrescreve
+  cepEl.dataset.cepBusca = cep;
+  const setV = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+  let r = null;
+  try { r = await pacApi('/api/clinico/cep/' + cep); } catch (e) {}
+  const d = (r && r.ok && r.data && r.data.ok) ? r.data : null;
+  if (!d) { cepEl.dataset.cepBusca = ''; homeToast(r && r.data && r.data.erro ? r.data.erro : 'Não foi possível buscar o CEP.'); return; }
+  if (mapa.rua) setV(mapa.rua, d.logradouro);
+  if (mapa.bairro) setV(mapa.bairro, d.bairro);
+  if (mapa.cidade) setV(mapa.cidade, d.cidade);
+  if (mapa.uf) setV(mapa.uf, d.uf);
+  if (mapa.complemento && d.complemento) setV(mapa.complemento, d.complemento);
+  if (mapa.foco) { const f = document.getElementById(mapa.foco); if (f) f.focus(); }
+}
+// Máscara 00000-000 + gatilho do autopreenchimento do form de paciente.
+function pacCepAuto(el) {
+  const v = (el.value || '').replace(/\D/g, '').slice(0, 8);
+  el.value = v.length > 5 ? v.slice(0, 5) + '-' + v.slice(5) : v;
+  cepBuscar(el, { rua: 'pac-endereco', bairro: 'pac-bairro', cidade: 'pac-cidade', uf: 'pac-uf', foco: 'pac-numero' });
+}
+
 // Carrega listas de apoio (unidades + profissionais) UMA VEZ
 async function pacCarregarApoio() {
   // Unidades vêm do meData se já carregadas, senão fallback
@@ -12978,7 +13005,7 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-telefone1').value = fmtTel(p.telefone1);
   document.getElementById('pac-telefone2').value = p.telefone2 ? fmtTel(p.telefone2) : '';
   document.getElementById('pac-email').value = p.email || '';
-  document.getElementById('pac-cep').value = p.cep || '';
+  { const _cepEl = document.getElementById('pac-cep'); _cepEl.value = p.cep || ''; _cepEl.dataset.cepBusca = (p.cep || '').replace(/\D/g, ''); }  // guarda o CEP carregado -> blur sem mudança não re-busca
   document.getElementById('pac-endereco').value = p.endereco || '';
   document.getElementById('pac-numero').value = p.numero || '';
   document.getElementById('pac-complemento').value = p.complemento || '';
