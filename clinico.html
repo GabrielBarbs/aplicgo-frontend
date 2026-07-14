@@ -2154,6 +2154,8 @@
       font-size: 15px; transition: all 0.12s;
     }
     .pr-h2-editar:hover { border-color: var(--ac); color: var(--ac); }
+    .pr-h2-editar:disabled { opacity: .5; cursor: default; }
+    .pr-h2-acoes { display: flex; gap: 6px; flex-shrink: 0; }
 
     .pr-h2-cols {
       display: grid;
@@ -17061,6 +17063,38 @@ async function prCarregarHeader() {
         <div class="meta"><span class="cod">${h.codigo}</span> · ${fmtTel(h.telefone1)}</div>
       </div>
     </div>
+// Novo agendamento pro paciente já aberto: abre o MESMO modal da agenda, sem sair do prontuário.
+// Os selects do modal (tipo/unidade/profissional) são preenchidos por agInit(), que só roda quando
+// a agenda abre — quem entra direto no prontuário abriria o modal vazio. Daí carregar o apoio antes.
+async function prGarantirApoioAgenda() {
+  if (!agState.tipos.length) {
+    const tipos = await pacApi('/api/clinico/appointments/types');
+    if (!tipos.ok) throw new Error('tipos');
+    agState.tipos = tipos.data.tipos;
+  }
+  if (!pacState.unidades.length) await pacCarregarApoio();
+  // agSalvar() recarrega a agenda no sucesso. Sem a agenda ter aberto, semanaRef é null e
+  // new Date(null) puxaria a semana de 1970 — consulta inútil. Ancora na semana atual.
+  if (!agState.semanaRef) agState.semanaRef = new Date();
+  agPreencherSelects();
+}
+
+async function prNovoAgendamento(btn) {
+  const h = prState.headerData;
+  if (!h) return;
+  if (btn) btn.disabled = true;
+  try {
+    await prGarantirApoioAgenda();
+  } catch (e) {
+    homeToast('Não consegui carregar os tipos de atendimento agora. Tente de novo.');
+    return;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+  agAbrirNovoModal(); // chama agResetForm(): o paciente tem que ser escolhido DEPOIS
+  agSelecionarPaciente({ id: h.id, codigo: h.codigo, nome: h.nome_completo, telefone: h.telefone1, status: h.status });
+}
+
     <button class="pac-btn-secondary" onclick="prEditarPacienteDoHeader()">
       <i class="ti ti-edit"></i> Editar
     </button>
@@ -17264,9 +17298,14 @@ function prRenderHeaderRico() {
         <div class="pr-h2-id">
           <div class="nome">${h.nome_completo} <span class="cod">${h.codigo}</span></div>
         </div>
-        <button class="pr-h2-editar" onclick="prEditarPacienteDoHeader()" title="Editar cadastro">
-          <i class="ti ti-edit"></i>
-        </button>
+        <div class="pr-h2-acoes">
+          ${temPermissao('agenda.criar') ? `<button class="pr-h2-editar" onclick="prNovoAgendamento(this)" title="Novo agendamento para ${esc(h.nome_completo || 'este paciente')}">
+            <i class="ti ti-calendar-plus"></i>
+          </button>` : ''}
+          <button class="pr-h2-editar" onclick="prEditarPacienteDoHeader()" title="Editar cadastro">
+            <i class="ti ti-edit"></i>
+          </button>
+        </div>
       </div>
 
       ${situacaoHtml}
