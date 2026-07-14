@@ -8415,19 +8415,19 @@
       <div class="ttl">Cancelar agendamento recorrente</div>
     </div>
     <div class="body">
-      <div class="desc">Este agendamento faz parte de uma série recorrente. O que deseja cancelar?</div>
+      <div class="desc" id="ag-recur-cancel-desc">Este agendamento faz parte de uma série recorrente. O que deseja cancelar?</div>
       <div class="opt" onclick="agConfirmarRecurCancel('this')">
         <div class="ico"><i class="ti ti-calendar-x"></i></div>
         <div>
           <div class="ttl">Somente este</div>
-          <div class="sub">Cancela apenas o agendamento selecionado.</div>
+          <div class="sub" id="ag-recur-cancel-sub1">Cancela apenas o agendamento selecionado.</div>
         </div>
       </div>
       <div class="opt" onclick="agConfirmarRecurCancel('future')">
         <div class="ico"><i class="ti ti-repeat-off"></i></div>
         <div>
           <div class="ttl">Este e os próximos</div>
-          <div class="sub">Cancela este e todos os futuros da mesma série.</div>
+          <div class="sub" id="ag-recur-cancel-sub2">Cancela este e todos os futuros da mesma série.</div>
         </div>
       </div>
     </div>
@@ -11389,6 +11389,17 @@ function gstStat(ico, cor, val, lbl, sub) {
   return `<div class="cart-stat"><div class="lbl"><i class="ti ${ico}" style="color:${cor}"></i> ${esc(lbl)}</div>`
     + `<div class="val" style="color:${cor}">${esc(String(val))}</div><div class="sub">${esc(sub)}</div></div>`;
 }
+// Pacientes que cancelaram no mês. Só entra cancelamento DO PACIENTE: o da clínica apaga o
+// agendamento, então este número é sobre eles, não sobre a nossa própria remarcação.
+// Sem o campo (backend antigo no ar), não inventa zero — mostra '—'.
+function gstStatCancelPac(c) {
+  if (!c || c.pacientes == null) return gstStat('ti-calendar-off', '#8b949e', '—', 'Cancelaram', 'sem dado ainda');
+  const cor = c.pacientes > 0 ? '#e3b341' : '#3fb950';
+  const sub = c.cancelamentos === c.pacientes
+    ? c.cancelamentos + ' cancelamento' + (c.cancelamentos === 1 ? '' : 's')
+    : c.cancelamentos + ' cancelamentos';
+  return gstStat('ti-calendar-off', cor, c.pacientes, 'Pacientes que cancelaram', sub);
+}
 function gstBar(label, total, max, cor) {
   const pct = Math.round((total / max) * 100);
   return `<div class="cart-brow"><div class="cart-blabel"><span>${esc(String(label))}</span><b>${total}</b></div>`
@@ -11418,6 +11429,7 @@ async function homeGestorOperacao() {
     + gstStat('ti-user-x', noshowCor, ag.noshow_pct != null ? ag.noshow_pct + '%' : '—', 'No-show', ag.faltas + ' faltas marcadas')
     + gstStat('ti-calendar', '#4A90E2', ag.total_agendados, 'Agendamentos', 'no mês')
     + gstStat('ti-device-laptop', '#8b949e', ag.online + '/' + ag.presencial, 'Online / presencial', 'atendimentos')
+    + gstStatCancelPac(ag.cancel_paciente)
     + '</div>'
     + '<div style="font-size:10.5px;color:var(--tx4);margin:-8px 0 6px">% calculado só sobre agendamentos com desfecho marcado (atendido/falta)' + (ag.sem_desfecho ? ` — ${ag.sem_desfecho} já passaram sem marcação` : '') + '</div>';
   const barsU = (ag.por_unidade || []).map(u => {
@@ -14672,13 +14684,16 @@ async function agAcaoExcluir() {
   const ag = (agState.agendamentos || []).find(x => x.id === id);
   const isRec = !!ag?.recurrence_id;
   if (isRec) {
-    // Reaproveita o fluxo de cancelamento recorrente
+    // Reaproveita o fluxo de cancelamento recorrente. Excluir é ação da CLÍNICA e a origem vai
+    // explícita: o backend recusa cancelar sem saber quem cancelou, justamente pra omissão nunca
+    // virar exclusão por acidente.
     agFecharAcoesModal();
-    agState.recurCancelTarget = { id, statusAlvo: 'CANCELADO', motivo: null, origem: null };
+    agState.recurCancelTarget = { id, statusAlvo: 'CANCELADO', motivo: null, origem: 'CLINICA' };
+    agRecurCancelTextos('CLINICA');
     document.getElementById('ag-recur-cancel-modal').classList.add('aberto');
     return;
   }
-  if (!confirm('Excluir este agendamento? Ele será marcado como CANCELADO (histórico mantido).')) return;
+  if (!confirm('Excluir este agendamento?\n\nEle será APAGADO da agenda — não fica nem como cancelado. Só o log de auditoria guarda o que foi apagado.')) return;
   const r = await pacApi('/api/clinico/appointments/' + id, { method: 'DELETE' });
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
   agFecharAcoesModal();
@@ -16163,10 +16178,16 @@ async function agMudarStatusModal(novoStatus, origem) {
         origem,
       };
       agFecharStatusModal();
+      agRecurCancelTextos(origem);
       document.getElementById('ag-recur-cancel-modal').classList.add('aberto');
       return;
     }
-    motivo = prompt('Motivo do cancelamento (opcional):') || null;
+    // Avulso: pela clínica isso APAGA e não tem volta — confirma antes, e o Esc no prompt aborta
+    // (o `|| null` de antes engolia o cancelar do prompt e apagava assim mesmo).
+    if (origem !== 'PACIENTE' && !confirm('Cancelar pela clínica?\n\nO agendamento será APAGADO da agenda — não fica nem como cancelado. Só o log de auditoria guarda o que foi apagado.')) return;
+    motivo = prompt('Motivo do cancelamento (opcional):');
+    if (motivo === null) return;
+    motivo = motivo.trim() || null;
   }
   const body = { status: novoStatus };
   if (motivo) body.motivo_cancelamento = motivo;
@@ -16183,6 +16204,20 @@ async function agMudarStatusModal(novoStatus, origem) {
 }
 
 // ========== MODAL DE ESCOLHA: cancelar recorrência ==========
+// O efeito depende de QUEM cancelou: pela clínica apaga da agenda, pelo paciente fica registrado.
+// O texto tem que dizer isso — senão o modal promete "cancelar" e o que acontece é apagar.
+function agRecurCancelTextos(origem) {
+  const apaga = origem !== 'PACIENTE';
+  const d = document.getElementById('ag-recur-cancel-desc');
+  const s1 = document.getElementById('ag-recur-cancel-sub1');
+  const s2 = document.getElementById('ag-recur-cancel-sub2');
+  if (d) d.textContent = apaga
+    ? 'Este agendamento faz parte de uma série recorrente. Cancelamento da clínica APAGA da agenda — não fica nem como cancelado. O que deseja apagar?'
+    : 'Este agendamento faz parte de uma série recorrente. Cancelamento do paciente fica registrado na agenda. O que deseja cancelar?';
+  if (s1) s1.textContent = apaga ? 'Apaga apenas o agendamento selecionado.' : 'Cancela apenas o agendamento selecionado.';
+  if (s2) s2.textContent = apaga ? 'Apaga este e todos os futuros da mesma série.' : 'Cancela este e todos os futuros da mesma série.';
+}
+
 function agFecharRecurCancel() {
   agState.recurCancelTarget = null;
   document.getElementById('ag-recur-cancel-modal').classList.remove('aberto');
@@ -16649,15 +16684,12 @@ function agOnboardingDoEdit() {
 async function agMudarStatus(id, novoStatus) {
   let motivo = null;
   if (novoStatus === 'CANCELADO') {
-    // Se for recorrente, abre modal de escolha
-    if (agState.edicaoRecurInfo && agState.edicaoRecurInfo.recurrenceId) {
-      agState.recurCancelTarget = { id, statusAlvo: 'CANCELADO', motivo: null, origem: null };
-      agFecharModal();
-      document.getElementById('ag-recur-cancel-modal').classList.add('aberto');
-      return;
-    }
-    motivo = prompt('Motivo do cancelamento:');
-    if (motivo === null) return;
+    // Cancelar depende de QUEM cancelou: pela clínica APAGA, pelo paciente fica registrado e conta
+    // na métrica do gestor. Este botão não pergunta a origem, então não pode cancelar direto —
+    // manda pro modal que pergunta. Sem isso, um cancelamento do paciente sumiria pra sempre.
+    agFecharModal();
+    agAbrirStatusModal(id);
+    return;
   }
   const r = await pacApi('/api/clinico/appointments/' + id + '/status', {
     method: 'PUT',
