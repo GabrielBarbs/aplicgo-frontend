@@ -20007,17 +20007,8 @@ function prRenderTimeline() {
   const nAnexos = (prState.documentos || []).length;
   const actionsBar = `
     <div class="pr-actions-bar">
-      <button class="pac-btn-secondary" onclick="prAbrirPreConsulta()">
-        <i class="ti ti-clipboard-list"></i> Pré-consulta
-      </button>
       ${_podePresc ? `<button class="pac-btn-secondary" onclick="prAbrirNovaPresc()">
         <i class="ti ti-pill"></i> Nova prescrição
-      </button>` : ''}
-      ${_podePresc ? `<button class="pac-btn-secondary" onclick="proAbrirModal(prState.pacienteAtual.id)" title="Prescrever protocolo injetável (pacotes adjuvantes)">
-        <i class="ti ti-vaccine"></i> Protocolo injetável
-      </button>` : ''}
-      ${_podePresc ? `<button class="pac-btn-secondary" onclick="pbaseAbrirModal(prState.pacienteAtual.id)" title="Prescrever medicamento-base GLP-1/GIP (semaglutida/tirzepatida)">
-        <i class="ti ti-syringe"></i> Medicamento base (GLP-1)
       </button>` : ''}
       <button class="pac-btn-secondary" onclick="prAbrirExames()" title="Tabela de exames (analitos por data) + laudos, exportável em PDF">
         <i class="ti ti-table"></i> Exames
@@ -22418,6 +22409,17 @@ function prAbrirInjetaveis() {
   rxRerender(false);                     // re-renderiza o modal com o container #pr-inj-wrap
   injRenderPrescrever();                 // preenche o container (paciente + builder)
 }
+// "Medicamento base (GLP-1)" saiu da barra de ações e virou um tipo da aba de prescrição.
+// Mesmo gate do botão antigo (prontuario.prescrever) + paciente aberto, igual prAbrirInjetaveis.
+function prAbrirMedBase() {
+  if (typeof temPermissao === 'function' && !temPermissao('prontuario.prescrever')) {
+    if (typeof homeToast === 'function') homeToast('Você não tem permissão pra prescrever.');
+    return;
+  }
+  const p = prState.pacienteAtual;
+  if (!p || !p.id) { if (typeof homeToast === 'function') homeToast('Abra o paciente primeiro.'); return; }
+  pbaseAbrirModal(p.id);
+}
 function rxSetTipoDoc(t) {
   if (t === 'exames') {
     // gate que antes ficava no botão da barra (removido de lá — exames vive aqui)
@@ -22428,6 +22430,7 @@ function rxSetTipoDoc(t) {
     prAbrirNovoExam(); return;
   }
   if (t === 'injetaveis') { prAbrirInjetaveis(); return; }
+  if (t === 'medbase') { prAbrirMedBase(); return; }
   if (t === 'breve') { if (typeof homeToast === 'function') homeToast('Em construção — por enquanto: Receituário, Atestado e Exames.'); return; }
   rxState.tipoDoc = t;
   rxRerender(false);
@@ -22549,6 +22552,7 @@ function prRenderPrescritor() {
         ${docBtn('carta', 'Carta', 'mail', 'breve')}
         ${docBtn('exames', 'Solicitação de Exames', 'flask')}
         ${docBtn('injetaveis', 'Injetáveis', 'vaccine')}
+        ${docBtn('medbase', 'Medicamento base (GLP-1)', 'syringe')}
         ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
         ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
       </div>
