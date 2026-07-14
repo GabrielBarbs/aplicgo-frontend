@@ -6845,6 +6845,12 @@
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando agentes de IA…</div>
     </div>
 
+    <!-- Manutenção de dados -->
+    <div class="dev-toolbar" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div class="dev-info"><strong><i class="ti ti-wrench"></i> Manutenção:</strong> conserta exames antigos com o bug de deslocamento de coluna (unidade/referência trocadas na leitura por IA).</div>
+      <button class="pac-btn-secondary" style="white-space:nowrap" onclick="devCorrigirExames(this)"><i class="ti ti-wand"></i> Corrigir exames deslocados</button>
+    </div>
+
     <div id="dev-conteudo">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
     </div>
@@ -17955,6 +17961,20 @@ function devIARender(d) {
 }
 
 // ==================== Agentes de IA (catálogo + doc + prompt editável + chat especialista) ====================
+// Manutenção: conserta exames antigos com deslocamento de coluna (unidade/ref trocadas).
+async function devCorrigirExames(btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const dry = await pacApi('/api/clinico/dev/exames/corrigir-deslocamento?dry=1', { method: 'POST' });
+    if (!dry.ok) { homeToast('Não consegui checar: ' + (dry.data.erro || '--')); return; }
+    const n = dry.data.registros_afetados || 0, mm = dry.data.marcadores_corrigidos || 0;
+    if (!n) { homeToast('Nenhum exame com deslocamento — tudo certo. ✓'); return; }
+    if (!confirm(`${n} exame(s) com ${mm} marcador(es) deslocado(s) (unidade/referência trocadas). Corrigir agora? É determinístico e idempotente.`)) return;
+    const r = await pacApi('/api/clinico/dev/exames/corrigir-deslocamento', { method: 'POST' });
+    if (!r.ok) { homeToast('Não consegui corrigir: ' + (r.data.erro || '--')); return; }
+    homeToast(`Corrigido: ${r.data.registros_afetados} exame(s), ${r.data.marcadores_corrigidos} marcador(es). ✓`);
+  } finally { if (btn) btn.disabled = false; }
+}
 let devAgState = { agentes: [], aberto: null, chat: [], propostas: [], enviando: false, edits: {}, chatDraft: '' };
 
 async function devAgentesCarregar() {
