@@ -6183,6 +6183,11 @@
   .tk-badge.done{background:var(--bg3);color:var(--tx3)}
   .tk-badge.chat{background:var(--bg3);color:var(--tx3)}
   .tk-badge.cont{background:rgba(232,148,90,.16);color:var(--ac)}
+  /* Tarefas compartilhadas: quem está tocando + subtítulo da fila do posto */
+  .tk-badge.and{background:rgba(74,144,226,.16);color:#4A90E2}
+  .mt-sub{font-size:11px;color:var(--tx4);margin:2px 0 8px}
+  .mt-acts{display:flex;gap:6px;align-items:center;flex-shrink:0}
+  .mt-acts .tk-btn{padding:5px 10px;font-size:11px;white-space:nowrap}
   .tkd-back{background:transparent;border:0;color:var(--tx3);cursor:pointer;font-size:19px;line-height:1;margin-right:4px;padding:0}
   .tkd-badges{display:flex;flex-wrap:wrap;gap:6px;padding:12px 18px 2px}
   .tkd-meta{display:grid;grid-template-columns:1fr 1fr;gap:11px 16px;padding:12px 18px 6px}
@@ -6312,6 +6317,17 @@
           </div>
           <div id="home-mt-lista">
             <div class="dash-vazio">Carregando…</div>
+          </div>
+
+          <!-- Tarefas do POSTO (cargo + unidade): todas do grupo veem a mesma e qualquer uma
+               conclui. Fica escondido pra quem não tem nenhuma (médico/gestor não veem card vazio). -->
+          <div id="home-comp-bloco" style="display:none;">
+            <div class="dash-card-head" style="margin-top:18px;">
+              <div class="ttl"><i class="ti ti-users-group"></i> Tarefas compartilhadas</div>
+              <span class="dash-count" id="home-comp-count">—</span>
+            </div>
+            <div class="mt-sub" id="home-comp-sub"></div>
+            <div id="home-comp-lista"></div>
           </div>
         </div>
 
@@ -10196,6 +10212,7 @@ let homeMTData = { recebidas: [], deleguei: [] };
 let homeMTFiltroAtual = 'hoje';
 
 async function homeMinhasCarregar() {
+  homeCompCarregar();   // fila do posto: independente, não pode cair junto se /tarefas falhar
   let d = null;
   try { const r = await pacApi('/api/clinico/tarefas'); if (r.ok) d = r.data; } catch (e) {}
   const box = document.getElementById('home-mt-lista');
@@ -10292,6 +10309,85 @@ function homeDelRender() {
   box.innerHTML = html;
 }
 function homeAbrirDeleguei() { homeTkBox = 'deleguei'; homeTarefasAbrir(); }
+
+// ============================================================
+// HOME: "Tarefas compartilhadas" — a fila do POSTO (cargo + unidade primária).
+// Todas do posto veem a MESMA tarefa; "Em andamento" só sinaliza quem está tocando
+// (não trava: qualquer uma conclui). O bloco some pra quem não tem nenhuma.
+// ============================================================
+let homeCompData = [];
+async function homeCompCarregar() {
+  let d = null;
+  try { const r = await pacApi('/api/clinico/tarefas/compartilhadas'); if (r.ok) d = r.data; } catch (e) {}
+  // Falha de rede != "não tem tarefa": esconder aqui mentiria. Mostra o erro no bloco.
+  if (!d || !d.ok) { homeCompData = null; homeCompRender(); return; }
+  homeCompData = d.itens || [];
+  homeCompRender();
+}
+function homeCompRender() {
+  const bloco = document.getElementById('home-comp-bloco');
+  const box = document.getElementById('home-comp-lista');
+  const cnt = document.getElementById('home-comp-count');
+  const sub = document.getElementById('home-comp-sub');
+  if (!bloco || !box) return;
+  if (homeCompData === null) {   // erro ao carregar
+    bloco.style.display = '';
+    if (cnt) cnt.textContent = '—';
+    if (sub) sub.textContent = '';
+    box.innerHTML = '<div class="dash-vazio">Não consegui carregar as tarefas compartilhadas.</div>';
+    return;
+  }
+  const abertas = (homeCompData || []).filter(i => i.status === 'aberta').sort(tkCmpPrazo);
+  // Sem nenhuma: o card inteiro some (médico/gestor não veem caixa vazia ocupando a home).
+  if (!abertas.length) { bloco.style.display = 'none'; return; }
+  bloco.style.display = '';
+  if (cnt) cnt.textContent = abertas.length;
+  const andando = abertas.filter(i => i.em_andamento_por).length;
+  if (sub) sub.textContent = andando ? `${andando} já em andamento` : 'Ninguém pegou ainda';
+  box.innerHTML = abertas.map(homeCompRow).join('');
+}
+function homeCompRow(i) {
+  const prioCor = i.prioridade === 'alta' ? '#f85149' : (i.prioridade === 'baixa' ? 'var(--tx4)' : '#e3b341');
+  const badges = homeTarefaBadge(i)
+    + (i.coment_count ? `<span class="tk-badge chat"><i class="ti ti-message-circle" style="font-size:10px"></i> ${i.coment_count}</span>` : '');
+  // Quem pegou fica visível pra todas — é o que evita duas pessoas ligando pro mesmo paciente.
+  const andamento = i.em_andamento_por
+    ? `<span class="tk-badge and"><i class="ti ti-player-play" style="font-size:10px"></i> ${i.em_andamento_sou_eu ? 'com você' : esc(i.em_andamento_nome)}</span>`
+    : '';
+  const posto = [i.grupo_cargo_nome, i.grupo_unidade].filter(Boolean).join(' · ');
+  const pac = i.paciente_nome ? ` · <i class="ti ti-user" style="font-size:11px"></i> ${esc(i.paciente_nome)}` : '';
+  // Qualquer uma do posto conclui, tenha pego ou não (decisão do Matheus).
+  const btnAnd = i.em_andamento_por
+    ? (i.em_andamento_sou_eu ? `<button class="tk-btn ghost" onclick="event.stopPropagation();homeCompAndamento('${i.id}', false, this)"><i class="ti ti-player-pause"></i> Soltar</button>` : '')
+    : `<button class="tk-btn ghost" onclick="event.stopPropagation();homeCompAndamento('${i.id}', true, this)"><i class="ti ti-player-play"></i> Em andamento</button>`;
+  return `<div class="mt-row" onclick="homeTarefaDetalhe('${i.id}')">
+    <button class="tk-check" onclick="event.stopPropagation();homeCompConcluir('${i.id}', this)" title="Concluir"><i class="ti ti-check"></i></button>
+    <div class="mt-body">
+      <div class="mt-ttl">${esc(i.titulo)} ${badges}${andamento}</div>
+      ${i.descricao ? `<div class="mt-desc">${esc(i.descricao)}</div>` : ''}
+      <div class="mt-meta"><span class="prio" style="color:${prioCor}">●</span> <i class="ti ti-users-group" style="font-size:11px"></i> ${esc(posto || 'posto')}${pac}</div>
+    </div>
+    <span class="mt-acts" onclick="event.stopPropagation()">${btnAnd}</span>
+  </div>`;
+}
+async function homeCompAndamento(id, ligar, btn) {
+  if (btn) btn.disabled = true;
+  const r = await pacApi('/api/clinico/tarefas/' + id + '/andamento', { method: 'POST', body: JSON.stringify({ ligar }) });
+  if (!r.ok || !r.data || !r.data.ok) {
+    if (btn) btn.disabled = false;
+    homeToast((r.data && r.data.erro) || 'Não consegui marcar a tarefa.');
+    return;
+  }
+  // Recarrega a fila: outra pessoa pode ter pego enquanto isso — reusar o estado local mentiria.
+  homeCompCarregar();
+}
+async function homeCompConcluir(id, btn) {
+  if (btn) btn.disabled = true;
+  const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
+  if (!r.ok || !r.data || !r.data.ok) { if (btn) btn.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
+  homeToast('Tarefa concluída. ✓');
+  homeCompCarregar();
+}
 // Pendências como LISTA explícita (onboarding em aberto). Sem permissão → cai na contagem do resumo.
 async function homePendListCarregar(resumo) {
   const box = document.getElementById('home-pend-lista'); const cnt = document.getElementById('home-pend-count');
