@@ -11813,7 +11813,7 @@ async function injBuilderInit() {
 }
 function injNewBItem(sem) {
   const cat = injState.catalogo || [];
-  return { id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: sem, sku: cat[0] ? cat[0].sku : '', dose: '', via: '', frequencia: '', responsavel_id: '', incluso_padrao: 'depende_plano', observacao: '' };
+  return { id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: sem, sku: cat[0] ? cat[0].sku : '', dose: '', via: '', incluso_padrao: 'depende_plano', observacao: '' };
 }
 function injViaFirst(v) { const s = (v || '').toUpperCase(); for (const x of ['IM', 'EV', 'SC', 'ID']) if (s.indexOf(x) >= 0) return x; return ''; }
 function injBuilderBlank() { injState.builder = [injNewBItem(1)]; injBuilderRender(); }
@@ -11834,11 +11834,8 @@ function injBuilderRender() {
   let html = '';
   for (const s of semanas) {
     const wk = items.filter((i) => i.semana === s);
-    // responsável "da semana" = mostra selecionado só quando TODOS os itens têm o mesmo responsável.
-    const mesmoResp = wk.length && wk.every((i) => i.responsavel_id === wk[0].responsavel_id) ? wk[0].responsavel_id : '';
-    const respSel = '<option value="">responsável da semana…</option>' + (injState.profs || []).map((p) => `<option value="${esc(p.id)}"${p.id === mesmoResp ? ' selected' : ''}>${esc(p.nome)}</option>`).join('');
+    // "Responsável da semana" saiu daqui (será reimplementado de outra forma).
     html += `<div class="inj-wk"><div class="inj-wk-h"><span>Semana ${s} <span style="color:var(--tx4);font-weight:400">· ${wk.length} ${wk.length === 1 ? 'item' : 'itens'}</span></span><div class="inj-wk-acts">`
-      + `<select class="pac-search inj-wk-resp" onchange="injBuilderSetSemanaResp(${s}, this.value)" title="define o responsável de todos os itens desta semana">${respSel}</select>`
       + `<button class="inj-mini" onclick="injBuilderAddItem(${s})" title="adicionar item"><i class="ti ti-plus"></i> item</button>`
       + `<button class="inj-mini" onclick="injBuilderDupSemana(${s})" title="duplicar esta semana"><i class="ti ti-copy"></i></button>`
       + `<button class="inj-mini" onclick="injBuilderRemoveSemana(${s})" title="remover semana inteira">×</button>`
@@ -11858,7 +11855,6 @@ function injBuilderRow(it) {
   const foraOpt = known ? '' : `<option value="${esc(it.sku)}" selected>⚠ fora do catálogo: ${esc(it.sku)}</option>`;
   const opts = foraOpt + cat.map((c) => `<option value="${esc(c.sku)}"${(known && c.sku === it.sku) ? ' selected' : ''}>${esc(c.produto)}</option>`).join('');
   const viaOpts = [['', 'via'], ['IM', 'IM'], ['EV', 'EV'], ['SC', 'SC'], ['ID', 'ID']].map(([v, l]) => `<option value="${v}"${v === it.via ? ' selected' : ''}>${l}</option>`).join('');
-  const profOpts = '<option value="">— responsável —</option>' + (injState.profs || []).map((p) => `<option value="${esc(p.id)}"${p.id === it.responsavel_id ? ' selected' : ''}>${esc(p.nome)}</option>`).join('');
   // Incluso = já liberado sem cobrança; "plano decide" cai no motor (cobra se o plano não cobrir).
   const incVal = it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano';
   const incOpts = [['depende_plano', 'Cobrança: plano'], ['incluso', 'Incluso (grátis)']].map(([v, l]) => `<option value="${v}"${incVal === v ? ' selected' : ''}>${l}</option>`).join('');
@@ -11869,8 +11865,7 @@ function injBuilderRow(it) {
     + `<select class="pac-search" data-bid="${it.id}" data-f="sku" onchange="injBuilderSet(this)">${opts}</select>`
     + `<input class="pac-search" data-bid="${it.id}" data-f="dose" value="${injAttr(it.dose)}" placeholder="dose" onchange="injBuilderSet(this)">`
     + `<select class="pac-search" data-bid="${it.id}" data-f="via" onchange="injBuilderSet(this)">${viaOpts}</select>`
-    + `<input class="pac-search" data-bid="${it.id}" data-f="frequencia" value="${injAttr(it.frequencia)}" placeholder="freq" onchange="injBuilderSet(this)">`
-    + `<select class="pac-search" data-bid="${it.id}" data-f="responsavel_id" onchange="injBuilderSet(this)">${profOpts}</select>`
+    // "freq" e "responsável" saíram da linha (serão reimplementados de outra forma).
     + `<select class="pac-search" data-bid="${it.id}" data-f="incluso_padrao" onchange="injBuilderSet(this)" title="Incluso = liberado sem cobrança">${incOpts}</select>`
     + '<span class="inj-acts">'
     + `<button class="inj-mini${obsOpen ? ' on' : ''}" title="observação clínica" onclick="injBuilderToggleObs('${it.id}')"><i class="ti ti-note"></i></button>`
@@ -11909,12 +11904,14 @@ function injBuilderRemoveSemana(s) {
   injBuilderRenumber();
   injBuilderRender();
 }
-// Define o responsável de TODOS os itens da semana de uma vez (a mesma pessoa costuma aplicar a semana toda).
-function injBuilderSetSemanaResp(s, val) {
-  injBuilderSync();
-  (injState.builder || []).forEach((i) => { if (i.semana === s) i.responsavel_id = val; });
-  injBuilderRender();
-}
+// DESATIVADA: "responsável da semana" saiu da nova prescrição — nada chama isto hoje. Mantida
+// só como referência da regra antiga (aplicava a mesma pessoa a todos os itens da semana) até a
+// reimplementação. Se for reaproveitar, note que o builder não guarda mais responsavel_id.
+// function injBuilderSetSemanaResp(s, val) {
+//   injBuilderSync();
+//   (injState.builder || []).forEach((i) => { if (i.semana === s) i.responsavel_id = val; });
+//   injBuilderRender();
+// }
 function injBuilderDupItem(id) {
   injBuilderSync();
   const it = (injState.builder || []).find((x) => x.id === id); if (!it) return;
@@ -11935,7 +11932,9 @@ async function injPrescrever2() {
   const catSkus = new Set((injState.catalogo || []).map((c) => c.sku));
   const fora = [...new Set((injState.builder || []).filter((i) => i.sku && !catSkus.has(i.sku)).map((i) => i.sku))];
   if (fora.length) { homeToast('Insumo fora do catálogo: ' + fora.join(', ') + '. Escolha um insumo válido antes de prescrever.'); return; }
-  const itens = (injState.builder || []).filter((i) => i.sku).map((i) => ({ sku_ativo: i.sku, semana: i.semana, dose: i.dose || null, via: i.via || null, frequencia: i.frequencia || null, responsavel_id: i.responsavel_id || null, incluso_padrao: i.incluso_padrao || 'depende_plano', observacao: (i.observacao && i.observacao.trim()) ? i.observacao.trim() : null }));
+  // frequencia e responsavel_id saíram do fluxo (serão reimplementados de outra forma) -> não
+  // são mais enviados. As colunas seguem no backend; prescrições antigas mantêm o que já tinham.
+  const itens = (injState.builder || []).filter((i) => i.sku).map((i) => ({ sku_ativo: i.sku, semana: i.semana, dose: i.dose || null, via: i.via || null, incluso_padrao: i.incluso_padrao || 'depende_plano', observacao: (i.observacao && i.observacao.trim()) ? i.observacao.trim() : null }));
   if (!itens.length) { homeToast('Adicione ao menos um item com insumo.'); return; }
   const res = document.getElementById('inj-presc-result');
   res.innerHTML = '<div class="pac-empty" style="padding:10px">Prescrevendo…</div>';
