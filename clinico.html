@@ -7583,7 +7583,7 @@
       <!-- Tipo + Profissional + Unidade -->
       <div class="pac-form-section">
         <div class="pac-form-section-title"><i class="ti ti-list"></i> Atendimento</div>
-        <div class="pac-form-grid col-3">
+        <div class="pac-form-grid col-3" id="ag-grid-atendimento">
           <div class="pac-field">
             <label>Tipo <span class="req">*</span></label>
             <select id="ag-type" required>
@@ -7596,7 +7596,7 @@
               <option value="">—</option>
             </select>
           </div>
-          <div class="pac-field">
+          <div class="pac-field" id="ag-field-prof">
             <label>Profissional <span class="req">*</span></label>
             <select id="ag-prof" required>
               <option value="">—</option>
@@ -7618,7 +7618,7 @@
             <label id="ag-hora-label">Hora início <span class="req">*</span></label>
             <input type="text" inputmode="numeric" maxlength="5" placeholder="hh:mm" id="ag-hora" oninput="mascararHora(this, event)">
           </div>
-          <div class="pac-field">
+          <div class="pac-field" id="ag-field-duracao">
             <label>Duração (min)</label>
             <input type="number" id="ag-duracao" min="5" max="240" step="5">
           </div>
@@ -7627,7 +7627,7 @@
 
       <!-- Recorrência -->
       <!-- Toggle teleconsulta (online) -->
-      <div class="pac-form-section">
+      <div class="pac-form-section" id="ag-tele-section">
         <div class="ag-tele-box ${''}" id="ag-tele-box">
           <label class="ag-tele-row">
             <input type="checkbox" id="ag-tele-toggle" onchange="agToggleTele()">
@@ -10676,6 +10676,7 @@ async function homeTarefaAgendarSessao(prescId, semana, patientId, btn) {
   agAbrirNovoModal();   // chama agResetForm() -> limpa o vínculo
   agSelecionarPaciente({ id: pac.id, codigo: pac.codigo, nome: pac.nome_completo || pac.nome, telefone: pac.telefone1, status: pac.status });
   agState.injVinculo = { prescricaoId: prescId, semana: Number(semana) };   // depois do reset
+  agAplicarModoInjecao();   // depois do vínculo: é dele que o modo deriva
   homeToast(`Agendando a sessão ${semana}. Ao salvar, a tarefa se conclui sozinha.`);
 }
 
@@ -14579,7 +14580,7 @@ function agListaRowAgendamento(a) {
     </div>
     <div style="border-left:3px solid ${cor}; padding-left:12px; flex:1;">
       <div style="font-size:13px; color:var(--tx1); font-weight:500;">${esc(a.patient.nomeCompleto)}</div>
-      <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">${agFmtHora(dt)} · ${esc(a.type.nome)} · ${esc(a.professional.name || a.professional.email)}</div>
+      <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">${agFmtHora(dt)} · ${esc(a.type.nome)} · ${esc(agNomeProf(a.professional))}</div>
     </div>
     <span style="font-size:10px; padding:3px 10px; border-radius:5px; background:${cor}25; color:${cor}; font-weight:600;">${agStatusLabel(a.status, a.cancelado_por_origem)}</span>
   </div>`;
@@ -14856,7 +14857,7 @@ function agAbrirStatusModal(id) {
     if (ag) {
       const dt = new Date(ag.start_at);
       const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${esc(ag.patient.nomeCompleto)}</strong> · ${esc(ag.type.nome)} · ${dataFmt} · ${esc(ag.professional.name || ag.professional.email)}`;
+      info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${esc(ag.patient.nomeCompleto)}</strong> · ${esc(ag.type.nome)} · ${dataFmt} · ${esc(agNomeProf(ag.professional))}`;
     } else { info.innerHTML = ''; }
   }
   document.getElementById('ag-status-modal').classList.add('aberto');
@@ -14880,7 +14881,7 @@ function agAbrirAcoesModal(id) {
   if (ag) {
     const dt = new Date(ag.start_at);
     const dataFmt = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${esc(ag.patient.nomeCompleto)}</strong> · ${esc(ag.type.nome)} · ${dataFmt} · ${esc(ag.professional.name || ag.professional.email)}`;
+    info.innerHTML = `<i class="ti ti-user-circle" style="color:#4A90E2; margin-right:5px;"></i><strong>${esc(ag.patient.nomeCompleto)}</strong> · ${esc(ag.type.nome)} · ${dataFmt} · ${esc(agNomeProf(ag.professional))}`;
   } else {
     info.innerHTML = '';
   }
@@ -16794,7 +16795,12 @@ async function agAbrirEditarModal(id) {
 
   document.getElementById('ag-type').value = a.type.id;
   document.getElementById('ag-unit').value = a.unit.id;
-  document.getElementById('ag-prof').value = a.professional.id;
+  // Aplicação de injetável não tem profissional: `a.professional.id` estouraria ao abrir a edição.
+  document.getElementById('ag-prof').value = a.professional ? a.professional.id : '';
+  // E o modal tem que reabrir enxuto. Sem esta flag o campo de profissional voltaria visível e
+  // vazio, e o Salvar exigiria escolher alguém pra um atendimento que é da enfermagem da unidade.
+  agState.injSemProf = !a.professional;
+  agAplicarModoInjecao();
   // GET /:id devolve o objeto cru do Prisma (camelCase): startAt/endAt
   const start = new Date(a.startAt);
   const end = new Date(a.endAt);
@@ -16935,6 +16941,73 @@ async function agMudarStatus(id, novoStatus) {
   agCarregar();
 }
 
+// Como se chama o "profissional" de um agendamento na tela. Nulo NÃO é dado faltando: é aplicação
+// de injetável, que por desenho não tem dono — o atendimento é da ENFERMAGEM da unidade e qualquer
+// uma delas aplica. Espelha nomeDoProfissional() do backend; sem uma função só, cada tela inventa
+// o seu rótulo ('--', vazio, 'Sem profissional') e elas divergem.
+function agNomeProf(p) {
+  if (!p) return 'Enfermagem';
+  return p.name || p.email || 'Profissional';
+}
+
+// Acha o tipo "Aplicação de injetável" no catálogo. O catálogo é do banco e a clínica edita, então
+// o nome não é garantido: procura por slug E por nome, sem acento. Devolve null quando não acha OU
+// quando acha mais de um — agendar no tipo errado é pior do que perguntar.
+function agTipoAplicacao() {
+  const norm = (s) => String(s || '').toLowerCase();   // 'aplic'/'inje' não têm acento: normalizar seria ruído
+  const texto = (t) => norm(t.slug) + ' ' + norm(t.nome);
+  const tipos = agState.tipos || [];
+  const exatos = tipos.filter((t) => /aplic/.test(texto(t)) && /inje/.test(texto(t)));
+  if (exatos.length === 1) return exatos[0];
+  if (exatos.length > 1) return null;
+  const soAplic = tipos.filter((t) => /aplic/.test(texto(t)));
+  return soAplic.length === 1 ? soAplic[0] : null;
+}
+
+// Modo "aplicação de injetável": o modal fica só com o essencial. O tipo já vem escolhido (é uma
+// aplicação), não há profissional (o atendimento é da enfermagem da unidade), a duração é a do
+// tipo, e teleconsulta/recorrência não existem aqui — injeção não é online e cada sessão se agenda
+// uma a uma (o servidor recusa recorrência + prescrição).
+// TUDO deriva do estado, e agResetForm chama isto DEPOIS de zerar as flags: se o esconder ficasse
+// pendurado no DOM, o próximo agendamento normal abriria sem o campo de profissional e ninguém
+// conseguiria salvar.
+function agModoInjecao() {
+  return !!(agState.injVinculo || agState.injSemProf);
+}
+function agAplicarModoInjecao() {
+  const inj = agModoInjecao();
+  const ver = (id, mostrar) => { const el = document.getElementById(id); if (el) el.style.display = mostrar ? '' : 'none'; };
+  ver('ag-field-prof', !inj);
+  ver('ag-field-duracao', !inj);
+  ver('ag-tele-section', !inj);
+  ver('ag-recorrencia-section', !inj);
+
+  const tipoSel = document.getElementById('ag-type');
+  if (!inj) { if (tipoSel) tipoSel.disabled = false; return; }
+
+  // Esconder não basta: o valor que ficou no campo continuaria sendo lido e enviado.
+  const prof = document.getElementById('ag-prof');
+  if (prof) prof.value = '';
+  const dur = document.getElementById('ag-duracao');
+  if (dur) dur.value = '';
+  const tele = document.getElementById('ag-tele-toggle');
+  if (tele) tele.checked = false;
+  const rec = document.getElementById('ag-recorrente-toggle');
+  if (rec) rec.checked = false;
+
+  if (!tipoSel) return;
+  const t = agTipoAplicacao();
+  if (t) {
+    tipoSel.value = t.id;
+    tipoSel.disabled = true;   // é uma aplicação; trocar o tipo aqui não faria sentido
+  } else {
+    // Não achou (ou achou mais de um): deixa escolher na mão e AVISA. Travar um select vazio
+    // deixaria a recepção sem conseguir salvar, e chutar o tipo agendaria a coisa errada.
+    tipoSel.disabled = false;
+    if (typeof homeToast === 'function') homeToast('Não achei o tipo "Aplicação de injetável" na agenda — escolha o tipo na mão.');
+  }
+}
+
 function agResetForm() {
   document.getElementById('ag-form-id').value = '';
   document.getElementById('ag-form-patient-id').value = '';
@@ -16943,6 +17016,7 @@ function agResetForm() {
   // Limpar aqui é obrigatório: sem isso o PRÓXIMO agendamento herdaria a sessão do anterior e
   // fecharia a tarefa errada. Quem vem da tarefa seta o vínculo DEPOIS deste reset.
   agState.injVinculo = null;
+  agState.injSemProf = false;
   agRenderPacienteSelecionado();
   document.getElementById('ag-type').value = '';
   document.getElementById('ag-data').value = '';
@@ -17010,6 +17084,10 @@ function agResetForm() {
   // Pré-seleciona unidade primária
   const primaria = pacState.unidades.find(u => u.primaria);
   if (primaria) document.getElementById('ag-unit').value = primaria.id;
+  // Por último e sempre: devolve os campos escondidos pelo modo aplicação. As flags acabaram de
+  // ser zeradas, então isto SEMPRE restaura. Sem esta linha, quem abrisse um agendamento normal
+  // depois de agendar uma aplicação não veria o campo de profissional — e não conseguiria salvar.
+  agAplicarModoInjecao();
 }
 
 function agToggleTele() {
@@ -17341,10 +17419,17 @@ async function agSalvar() {
   const typeId = document.getElementById('ag-type').value;
   const data = document.getElementById('ag-data').value;
   const hora = document.getElementById('ag-hora').value;
-  const dur = parseInt(document.getElementById('ag-duracao').value) || 30;
+  // Aplicação de injetável não tem campo de duração: quem manda é a duração do TIPO.
+  // Não dá pra só omitir o end_at e deixar o servidor calcular, porque o PUT da edição só mexe no
+  // que recebe — mudar só a hora deixaria o fim no horário antigo (podendo terminar antes de começar).
+  const inj = agModoInjecao();
+  const tipoOpt = document.getElementById('ag-type').selectedOptions[0];
+  const durTipo = tipoOpt ? parseInt(tipoOpt.dataset.dur) : 0;
+  const dur = inj ? durTipo : (parseInt(document.getElementById('ag-duracao').value) || 30);
 
   if (!patientId) { erroEl.textContent = 'Selecione um paciente'; erroEl.style.display = 'block'; return; }
-  if (!profId) { erroEl.textContent = 'Selecione o profissional'; erroEl.style.display = 'block'; return; }
+  if (!inj && !profId) { erroEl.textContent = 'Selecione o profissional'; erroEl.style.display = 'block'; return; }
+  if (inj && !dur) { erroEl.textContent = 'Não consegui saber a duração deste tipo de atendimento. Escolha o tipo de novo.'; erroEl.style.display = 'block'; return; }
   if (!unitId) { erroEl.textContent = 'Selecione a unidade'; erroEl.style.display = 'block'; return; }
   if (!typeId) { erroEl.textContent = 'Selecione o tipo de atendimento'; erroEl.style.display = 'block'; return; }
   // Sem `!id`: a recorrência agora também é editável, e o bloco lá embaixo monta recurrence_dias
@@ -17383,14 +17468,19 @@ async function agSalvar() {
 
   const body = {
     patient_id: patientId,
-    professional_id: profId,
     unit_id: unitId,
     type_id: typeId,
     start_at: startAt.toISOString(),
     end_at: endAt.toISOString(),
-    online: document.getElementById('ag-tele-toggle').checked,
     observacoes: document.getElementById('ag-observacoes').value.trim() || null,
   };
+  // No modo aplicação estes campos não existem no formulário. Mandar profissional vazio faria o
+  // servidor recusar com "Dados inválidos" (ele espera um uuid ou nada), e teleconsulta não é
+  // pergunta pra uma injeção — omitido, o servidor grava false na criação e não mexe na edição.
+  if (!inj) {
+    body.professional_id = profId;
+    body.online = document.getElementById('ag-tele-toggle').checked;
+  }
 
   // Veio da tarefa "Agendar aplicação": amarra o agendamento à sessão da prescrição. É o que faz
   // a tarefa se concluir sozinha e o que a enfermeira usa pra saber o que aplicar.
