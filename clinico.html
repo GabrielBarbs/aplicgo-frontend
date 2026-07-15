@@ -12297,18 +12297,76 @@ async function injCarregarCobranca() {
   try { const r = await pacApi('/api/clinico/prescricoes-inj/orcamentos?status=pendente'); if (r.ok) orcs = r.data.orcamentos || []; else errO = true; } catch (e) { errO = true; }
   const fbox = document.getElementById('inj-fila');
   if (fbox) fbox.innerHTML = errF ? INJ_ERRO : (fila.length
-    ? fila.map((f) => `<div class="inj-res-item"><div><strong>${esc(f.paciente || '—')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(f.protocolo_id || 'avulsa')}</span><div style="font-size:11px;color:var(--tx3)">${f.itens} item(ns) · ${homeGestorFmtBRL(f.valor_total_cents)}</div></div><button class="tk-btn primary" onclick="injGerarOrcamento('${f.prescricao_id}',this)">Gerar orçamento</button></div>`).join('')
+    ? fila.map((f) => {
+        injCobrancaCache[f.prescricao_id] = f;   // o modal precisa das sessões sem refazer o fetch
+        const ses = (f.sessoes || []).length;
+        return `<div class="inj-res-item"><div><strong>${esc(f.paciente || '—')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(f.protocolo_id || 'avulsa')}</span><div style="font-size:11px;color:var(--tx3)">${ses} sessão(ões) a cobrar · ${f.itens} item(ns) · ${homeGestorFmtBRL(f.valor_total_cents)}</div></div><button class="tk-btn primary" onclick="injCobrarModal('${f.prescricao_id}')">Cobrar…</button></div>`;
+      }).join('')
     : '<div class="pac-empty" style="padding:12px">Nada a cobrar.</div>');
   const obox = document.getElementById('inj-orcs');
   if (obox) obox.innerHTML = errO ? INJ_ERRO : (orcs.length
     ? orcs.map((o) => `<div class="inj-res-item"><div><strong>${esc(o.paciente || '—')}</strong> <span style="color:var(--tx4);font-size:11px">${esc(o.protocolo_id || '')}</span><div style="font-size:11px;color:var(--tx3)">${homeGestorFmtBRL(o.valor_total_cents)}</div></div><button class="tk-btn primary" onclick="injPagarModal('${o.id}',${o.valor_total_cents || 0})">Confirmar pagamento</button></div>`).join('')
     : '<div class="pac-empty" style="padding:12px">Nenhum orçamento pendente.</div>');
 }
+// A sessão é a SEMANA, e o paciente pode pagar semana a semana OU o total de uma vez. Antes havia
+// um "Gerar orçamento" que cobrava as N semanas juntas e nem mandava corpo na requisição — não
+// existia como cobrar uma sessão só. Agora a recepção marca o que ele vai pagar AGORA.
+let injCobrancaCache = {};
+function injCobrarModal(prescId) {
+  const f = injCobrancaCache[prescId];
+  if (!f || !(f.sessoes || []).length) { homeToast('Não consegui carregar as sessões desta prescrição.'); return; }
+  const linhas = f.sessoes.map((s) => `
+    <label class="inj-ses-row" style="display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--hair);cursor:pointer">
+      <input type="checkbox" class="inj-ses-ck" value="${s.semana}" checked onchange="injCobrarTotal()">
+      <span style="flex:1;font-size:13px;color:var(--tx1)">Sessão ${s.semana}<span style="color:var(--tx4);font-size:11px"> · ${s.itens} item(ns)</span></span>
+      <span style="font-size:13px;color:var(--tx2);font-variant-numeric:tabular-nums">${homeGestorFmtBRL(s.valor_cents)}</span>
+    </label>`).join('');
+  injOverlay(`
+    <div style="font-size:15px;font-weight:700;color:var(--tx1)">Cobrar — ${esc(f.paciente || '—')}</div>
+    <div style="font-size:12px;color:var(--tx3);margin:4px 0 10px">Marque o que ele vai pagar agora. Cada sessão paga vira uma tarefa de agendamento.</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <button class="tk-btn" style="background:var(--bg3);color:var(--tx2);font-size:11px" onclick="injCobrarMarcar(true)">Marcar todas</button>
+      <button class="tk-btn" style="background:var(--bg3);color:var(--tx2);font-size:11px" onclick="injCobrarMarcar(false)">Desmarcar</button>
+    </div>
+    <div id="inj-ses-lista" style="max-height:240px;overflow-y:auto">${linhas}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 10px;font-size:14px">
+      <span style="color:var(--tx3)">Total</span><strong id="inj-ses-total" style="color:var(--tx1);font-variant-numeric:tabular-nums">—</strong>
+    </div>
+    <button class="tk-btn primary" id="inj-ses-btn" style="width:100%" onclick="injGerarOrcamento('${prescId}', this)">Gerar orçamento</button>
+    <button class="tk-btn" style="margin-top:8px;width:100%;background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('inj-modal').remove()">Cancelar</button>`);
+  injCobrarTotal();
+}
+function injCobrarMarcar(v) {
+  document.querySelectorAll('.inj-ses-ck').forEach((c) => { c.checked = v; });
+  injCobrarTotal();
+}
+// O total é somado das sessões MARCADAS, não do valor cheio: a recepção fala esse número em voz
+// alta pro paciente — mostrar o total da prescrição enquanto ela cobra 2 semanas seria cobrar errado.
+function injCobrarTotal() {
+  const marcadas = [...document.querySelectorAll('.inj-ses-ck')].filter((c) => c.checked).map((c) => Number(c.value));
+  const f = injCobrancaCache[injCobrarPrescAtual()] || { sessoes: [] };
+  const cents = (f.sessoes || []).filter((s) => marcadas.includes(s.semana)).reduce((a, s) => a + (s.valor_cents || 0), 0);
+  const el = document.getElementById('inj-ses-total');
+  if (el) el.textContent = homeGestorFmtBRL(cents);
+  const btn = document.getElementById('inj-ses-btn');
+  if (btn) { btn.disabled = !marcadas.length; btn.style.opacity = marcadas.length ? '' : '.5'; }
+}
+function injCobrarPrescAtual() {
+  const b = document.getElementById('inj-ses-btn');
+  const m = b && b.getAttribute('onclick').match(/injGerarOrcamento\('([^']+)'/);
+  return m ? m[1] : '';
+}
 async function injGerarOrcamento(prescId, btn) {
+  const semanas = [...document.querySelectorAll('.inj-ses-ck')].filter((c) => c.checked).map((c) => Number(c.value));
+  if (!semanas.length) { homeToast('Marque ao menos uma sessão.'); return; }
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
-  let ok = false;
-  try { const r = await pacApi('/api/clinico/prescricoes-inj/' + prescId + '/orcamento', { method: 'POST', body: JSON.stringify({}) }); ok = r.ok; } catch (e) {}
-  homeToast(ok ? 'Orçamento gerado.' : 'Não foi possível gerar o orçamento.');
+  let r = null;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/' + prescId + '/orcamento', { method: 'POST', body: JSON.stringify({ semanas }) }); } catch (e) {}
+  const ov = document.getElementById('inj-modal'); if (ov) ov.remove();
+  // O erro do servidor diz QUAL sessão não tinha o que cobrar. Trocar por um "não foi possível"
+  // genérico esconderia justamente a informação que resolve.
+  if (!r || !r.ok || !r.data || !r.data.ok) homeToast((r && r.data && r.data.erro) || 'Não foi possível gerar o orçamento.');
+  else homeToast(`Orçamento de ${semanas.length} sessão(ões) gerado: ${homeGestorFmtBRL(r.data.valor_total_cents || 0)}`);
   injCarregarCobranca();
 }
 function injPagarModal(oid, valorCents) {
@@ -12317,9 +12375,17 @@ function injPagarModal(oid, valorCents) {
 }
 async function injPagarConfirmar(oid, forma) {
   const ov = document.getElementById('inj-modal'); if (ov) ov.remove();
-  let ok = false;
-  try { const r = await pacApi('/api/clinico/prescricoes-inj/orcamentos/' + oid + '/pagar', { method: 'POST', body: JSON.stringify({ forma_pagamento: forma }) }); ok = r.ok; } catch (e) {}
-  homeToast(ok ? 'Pagamento confirmado — itens liberados.' : 'Não foi possível confirmar o pagamento.');
+  let r = null;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/orcamentos/' + oid + '/pagar', { method: 'POST', body: JSON.stringify({ forma_pagamento: forma }) }); } catch (e) {}
+  // Este toast dizia "itens liberados" sempre, sem olhar a resposta — inclusive no 409 que existe
+  // pra avisar "NÃO cobre o paciente". Agora fala o que o servidor REALMENTE fez.
+  if (!r || !r.ok || !r.data || !r.data.ok) { homeToast((r && r.data && r.data.erro) || 'Não foi possível confirmar o pagamento.'); injCarregarCobranca(); return; }
+  const d = r.data;
+  const abertas = (d.semanas_abertas || []).length;
+  const falta = d.falta_cobrar || 0;
+  homeToast(abertas
+    ? `Pago. Sessão ${(d.semanas_abertas || []).join(', ')} liberada${abertas > 1 ? 's' : ''} — ${d.agendamentos_criados || 0} tarefa(s) de agendamento.` + (falta ? ` Ainda faltam ${falta} item(ns) a cobrar.` : '')
+    : `Pago, mas nenhuma sessão abriu ainda${falta ? ` — faltam ${falta} item(ns) a cobrar.` : '.'}`);
   injCarregarCobranca();
 }
 
