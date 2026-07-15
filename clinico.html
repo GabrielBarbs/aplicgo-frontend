@@ -1543,6 +1543,32 @@
       display: flex; align-items: center; gap: 6px;
     }
     .ag-recorrencia-info i { color: var(--ac); }
+    /* Panorama de horários das enfermeiras (botão ao lado da Data) */
+    .ag-pano-btn {
+      margin-left: 8px; background: transparent; border: 1px solid var(--bd1); color: var(--tx3);
+      border-radius: 6px; padding: 1px 7px; font-size: 9.5px; cursor: pointer; letter-spacing: .3px;
+      text-transform: none; font-family: inherit; transition: all .12s;
+    }
+    .ag-pano-btn:hover { border-color: var(--ac); color: var(--ac); }
+    .ag-pano-btn i { font-size: 10px; vertical-align: -1px; }
+    .agp-hint { padding: 12px 18px 8px; font-size: 11.5px; color: var(--tx3); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .agp-leg { display: flex; align-items: center; gap: 5px; color: var(--tx4); font-size: 10.5px }
+    /* amostra da legenda: classe própria, pra não ser confundida com as células clicáveis da grade */
+    .agp-sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; margin-left: 6px }
+    .agp-sw.livre { background: rgba(63,185,80,.20) }
+    .agp-sw.ag { background: rgba(232,148,90,.55) }
+    .agp-sw.bl { background: rgba(139,148,158,.40) }
+    .agp-wrap { padding: 0 18px 16px; overflow-x: auto }
+    .agp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px }
+    .agp-row.head .agp-h { font-size: 9px; color: var(--tx4); min-width: 13px; flex: 1 }
+    .agp-nome { width: 132px; flex-shrink: 0; font-size: 11.5px; color: var(--tx1); line-height: 1.25 }
+    .agp-nome span { display: block; font-size: 9.5px; color: var(--tx4) }
+    .agp-cells { display: flex; gap: 2px; flex: 1; min-width: 420px }
+    .agp-c { flex: 1; min-width: 13px; height: 22px; border-radius: 3px }
+    .agp-c.livre { background: rgba(63,185,80,.20); cursor: pointer }
+    .agp-c.livre:hover { background: rgba(63,185,80,.55) }
+    .agp-c.ag { background: rgba(232,148,90,.55) }
+    .agp-c.bl { background: rgba(139,148,158,.40) }
     /* Bisemanal: os dois dias, cada um com seu horário */
     .ag-bisem { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bd1); display: grid; gap: 8px; }
     .ag-bisem-hint { font-size: 11.5px; color: var(--tx3); line-height: 1.5; }
@@ -7610,7 +7636,9 @@
         <div class="pac-form-section-title"><i class="ti ti-clock"></i> Quando</div>
         <div class="pac-form-grid col-3">
           <div class="pac-field">
-            <label id="ag-data-label">Data <span class="req">*</span></label>
+            <label id="ag-data-label"><span id="ag-data-label-txt">Data <span class="req">*</span></span>
+              <button type="button" class="ag-pano-btn" onclick="agPanoAbrir()" title="Ver os horários livres das enfermeiras neste dia"><i class="ti ti-layout-grid"></i> livres</button>
+            </label>
             <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-data" oninput="mascararData(this, event); agBisemPreview()">
             <input type="hidden" id="ag-data">
           </div>
@@ -17150,6 +17178,118 @@ function agLegadoNoSelect(sel, pattern) {
   sel.appendChild(o);
 }
 
+// ============================================================
+// PANORAMA DE HORÁRIOS LIVRES DAS ENFERMEIRAS (botão ao lado da Data).
+// Sem endpoint novo: usa a agenda e os bloqueios que já existem, filtrados pela unidade escolhida
+// no formulário e pelas enfermeiras (?prof= aceita vários ids).
+//
+// A GRADE NÃO INVENTA EXPEDIENTE: não existe horário de funcionamento cadastrado em lugar nenhum
+// do sistema. A janela padrão (07–20) é só o RECORTE DE TELA, e ela ESTICA pra caber qualquer
+// compromisso fora dela — nada real pode ficar escondido atrás do recorte.
+// ============================================================
+const AG_PANO_H_INI = 7;    // recorte de tela; estica se houver compromisso fora
+const AG_PANO_H_FIM = 20;
+const AG_PANO_PASSO = 30;   // minutos por coluna
+
+function agPanoHhMm(min) {
+  return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
+}
+
+async function agPanoAbrir() {
+  const dia = document.getElementById('ag-data').value;
+  if (!dia) return homeToast('Escolha a data primeiro — o panorama é do dia.');
+  const unitId = document.getElementById('ag-unit').value || '';
+  const unitNome = (pacState.unidades.find((u) => u.id === unitId) || {}).nome || 'todas as unidades';
+  const enfs = (pacState.profissionais || []).filter((p) => p.role === 'enfermagem');
+
+  let ov = document.getElementById('ag-pano-ov'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'ag-pano-ov'; ov.className = 'atn-overlay';
+  ov.onclick = (e) => { if (e.target.id === 'ag-pano-ov') agPanoFechar(); };
+  ov.innerHTML = `<div class="atn-modal" style="max-width:920px">
+    <div class="atn-modal-head">
+      <div class="ttl"><i class="ti ti-layout-grid" style="color:var(--ac)"></i> Horários das enfermeiras · ${esc(dataDiaBR(dia + 'T00:00:00Z'))}</div>
+      <button class="x" onclick="agPanoFechar()">×</button>
+    </div>
+    <div class="atn-modal-body" id="ag-pano-body"><div class="atn-empty"><i class="ti ti-loader"></i> Carregando…</div></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const body = document.getElementById('ag-pano-body');
+
+  if (!enfs.length) {
+    body.innerHTML = '<div class="atn-empty">Nenhuma enfermeira cadastrada como profissional.</div>';
+    return;
+  }
+
+  const de = new Date(dia + 'T00:00:00');
+  const ate = new Date(de.getTime() + 86400000 - 1);
+  const q = 'start=' + encodeURIComponent(de.toISOString()) + '&end=' + encodeURIComponent(ate.toISOString())
+    + (unitId ? '&unit=' + encodeURIComponent(unitId) : '') + '&prof=' + enfs.map((p) => p.id).join(',');
+  let ags = [], blocos = [];
+  try {
+    const [ra, rb] = await Promise.all([
+      pacApi('/api/clinico/appointments?' + q),
+      pacApi('/api/clinico/appointments/blocks/list?' + q),
+    ]);
+    if (!ra.ok) throw new Error('agenda');
+    ags = (ra.data.agendamentos || []).filter((a) => !['CANCELADO', 'REAGENDADO'].includes(a.status));
+    blocos = (rb.ok && rb.data.blocos) ? rb.data.blocos : [];
+  } catch (e) {
+    // Erro != "tudo livre": marcar a grade toda como livre mandaria a recepcionista agendar em cima.
+    body.innerHTML = '<div class="atn-empty">Não consegui carregar a agenda das enfermeiras agora.'
+      + '<br><button class="pac-btn-secondary" style="margin-top:10px" onclick="agPanoAbrir()"><i class="ti ti-refresh"></i> Tentar de novo</button></div>';
+    return;
+  }
+
+  // Ocupações por enfermeira, em minutos do dia.
+  const minDoDia = (iso) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
+  const ocup = new Map(enfs.map((p) => [p.id, []]));
+  const push = (pid, ini, fim, tipo, txt) => { const a = ocup.get(pid); if (a) a.push({ ini, fim, tipo, txt }); };
+  for (const a of ags) push(a.professional?.id || a.professional_id, minDoDia(a.start_at), minDoDia(a.end_at), 'ag', (a.patient?.nomeCompleto || 'Agendamento').split(' ')[0]);
+  for (const b of blocos) push(b.professional?.id || b.professional_id, minDoDia(b.start_at), minDoDia(b.end_at), 'bl', b.titulo || 'Bloqueado');
+
+  // Recorte: padrão 07–20, esticado pra caber tudo que existe no dia.
+  let ini = AG_PANO_H_INI * 60, fim = AG_PANO_H_FIM * 60;
+  for (const arr of ocup.values()) for (const o of arr) {
+    if (o.ini < ini) ini = Math.floor(o.ini / 60) * 60;
+    if (o.fim > fim) fim = Math.ceil(o.fim / 60) * 60;
+  }
+  const cols = [];
+  for (let m = ini; m < fim; m += AG_PANO_PASSO) cols.push(m);
+
+  const horas = cols.map((m) => `<div class="agp-h">${m % 60 === 0 ? agPanoHhMm(m) : ''}</div>`).join('');
+  const linhas = enfs.map((p) => {
+    const arr = ocup.get(p.id) || [];
+    const cells = cols.map((m) => {
+      const o = arr.find((x) => x.ini < m + AG_PANO_PASSO && x.fim > m);
+      if (o) return `<div class="agp-c ${o.tipo}" title="${esc(o.txt)} · ${agPanoHhMm(o.ini)}–${agPanoHhMm(o.fim)}"></div>`;
+      return `<div class="agp-c livre" title="${esc(p.nome)} livre às ${agPanoHhMm(m)}" onclick="agPanoEscolher('${p.id}','${agPanoHhMm(m)}')"></div>`;
+    }).join('');
+    const livres = cols.filter((m) => !arr.some((x) => x.ini < m + AG_PANO_PASSO && x.fim > m)).length;
+    return `<div class="agp-row">
+      <div class="agp-nome">${esc(p.nome)}<span>${livres ? livres + ' livres' : 'sem espaço'}</span></div>
+      <div class="agp-cells">${cells}</div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `<div class="agp-hint">${esc(unitNome)} · clique num espaço livre pra usar aquele horário.
+      <span class="agp-leg"><i class="agp-sw livre"></i>livre <i class="agp-sw ag"></i>consulta <i class="agp-sw bl"></i>bloqueio</span></div>
+    <div class="agp-wrap">
+      <div class="agp-row head"><div class="agp-nome"></div><div class="agp-cells">${horas}</div></div>
+      ${linhas}
+    </div>`;
+}
+
+function agPanoFechar() { const o = document.getElementById('ag-pano-ov'); if (o) o.remove(); }
+
+// Clicar num espaço livre preenche hora + profissional no formulário (é o que a recepção faria na mão).
+function agPanoEscolher(profId, hora) {
+  const h = document.getElementById('ag-hora');
+  if (h && !h.disabled) h.value = hora;
+  const pf = document.getElementById('ag-prof');
+  if (pf) pf.value = profId;
+  agPanoFechar();
+}
+
 // ===== BISEMANAL: dois dias por semana, cada um com seu horário =====
 // Nome por extenso pro seletor. O AG_DIAS_SEMANA (linha ~13819) é abreviado e serve ao calendário.
 const AG_BISEM_DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
@@ -17171,7 +17311,9 @@ function agRecorPatternMudou() {
   if (horaLabel) horaLabel.innerHTML = bisem
     ? 'Hora início <span style="font-size:10px;color:var(--tx3)">— definida por dia abaixo</span>'
     : 'Hora início <span class="req">*</span>';
-  const dataLabel = document.getElementById('ag-data-label');
+  // Escreve só no TEXTO do label: o label também abriga o botão do panorama, e reescrever o
+  // innerHTML dele inteiro apagava o botão toda vez que o modal abria (agResetForm chama isto).
+  const dataLabel = document.getElementById('ag-data-label-txt');
   if (dataLabel) dataLabel.innerHTML = bisem
     ? 'A partir de <span class="req">*</span>'
     : 'Data <span class="req">*</span>';
