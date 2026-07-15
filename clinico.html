@@ -10580,9 +10580,11 @@ function homeTkRenderDetalhe() {
   // tarefa do posto e não veria "Concluir". Se o detalhe carregou, o servidor já autorizou
   // (GET /:id barra quem não é do posto), então quem chegou aqui pode agir.
   const podeAgir = !!(t.sou_dono || t.sou_criador || t.compartilhada);
-  // "Liberar" fecha o contrato/cobrança e abre os agendamentos (1 por sessão).
+  // Tarefa de contrato = COBRAR. Ela não libera nada: quem fecha o contrato e abre o agendamento
+  // é o PAGAMENTO (decisão do Matheus). O botão leva pra fila de cobrança, onde se gera o
+  // orçamento e se registra o recebimento — antes havia um "Liberar aplicações" que pulava os dois.
   if (!concl && t.origem_tipo === 'inj_contrato' && t.origem_id && podeAgir) {
-    acts.push(`<button class="tk-btn primary" onclick="homeTarefaLiberar('${t.origem_id}', '${t.id}', this)"><i class="ti ti-lock-open"></i> Liberar aplicações</button>`);
+    acts.push(`<button class="tk-btn primary" onclick="homeTarefaCobrar('${t.origem_id}')"><i class="ti ti-cash"></i> Ir para a cobrança</button>`);
   }
   // "Agendar" abre a agenda amarrada à sessão -> ao salvar, esta tarefa se conclui sozinha.
   if (!concl && t.origem_tipo === 'inj_agendar' && t.origem_id && t.origem_semana && t.patient_id && podeAgir) {
@@ -10710,28 +10712,16 @@ async function homeTarefaAgendarSessao(prescId, semana, patientId, btn) {
   agAplicarModoInjecao();
 }
 
-// "Liberar aplicações": fecha o contrato/cobrança e abre as tarefas de agendamento (1 por sessão).
-// Quem conclui a de contrato é o próprio Liberar — por isso ela não oferece "Concluir" solto:
-// marcar feito sem liberar deixaria a prescrição travada e os agendamentos nunca nasceriam.
-async function homeTarefaLiberar(prescId, taskId, btn) {
-  if (!confirm('Liberar as aplicações deste paciente?\n\nIsto conclui o contrato e cria uma tarefa de agendamento para cada sessão.')) return;
-  const orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Liberando...'; }
-  let r = null;
-  try { r = await pacApi('/api/clinico/prescricoes-inj/' + prescId + '/liberar', { method: 'POST', body: JSON.stringify({}) }); } catch (e) {}
-  if (!r || !r.ok || !r.data || !r.data.ok) {
-    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
-    homeToast((r && r.data && r.data.erro) || 'Não consegui liberar.');
-    return;
-  }
-  const n = r.data.agendamentos_criados || 0;
-  // alcance 0 = a fila de agendamento não tem ninguém. Dizer só "criadas" esconderia isso.
-  homeToast(n
-    ? `Liberado. ${n} agendamento(s) na fila da recepção.${r.data.alcance === 0 ? ' ATENÇÃO: ninguém tem essa unidade como primária — avisei o gestor.' : ''}`
-    : 'Liberado. (Os agendamentos já existiam.)');
+// Tarefa de contrato = COBRAR, e só. Leva pra fila de cobrança (gerar orçamento -> registrar
+// pagamento). A tarefa NÃO se conclui aqui: ela fecha sozinha quando o pagamento entra e não
+// sobra item por cobrar — e é aí que nascem as tarefas de agendar, uma por sessão.
+// Por isso ela também não oferece "Concluir" solto: marcar feito sem receber deixaria a
+// prescrição travada, e ninguém agendaria nada.
+function homeTarefaCobrar(prescId) {
   homeAtencaoFechar();
-  homeCompCarregar();
-  if (typeof homeTarefasSync === 'function') homeTarefasSync();
+  trocarView('injetaveis');
+  // a view monta a aba padrão; o timeout deixa ela existir antes de trocar
+  setTimeout(() => { if (typeof injTab === 'function') injTab('cobranca'); }, 60);
 }
 async function homeTarefaConcluir(id, btnEl) {
   if (btnEl) btnEl.disabled = true;
