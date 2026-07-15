@@ -10556,6 +10556,10 @@ function homeTkRenderDetalhe() {
   if (!concl && t.origem_tipo === 'inj_contrato' && t.origem_id && podeAgir) {
     acts.push(`<button class="tk-btn primary" onclick="homeTarefaLiberar('${t.origem_id}', '${t.id}', this)"><i class="ti ti-lock-open"></i> Liberar aplicações</button>`);
   }
+  // "Agendar" abre a agenda amarrada à sessão -> ao salvar, esta tarefa se conclui sozinha.
+  if (!concl && t.origem_tipo === 'inj_agendar' && t.origem_id && t.origem_semana && t.patient_id && podeAgir) {
+    acts.push(`<button class="tk-btn primary" onclick="homeTarefaAgendarSessao('${t.origem_id}', ${t.origem_semana}, '${t.patient_id}', this)"><i class="ti ti-calendar-plus"></i> Agendar sessão ${t.origem_semana}</button>`);
+  }
   // recusada "quicou" pro criador: ele resolve via Reatribuir/Cancelar, não Concluir direto.
   if (!concl && t.aceite !== 'recusada' && podeAgir && t.origem_tipo !== 'inj_contrato') acts.push(`<button class="tk-btn primary" onclick="homeTarefaConcluir('${t.id}', this)"><i class="ti ti-check"></i> Concluir</button>`);
   if (concl && podeAgir) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReabrir('${t.id}')"><i class="ti ti-refresh"></i> Reabrir</button>`);
@@ -10644,6 +10648,35 @@ function homeTarefaRecusarPrompt(id) {
     <button class="tk-btn ghost" onclick="homeTarefaDetalhe('${id}')">Voltar</button>
     <button class="tk-btn primary" style="background:#f85149;color:#fff" onclick="homeTarefaAceite('${id}', false, (document.getElementById('tkd-motivo').value||'').trim())"><i class="ti ti-x"></i> Confirmar recusa</button>`;
   const mi = document.getElementById('tkd-motivo'); if (mi) mi.focus();
+}
+
+// "Agendar sessão": abre o MESMO modal da agenda, já amarrado à sessão da prescrição.
+// O vínculo é setado DEPOIS de agAbrirNovoModal(), que chama agResetForm() e o limparia.
+async function homeTarefaAgendarSessao(prescId, semana, patientId, btn) {
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Abrindo...'; }
+  try {
+    // Os selects do modal são preenchidos por agInit(), que só roda quando a agenda abre —
+    // quem vem da home abriria o modal vazio. Reusa o mesmo apoio do prontuário.
+    if (typeof prGarantirApoioAgenda === 'function') await prGarantirApoioAgenda();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+    homeToast('Não consegui carregar os tipos de atendimento agora. Tente de novo.');
+    return;
+  }
+  // Busca o paciente da tarefa: agSelecionarPaciente precisa do objeto, não só do id.
+  let pac = null;
+  try {
+    const r = await pacApi('/api/clinico/patients/' + patientId);
+    if (r.ok && r.data) pac = r.data.paciente || r.data;
+  } catch (e) {}
+  if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  if (!pac || !pac.id) { homeToast('Não consegui carregar o paciente desta tarefa.'); return; }
+  homeAtencaoFechar();
+  agAbrirNovoModal();   // chama agResetForm() -> limpa o vínculo
+  agSelecionarPaciente({ id: pac.id, codigo: pac.codigo, nome: pac.nome_completo || pac.nome, telefone: pac.telefone1, status: pac.status });
+  agState.injVinculo = { prescricaoId: prescId, semana: Number(semana) };   // depois do reset
+  homeToast(`Agendando a sessão ${semana}. Ao salvar, a tarefa se conclui sozinha.`);
 }
 
 // "Liberar aplicações": fecha o contrato/cobrança e abre as tarefas de agendamento (1 por sessão).
@@ -16907,6 +16940,9 @@ function agResetForm() {
   document.getElementById('ag-form-patient-id').value = '';
   agState.pacienteSelecionado = null;
   agState.edicaoRecurInfo = null;
+  // Limpar aqui é obrigatório: sem isso o PRÓXIMO agendamento herdaria a sessão do anterior e
+  // fecharia a tarefa errada. Quem vem da tarefa seta o vínculo DEPOIS deste reset.
+  agState.injVinculo = null;
   agRenderPacienteSelecionado();
   document.getElementById('ag-type').value = '';
   document.getElementById('ag-data').value = '';
@@ -17355,6 +17391,14 @@ async function agSalvar() {
     online: document.getElementById('ag-tele-toggle').checked,
     observacoes: document.getElementById('ag-observacoes').value.trim() || null,
   };
+
+  // Veio da tarefa "Agendar aplicação": amarra o agendamento à sessão da prescrição. É o que faz
+  // a tarefa se concluir sozinha e o que a enfermeira usa pra saber o que aplicar.
+  // Só na CRIAÇÃO: editar um agendamento não é lugar de trocar de sessão.
+  if (!id && agState.injVinculo) {
+    body.prescricao_inj_id = agState.injVinculo.prescricaoId;
+    body.prescricao_semana = agState.injVinculo.semana;
+  }
 
   // Recorrência: vale na criação e também na edição (aí reescreve a série daqui pra frente).
   const recorTog = document.getElementById('ag-recorrente-toggle');
