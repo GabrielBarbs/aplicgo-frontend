@@ -15214,10 +15214,10 @@ function mentionEscolher(i) {
   const u = mentionState.lista[i];
   const el = mentionState.el;
   if (!u || !el) return;
-  // No chat interno (#ci-input) insere o nome COMPLETO: a menção é resolvida do texto (sem id
-  // oculto), então o nome completo desambigua colegas de mesmo primeiro nome. Nas evoluções segue
-  // como antes (primeiro nome + registro do id em prEvolMencoes).
-  const ehChat = el.id === 'ci-input';
+  // Nos chats internos (#ci-input da tela cheia e #cp-input da bolinha) insere o nome COMPLETO: a
+  // menção é resolvida do TEXTO (sem id oculto), então o nome completo desambigua colegas de mesmo
+  // primeiro nome. Nas evoluções segue como antes (primeiro nome + registro do id em prEvolMencoes).
+  const ehChat = el.id === 'ci-input' || el.id === 'cp-input';
   const nomeIns = ehChat ? (u.nome || '').trim() : (u.nome || '').split(' ')[0];
   if (el.isContentEditable) {
     // Remove o @query e insere @Nome
@@ -15679,6 +15679,11 @@ function chatPopModo(modo) {
   if (ti) ti.classList.toggle('ativo', modo === 'interno');
   const busca = document.getElementById('cp-busca');
   if (busca) { busca.value = ''; busca.placeholder = modo === 'whatsapp' ? 'Buscar paciente...' : 'Buscar colega...'; }
+  // O placeholder é o único lugar que conta que o @ existe. Só no interno: no WhatsApp quem lê é o
+  // paciente e não há marcação — prometer ali seria mentira.
+  const inp = document.getElementById('cp-input');
+  if (inp) inp.placeholder = modo === 'whatsapp' ? 'Escreva uma mensagem... (Enter envia)' : 'Escreva uma mensagem... (@ marca alguém e vira tarefa de 1h)';
+  mentionFechar();   // trocar de aba com o dropdown aberto o deixaria pendurado sobre o outro chat
   chatPopMostrarLista();
   chatPopCarregarLista();
 }
@@ -16317,17 +16322,39 @@ function chatPopRenderMsgs(scroll) {
 }
 async function chatPopEnviar() {
   if (cpState.modo !== 'interno' || !cpState.intPeer) return;
+  mentionFechar();
   const inp = document.getElementById('cp-input');
   const texto = inp.value.trim();
   if (!texto) return;
+  // Este chat mandava só { para, texto }: o backend só cria tarefa quando recebe `mencoes`, então
+  // a marcação NUNCA virava tarefa aqui — e a bolha ainda pintava o @Nome de verde (mesmo ciHi da
+  // tela cheia), fazendo parecer que tinha funcionado. Mesma resolução do ciEnviar, de propósito.
+  const mencoes = [...new Set(ciMatchColegas(texto, ciMencionaveis(cpState.intUsuarios)).map(s => s.id))];
   inp.value = '';
-  const r = await pacApi('/api/clinico/chat/mensagens', { method: 'POST', body: JSON.stringify({ para: cpState.intPeer, texto }) });
+  const r = await pacApi('/api/clinico/chat/mensagens', { method: 'POST', body: JSON.stringify({ para: cpState.intPeer, texto, mencoes }) });
   if (!r.ok) { alert('Erro ao enviar: ' + (r.data.erro || '--')); inp.value = texto; return; }
   cpState.intMsgs.push(r.data.mensagem);
   chatPopRenderMsgs(true);
+  const tc = r.data.tarefas_criadas || [];
+  if (tc.length) homeToast(`Tarefa de 1h criada para ${tc.map(t => t.dono_nome).join(', ')}`);
+  // Marcou e não nasceu tarefa: o servidor engole o erro pra não derrubar a mensagem. Sem este
+  // aviso o sintoma seria idêntico ao de sucesso, e é como a feature ficou quebrada sem ninguém ver.
+  else if (mencoes.length) homeToast('A mensagem foi enviada, mas a marcação não virou tarefa. Avise o suporte.');
 }
 function chatPopEnviarAtual() { if (cpState.modo === 'whatsapp') cpEnviarWa(); else chatPopEnviar(); }
-function chatPopInputKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.repeat) return; chatPopEnviarAtual(); } }
+// O @ só marca colega no chat INTERNO: no WhatsApp quem lê é o paciente, e oferecer a lista de
+// colegas ali prometeria uma marcação que não existe.
+function chatPopInput(el) {
+  if (cpState.modo !== 'interno') return mentionFechar();
+  mentionDetectar(el);
+}
+function chatPopInputKey(e) {
+  // Dropdown de menção aberto: o listener global cuida de setas/Enter/Esc. Sem isto o Enter
+  // enviaria a mensagem pela metade ('@mat') em vez de escolher o colega.
+  const dd = document.getElementById('mention-dd');
+  if (dd && dd.style.display !== 'none') return;
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.repeat) return; chatPopEnviarAtual(); }
+}
 function chatPopIniciarPoll() { chatPopPararPoll(); cpState.poll = setInterval(chatPopPoll, 4000); }
 function chatPopPararPoll() { if (cpState.poll) { clearInterval(cpState.poll); cpState.poll = null; } }
 async function chatPopPoll() {
@@ -25315,7 +25342,7 @@ async function ciEnviar() {
   // Menções = @tokens do texto que casam EXATAMENTE um colega (nome/email). A fonte da verdade
   // é o TEXTO enviado (não um set escondido): @Nome digitado/colado também vira tarefa e um @Nome
   // apagado não vira; ambíguo (2 colegas de mesmo nome) é ignorado. Igual ao que o realce destaca.
-  const mencoes = [...new Set(ciMatchColegas(texto, ciState.usuarios).map(s => s.id))];
+  const mencoes = [...new Set(ciMatchColegas(texto, ciMencionaveis(ciState.usuarios)).map(s => s.id))];
   inp.value = '';
   inp.style.height = 'auto';
   const r = await pacApi('/api/clinico/chat/mensagens', { method: 'POST', body: JSON.stringify({ para: ciState.peer, texto, mencoes }) });
@@ -25339,6 +25366,17 @@ async function ciEnviar() {
 // mais longo primeiro, case-insensitive). Ambíguo (2 colegas mesmo nome) => ignorado. É a fonte
 // única de verdade das menções: o envio decide quais viram tarefa e o realce decide o que fica
 // verde a partir DAQUI — assim o verde sempre corresponde a uma menção real de colega.
+// Quem pode ser marcado. Fonte única pro realce E pro envio — se as duas divergirem, o verde
+// deixa de provar que a tarefa nasceu.
+// Junta VOCÊ MESMO: o dropdown do @ vem de /mentions/usuarios, que não exclui ninguém, mas a lista
+// do chat vem de /chat/usuarios, que exclui você (não dá pra conversar consigo). Sem juntar, marcar
+// a si mesmo insere o nome, não realça e não vira tarefa — e é o primeiro teste que qualquer um
+// faz. O backend já suporta: auto-marcação nasce auto-aceita.
+function ciMencionaveis(usuarios) {
+  const lista = usuarios || [];
+  if (!authUser || !authUser.id || lista.some(u => u.id === authUser.id)) return lista;
+  return lista.concat([{ id: authUser.id, nome: authUser.nome, email: authUser.email }]);
+}
 function ciMatchColegas(texto, usuarios) {
   const t = texto || '';
   const cands = [];
@@ -25384,7 +25422,9 @@ function ciHi(txt, usuarios) {
   const us = (usuarios && usuarios.length) ? usuarios
     : ((ciState.usuarios && ciState.usuarios.length) ? ciState.usuarios
       : ((typeof cpState !== 'undefined' && cpState && cpState.intUsuarios) || []));
-  const spans = ciMatchColegas(t, us);
+  // Mesma lista do envio: quem foi marcado é justamente quem NÃO se via na lista do chat, e a
+  // mensagem chegava sem realce pra ele — o único que precisava ver.
+  const spans = ciMatchColegas(t, ciMencionaveis(us));
   const escp = (s) => s.replace(/</g, '&lt;');
   let out = '', pos = 0;
   for (const sp of spans) {
@@ -25558,7 +25598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="ci-conversa-head" id="cp-conv-head"></div>
     <div class="ci-msgs cp-scroll" id="cp-msgs"></div>
     <div class="ci-input-bar" id="cp-input-bar">
-      <textarea id="cp-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" onkeydown="chatPopInputKey(event)"></textarea>
+      <textarea id="cp-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" oninput="chatPopInput(this)" onkeydown="chatPopInputKey(event)"></textarea>
       <button class="ci-send" id="cp-send" onclick="chatPopEnviarAtual()" title="Enviar"><i class="ti ti-send"></i></button>
     </div>
   </div>
