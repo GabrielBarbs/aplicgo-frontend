@@ -6200,7 +6200,6 @@
   .tk-tab .cnt{background:var(--bg3);color:var(--tx3);border-radius:20px;font-size:10px;font-weight:600;padding:1px 7px;min-width:17px;text-align:center}
   .tk-tab.ativo .cnt{background:var(--ac);color:#2a1608}
   .tk-tab .cnt.alerta{background:#f85149;color:#fff}
-  .tk-divisor{font-size:10px;color:var(--tx4);text-transform:uppercase;letter-spacing:.4px;padding:12px 18px 4px;border-top:1px solid var(--bg2);margin-top:4px}
   .atn-row.click{cursor:pointer;transition:background .12s}
   .atn-row.click:hover{background:var(--bg2)}
   .tk-badge.pend{background:rgba(210,153,34,.16);color:#e3b341}
@@ -6374,6 +6373,18 @@
               <span class="dash-count" id="home-pend-count">—</span>
             </div>
             <div id="home-pend-lista">
+              <div class="dash-vazio">Carregando…</div>
+            </div>
+          </div>
+
+          <!-- Destino das tarefas que saem das listas ativas ao serem concluídas. Nasce escondido:
+               sem nada fechado hoje, não ocupa espaço na home (mesmo idioma do #home-comp-bloco). -->
+          <div class="dash-card" id="home-cncl-card" style="display:none;">
+            <div class="dash-card-head">
+              <div class="ttl"><i class="ti ti-circle-check"></i> Concluídas hoje</div>
+              <span class="dash-count" id="home-cncl-count">—</span>
+            </div>
+            <div id="home-cncl-lista">
               <div class="dash-vazio">Carregando…</div>
             </div>
           </div>
@@ -10240,7 +10251,8 @@ let homeMTData = { recebidas: [], deleguei: [] };
 let homeMTFiltroAtual = 'hoje';
 
 async function homeMinhasCarregar() {
-  homeCompCarregar();   // fila do posto: independente, não pode cair junto se /tarefas falhar
+  homeCompCarregar();    // fila do posto: independente, não pode cair junto se /tarefas falhar
+  homeConclCarregar();   // concluídas de hoje: idem — e é pra cá que a tarefa vai quando fecha
   let d = null;
   try { const r = await pacApi('/api/clinico/tarefas'); if (r.ok) d = r.data; } catch (e) {}
   const box = document.getElementById('home-mt-lista');
@@ -10374,6 +10386,67 @@ function homeCompRender() {
   if (sub) sub.textContent = andando ? `${andando} já em andamento` : 'Ninguém pegou ainda';
   box.innerHTML = abertas.map(homeCompRow).join('');
 }
+// ============================================================
+// Card "Concluídas hoje" — o destino das tarefas que somem das listas ativas.
+// Sem ele, concluir uma tarefa (ou agendar uma sessão, que a conclui sozinha) a fazia simplesmente
+// evaporar da tela. Só o dia de HOJE, em BRT, decidido pelo servidor: é ele que sabe a hora certa.
+// ============================================================
+let homeConclData = [];
+let homeConclTotal = 0;   // total REAL do dia; a lista vem truncada pelo servidor
+async function homeConclCarregar() {
+  let d = null;
+  try { const r = await pacApi('/api/clinico/tarefas/concluidas'); if (r.ok) d = r.data; } catch (e) {}
+  // Falha de rede != "não concluí nada hoje": esconder o card aqui mentiria sobre o trabalho feito.
+  if (!d || !d.ok) { homeConclData = null; homeConclRender(); return; }
+  homeConclData = d.itens || [];
+  // O servidor conta separado. Usar o tamanho da lista faria a tela dizer 100 num dia de 130 —
+  // com a mesma cara de quem sabe o número.
+  homeConclTotal = typeof d.total === 'number' ? d.total : homeConclData.length;
+  homeConclRender();
+}
+function homeConclRender() {
+  const card = document.getElementById('home-cncl-card');
+  const box = document.getElementById('home-cncl-lista');
+  const cnt = document.getElementById('home-cncl-count');
+  if (!card || !box) return;
+  if (homeConclData === null) {   // erro ao carregar
+    card.style.display = '';
+    if (cnt) cnt.textContent = '—';
+    box.innerHTML = '<div class="dash-vazio">Não consegui carregar as tarefas concluídas.</div>';
+    return;
+  }
+  const lista = homeConclData || [];
+  // Nada fechado hoje: o card some. É o mesmo idioma do bloco compartilhado — a home não mostra
+  // caixa vazia ocupando espaço ("despoluir" vale pro card de concluídas também).
+  if (!lista.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  if (cnt) cnt.textContent = homeConclTotal;
+  let html = lista.slice(0, 8).map(homeConclRow).join('');
+  // Texto, não link: `.mt-vertodas` tem cursor de mão e sublinha no hover, e não existe tela de
+  // "todas as concluídas" pra abrir — prometer um clique que não acontece é pior que não prometer.
+  const resto = homeConclTotal - Math.min(lista.length, 8);
+  if (resto > 0) html += `<div style="font-size:11px;color:var(--tx4);text-align:center;padding:8px 0">e mais ${resto} hoje</div>`;
+  box.innerHTML = html;
+}
+function homeConclRow(i) {
+  // Hora REAL da conclusão. Cair no prazo quando concluida_em não vier (linha antiga, de antes da
+  // coluna) mostraria a data errada como se fosse a hora em que se fechou — melhor não dizer nada.
+  const hora = i.concluida_em
+    ? new Date(i.concluida_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : null;
+  const quem = i.concluido_por_nome ? esc(i.concluido_por_nome) : null;
+  const pac = i.paciente_nome ? ` · <i class="ti ti-user" style="font-size:11px"></i> ${esc(i.paciente_nome)}` : '';
+  const meta = [quem, hora].filter(Boolean).join(' · ') || 'concluída';
+  return `<div class="mt-row" onclick="homeTarefaDetalhe('${i.id}')">
+    <span class="tk-check" style="border-color:transparent;color:#3fb950;cursor:default"><i class="ti ti-circle-check"></i></span>
+    <div class="mt-body">
+      <div class="mt-ttl" style="opacity:.75">${esc(i.titulo)}</div>
+      <div class="mt-meta"><i class="ti ti-clock-check" style="font-size:11px"></i> ${meta}${pac}</div>
+    </div>
+    <i class="ti ti-chevron-right mt-chevron"></i>
+  </div>`;
+}
+
 function homeCompRow(i) {
   const prioCor = i.prioridade === 'alta' ? '#f85149' : (i.prioridade === 'baixa' ? 'var(--tx4)' : '#e3b341');
   const badges = homeTarefaBadge(i)
@@ -10415,6 +10488,7 @@ async function homeCompConcluir(id, btn) {
   if (!r.ok || !r.data || !r.data.ok) { if (btn) btn.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
   homeToast('Tarefa concluída. ✓');
   homeCompCarregar();
+  homeConclCarregar();   // sem isto ela saía da fila e não entrava em "Concluídas hoje": evaporava
 }
 // Pendências como LISTA explícita (onboarding em aberto). Sem permissão → cai na contagem do resumo.
 async function homePendListCarregar(resumo) {
@@ -10493,15 +10567,17 @@ function homeTkRenderLista() {
   const cntDel = del.filter(i => i.status === 'aberta').length;
   const pend = rec.some(i => i.aceite_pendente);
   const lista = homeTkBox === 'deleguei' ? del : rec;
-  const abertas = lista.filter(i => i.status !== 'concluida');
-  const concluidas = lista.filter(i => i.status === 'concluida');
+  // Só o que HÁ PRA FAZER. As concluídas saíram daqui de propósito (decisão do Matheus: "ela tem
+  // q sair e despoluir") — elas têm casa própria no card "Concluídas hoje" da home, e quem filtra
+  // agora é o servidor. Antes elas caíam no mesmo scroll, sem limite nem corte de data, e ainda
+  // ocupavam o teto da consulta a ponto de empurrar tarefas ABERTAS pra fora da lista.
   let rows;
   if (!lista.length) {
-    rows = `<div class="atn-empty">${homeTkBox === 'deleguei' ? 'Você ainda não delegou tarefas.' : 'Nenhuma tarefa por aqui. 🎉'}</div>`;
+    // "em aberto": a lista só traz abertas agora, então "você ainda não delegou tarefas" negaria
+    // o passado de quem delegou 5 hoje e teve as 5 concluídas.
+    rows = `<div class="atn-empty">${homeTkBox === 'deleguei' ? 'Você não tem tarefas delegadas em aberto.' : 'Nada em aberto por aqui. 🎉'}</div>`;
   } else {
-    rows = abertas.map(homeTkRow).join('');
-    if (!abertas.length) rows += `<div class="atn-empty" style="padding:16px">Nada em aberto por aqui. 🎉</div>`;
-    if (concluidas.length) rows += `<div class="tk-divisor">Concluídas (${concluidas.length})</div>` + concluidas.map(homeTkRow).join('');
+    rows = lista.map(homeTkRow).join('');
   }
   ov.innerHTML = `<div class="atn-modal">
     <div class="atn-modal-head"><div class="ttl"><i class="ti ti-checklist" style="color:var(--ac)"></i> Tarefas</div>
@@ -13063,7 +13139,11 @@ function trocarView(v) {
   document.getElementById('topbar-page-current').textContent = t.titulo;
   document.getElementById('topbar-page-sub').textContent = t.sub;
   // Hooks por view
-  if (v === 'admin') adminTrocarTab('cargos');
+  // A home é um div que só troca de class: sem este hook ela mostrava o HTML da última carga pra
+  // sempre. Toda conclusão feita FORA dela (aplicar injetável, agendar) deixava a tarefa fantasma
+  // na tela até um F5 — voltar pra home não era um refresh.
+  if (v === 'painel') homeTarefasSync();
+  else if (v === 'admin') adminTrocarTab('cargos');
   else if (v === 'pendencias') pendCarregar();
   else if (v === 'dev') devCarregar();
   else if (v === 'pontuacao') pontInit();
@@ -17680,8 +17760,14 @@ async function agSalvar() {
     return;
   }
   if (mudouRecor) homeToast(`Série atualizada: ${r.data.criados} agendamento(s) daqui pra frente.`);
+  const eraInj = !!body.prescricao_inj_id;
   agFecharModal();
   agCarregar();
+  // Agendar a sessão CONCLUI a tarefa no servidor, e o toast promete isso pra quem clicou. Mas o
+  // modal abre por cima da HOME, então sem este sync a tarefa que acabou de fechar continuava na
+  // cara da pessoa até um F5 — a tela desmentindo a própria promessa. Só quando houve vínculo:
+  // agendamento comum não mexe em tarefa nenhuma.
+  if (eraInj && typeof homeTarefasSync === 'function') homeTarefasSync();
 }
 
 // A recorrência mudou em relação ao que estava salvo? Só isso justifica reescrever a série.
