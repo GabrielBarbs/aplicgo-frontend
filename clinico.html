@@ -10548,15 +10548,27 @@ function homeTkRenderDetalhe() {
   }
 
   const acts = [];
+  // Compartilhada não tem dono nem é do criador que a abre: sem isto a recepcionista abriria a
+  // tarefa do posto e não veria "Concluir". Se o detalhe carregou, o servidor já autorizou
+  // (GET /:id barra quem não é do posto), então quem chegou aqui pode agir.
+  const podeAgir = !!(t.sou_dono || t.sou_criador || t.compartilhada);
+  // "Liberar" fecha o contrato/cobrança e abre os agendamentos (1 por sessão).
+  if (!concl && t.origem_tipo === 'inj_contrato' && t.origem_id && podeAgir) {
+    acts.push(`<button class="tk-btn primary" onclick="homeTarefaLiberar('${t.origem_id}', '${t.id}', this)"><i class="ti ti-lock-open"></i> Liberar aplicações</button>`);
+  }
   // recusada "quicou" pro criador: ele resolve via Reatribuir/Cancelar, não Concluir direto.
-  if (!concl && t.aceite !== 'recusada' && (t.sou_dono || t.sou_criador)) acts.push(`<button class="tk-btn primary" onclick="homeTarefaConcluir('${t.id}', this)"><i class="ti ti-check"></i> Concluir</button>`);
-  if (concl && (t.sou_dono || t.sou_criador)) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReabrir('${t.id}')"><i class="ti ti-refresh"></i> Reabrir</button>`);
+  if (!concl && t.aceite !== 'recusada' && podeAgir && t.origem_tipo !== 'inj_contrato') acts.push(`<button class="tk-btn primary" onclick="homeTarefaConcluir('${t.id}', this)"><i class="ti ti-check"></i> Concluir</button>`);
+  if (concl && podeAgir) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReabrir('${t.id}')"><i class="ti ti-refresh"></i> Reabrir</button>`);
   acts.push(`<button class="tk-btn ghost" onclick="homeTarefaEditar('${t.id}')"><i class="ti ti-pencil"></i> Editar</button>`);
   if (t.sou_criador) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReatribuir('${t.id}')"><i class="ti ti-user-plus"></i> Reatribuir</button>`);
   if (t.sou_criador && !concl) acts.push(`<button class="tk-btn ghost" style="color:#f85149" onclick="homeTarefaCancelar('${t.id}')"><i class="ti ti-trash"></i> Cancelar</button>`);
 
   const metaItems = [
-    ['Responsável', esc(t.dono_nome) + (t.sou_dono ? ' <span style="color:var(--tx4)">(você)</span>' : '')],
+    // Compartilhada não tem responsável: mostra o POSTO (e quem pegou), senão sairia em branco.
+    ['Responsável', t.compartilhada
+      ? `<i class="ti ti-users-group" style="font-size:11px"></i> ${esc([t.grupo_cargo_nome, t.grupo_unidade].filter(Boolean).join(' · ') || 'posto')}`
+        + (t.em_andamento_nome ? ` · <span style="color:#4A90E2">${t.em_andamento_sou_eu ? 'com você' : esc(t.em_andamento_nome)}</span>` : '')
+      : esc(t.dono_nome || '—') + (t.sou_dono ? ' <span style="color:var(--tx4)">(você)</span>' : '')],
     ['Criado por', esc(t.criador_nome) + (t.sou_criador ? ' <span style="color:var(--tx4)">(você)</span>' : '')],
     ['Prazo', t.prazo ? homeTkDataBR(t.prazo) : '<span style="color:var(--tx4)">sem prazo</span>'],
     ['Prioridade', `<span style="color:${prioCor}">●</span> ${esc(t.prioridade)}`],
@@ -10634,6 +10646,29 @@ function homeTarefaRecusarPrompt(id) {
   const mi = document.getElementById('tkd-motivo'); if (mi) mi.focus();
 }
 
+// "Liberar aplicações": fecha o contrato/cobrança e abre as tarefas de agendamento (1 por sessão).
+// Quem conclui a de contrato é o próprio Liberar — por isso ela não oferece "Concluir" solto:
+// marcar feito sem liberar deixaria a prescrição travada e os agendamentos nunca nasceriam.
+async function homeTarefaLiberar(prescId, taskId, btn) {
+  if (!confirm('Liberar as aplicações deste paciente?\n\nIsto conclui o contrato e cria uma tarefa de agendamento para cada sessão.')) return;
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Liberando...'; }
+  let r = null;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/' + prescId + '/liberar', { method: 'POST', body: JSON.stringify({}) }); } catch (e) {}
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+    homeToast((r && r.data && r.data.erro) || 'Não consegui liberar.');
+    return;
+  }
+  const n = r.data.agendamentos_criados || 0;
+  // alcance 0 = a fila de agendamento não tem ninguém. Dizer só "criadas" esconderia isso.
+  homeToast(n
+    ? `Liberado. ${n} agendamento(s) na fila da recepção.${r.data.alcance === 0 ? ' ATENÇÃO: ninguém tem essa unidade como primária — avisei o gestor.' : ''}`
+    : 'Liberado. (Os agendamentos já existiam.)');
+  homeAtencaoFechar();
+  homeCompCarregar();
+  if (typeof homeTarefasSync === 'function') homeTarefasSync();
+}
 async function homeTarefaConcluir(id, btnEl) {
   if (btnEl) btnEl.disabled = true;
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
