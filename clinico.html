@@ -10676,8 +10676,10 @@ async function homeTarefaAgendarSessao(prescId, semana, patientId, btn) {
   agAbrirNovoModal();   // chama agResetForm() -> limpa o vínculo
   agSelecionarPaciente({ id: pac.id, codigo: pac.codigo, nome: pac.nome_completo || pac.nome, telefone: pac.telefone1, status: pac.status });
   agState.injVinculo = { prescricaoId: prescId, semana: Number(semana) };   // depois do reset
-  agAplicarModoInjecao();   // depois do vínculo: é dele que o modo deriva
   homeToast(`Agendando a sessão ${semana}. Ao salvar, a tarefa se conclui sozinha.`);
+  // Por ÚLTIMO: o modo deriva do vínculo, e quando não acha o tipo ele avisa. Se rodasse antes do
+  // toast acima, o aviso seria apagado 1ms depois e ninguém leria justamente o que exige ação.
+  agAplicarModoInjecao();
 }
 
 // "Liberar aplicações": fecha o contrato/cobrança e abre as tarefas de agendamento (1 por sessão).
@@ -16951,17 +16953,15 @@ function agNomeProf(p) {
 }
 
 // Acha o tipo "Aplicação de injetável" no catálogo. O catálogo é do banco e a clínica edita, então
-// o nome não é garantido: procura por slug E por nome, sem acento. Devolve null quando não acha OU
-// quando acha mais de um — agendar no tipo errado é pior do que perguntar.
+// o nome não é garantido: procura por slug E por nome. Devolve null quando não acha OU quando acha
+// mais de um — agendar no tipo errado é pior do que perguntar.
+// Exige as DUAS palavras de propósito: um "aplicação" solto casaria "Aplicação de botox" e o modo
+// ainda travaria o select, deixando a recepção sem como corrigir um tipo que ela não escolheu.
 function agTipoAplicacao() {
   const norm = (s) => String(s || '').toLowerCase();   // 'aplic'/'inje' não têm acento: normalizar seria ruído
   const texto = (t) => norm(t.slug) + ' ' + norm(t.nome);
-  const tipos = agState.tipos || [];
-  const exatos = tipos.filter((t) => /aplic/.test(texto(t)) && /inje/.test(texto(t)));
-  if (exatos.length === 1) return exatos[0];
-  if (exatos.length > 1) return null;
-  const soAplic = tipos.filter((t) => /aplic/.test(texto(t)));
-  return soAplic.length === 1 ? soAplic[0] : null;
+  const exatos = (agState.tipos || []).filter((t) => /aplic/.test(texto(t)) && /inje/.test(texto(t)));
+  return exatos.length === 1 ? exatos[0] : null;
 }
 
 // Modo "aplicação de injetável": o modal fica só com o essencial. O tipo já vem escolhido (é uma
@@ -16982,6 +16982,8 @@ function agAplicarModoInjecao() {
   ver('ag-tele-section', !inj);
   ver('ag-recorrencia-section', !inj);
 
+  const grid = document.getElementById('ag-grid-atendimento');
+  if (grid) grid.style.gridTemplateColumns = inj ? 'repeat(2, 1fr)' : '';   // sem o profissional sobraria uma coluna vazia
   const tipoSel = document.getElementById('ag-type');
   if (!inj) { if (tipoSel) tipoSel.disabled = false; return; }
 
@@ -16996,6 +16998,11 @@ function agAplicarModoInjecao() {
   if (rec) rec.checked = false;
 
   if (!tipoSel) return;
+  // EDIÇÃO: o tipo já veio do banco e é a verdade. Sobrescrever pelo que o catálogo devolve HOJE
+  // trocaria o tipo do agendamento sem ninguém pedir — o catálogo é editável, então o palpite de
+  // hoje pode não ser o de quando foi agendado — e o select travado impediria desfazer.
+  if (document.getElementById('ag-form-id').value) { tipoSel.disabled = true; return; }
+
   const t = agTipoAplicacao();
   if (t) {
     tipoSel.value = t.id;
@@ -17419,19 +17426,24 @@ async function agSalvar() {
   const typeId = document.getElementById('ag-type').value;
   const data = document.getElementById('ag-data').value;
   const hora = document.getElementById('ag-hora').value;
-  // Aplicação de injetável não tem campo de duração: quem manda é a duração do TIPO.
-  // Não dá pra só omitir o end_at e deixar o servidor calcular, porque o PUT da edição só mexe no
-  // que recebe — mudar só a hora deixaria o fim no horário antigo (podendo terminar antes de começar).
+  // Aplicação de injetável não tem campo de duração. Na CRIAÇÃO quem manda é a duração do tipo; na
+  // EDIÇÃO manda a duração que o agendamento já tem (o campo escondido carrega ela), senão mudar só
+  // a hora reescreveria a duração que alguém escolheu. Não dá pra omitir o end_at e deixar o
+  // servidor calcular: o PUT só mexe no que recebe, e o fim ficaria no horário antigo — podendo
+  // terminar antes de começar.
   const inj = agModoInjecao();
   const tipoOpt = document.getElementById('ag-type').selectedOptions[0];
   const durTipo = tipoOpt ? parseInt(tipoOpt.dataset.dur) : 0;
-  const dur = inj ? durTipo : (parseInt(document.getElementById('ag-duracao').value) || 30);
+  const durCampo = parseInt(document.getElementById('ag-duracao').value) || 0;
+  const dur = inj && !id ? durTipo : (durCampo || 30);
 
   if (!patientId) { erroEl.textContent = 'Selecione um paciente'; erroEl.style.display = 'block'; return; }
   if (!inj && !profId) { erroEl.textContent = 'Selecione o profissional'; erroEl.style.display = 'block'; return; }
-  if (inj && !dur) { erroEl.textContent = 'Não consegui saber a duração deste tipo de atendimento. Escolha o tipo de novo.'; erroEl.style.display = 'block'; return; }
   if (!unitId) { erroEl.textContent = 'Selecione a unidade'; erroEl.style.display = 'block'; return; }
+  // Antes do check de duração: sem tipo escolhido não há data-dur, e a pessoa levaria "não consegui
+  // saber a duração" quando o que falta mesmo é escolher o tipo.
   if (!typeId) { erroEl.textContent = 'Selecione o tipo de atendimento'; erroEl.style.display = 'block'; return; }
+  if (inj && !dur) { erroEl.textContent = 'Não consegui saber a duração deste tipo de atendimento. Escolha o tipo de novo.'; erroEl.style.display = 'block'; return; }
   // Sem `!id`: a recorrência agora também é editável, e o bloco lá embaixo monta recurrence_dias
   // com ou sem id. Se este guard voltasse a ter `!id`, `ancoras` ficaria null na edição e o
   // Salvar morreria calado num TypeError, antes de qualquer mensagem.
