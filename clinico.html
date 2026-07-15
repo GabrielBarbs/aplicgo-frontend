@@ -6137,6 +6137,9 @@
   .tk-form-row{display:flex;gap:10px}
   .tk-form-row>div{flex:1;min-width:0}
   .tk-form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+  /* agenda bloqueada: aviso no form e selo na lista */
+  .tk-bloq-aviso{display:none;align-items:center;gap:6px;margin-top:6px;font-size:11.5px;color:#EF9F27;line-height:1.4}
+  .tk-badge.bloq{background:rgba(239,159,39,.15);color:#EF9F27}
   .tk-btn{border:0;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
   .tk-btn.primary{background:var(--ac);color:#2a1608}
   .tk-btn.ghost{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd1)}
@@ -10164,6 +10167,9 @@ function tkCmpPrazo(a, b) {
 }
 function homeTarefaBadge(i) {
   if (i.status === 'concluida') return '';
+  // Rotina cria a ocorrência mesmo com a pessoa de folga (escolha do Matheus) — o selo é o que
+  // faz isso aparecer, em vez de a tarefa cair calada na caixa de quem está de férias.
+  if (i.dono_bloqueado) return `<span class="tk-badge bloq" title="${esc(i.dono_bloqueado)}"><i class="ti ti-lock" style="font-size:10px"></i> agenda bloqueada</span>` + (i.prazo_em ? tkBadgeHora(i.prazo_em) : '');
   if (i.prazo_em) return tkBadgeHora(i.prazo_em);   // prazo com hora manda: contagem no nível de minuto
   if (i.prazo_dias == null) return '';
   if (i.vencida) return `<span class="tk-badge rec">vencida há ${Math.abs(i.prazo_dias)}d</span>`;
@@ -10619,11 +10625,12 @@ async function homeTarefaNova() {
       <label>Descrição (opcional)</label>
       <textarea id="tk-desc" rows="2" placeholder="Detalhes…" maxlength="2000"></textarea>
       <div class="tk-form-row">
-        <div><label>Prazo</label><input id="tk-prazo" type="date"></div>
+        <div><label>Prazo</label><input id="tk-prazo" type="date" onchange="homeTkBloqueios()"></div>
         <div><label>Prioridade</label><select id="tk-prio"><option value="baixa">Baixa</option><option value="media" selected>Média</option><option value="alta">Alta</option></select></div>
       </div>
       <label>Responsável</label>
-      <select id="tk-dono">${opts}</select>
+      <select id="tk-dono" onchange="homeTkBloqAviso()">${opts}</select>
+      <div id="tk-bloq-aviso" class="tk-bloq-aviso"></div>
       <div class="tk-form-actions">
         <button class="tk-btn ghost" onclick="homeAtencaoFechar()">Cancelar</button>
         <button class="tk-btn primary" id="tk-salvar" onclick="homeTarefaSalvar(this)"><i class="ti ti-check"></i> Criar tarefa</button>
@@ -10631,6 +10638,42 @@ async function homeTarefaNova() {
     </div></div>`;
   document.body.appendChild(ov);
   const t = document.getElementById('tk-titulo'); if (t) t.focus();
+}
+
+// ===== AGENDA BLOQUEADA -> não recebe tarefa naquele dia =====
+// Só bloqueio que cobre o dia inteiro (férias/folga) conta; almoço e reunião não — senão, com o
+// almoço recorrente que quase todo mundo tem, ninguém receberia tarefa nunca. Quem decide isso é
+// o backend (mesma regra na criação); aqui a tela só mostra ANTES de a pessoa tentar salvar.
+let homeTkBloq = {};   // { userId: 'Férias' } pro prazo escolhido
+
+async function homeTkBloqueios() {
+  const dia = (document.getElementById('tk-prazo') || {}).value || '';
+  homeTkBloq = {};
+  if (dia) {
+    try {
+      const r = await pacApi('/api/clinico/tarefas/bloqueios?dia=' + encodeURIComponent(dia));
+      if (r.ok && r.data && r.data.ok) homeTkBloq = r.data.bloqueios || {};
+    } catch (e) { /* sem bloqueio conhecido: o backend ainda barra no salvar */ }
+  }
+  const sel = document.getElementById('tk-dono');
+  if (sel) {
+    [...sel.options].forEach((o) => {
+      const b = o.value && homeTkBloq[o.value];
+      const nome = o.dataset.nome || (o.dataset.nome = o.textContent);
+      o.textContent = b ? nome + ' — BLOQUEADO (' + b + ')' : nome;
+      o.disabled = !!b;
+    });
+  }
+  homeTkBloqAviso();
+}
+
+function homeTkBloqAviso() {
+  const el = document.getElementById('tk-bloq-aviso');
+  if (!el) return;
+  const sel = document.getElementById('tk-dono');
+  const b = sel && sel.value && homeTkBloq[sel.value];
+  el.innerHTML = b ? `<i class="ti ti-lock"></i> Agenda bloqueada nesse dia (${esc(b)}) — escolha outra pessoa ou outro prazo.` : '';
+  el.style.display = b ? 'flex' : 'none';
 }
 
 async function homeTarefaSalvar(btnEl) {
@@ -10645,7 +10688,13 @@ async function homeTarefaSalvar(btnEl) {
   };
   if (btnEl) { btnEl.disabled = true; btnEl.innerHTML = '<i class="ti ti-loader-2"></i> Criando…'; }
   const r = await pacApi('/api/clinico/tarefas', { method: 'POST', body: JSON.stringify(body) });
-  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-check"></i> Criar tarefa'; } homeToast('Não consegui criar a tarefa.'); return; }
+  // Mostra o motivo REAL do backend (ex.: "Fulana está com a agenda bloqueada em 20/07 (Férias)").
+  // O toast genérico escondia justamente a explicação de que dava pra agir.
+  if (!r.ok || !r.data || !r.data.ok) {
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = '<i class="ti ti-check"></i> Criar tarefa'; }
+    homeToast((r.data && r.data.erro) || 'Não consegui criar a tarefa.');
+    return;
+  }
   homeToast('Tarefa criada.');
   homeTarefasSync();   // atualiza a lista inline da home (home-mt-lista / home-del-lista)
   if (homeTkNovaOrigem === 'modal') {
