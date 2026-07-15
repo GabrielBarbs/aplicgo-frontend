@@ -5841,7 +5841,7 @@
       <button class="sidebar-item" data-view="insumos">
         <i class="ti ti-list-details"></i> Catálogo
       </button>
-      <button class="sidebar-item" data-view="injetaveis" data-perm="financeiro.ver|prontuario.aplicacao.registrar">
+      <button class="sidebar-item" data-view="injetaveis" data-perm="prescricao_inj.cobrar|financeiro.ver|prontuario.aplicacao.registrar">
         <i class="ti ti-prescription"></i> Injetáveis
       </button>
       <button class="sidebar-item" data-view="varejo" data-perm="financeiro.ver">
@@ -10794,6 +10794,13 @@ async function homeTarefaAgendarSessao(prescId, semana, patientId, btn) {
 // Por isso ela também não oferece "Concluir" solto: marcar feito sem receber deixaria a
 // prescrição travada, e ninguém agendaria nada.
 function homeTarefaCobrar(prescId) {
+  // trocarView() manda pro painel EM SILÊNCIO quando falta permissão da view: a pessoa clicava e
+  // "não acontecia nada". Sem permissão de cobrar, diz o que falta em vez de sumir com ela.
+  const gate = 'prescricao_inj.cobrar|financeiro.ver|prontuario.aplicacao.registrar';
+  if (!temPermissaoExpr(gate)) {
+    homeToast('Você não tem permissão para cobrar (Injetáveis › Cobrança). Peça ao gestor a permissão "Cobrar injetáveis".');
+    return;
+  }
   homeAtencaoFechar();
   trocarView('injetaveis');
   // a view monta a aba padrão; o timeout deixa ela existir antes de trocar
@@ -12029,7 +12036,10 @@ function injBadge(s) {
 const INJ_ERRO = '<div class="pac-empty" style="padding:12px;color:#f85149">Não foi possível carregar — tente novamente.</div>';
 function injAllowed() {
   const a = [];
-  if (temPermissao('financeiro.ver')) a.push('cobranca');
+  // Cobrar é trabalho da RECEPÇÃO: ela recebe do paciente. Exigir financeiro.ver pra isso obrigaria
+  // a abrir o Financeiro inteiro (faturamento da clínica) pra quem só precisa receber um injetável
+  // — por isso a permissão estreita prescricao_inj.cobrar. Preços seguem só com financeiro.ver.
+  if (temPermissaoExpr('prescricao_inj.cobrar|financeiro.ver')) a.push('cobranca');
   if (temPermissao('prontuario.aplicacao.registrar')) a.push('aplicar');
   if (temPermissao('financeiro.ver')) a.push('precos');
   return a;
