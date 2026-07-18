@@ -3503,15 +3503,6 @@
     .devag-chat-in textarea { flex: 1; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 10px; color: var(--tx1); font: inherit; font-size: 13px; padding: 9px 12px; resize: none; }
     .devag-chat-in textarea:focus { outline: none; border-color: var(--ac); }
     .devag-chat-in button { flex-shrink: 0; }
-    #view-gtarefas .gt-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd1); margin-bottom: 16px; flex-wrap: wrap; }
-    #view-gtarefas .gt-tab { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--tx3); font: inherit; font-weight: 500; padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 7px; margin-bottom: -1px; }
-    #view-gtarefas .gt-tab.active { color: var(--tx1); border-bottom-color: var(--ac); }
-    #view-gtarefas .gt-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
-    #view-gtarefas .gt-card.dim { opacity: .6; }
-    #view-gtarefas .gt-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg3); border: 1px solid var(--bd1); border-radius: 20px; padding: 3px 6px 3px 11px; font-size: 12px; color: var(--tx2); margin: 4px 4px 0 0; }
-    #view-gtarefas .gt-chip button { background: 0; border: 0; color: var(--tx4); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
-    #view-gtarefas .gt-chip button:hover { color: #f85149; }
-    #view-gtarefas .gt-form label { display: block; font-size: 11px; color: var(--tx3); text-transform: uppercase; letter-spacing: .3px; margin: 12px 0 5px; font-weight: 600; }
     /* Metas de Movimento (painel dev) */
     .movm-box { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; padding: 14px 15px 15px; }
     .movm-sec { margin-top: 16px; }
@@ -3534,6 +3525,15 @@
     .movm-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hair); }
     .movm-erro { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.35); color: #f85149; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; line-height: 1.55; }
     .movm-erro button { margin-top: 9px; }
+    #view-gtarefas .gt-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd1); margin-bottom: 16px; flex-wrap: wrap; }
+    #view-gtarefas .gt-tab { background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--tx3); font: inherit; font-weight: 500; padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 7px; margin-bottom: -1px; }
+    #view-gtarefas .gt-tab.active { color: var(--tx1); border-bottom-color: var(--ac); }
+    #view-gtarefas .gt-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+    #view-gtarefas .gt-card.dim { opacity: .6; }
+    #view-gtarefas .gt-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg3); border: 1px solid var(--bd1); border-radius: 20px; padding: 3px 6px 3px 11px; font-size: 12px; color: var(--tx2); margin: 4px 4px 0 0; }
+    #view-gtarefas .gt-chip button { background: 0; border: 0; color: var(--tx4); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+    #view-gtarefas .gt-chip button:hover { color: #f85149; }
+    #view-gtarefas .gt-form label { display: block; font-size: 11px; color: var(--tx3); text-transform: uppercase; letter-spacing: .3px; margin: 12px 0 5px; font-weight: 600; }
     #view-gtarefas .gt-form .pac-search { width: 100%; }
     #view-gtarefas .gt-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     #view-gtarefas .gt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; border-radius: 20px; background: var(--bg3); color: var(--tx2); white-space: nowrap; }
@@ -4291,6 +4291,46 @@
       width: 10px; height: 10px; border-radius: 50%;
     }
     .adm-user-cargo-row .nome { font-size: 12px; color: var(--tx1); }
+
+    /* Unidades do usuário (vínculo + primária) */
+    .adm-unid-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--bg3);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: var(--bg1);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .adm-unid-row:hover { background: rgba(var(--bg3-rgb),0.4); }
+    .adm-unid-row.selected { background: rgba(var(--ac-rgb),0.08); border-color: rgba(var(--ac-rgb),0.30); }
+    .adm-unid-row input { accent-color: var(--ac); cursor: pointer; }
+    .adm-unid-row .nome { font-size: 12px; color: var(--tx1); flex: 1; }
+    .adm-unid-prim-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; padding: 4px 9px; border-radius: 6px;
+      border: 1px solid var(--bg3); background: var(--bg2); color: var(--tx3b);
+      cursor: pointer; transition: all 0.12s; white-space: nowrap;
+    }
+    .adm-unid-prim-btn:hover:not(:disabled) { color: var(--tx1); border-color: var(--tx3b); }
+    .adm-unid-prim-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .adm-unid-prim-btn.ativa {
+      background: rgba(245,180,60,0.14); border-color: rgba(245,180,60,0.45); color: #f5b43c; font-weight: 600;
+    }
+    /* Pílulas de unidade no card do usuário */
+    .adm-unid-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; padding: 2px 8px; border-radius: 999px;
+      border: 1px solid var(--bg3); background: var(--bg1); color: var(--tx3b);
+    }
+    .adm-unid-pill.primaria { color: #f5b43c; border-color: rgba(245,180,60,0.40); background: rgba(245,180,60,0.10); }
+    .adm-unid-pill i { font-size: 10px; }
+    .adm-unid-warn {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; color: #d98a3d; font-style: italic;
+    }
+    .adm-unid-warn i { font-size: 11px; }
 
     /* Bloco de observações imutáveis */
     .pr-h-obs-imutaveis {
@@ -6185,6 +6225,27 @@
   .atn-modal-head .x{background:transparent;border:0;color:var(--tx3);cursor:pointer;font-size:20px;line-height:1}
   .atn-modal-body{overflow-y:auto;padding:2px 0}
   .atn-row{display:flex;align-items:center;gap:11px;padding:11px 18px;border-bottom:1px solid var(--bg2)}
+  /* Aplicações de hoje (enfermagem) */
+  .aph-sec{display:flex;align-items:center;gap:7px;padding:14px 18px 8px;font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);font-weight:600}
+  .aph-sec i{color:#7B68EE}
+  .aph-ins-wrap{padding:0 18px 6px;display:grid;gap:7px}
+  .aph-ins{display:flex;align-items:center;gap:11px;background:var(--bg2);border:1px solid var(--bg3);border-radius:9px;padding:9px 12px}
+  .aph-ins-n{font-size:19px;font-weight:700;color:#7B68EE;min-width:34px}
+  .aph-ins-n span{font-size:11px;color:var(--tx3);font-weight:400;margin-left:1px}
+  .aph-ins-txt{min-width:0}
+  .aph-ins-nome{font-size:13px;color:var(--tx1);font-weight:600}
+  .aph-ins-sub{font-size:11px;color:var(--tx3);margin-top:2px}
+  .aph-row{display:flex;gap:12px;padding:11px 18px;border-bottom:1px solid var(--bg2)}
+  .aph-hora{font-size:13px;font-weight:700;color:var(--ac);min-width:44px;padding-top:1px}
+  .aph-info{min-width:0;flex:1}
+  .aph-pac{font-size:13px;color:var(--tx1);font-weight:600}
+  .aph-cod{font-size:10px;color:var(--tx3);font-family:'SF Mono',Consolas,monospace;font-weight:400}
+  .aph-meta{font-size:10.5px;color:var(--tx4);margin-top:1px}
+  .aph-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .aph-chip{font-size:10.5px;background:rgba(123,104,238,.14);color:#a99bf0;border-radius:6px;padding:3px 8px}
+  .aph-chip.ok{background:rgba(63,185,80,.14);color:#3fb950}
+  .aph-chip.vazio{background:var(--bg2);color:var(--tx4)}
+  .aph-obs{font-size:10.5px;color:var(--tx3);margin-top:5px;display:flex;align-items:center;gap:5px}
   .atn-row:last-child{border-bottom:0}
   .atn-badge{width:8px;height:8px;border-radius:50%;flex-shrink:0}
   .atn-row .nome{font-size:13px;color:var(--tx1b)}
@@ -6325,6 +6386,12 @@
           <div class="op-card-head"><span>Agenda hoje</span><i class="ti ti-calendar" style="color:#3fb950"></i></div>
           <div class="op-card-val" id="op-agenda-val">—</div>
           <div class="op-card-ext" id="op-agenda-ext">consultas de hoje</div>
+        </div>
+        <!-- Só pra quem aplica injetável (enfermagem): aplicHoje() esconde pros outros -->
+        <div class="op-card" id="op-aplic-card" style="display:none" onclick="aplicHojeAbrir()">
+          <div class="op-card-head"><span>Aplicações hoje</span><i class="ti ti-vaccine" style="color:#7B68EE"></i></div>
+          <div class="op-card-val" id="op-aplic-val">—</div>
+          <div class="op-card-ext" id="op-aplic-ext">injetáveis agendados</div>
         </div>
       </div>
 
@@ -6957,15 +7024,6 @@
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando agentes de IA…</div>
     </div>
 
-    <!-- Manutenção de dados -->
-    <div class="dev-toolbar" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div class="dev-info"><strong><i class="ti ti-wrench"></i> Manutenção:</strong> conserta exames antigos com o bug de deslocamento de coluna (unidade/referência trocadas na leitura por IA).</div>
-      <button class="pac-btn-secondary" style="white-space:nowrap" onclick="devCorrigirExames(this)"><i class="ti ti-wand"></i> Corrigir exames deslocados</button>
-    </div>
-
-    <div id="dev-conteudo">
-      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
-    </div>
     <!-- Metas de Movimento: níveis, política de quem não tem prescrição e piso de dia ativo -->
     <div class="dev-toolbar" style="margin-bottom:12px;">
       <div class="dev-info"><strong><i class="ti ti-run"></i> Metas de Movimento:</strong> o alvo contra o qual o anel "Movimento" do app é medido (metade passos/dia, metade exercício/semana). Entra com peso no Longevity Score — mudar aqui muda o score de paciente.</div>
@@ -8058,6 +8116,35 @@
       <div class="ag-modal-actions-right">
         <button class="pac-btn-secondary" onclick="admUserFechar()">Cancelar</button>
         <button class="pac-btn-primary" id="adm-user-salvar" onclick="admUserSalvar()">
+          <i class="ti ti-device-floppy"></i> Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============== MODAL: UNIDADES DO USUÁRIO (vínculo + primária) ============== -->
+<div class="ag-modal-overlay" id="adm-unid-modal" onclick="if(event.target.id==='adm-unid-modal') admUnidadeFechar()">
+  <div class="ag-modal" style="max-width: 540px;">
+    <div class="ag-modal-header">
+      <div class="ttl"><i class="ti ti-building"></i> <span id="adm-unid-title">Unidades do usuário</span></div>
+      <button class="pac-modal-close" onclick="admUnidadeFechar()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="ag-modal-body">
+      <div class="pac-modal-erro" id="adm-unid-erro"></div>
+      <div id="adm-unid-info" style="margin-bottom: 12px; padding: 10px 12px; background: rgba(74,144,226,0.08); border: 1px solid rgba(74,144,226,0.20); border-radius: 8px; font-size: 12px; color: var(--tx2);"></div>
+      <label style="font-size: 10px; color: var(--tx3b); text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 8px;">
+        Unidades vinculadas · marque a estrela na primária
+      </label>
+      <div id="adm-unid-wrap">
+        <div class="pac-empty" style="padding: 20px;"><i class="ti ti-loader"></i>Carregando unidades...</div>
+      </div>
+    </div>
+    <div class="ag-modal-footer">
+      <div></div>
+      <div class="ag-modal-actions-right">
+        <button class="pac-btn-secondary" onclick="admUnidadeFechar()">Cancelar</button>
+        <button class="pac-btn-primary" id="adm-unid-salvar" onclick="admUnidadeSalvar()">
           <i class="ti ti-device-floppy"></i> Salvar
         </button>
       </div>
@@ -9763,6 +9850,7 @@ async function dashCarregar() {
   if (oe) { const conf = (d.hoje.agendamentos || []).filter(a => a.status === 'CONFIRMADO').length; oe.textContent = `${d.hoje.total} consulta${d.hoje.total === 1 ? '' : 's'} · ${conf} confirmada${conf === 1 ? '' : 's'}`; }
   homeFocoRender(d);
   homeImpactoCarregar();
+  aplicHojeCarregar();        // card "Aplicações hoje" (some pra quem não aplica injetável)
   homeRenovCarregar();
   homeMinhasCarregar();       // card grande "Minhas tarefas" (lista + filtro) + "Deleguei"
   homePendListCarregar(d);    // Pendências como lista explícita (fallback: contagem do resumo)
@@ -10113,6 +10201,113 @@ async function homeRenovCarregar() {
   // Reflete no Gestor (card + foco administrativo) quando a contagem chega async.
   const grv = document.getElementById('gst-renov-val'); if (grv) grv.textContent = homeRenovTotal;
   if (homeMode === 'gestor' && window.gstData) gstFocoRender(window.gstData);
+}
+
+// ============================================================
+// APLICAÇÕES HOJE — card da enfermagem (ao lado de "Agenda hoje").
+// Gate por PERMISSÃO de aplicar, não por slug de cargo: os slugs de cargo do banco ainda não estão
+// confirmados (recepcao|recepcionista, enfermeira|enfermagem), e um slug errado esconderia o card
+// da pessoa certa em silêncio. Quem aplica injetável é quem precisa disto.
+// ============================================================
+let aplicHojeDados = null;
+
+async function aplicHojeCarregar() {
+  const card = document.getElementById('op-aplic-card');
+  if (!card) return;
+  if (!temPermissao('prontuario.aplicacao.registrar')) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const val = document.getElementById('op-aplic-val');
+  const ext = document.getElementById('op-aplic-ext');
+  // Respeita o seletor de unidade da home, igual aos cards irmãos: sem isso a enfermeira de uma
+  // unidade contaria as aplicações da outra e separaria insumo a mais.
+  const q = (typeof homeUnit !== 'undefined' && homeUnit) ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
+  let r = null;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/aplicacoes-hoje' + q); } catch (e) { r = null; }
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    // Erro != "nenhuma aplicação hoje": zero aqui faria a enfermeira achar que o dia está livre.
+    aplicHojeDados = null;
+    if (val) val.textContent = '—';
+    if (ext) ext.textContent = 'não consegui carregar agora';
+    return;
+  }
+  aplicHojeDados = r.data;
+  const n = r.data.total;
+  if (val) val.textContent = n;
+  if (ext) {
+    const ins = (r.data.insumos || []).length;
+    ext.textContent = n === 0 ? 'nenhuma aplicação hoje'
+      : `${n} aplicaç${n === 1 ? 'ão' : 'ões'} · ${ins} injetáve${ins === 1 ? 'l' : 'is'}`;
+  }
+}
+
+async function aplicHojeAbrir() {
+  // Se a carga falhou, tenta de novo aqui: o texto mandava "feche e abra de novo", mas abrir só
+  // lia a variável — a mensagem pedia uma ação que não fazia nada.
+  if (!aplicHojeDados) await aplicHojeCarregar();
+  const d = aplicHojeDados;
+  let ov = document.getElementById('atn-overlay'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'atn-overlay'; ov.className = 'atn-overlay';
+  ov.onclick = (e) => { if (e.target.id === 'atn-overlay') homeAtencaoFechar(); };
+
+  let corpo;
+  if (!d) {
+    corpo = '<div class="atn-empty">Não consegui carregar as aplicações de hoje.<br><button class="pac-btn-secondary" style="margin-top:10px" onclick="aplicHojeAbrir()"><i class="ti ti-refresh"></i> Tentar de novo</button></div>';
+  } else if (!d.total) {
+    corpo = '<div class="atn-empty">Nenhuma aplicação de injetável agendada para hoje.</div>';
+  } else {
+    // 1) O QUE SEPARAR: consolidado do dia. Contagem de aplicações por injetável — não somamos as
+    // doses porque `dose` é texto livre ("2,5 mg", "meia seringa") e um total em mg seria inventado.
+    // Cada dose vem com a SUA contagem, e as sem dose aparecem como tal: dizer "doses: 5 mg" quando
+    // só uma das três tem 5 mg faria a enfermeira separar três canetas de 5 mg.
+    const insumos = (d.insumos || []).map((i) => {
+      const partes = (i.doses || []).map((x) => `${esc(x.dose)}${i.aplicacoes > 1 ? ' ×' + x.n : ''}`);
+      if (i.sem_dose) partes.push(`<span style="color:#EF9F27">${i.sem_dose} sem dose registrada</span>`);
+      return `<div class="aph-ins">
+        <div class="aph-ins-n">${i.aplicacoes}<span>×</span></div>
+        <div class="aph-ins-txt">
+          <div class="aph-ins-nome">${esc(i.produto)}</div>
+          <div class="aph-ins-sub">${i.apresentacao ? esc(i.apresentacao) + ' · ' : ''}${partes.join(' · ')}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // 2) QUAIS SÃO: uma linha por aplicação, na ordem do dia.
+    const linhas = d.aplicacoes.map((a) => {
+      const itens = a.itens.length
+        ? a.itens.map((it) => `<span class="aph-chip${it.aplicado ? ' ok' : ''}">${esc(it.produto)}${it.dose ? ' · ' + esc(it.dose) : ''}${it.via ? ' · ' + esc(it.via) : ''}${it.aplicado ? ' ✓' : ''}</span>`).join('')
+        : '<span class="aph-chip vazio">sem itens registrados nesta sessão</span>';
+      const obs = a.itens.map((it) => it.observacao).filter(Boolean);
+      return `<div class="aph-row">
+        <div class="aph-hora">${esc(a.hora)}</div>
+        <div class="aph-info">
+          <div class="aph-pac">${esc(a.paciente)}${a.paciente_codigo ? ` <span class="aph-cod">${esc(a.paciente_codigo)}</span>` : ''}</div>
+          <div class="aph-meta">${esc(a.unidade)}${a.semana ? ' · sessão ' + a.semana : ''} · ${esc(a.status)}</div>
+          <div class="aph-chips">${itens}</div>
+          ${obs.length ? `<div class="aph-obs"><i class="ti ti-note"></i> ${esc(obs.join(' · '))}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    // Agendamento de hoje cuja sessão não tem item ativo => cabeçalho sem nada embaixo.
+    const semItem = '<div class="aph-ins-sub" style="padding:2px 2px 8px">Nenhum injetável a separar — as sessões de hoje não têm item ativo.</div>';
+    const dup = d.sessoes_duplicadas > 0
+      ? `<div class="aph-obs" style="color:#EF9F27;padding:0 18px 4px"><i class="ti ti-alert-triangle"></i> ${d.sessoes_duplicadas} sessão(ões) com mais de um agendamento hoje — o "o que separar" conta uma vez. Confira com a recepção.</div>`
+      : '';
+    corpo = `<div class="aph-sec"><i class="ti ti-package"></i> O que separar hoje</div>
+      ${dup}
+      <div class="aph-ins-wrap">${insumos || semItem}</div>
+      <div class="aph-sec"><i class="ti ti-list-check"></i> Aplicações do dia</div>
+      ${linhas}`;
+  }
+
+  ov.innerHTML = `<div class="atn-modal">
+    <div class="atn-modal-head">
+      <div class="ttl"><i class="ti ti-vaccine" style="color:#7B68EE"></i> Aplicações de hoje${d && d.total ? ' <span style="color:var(--tx3);font-weight:400">(' + d.total + ')</span>' : ''}</div>
+      <button class="x" onclick="homeAtencaoFechar()">×</button>
+    </div>
+    <div class="atn-modal-body">${corpo}</div>
+  </div>`;
+  document.body.appendChild(ov);
 }
 
 function homeRenovAbrir() {
@@ -12142,7 +12337,9 @@ function injBuilderFromTemplate(protId) {
   const m = (injState.protocolos || []).find((x) => x.protocolo_id === protId);
   if (!m) return;
   // 'nao_incluso' e 'depende_plano' têm o mesmo efeito no motor (o plano decide) — normalizo p/ não exibir rótulo enganoso.
-  injState.builder = (m.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku_ativo, dose: it.dose || '', via: injViaFirst(it.via), frequencia: it.frequencia || '', responsavel_id: '', incluso_padrao: it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano', observacao: it.observacao || '' }));
+  // frequencia do modelo NÃO é mais puxada: o campo saiu da tela, então trazer o valor aqui
+  // gravaria um dado que ninguém vê nem consegue editar.
+  injState.builder = (m.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku_ativo, dose: it.dose || '', via: injViaFirst(it.via), incluso_padrao: it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano', observacao: it.observacao || '' }));
   injBuilderRenumber();
   if (!injState.builder.length) injBuilderBlank(); else injBuilderRender();
 }
@@ -12410,6 +12607,9 @@ async function injAplicar(itemId, btn) {
   if (!d) { homeToast('Não foi possível aplicar (item não liberado ou sem estoque).'); }
   else { homeToast(d.baixa_estoque ? 'Aplicado — baixa de estoque (FEFO) feita.' : 'Aplicado. ' + (d.aviso || 'Sem baixa de estoque.')); }
   injCarregarLiberados();
+  // Aplicar o último item conclui a tarefa da enfermagem no servidor, mas NÃO sincroniza a home
+  // daqui: esta tela só existe dentro da view Injetáveis, com a home escondida — seria buscar
+  // 3 endpoints pra repintar o que ninguém está vendo. Quem cobre é o hook de trocarView('painel').
 }
 
 // --- Aba PREÇOS (comercial/admin) ---
@@ -13445,8 +13645,10 @@ function pacCepAuto(el) {
 
 // Carrega listas de apoio (unidades + profissionais) UMA VEZ
 async function pacCarregarApoio() {
-  // Unidades vêm do meData se já carregadas, senão fallback
-  if (meData && meData.unidades) {
+  // Unidades vêm do meData; se o usuário não tem nenhuma vinculada (array VAZIO — que é truthy em JS,
+  // pegadinha antiga), cai no fallback /units (todas ativas) em vez de deixar os selects vazios e
+  // travar cadastro/agenda/aplicação. Testa .length, igual ao varejo (varCarregarUnidades).
+  if (meData && meData.unidades && meData.unidades.length) {
     pacState.unidades = meData.unidades;
   } else {
     const r = await pacApi('/api/clinico/units');
@@ -19393,40 +19595,6 @@ async function devAgChatEnviar() {
   body = document.getElementById('devag-chat-body'); if (body) body.scrollTop = body.scrollHeight;
 }
 
-// ==================== Gestão de Tarefas (painel do gestor) ====================
-const gtState = { pessoas: [], cargos: [], grupos: [], niveis: ['junior', 'pleno', 'senior'], painelDias: 30, novaAlvos: [] };
-const GT_RECORR = { unica: 'Única', diaria: 'Diária', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
-function gtHojeStr() { try { return new Date().toLocaleDateString('en-CA'); } catch (e) { return new Date().toISOString().slice(0, 10); } }
-function gtNomePessoa(id) { const p = gtState.pessoas.find((x) => x.id === id); return p ? p.nome : '—'; }
-function gtNomeCargo(slug) { const c = gtState.cargos.find((x) => x.slug === slug); return c ? c.nome : slug; }
-function gtNomeGrupo(id) { const g = gtState.grupos.find((x) => x.id === id); return g ? g.nome : 'grupo'; }
-function gtNivelLabel(n) { return ({ junior: 'Júnior', pleno: 'Pleno', senior: 'Sênior' })[n] || n; }
-function gtAlvoLabel(a) {
-  if (a.tipo === 'pessoa') return '<i class="ti ti-user"></i> ' + esc(gtNomePessoa(a.pessoa));
-  if (a.tipo === 'cargo') return 'Cargo: ' + esc(gtNomeCargo(a.cargo));
-  if (a.tipo === 'nivel') return 'Nível: ' + esc(gtNivelLabel(a.nivel));
-  if (a.tipo === 'cargo_nivel') return esc(gtNomeCargo(a.cargo)) + ' ' + esc(gtNivelLabel(a.nivel));
-  if (a.tipo === 'grupo') return 'Grupo: ' + esc(gtNomeGrupo(a.grupo));
-  return esc(a.tipo);
-}
-async function gtInit() { await gtCarregarBase(); gtTab('painel'); }
-async function gtCarregarBase() {
-  const [p, c, g] = await Promise.all([
-    pacApi('/api/clinico/tarefas-gestao/pessoas').catch(() => ({ ok: false })),
-    pacApi('/api/clinico/tarefas-gestao/cargos').catch(() => ({ ok: false })),
-    pacApi('/api/clinico/tarefas-gestao/grupos').catch(() => ({ ok: false })),
-  ]);
-  if (p.ok) { gtState.pessoas = p.data.pessoas || []; gtState.niveis = p.data.niveis || gtState.niveis; }
-  if (c.ok) gtState.cargos = c.data.cargos || [];
-  if (g.ok) gtState.grupos = g.data.grupos || [];
-}
-function gtTab(t) {
-  document.querySelectorAll('#view-gtarefas .gt-tab').forEach((b) => b.classList.toggle('active', b.dataset.gt === t));
-  document.querySelectorAll('#view-gtarefas .gt-pane').forEach((p) => (p.style.display = 'none'));
-  const pane = document.getElementById('gt-' + t); if (pane) pane.style.display = '';
-  if (t === 'painel') gtPainelCarregar();
-  else if (t === 'rotinas') gtRotinasCarregar();
-  else if (t === 'grupos') gtGruposRender();
 // ==================== Metas de Movimento (níveis + política sem prescrição + piso de dia ativo) ====================
 // Tudo que aparece na tela vem de /api/clinico/dev/metas-movimento. Erro de rede != "não tem config":
 // sem resposta do endpoint a tela mostra o erro e NADA de número, em vez de exibir o padrão como se fosse o vigente.
@@ -19636,6 +19804,40 @@ async function movmReverter() {
   movmCarregar();
 }
 
+// ==================== Gestão de Tarefas (painel do gestor) ====================
+const gtState = { pessoas: [], cargos: [], grupos: [], niveis: ['junior', 'pleno', 'senior'], painelDias: 30, novaAlvos: [] };
+const GT_RECORR = { unica: 'Única', diaria: 'Diária', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
+function gtHojeStr() { try { return new Date().toLocaleDateString('en-CA'); } catch (e) { return new Date().toISOString().slice(0, 10); } }
+function gtNomePessoa(id) { const p = gtState.pessoas.find((x) => x.id === id); return p ? p.nome : '—'; }
+function gtNomeCargo(slug) { const c = gtState.cargos.find((x) => x.slug === slug); return c ? c.nome : slug; }
+function gtNomeGrupo(id) { const g = gtState.grupos.find((x) => x.id === id); return g ? g.nome : 'grupo'; }
+function gtNivelLabel(n) { return ({ junior: 'Júnior', pleno: 'Pleno', senior: 'Sênior' })[n] || n; }
+function gtAlvoLabel(a) {
+  if (a.tipo === 'pessoa') return '<i class="ti ti-user"></i> ' + esc(gtNomePessoa(a.pessoa));
+  if (a.tipo === 'cargo') return 'Cargo: ' + esc(gtNomeCargo(a.cargo));
+  if (a.tipo === 'nivel') return 'Nível: ' + esc(gtNivelLabel(a.nivel));
+  if (a.tipo === 'cargo_nivel') return esc(gtNomeCargo(a.cargo)) + ' ' + esc(gtNivelLabel(a.nivel));
+  if (a.tipo === 'grupo') return 'Grupo: ' + esc(gtNomeGrupo(a.grupo));
+  return esc(a.tipo);
+}
+async function gtInit() { await gtCarregarBase(); gtTab('painel'); }
+async function gtCarregarBase() {
+  const [p, c, g] = await Promise.all([
+    pacApi('/api/clinico/tarefas-gestao/pessoas').catch(() => ({ ok: false })),
+    pacApi('/api/clinico/tarefas-gestao/cargos').catch(() => ({ ok: false })),
+    pacApi('/api/clinico/tarefas-gestao/grupos').catch(() => ({ ok: false })),
+  ]);
+  if (p.ok) { gtState.pessoas = p.data.pessoas || []; gtState.niveis = p.data.niveis || gtState.niveis; }
+  if (c.ok) gtState.cargos = c.data.cargos || [];
+  if (g.ok) gtState.grupos = g.data.grupos || [];
+}
+function gtTab(t) {
+  document.querySelectorAll('#view-gtarefas .gt-tab').forEach((b) => b.classList.toggle('active', b.dataset.gt === t));
+  document.querySelectorAll('#view-gtarefas .gt-pane').forEach((p) => (p.style.display = 'none'));
+  const pane = document.getElementById('gt-' + t); if (pane) pane.style.display = '';
+  if (t === 'painel') gtPainelCarregar();
+  else if (t === 'rotinas') gtRotinasCarregar();
+  else if (t === 'grupos') gtGruposRender();
 }
 // ---- Acompanhamento ----
 async function gtPainelCarregar() {
@@ -19869,6 +20071,7 @@ async function gtGrupoExcluir(id) {
 async function devCarregar() {
   devIACarregar(devIARange);
   devAgentesCarregar();
+  movmCarregar();
   const wrap = document.getElementById('dev-conteudo');
   wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando snapshot técnico...</div>';
   const r = await pacApi('/api/clinico/dev/overview');
@@ -19903,7 +20106,6 @@ function devRender(d) {
   const sess = d.sessoes || { ativas: 0, total: 0, recentes: [] };
   const errs = d.erros || { total: 0, ultimas_24h: 0, por_level_24h: [], recentes: [] };
 
-  movmCarregar();
   // Calcula max size pras barras
   const maxSize = Math.max(...db.tabelas.map(t => t.size_bytes || 0), 1);
 
@@ -20552,6 +20754,11 @@ let admState = {
   novoUserCargos: new Set(),
   novoUserOrigem: null,  // 'admin' | 'agenda'
   novoUserConvite: null, // { link, email, nome }
+  editandoUnidUserId: null,
+  unidadesDisponiveis: [], // todas as unidades ativas (pra montar as opções)
+  unidOpcoes: [],          // opções renderizadas no modal = ativas + inativas ainda vinculadas
+  unidSel: new Set(),      // ids de unidade escolhidos
+  unidPrimaria: null,      // id da unidade primária (tem que estar em unidSel)
 };
 
 function adminTrocarTab(tab) {
@@ -20767,6 +20974,14 @@ async function admCarregarUsuarios() {
           const cor = c.cor || 'var(--tx3b)';
           return `<span class="cargo-pill" style="color:${cor}; border-color:${cor}40; background:${cor}10;">${c.icone ? `<i class="ti ${c.icone}"></i>` : ''}${c.nome}</span>`;
         }).join('');
+    const unids = u.unidades || [];
+    // "posto" = cargo + unidade primária. Sem primária a fila compartilhada não aparece pra pessoa,
+    // então o estado sem-primária é sinalizado (não fica mudo como no resto do sistema).
+    const temPrimaria = unids.some(x => x.primaria);
+    const unidHtml = unids.length === 0
+      ? '<span class="adm-unid-warn"><i class="ti ti-alert-triangle"></i> Sem unidade — não vê fila compartilhada</span>'
+      : unids.map(x => `<span class="adm-unid-pill ${x.primaria ? 'primaria' : ''}">${x.primaria ? '<i class="ti ti-star-filled"></i>' : '<i class="ti ti-building"></i>'}${esc(x.nome)}${x.primaria ? ' · primária' : ''}</span>`).join('')
+        + (temPrimaria ? '' : ' <span class="adm-unid-warn"><i class="ti ti-alert-triangle"></i> sem primária — sem posto</span>');
     return `
       <div class="admin-user-card">
         <div class="avatar">${inicial}</div>
@@ -20774,9 +20989,11 @@ async function admCarregarUsuarios() {
           <div class="nome">${u.nome || u.email}</div>
           <div class="meta">${u.email} · role técnico: <strong>${u.role_tecnico}</strong> · ${u.status}</div>
           <div class="cargos-pills">${cargosHtml}</div>
+          <div class="cargos-pills" style="margin-top:4px;">${unidHtml}</div>
         </div>
         <div class="acoes">
           <button class="pac-btn-secondary" onclick="admEditarCargosUser('${u.id}')"><i class="ti ti-edit"></i> Cargos</button>
+          <button class="pac-btn-secondary" onclick="admEditarUnidadesUser('${u.id}')"><i class="ti ti-building"></i> Unidades</button>
         </div>
       </div>
     `;
@@ -20878,6 +21095,109 @@ async function admUserSalvar() {
   });
   if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
   admUserFechar();
+  admCarregarUsuarios();
+}
+
+// ===== UNIDADES DO USUÁRIO (vínculo + primária) =====
+// A primária é o que dá "posto" (cargo × unidade) e libera a fila compartilhada de injetável
+// pra recepção/enfermagem. Marcar unidade sem primária = posto morto e calado — por isso o
+// salvar exige escolher a primária quando há qualquer unidade marcada.
+async function admEditarUnidadesUser(userId) {
+  const u = admState.usuarios.find(x => x.id === userId);
+  if (!u) return;
+  admState.editandoUnidUserId = userId;
+  admState.unidSel = new Set((u.unidades || []).map(x => x.id));
+  const prim = (u.unidades || []).find(x => x.primaria);
+  admState.unidPrimaria = prim ? prim.id : null;
+  document.getElementById('adm-unid-title').textContent = 'Unidades de ' + (u.nome || u.email);
+  document.getElementById('adm-unid-info').innerHTML = `<i class="ti ti-info-circle" style="color:#4A90E2; font-size:13px;"></i> A unidade <strong>primária</strong> é a que define o "posto" da pessoa — é o que faz a fila compartilhada (contrato, agendar e aplicar injetável) aparecer pra ela. Escolha uma.`;
+  document.getElementById('adm-unid-erro').style.display = 'none';
+
+  // Opções = todas as unidades ativas (mesma fonte dos outros selects do sistema).
+  if (admState.unidadesDisponiveis.length === 0) {
+    const ru = await pacApi('/api/clinico/units');
+    if (ru.ok) admState.unidadesDisponiveis = ru.data.unidades;
+  }
+  // Se a pessoa já tem vínculo com uma unidade que foi DESATIVADA, ela não vem em /units mas continua
+  // marcada em unidSel. Sem exibi-la, o admin não consegue desmarcá-la e o save trava (o backend
+  // rejeita unidade inativa). Então junta as inativas vinculadas às ativas, sinalizadas como tal.
+  const ativasIds = new Set(admState.unidadesDisponiveis.map(x => x.id));
+  const inativasVinculadas = (u.unidades || [])
+    .filter(x => !ativasIds.has(x.id))
+    .map(x => ({ id: x.id, nome: x.nome, cidade: x.cidade, inativa: true }));
+  admState.unidOpcoes = [...admState.unidadesDisponiveis.map(x => ({ ...x, inativa: false })), ...inativasVinculadas];
+  admRenderUserUnidades();
+  document.getElementById('adm-unid-modal').classList.add('aberto');
+}
+
+function admRenderUserUnidades() {
+  const wrap = document.getElementById('adm-unid-wrap');
+  const uns = admState.unidOpcoes || [];
+  if (!uns.length) {
+    wrap.innerHTML = '<div style="color:var(--tx3b); font-size:11px; padding:10px;">Nenhuma unidade ativa cadastrada.</div>';
+    return;
+  }
+  wrap.innerHTML = uns.map(un => {
+    const sel = admState.unidSel.has(un.id);
+    const isPrim = admState.unidPrimaria === un.id;
+    const tagInativa = un.inativa ? ` <span style="color:#f0883e; font-size:9px; border:1px solid #f0883e55; border-radius:4px; padding:0 4px; text-transform:uppercase; letter-spacing:.3px;">inativa</span>` : '';
+    // Unidade inativa: o backend recusa vincular/tornar primária. Só dá pra DESMARCAR — por isso o
+    // botão de primária fica travado. Assim o admin limpa o vínculo morto em vez de ficar sem salvar.
+    return `
+      <label class="adm-unid-row ${sel ? 'selected' : ''}">
+        <input type="checkbox" ${sel ? 'checked' : ''} onchange="admToggleUnidade('${un.id}', this.checked)">
+        <i class="ti ti-building" style="color:var(--tx3b);"></i>
+        <span class="nome">${esc(un.nome)}${un.cidade ? ` <span style="color:var(--tx4); font-size:10px;">${esc(un.cidade)}</span>` : ''}${tagInativa}</span>
+        <button type="button" class="adm-unid-prim-btn ${isPrim ? 'ativa' : ''}" ${sel && !un.inativa ? '' : 'disabled'} onclick="admSetPrimaria('${un.id}')" title="Definir como unidade primária">
+          <i class="ti ${isPrim ? 'ti-star-filled' : 'ti-star'}"></i> ${isPrim ? 'Primária' : 'Tornar primária'}
+        </button>
+      </label>
+    `;
+  }).join('');
+}
+
+function admToggleUnidade(id, marcar) {
+  if (marcar) {
+    admState.unidSel.add(id);
+    // Primeira unidade marcada já vira primária por padrão — evita o estado "marquei e esqueci a primária".
+    if (!admState.unidPrimaria) admState.unidPrimaria = id;
+  } else {
+    admState.unidSel.delete(id);
+    if (admState.unidPrimaria === id) {
+      // Perdeu a primária: promove a próxima marcada, se houver.
+      admState.unidPrimaria = admState.unidSel.size ? [...admState.unidSel][0] : null;
+    }
+  }
+  admRenderUserUnidades();
+}
+
+function admSetPrimaria(id) {
+  if (!admState.unidSel.has(id)) admState.unidSel.add(id); // marcar como primária implica estar vinculada
+  admState.unidPrimaria = id;
+  admRenderUserUnidades();
+}
+
+function admUnidadeFechar() {
+  document.getElementById('adm-unid-modal').classList.remove('aberto');
+}
+
+async function admUnidadeSalvar() {
+  const erroEl = document.getElementById('adm-unid-erro');
+  erroEl.style.display = 'none';
+  const userId = admState.editandoUnidUserId;
+  if (!userId) return;
+  const unidades = [...admState.unidSel];
+  if (unidades.length && !admState.unidPrimaria) {
+    erroEl.textContent = 'Escolha qual unidade é a primária.'; erroEl.style.display = 'block'; return;
+  }
+  const body = { unidades, primaria: unidades.length ? admState.unidPrimaria : null };
+  const r = await pacApi('/api/clinico/admin/usuarios/' + userId + '/unidades', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
+  admUnidadeFechar();
+  homeToast('Unidades atualizadas.');
   admCarregarUsuarios();
 }
 
