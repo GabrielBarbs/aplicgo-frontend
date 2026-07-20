@@ -7207,6 +7207,15 @@
 
   <!-- VIEW: Financeiro (esquema funcional) -->
   <div class="view" id="view-financeiro">
+    <!-- Conexão com o Conta Azul (Fase 1a). O card se preenche por caStatusCarregar() ao abrir a view. -->
+    <div class="dash-card" id="ca-card" style="margin-bottom:16px">
+      <div class="dash-card-head">
+        <div class="ttl"><i class="ti ti-building-bank"></i> Conta Azul</div>
+        <span class="dash-count" id="ca-status-pill">—</span>
+      </div>
+      <div id="ca-corpo"><div class="dash-vazio">Carregando…</div></div>
+    </div>
+
     <div class="com-roadmap">
       <div class="com-roadmap-title">
         <i class="ti ti-coin"></i> Financeiro &amp; Contratos — o que já existe e o que vem
@@ -9713,6 +9722,7 @@ async function carregarMe() {
     meData = data;
     aplicarUI();
     await carregarStatus();
+    caTratarRetorno();   // se voltou do Conta Azul (?contaazul=ok|erro), avisa e limpa a URL
   } catch (e) {
     document.getElementById('status-text').textContent = 'Offline';
     document.getElementById('status-dot').style.background = '#f85149';
@@ -13068,6 +13078,80 @@ function homeToast(msg) {
   t._to = setTimeout(() => { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; }, 4200);
 }
 
+// ============================================================
+// Conta Azul — conexão OAuth (Fase 1a). O card vive na view Financeiro.
+// ============================================================
+async function caStatusCarregar() {
+  const corpo = document.getElementById('ca-corpo');
+  const pill = document.getElementById('ca-status-pill');
+  if (!corpo) return;
+  let d = null;
+  try { const r = await pacApi('/api/clinico/contaazul/status'); if (r.ok) d = r.data; } catch (e) {}
+  // Erro de rede != desconectado: dizer "desconectado" mandaria reconectar sem motivo.
+  if (!d || !d.ok) { if (pill) pill.textContent = '—'; corpo.innerHTML = '<div class="dash-vazio">Não consegui checar a conexão com o Conta Azul agora.</div>'; return; }
+  caStatusRender(d);
+}
+function caStatusRender(d) {
+  const corpo = document.getElementById('ca-corpo');
+  const pill = document.getElementById('ca-status-pill');
+  if (!corpo) return;
+  // 3 estados: não configurado (falta env no servidor) / desconectado / conectado (ou reconectar).
+  if (!d.configurado) {
+    if (pill) { pill.textContent = 'sem credenciais'; pill.style.color = 'var(--tx4)'; }
+    corpo.innerHTML = '<div style="font-size:13px;color:var(--tx2);line-height:1.6">A integração ainda não foi configurada no servidor (faltam as credenciais do Conta Azul). Assim que as variáveis <code>CONTAAZUL_*</code> estiverem no ar, este card libera o botão de conectar.</div>';
+    return;
+  }
+  if (!d.conectado) {
+    const aviso = d.precisa_reconectar
+      ? '<div style="font-size:12px;color:#e3b341;margin-bottom:10px"><i class="ti ti-alert-triangle"></i> A conexão expirou (o Conta Azul renova o acesso a cada 2 semanas). Reconecte pra voltar a sincronizar.</div>'
+      : '<div style="font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:10px">Conecte a conta do Conta Azul da clínica pra puxar as métricas financeiras e, na próxima fase, mandar as cobranças pra lá.</div>';
+    if (pill) { pill.textContent = d.precisa_reconectar ? 'reconectar' : 'desconectado'; pill.style.color = d.precisa_reconectar ? '#e3b341' : 'var(--tx4)'; }
+    corpo.innerHTML = aviso + `<button class="tk-btn primary" onclick="caConectar(this)"><i class="ti ti-plug"></i> ${d.precisa_reconectar ? 'Reconectar' : 'Conectar'} Conta Azul</button>`;
+    return;
+  }
+  if (pill) { pill.textContent = 'conectado'; pill.style.color = '#3fb950'; }
+  const desde = d.conectado_em ? new Date(d.conectado_em).toLocaleDateString('pt-BR') : null;
+  corpo.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--tx1);margin-bottom:4px">
+      <i class="ti ti-circle-check" style="color:#3fb950"></i> Conectado${desde ? ` desde ${desde}` : ''}.
+    </div>
+    <div style="font-size:11px;color:var(--tx4);margin-bottom:12px">O acesso se renova sozinho. Você só reconecta se ficar ~2 semanas sem uso.</div>
+    <button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="caDesconectar(this)"><i class="ti ti-plug-off"></i> Desconectar</button>`;
+}
+// Redireciona a página inteira pro login do Conta Azul. Volta em aplicgo.com/?contaazul=ok|erro,
+// tratado no boot (caTratarRetorno). O state anti-CSRF viaja e é validado no callback.
+async function caConectar(btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Abrindo o Conta Azul…'; }
+  let r = null;
+  try { r = await pacApi('/api/clinico/contaazul/conectar'); } catch (e) {}
+  if (!r || !r.ok || !r.data || !r.data.url) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-plug"></i> Conectar Conta Azul'; }
+    homeToast((r && r.data && r.data.erro) || 'Não consegui iniciar a conexão com o Conta Azul.');
+    return;
+  }
+  window.location.href = r.data.url;
+}
+async function caDesconectar(btn) {
+  if (!confirm('Desconectar o Conta Azul?\n\nAs métricas param de sincronizar até você reconectar. Nada é apagado no Conta Azul.')) return;
+  if (btn) { btn.disabled = true; }
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/contaazul/desconectar', { method: 'POST', body: JSON.stringify({}) }); ok = r.ok && r.data && r.data.ok; } catch (e) {}
+  homeToast(ok ? 'Conta Azul desconectado.' : 'Não consegui desconectar agora.');
+  caStatusCarregar();
+}
+// O callback do Conta Azul devolve o navegador pra cá com ?contaazul=ok|erro. Mostra o resultado e
+// limpa a URL (senão um F5 repetiria o toast).
+function caTratarRetorno() {
+  const p = new URLSearchParams(window.location.search);
+  const r = p.get('contaazul');
+  if (!r) return;
+  if (r === 'ok') homeToast('Conta Azul conectado. ✓');
+  else homeToast('A conexão com o Conta Azul não foi concluída' + (p.get('motivo') ? ' (' + p.get('motivo') + ')' : '') + '. Tente de novo.');
+  p.delete('contaazul'); p.delete('motivo');
+  const q = p.toString();
+  history.replaceState(null, '', window.location.pathname + (q ? '?' + q : ''));
+}
+
 let dashState = { aniversariantes: [] };
 
 function dashRenderAniversariantes() {
@@ -13419,6 +13503,7 @@ function trocarView(v) {
   // sempre. Toda conclusão feita FORA dela (aplicar injetável, agendar) deixava a tarefa fantasma
   // na tela até um F5 — voltar pra home não era um refresh.
   if (v === 'painel') homeTarefasSync();
+  else if (v === 'financeiro') caStatusCarregar();
   else if (v === 'admin') adminTrocarTab('cargos');
   else if (v === 'pendencias') pendCarregar();
   else if (v === 'dev') devCarregar();
