@@ -2913,6 +2913,13 @@
     .wv-send { width:40px; height:40px; border-radius:50%; border:0; background:#1D9E75; color:#fff; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .wv-send:hover { filter:brightness(1.1); }
     .wv-send:disabled { opacity:.5; cursor:default; }
+    .wv-rec { display:flex; align-items:center; gap:10px; padding:10px 14px; border-top:1px solid var(--hair); }
+    .wv-rec-cancel { width:38px; height:40px; border:0; background:transparent; color:#f85149; font-size:18px; cursor:pointer; flex-shrink:0; border-radius:9px; }
+    .wv-rec-cancel:hover { background:rgba(248,81,73,0.12); }
+    .wv-rec-dot { width:10px; height:10px; border-radius:50%; background:#f85149; flex-shrink:0; animation:wvRecPulse 1.1s ease-in-out infinite; }
+    @keyframes wvRecPulse { 0%,100%{opacity:1;} 50%{opacity:.25;} }
+    .wv-rec-time { font-variant-numeric:tabular-nums; font-size:14px; color:var(--tx1); font-weight:600; }
+    .wv-rec-hint { flex:1; font-size:12px; color:var(--tx3); }
     .wv-clip { width:38px; height:38px; border-radius:50%; border:1px solid var(--bd1); background:transparent; color:var(--tx3); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .wv-clip:hover { color:var(--tx1); border-color:var(--ac); }
     .wv-clip:disabled { opacity:.4; cursor:default; }
@@ -7178,11 +7185,19 @@
         <div class="wv-thread" id="wv-thread" style="display:none;">
           <header class="wv-head" id="wv-head"></header>
           <div class="wv-msgs" id="wv-msgs"></div>
-          <div class="wv-composer">
+          <div class="wv-composer" id="wv-composer">
+            <button class="wv-clip" id="wv-mic" onclick="wvMicToggle()" title="Gravar áudio"><i class="ti ti-microphone"></i></button>
             <button class="wv-clip" id="wv-clip" onclick="wvAnexarClique()" title="Anexar imagem ou PDF"><i class="ti ti-paperclip"></i></button>
             <input type="file" id="wv-file" accept="image/*,application/pdf" style="display:none;" onchange="wvAnexarArquivo(this)">
             <textarea id="wv-input" rows="1" placeholder="Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)" onkeydown="wvInputKey(event)" oninput="wvAutoGrow(this)"></textarea>
             <button class="wv-send" id="wv-send" onclick="wvEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
+          </div>
+          <div class="wv-rec" id="wv-rec" style="display:none;">
+            <button class="wv-rec-cancel" onclick="wvMicCancelar()" title="Descartar"><i class="ti ti-trash"></i></button>
+            <span class="wv-rec-dot"></span>
+            <span class="wv-rec-time" id="wv-rec-time">0:00</span>
+            <span class="wv-rec-hint">gravando…</span>
+            <button class="wv-send" onclick="wvMicEnviar()" title="Enviar áudio"><i class="ti ti-send"></i></button>
           </div>
         </div>
       </section>
@@ -16417,6 +16432,9 @@ function wvAbrirIdx(i) {
   if (c) wvAbrirConversa(c);
 }
 async function wvAbrirConversa(c) {
+  // Trocar de conversa com gravação em curso: descarta o áudio e restaura o composer (senão a barra
+  // "gravando…" fica pendurada sobre a conversa nova e o campo de texto dela some).
+  if (wvRec.rec) { wvRec.enviar = false; try { wvRec.rec.stop(); } catch (e) {} wvMicLimpar(); if (typeof homeToast === 'function') homeToast('Gravação descartada — você trocou de conversa.'); }
   wvState.jid = c.id;
   wvState.alt = c.jid_alt || null; // jid alternativo (@lid <-> telefone): une o histórico
   let num = String(c.numero || '').replace(/\D/g, '');
@@ -16453,7 +16471,8 @@ function wvRenderHead() {
   const nome = ct.nome || (ct.telefone ? wdFmtTel(ct.telefone) : 'Contato');
   const acoes = [
     ct.paciente_id ? '<button class="cp-acao" title="Abrir prontuário" onclick="wvIrProntuario()"><i class="ti ti-clipboard-text"></i></button>' : '',
-    ct.telefone ? '<button class="cp-acao" title="Ligar" onclick="wvLigar()"><i class="ti ti-phone"></i></button>' : '',
+    ct.telefone ? '<button class="cp-acao" title="Ligar (discador)" onclick="wvLigar()"><i class="ti ti-phone"></i></button>' : '',
+    ct.telefone ? '<button class="cp-acao" title="Abrir no WhatsApp" onclick="wvWaWeb()"><i class="ti ti-brand-whatsapp"></i></button>' : '',
   ].join('');
   document.getElementById('wv-head').innerHTML =
     '<div class="wv-av" style="width:38px;height:38px;font-size:15px;">' + esc(waIni(nome)) + '</div>'
@@ -16565,6 +16584,96 @@ async function wvAnexarArquivo(input) {
     wvState.enviando = false;
     if (btn) btn.disabled = false;
   }
+}
+// ---- Áudio (nota de voz) ----
+// Grava pelo navegador (MediaRecorder) e manda pro endpoint /audio (PTT). O Evolution transcodifica
+// pra ogg/opus no servidor, então mandamos o que o navegador gravar (ogg > webm > mp4).
+let wvRec = { rec: null, chunks: [], stream: null, timer: null, t0: 0, mime: '', enviar: false, jid: null, numero: '' };
+function wvMicSuportado() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+}
+function wvMicMime() {
+  const cands = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+  for (let i = 0; i < cands.length; i++) { try { if (MediaRecorder.isTypeSupported(cands[i])) return cands[i]; } catch (e) {} }
+  return '';
+}
+async function wvMicToggle() {
+  if (!wvState.jid || wvState.enviando) return;
+  if (wvRec.rec) return; // já gravando — os controles ficam na barra (enviar/descartar)
+  if (!wvMicSuportado()) { if (typeof homeToast === 'function') homeToast('Este navegador não grava áudio aqui.'); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { if (typeof homeToast === 'function') homeToast('Preciso da permissão do microfone pra gravar.'); return; }
+  if (!wvState.jid) { stream.getTracks().forEach(t => t.stop()); return; } // trocou/fechou a conversa no meio da permissão
+  const mime = wvMicMime();
+  let rec;
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+  catch (e) { try { rec = new MediaRecorder(stream); } catch (e2) { stream.getTracks().forEach(t => t.stop()); if (typeof homeToast === 'function') homeToast('Não consegui iniciar a gravação.'); return; } }
+  wvRec.rec = rec; wvRec.chunks = []; wvRec.stream = stream; wvRec.mime = rec.mimeType || mime || 'audio/webm'; wvRec.enviar = false;
+  // Fixa o DESTINO no início da gravação — se trocar de conversa antes de enviar, o áudio ainda vai
+  // pro contato certo (nunca pro que estiver aberto na hora do stop).
+  wvRec.jid = wvState.jid; wvRec.numero = (wvState.contato && wvState.contato.telefone) || '';
+  rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) wvRec.chunks.push(ev.data); };
+  rec.onstop = wvMicOnStop;
+  try { rec.start(); } catch (e) { wvMicLimpar(); if (typeof homeToast === 'function') homeToast('Não consegui iniciar a gravação.'); return; }
+  wvRec.t0 = Date.now();
+  const bar = document.getElementById('wv-rec'); if (bar) bar.style.display = 'flex';
+  const comp = document.getElementById('wv-composer'); if (comp) comp.style.display = 'none';
+  wvMicTick();
+  wvRec.timer = setInterval(wvMicTick, 250);
+}
+function wvMicTick() {
+  const s = Math.max(0, Math.floor((Date.now() - wvRec.t0) / 1000));
+  const el = document.getElementById('wv-rec-time');
+  if (el) el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  if (s >= 300) wvMicEnviar(); // teto de 5 min
+}
+function wvMicEnviar() { if (!wvRec.rec) return; wvRec.enviar = true; try { wvRec.rec.stop(); } catch (e) { wvMicLimpar(); } }
+function wvMicCancelar() { if (!wvRec.rec) return; wvRec.enviar = false; try { wvRec.rec.stop(); } catch (e) { wvMicLimpar(); } }
+function wvMicLimpar() {
+  if (wvRec.timer) { clearInterval(wvRec.timer); wvRec.timer = null; }
+  if (wvRec.stream) { try { wvRec.stream.getTracks().forEach(t => t.stop()); } catch (e) {} }
+  wvRec.rec = null; wvRec.chunks = []; wvRec.stream = null;
+  const bar = document.getElementById('wv-rec'); if (bar) bar.style.display = 'none';
+  const comp = document.getElementById('wv-composer'); if (comp) comp.style.display = '';
+}
+async function wvMicOnStop() {
+  const enviar = wvRec.enviar, mime = wvRec.mime, chunks = wvRec.chunks.slice();
+  const dur = Math.max(1, Math.round((Date.now() - wvRec.t0) / 1000));
+  const jid = wvRec.jid, numeroReal = wvRec.numero || '';   // destino fixado no INÍCIO, não agora
+  wvMicLimpar();
+  if (!enviar || !chunks.length || !jid) return;
+  const blob = new Blob(chunks, { type: mime });
+  if (blob.size < 900) { if (typeof homeToast === 'function') homeToast('Áudio curto demais.'); return; }
+  if (blob.size > 10 * 1024 * 1024) { if (typeof homeToast === 'function') homeToast('Áudio grande demais (máx 10MB).'); return; }
+  if (wvState.enviando) return;
+  wvState.enviando = true;
+  if (typeof homeToast === 'function') homeToast('Enviando áudio…');
+  try {
+    const dataUrl = await new Promise(function (res, rej) { const fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(blob); });
+    const base64 = String(dataUrl).split(',')[1] || '';
+    const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/audio', {
+      method: 'POST',
+      body: JSON.stringify({ base64, mimetype: mime, numero: numeroReal }),
+    });
+    if (wvState.jid !== jid) return; // trocou de conversa durante o envio
+    if (!r.ok) { if (typeof homeToast === 'function') homeToast('Falha ao enviar o áudio: ' + ((r.data && r.data.erro) || 'verifique a conexão')); return; }
+    wvState.msgs.push(Object.assign({ tipo: 'audio', dur: dur }, r.data.mensagem));
+    wvRenderMsgs(true);
+    const ch = (wvState.chats || []).find(c => c.id === jid);
+    if (ch) { ch.ultima = '🎤 Áudio'; ch.ultima_em = r.data.mensagem.data; ch.ultima_de_mim = true; wvRenderLista(); }
+  } catch (e) {
+    if (typeof homeToast === 'function') homeToast('Sem conexão — o áudio NÃO foi enviado.');
+  } finally {
+    wvState.enviando = false;
+  }
+}
+// Abrir o contato no WhatsApp (Web/app): no desktop o tel: não faz nada, então este é o caminho
+// pra falar/ligar de fato. O popup já tinha; a página cheia ganha o mesmo botão.
+function wvWaWeb() {
+  const t = wvState.contato && wvState.contato.telefone;
+  if (!t) return;
+  window.open('https://wa.me/' + telWa(String(t).trim()), '_blank'); // sem replace(/\D/): telWa respeita o '+'
 }
 // ---- Nova conversa (paciente que ainda não tem chat) ----
 function wvNovaToggle() {
