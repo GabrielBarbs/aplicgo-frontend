@@ -23259,7 +23259,6 @@ function prBaseHtml(prescs, cat) {
       <div class="pr-base-flags"><span class="pr-base-flag${p.autoAdministrado ? '' : ' clinica'}">${p.autoAdministrado ? 'auto-aplicado' : 'aplicado na clínica'}</span><span class="pr-base-flag">sem cobrança</span></div>
       ${titul.length ? `<div class="pr-inj-sec-tit" style="margin-top:9px">Escada de dose</div><div class="pr-base-escada">${escada}</div>${atual >= 0 ? '<div class="pr-inj-obs">"~ atual" é estimado pela data de início — o degrau real depende da titulação do paciente.</div>' : ''}` : ''}
       ${p.observacoes ? `<div class="pr-inj-obs" style="font-style:normal;color:var(--tx3b)">${esc(p.observacoes)}</div>` : ''}
-      ${(() => { const al = (m.alertas || []).filter((a) => a && a !== m.classe); return al.length ? `<div class="pr-base-alerta"><i class="ti ti-alert-triangle"></i> ${al.map((a) => esc(injRotulo(a))).join(' · ')}</div>` : ''; })()}
     </div>`;
   };
   return `<div class="pr-inj-wrap">${ativas.map(bloco).join('')}</div>`;

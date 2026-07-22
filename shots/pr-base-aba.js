@@ -50,8 +50,7 @@ const PORT = process.argv[2] || '8180';
     r.flag_clinica = /aplicado na clínica/.test(t) && !/auto-aplicado/.test(t) && /sem cobrança/.test(t); // autoAdministrado=false
     r.tem_escada = /Escada de dose/.test(t);
     r.tem_manutencao = /manutenção/.test(t);
-    r.alertas_traduzidos = /Titular a dose devagar/.test(t) && /Contraindicado na gestação/.test(t);
-    r.alertas_sem_slug = !/titular_lento/.test(t) && !/contraindicado_gestacao/.test(t) && !/glp1_gi/.test(t);
+    r.sem_alerta = !box.querySelector('.pr-base-alerta') && !/contraindicad/i.test(t) && !/Titular a dose/.test(t) && !/pancreatite/i.test(t);
     r.sem_cobranca_de_verdade = !/Aplicar<\/button>/.test(box.innerHTML) && !box.querySelector('.pr-inj-btn');
     // degrau atual estimado: 5 semanas -> índice 1 (2,5 mg) marcado
     const degraus = [...box.querySelectorAll('.pr-base-degrau')];
@@ -84,7 +83,7 @@ const PORT = process.argv[2] || '8180';
   ok('dose inicial + frequência', out.tem_inicial);
   ok('flag reflete autoAdministrado=false ("aplicado na clínica")', out.flag_clinica);
   ok('escada de dose + manutenção', out.tem_escada && out.tem_manutencao);
-  ok('alertas TRADUZIDOS (sem slug cru)', out.alertas_traduzidos && out.alertas_sem_slug);
+  ok('SEM alerta de contraindicações (removido)', out.sem_alerta);
   ok('NÃO tem botão de aplicar/cobrar', out.sem_cobranca_de_verdade);
   console.log('\n--- escada ---');
   ok('3 degraus', out.n_degraus === 3, String(out.n_degraus));
@@ -103,7 +102,7 @@ const PORT = process.argv[2] || '8180';
   const el = await p.$('#pr-base-box'); if (el) { await el.screenshot({ path: 'shots/pr_base_aba.png' }); console.log('screenshot: shots/pr_base_aba.png'); }
 
   const tudo = out.tem_aba_base && out.tem_droga && out.tem_inicial && out.flag_clinica && out.tem_escada && out.tem_manutencao
-    && out.alertas_traduzidos && out.alertas_sem_slug && out.sem_cobranca_de_verdade && out.n_degraus === 3 && out.atual_marcado && out.escada5 && out.escada10 && out.vazio_honesto && !errs.length;
+    && out.sem_alerta && out.sem_cobranca_de_verdade && out.n_degraus === 3 && out.atual_marcado && out.escada5 && out.escada10 && out.vazio_honesto && !errs.length;
   await b.close();
   process.exit(tudo ? 0 : 1);
 })().catch((e) => { console.error('ERR', e.message); process.exit(1); });
