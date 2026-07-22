@@ -897,16 +897,19 @@
 
     .pac-form-grid {
       display: grid; gap: 10px;
-      grid-template-columns: repeat(2, 1fr);
+      /* minmax(0,1fr): sem o 0, um <select> com option longa (ex.: "Nome — princípio ativo")
+         não deixa a coluna encolher, a grade transborda e o overflow:hidden do .ag-modal
+         corta a coluna 2 inteira (Firefox/Safari faziam isso: só 4 dos 8 campos apareciam). */
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .pac-form-grid.col-3 { grid-template-columns: repeat(3, 1fr); }
+    .pac-form-grid.col-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .pac-form-grid .full { grid-column: 1 / -1; }
     .pac-form-grid .pr-sp2 { grid-column: span 2; }
     @media (max-width: 580px) {
-      .pac-form-grid, .pac-form-grid.col-3 { grid-template-columns: 1fr; }
+      .pac-form-grid, .pac-form-grid.col-3 { grid-template-columns: minmax(0, 1fr); }
       .pac-form-grid .pr-sp2 { grid-column: auto; } /* span 2 numa grade de 1 coluna desalinha */
     }
-    .pac-field { display: flex; flex-direction: column; gap: 4px; }
+    .pac-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .pac-field label {
       font-size: 10px; color: var(--tx3b);
       text-transform: uppercase; letter-spacing: 0.4px;
@@ -917,6 +920,8 @@
       color: var(--tx1); padding: 8px 10px;
       border-radius: 7px; font-size: 12px; font-family: inherit;
       transition: border-color 0.15s;
+      /* controla a largura pra o conteúdo (option longa) não esticar a coluna do grid */
+      width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
     }
     .pac-field input:focus, .pac-field select:focus, .pac-field textarea:focus {
       outline: none; border-color: var(--ac);
@@ -6104,7 +6109,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-A1</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-B</b></span></div>
   </div>
 </div>
 
