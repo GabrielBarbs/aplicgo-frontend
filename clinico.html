@@ -6110,7 +6110,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-E</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-F</b></span></div>
   </div>
 </div>
 
@@ -23253,13 +23253,16 @@ function prBaseHtml(prescs, cat) {
     const inicio = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '';
 
     // Semanas finitas: linha por semana, com aplicar/desfazer.
+    const doseInpStyle = 'width:76px;padding:5px 7px;font-size:12px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px';
     const linhaSem = (s) => {
-      const doseSpan = s.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(s.dose_mg))}</span>` : '';
       if (s.aplicada) {
+        const doseSpan = s.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(s.dose_mg))}</span>` : '';
         return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${s.semana}</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(s)}</div>${btnDesf(p.id, s.semana)}</div>`;
       }
+      // Dose digitada na hora da aplicação (cada semana pode ser diferente).
+      const inp = podeAplicar ? `<input type="number" step="0.1" min="0" id="pbdose-${p.id}-${s.semana}" placeholder="dose mg" style="${doseInpStyle}">` : '';
       const btn = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prBaseAplicar('${p.id}', ${s.semana}, this)"><i class="ti ti-check"></i> Aplicar</button>` : '';
-      return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${s.semana}</span>${doseSpan} <span class="st" style="color:#8B8578">não aplicado</span></div>${btn}</div>`;
+      return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${s.semana}</span> <span class="st" style="color:#8B8578">não aplicado</span></div><div style="display:flex;gap:6px;align-items:center">${inp}${btn}</div></div>`;
     };
     const semanas = p.semanas || [];
     const semHtml = semanas.length ? `<div class="pr-inj-sec-tit" style="margin-top:9px">Aplicações por semana</div>${semanas.map(linhaSem).join('')}` : '';
@@ -23267,18 +23270,19 @@ function prBaseHtml(prescs, cat) {
     // Manutenção (contínua, sob demanda): as já aplicadas + um botão pra registrar a próxima.
     let manutHtml = '';
     if (p.manutencao) {
-      const doseM = doseTxt(p.manutencao.dose_mg);
       const linhas = (p.manutencao.aplicadas || []).map((a) => {
         const n = a.semana - (p.total_finito || 0);
-        return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Manutenção ${n}ª</span> · <span class="dose">${esc(doseM)}</span> <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(a)}</div>${btnDesf(p.id, a.semana)}</div>`;
+        const doseSpan = a.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(a.dose_mg))}</span>` : '';
+        return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Extra ${n}ª</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(a)}</div>${btnDesf(p.id, a.semana)}</div>`;
       }).join('');
-      const add = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prBaseAplicarManut('${p.id}', this)"><i class="ti ti-plus"></i> Registrar aplicação de manutenção</button>` : '';
-      manutHtml = `<div class="pr-inj-sec-tit" style="margin-top:11px">Manutenção · ${esc(doseM)} · contínua</div>${linhas || '<div class="pr-inj-obs">Nenhuma aplicação de manutenção ainda.</div>'}<div style="margin-top:6px">${add}</div>`;
+      const inpM = podeAplicar ? `<input type="number" step="0.1" min="0" id="pbdose-${p.id}-manut" placeholder="dose mg" style="${doseInpStyle}">` : '';
+      const add = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prBaseAplicarManut('${p.id}', this)"><i class="ti ti-plus"></i> Registrar aplicação extra</button>` : '';
+      manutHtml = `<div class="pr-inj-sec-tit" style="margin-top:11px">Aplicações extras (além da duração)</div>${linhas}<div style="margin-top:6px;display:flex;gap:6px;align-items:center">${inpM}${add}</div>`;
     }
 
     return `<div class="pr-base-card">
       <div class="pr-base-head"><i class="ti ti-pill"></i> <strong>${esc(nome)}</strong>${m.classe ? ` <span class="cls">${esc(injRotulo(m.classe))}</span>` : ''}</div>
-      <div class="pr-base-meta">Início ${esc(doseTxt(p.doseInicialMg))} · ${esc(freq)} · ${esc(via)}${inicio ? ' · desde ' + esc(inicio) : ''}</div>
+      <div class="pr-base-meta">${p.doseInicialMg > 0 ? 'Início ' + esc(doseTxt(p.doseInicialMg)) + ' · ' : ''}${esc(freq)} · ${esc(via)}${inicio ? ' · desde ' + esc(inicio) : ''}</div>
       <div class="pr-base-flags"><span class="pr-base-flag${p.autoAdministrado ? '' : ' clinica'}">${p.autoAdministrado ? 'auto-aplicado' : 'aplicado na clínica'}</span><span class="pr-base-flag">sem cobrança</span></div>
       ${semHtml}
       ${manutHtml}
@@ -23288,21 +23292,27 @@ function prBaseHtml(prescs, cat) {
   return `<div class="pr-inj-wrap">${ativas.map(bloco).join('')}</div>`;
 }
 async function prBaseAplicar(prescId, semana, btn) {
+  const inp = document.getElementById('pbdose-' + prescId + '-' + semana);
+  const dose = inp ? parseFloat(String(inp.value).replace(',', '.')) : NaN;
+  if (!(dose > 0)) { if (typeof homeToast === 'function') homeToast('Digite a dose (mg) desta aplicação.'); if (inp) inp.focus(); return; }
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
   let r;
-  try { r = await pacApi('/api/clinico/protocolos/prescricoes-base/' + prescId + '/aplicar', { method: 'POST', body: JSON.stringify({ semana: semana }) }); }
+  try { r = await pacApi('/api/clinico/protocolos/prescricoes-base/' + prescId + '/aplicar', { method: 'POST', body: JSON.stringify({ semana: semana, dose_mg: dose }) }); }
   catch (e) { r = { ok: false, data: {} }; }
   if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não aplicou: ' + ((r.data && r.data.erro) || 'verifique a conexão')); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Aplicar'; } return; }
   if (typeof homeToast === 'function') homeToast(r.data.baixa_estoque ? 'Aplicado — estoque baixado.' : ('Aplicado.' + (r.data.aviso ? ' ' + r.data.aviso : '')));
   prState.baseCache = null; prBaseCarregar();
 }
 async function prBaseAplicarManut(prescId, btn) {
+  const inp = document.getElementById('pbdose-' + prescId + '-manut');
+  const dose = inp ? parseFloat(String(inp.value).replace(',', '.')) : NaN;
+  if (!(dose > 0)) { if (typeof homeToast === 'function') homeToast('Digite a dose (mg) desta aplicação.'); if (inp) inp.focus(); return; }
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…'; }
   let r;
-  try { r = await pacApi('/api/clinico/protocolos/prescricoes-base/' + prescId + '/aplicar', { method: 'POST', body: JSON.stringify({ manutencao: true }) }); }
+  try { r = await pacApi('/api/clinico/protocolos/prescricoes-base/' + prescId + '/aplicar', { method: 'POST', body: JSON.stringify({ manutencao: true, dose_mg: dose }) }); }
   catch (e) { r = { ok: false, data: {} }; }
-  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não registrou: ' + ((r.data && r.data.erro) || 'verifique a conexão')); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-plus"></i> Registrar aplicação de manutenção'; } return; }
-  if (typeof homeToast === 'function') homeToast(r.data.baixa_estoque ? 'Manutenção aplicada — estoque baixado.' : ('Manutenção aplicada.' + (r.data.aviso ? ' ' + r.data.aviso : '')));
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não registrou: ' + ((r.data && r.data.erro) || 'verifique a conexão')); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-plus"></i> Registrar aplicação extra'; } return; }
+  if (typeof homeToast === 'function') homeToast(r.data.baixa_estoque ? 'Aplicação extra — estoque baixado.' : ('Aplicação extra registrada.' + (r.data.aviso ? ' ' + r.data.aviso : '')));
   prState.baseCache = null; prBaseCarregar();
 }
 async function prBaseDesaplicar(prescId, semana, btn) {
@@ -25386,20 +25396,16 @@ function pbaseFormHtml() {
         <select id="pbase-droga" onchange="pbaseDrogaMudou()"></select>
       </div>
       <div class="pac-field">
-        <label>Dose inicial <span class="req">*</span></label>
-        <select id="pbase-dose"></select>
+        <label>Frequência <span class="req">*</span></label>
+        <select id="pbase-freq"></select>
       </div>
       <div class="pac-field">
-        <label>Frequência <span class="req">*</span></label>
-        <select id="pbase-freq" onchange="pbaseRenderTitulacao()"></select>
+        <label>Duração (nº de semanas) <span class="req">*</span></label>
+        <input type="number" id="pbase-dur" min="1" step="1" value="12" placeholder="ex: 12">
       </div>
     </div>
     <div id="pbase-alertas" style="margin-top:8px;"></div>
-    <div class="pbase-titul-head">
-      <span class="pro-grp-lbl">Plano de titulação (escalonamento)</span>
-      <button type="button" class="pbase-titul-add" onclick="pbaseAddTitul()"><i class="ti ti-plus"></i> Degrau</button>
-    </div>
-    <div id="pbase-titul"></div>
+    <div style="margin-top:8px; font-size:11.5px; color:var(--tx3b);"><i class="ti ti-info-circle"></i> A dose de cada aplicação é definida pela enfermagem na hora de aplicar — cada semana pode ter uma dose diferente.</div>
     <label class="pro-confirma" style="color:var(--tx2); margin-top:10px;"><input type="checkbox" id="pbase-auto"> Auto-administrado (paciente aplica em casa)</label>
     <div class="pac-field" style="margin-top:10px;">
       <label>Observações</label>
@@ -25444,16 +25450,8 @@ function pbaseDrogaAtual() { return pbaseState.medicamentos.find(m => m.slug ===
 function pbaseDrogaMudou() {
   const m = pbaseDrogaAtual();
   if (!m) return;
-  document.getElementById('pbase-dose').innerHTML = (m.dosesMg || []).map(d =>
-    `<option value="${d}" ${d === m.doseInicialPadrao ? 'selected' : ''}>${String(d).replace('.', ',')} mg</option>`).join('');
   document.getElementById('pbase-freq').innerHTML = (m.frequenciasPermitidas || []).map(f =>
     `<option value="${esc(f)}" ${f === m.frequenciaPadrao ? 'selected' : ''}>${PBASE_FREQ_LBL[f] || f}</option>`).join('');
-  // Começa com APENAS UM degrau (o 1º da titulação padrão, ou a dose inicial). O resto o médico adiciona no "+ Degrau".
-  const passo0 = (Array.isArray(m.titulacaoPadrao) && m.titulacaoPadrao.length)
-    ? { dose_mg: m.titulacaoPadrao[0].dose_mg, semanas: m.titulacaoPadrao[0].semanas }
-    : { dose_mg: m.doseInicialPadrao, semanas: 4 };
-  pbaseState.titul = [passo0];
-  pbaseRenderTitulacao();
   const ale = (m.alertas || []).filter(a => a && a !== m.classe).map(a => `<span class="pro-alerta">${esc(injRotulo(a))}</span>`).join('');
   document.getElementById('pbase-alertas').innerHTML = ale ? `<div class="pro-alertas">${ale}</div>` : '';
 }
@@ -25482,12 +25480,15 @@ function pbaseRemoveTitul(i) { pbaseState.titul.splice(i, 1); pbaseRenderTitulac
 
 async function pbaseSalvar() {
   const btn = document.getElementById('pbase-salvar'); btn.disabled = true;
+  const errEl = document.getElementById('pbase-erro');
+  const dur = parseInt(document.getElementById('pbase-dur').value, 10);
+  if (!Number.isInteger(dur) || dur < 1) { errEl.textContent = 'Informe a duração (nº de semanas).'; errEl.style.display = 'block'; btn.disabled = false; return; }
   const body = {
     patient_id: pbaseState.patientId,
     medicamento_base_slug: document.getElementById('pbase-droga').value,
-    dose_inicial_mg: Number(document.getElementById('pbase-dose').value),
     frequencia: document.getElementById('pbase-freq').value,
-    titulacao: pbaseState.titul,
+    // Sem dose pré-definida: a titulação guarda só o cronograma (nº de semanas). A dose vai na aplicação.
+    titulacao: [{ semanas: dur }],
     auto_administrado: document.getElementById('pbase-auto').checked,
     observacoes: document.getElementById('pbase-obs').value || null,
   };
@@ -25510,7 +25511,7 @@ async function pbaseCarregarLista(patientId) {
   if (!lista.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = '<div class="pro-grp-lbl">Já prescritos</div>' + lista.map(p => {
     const m = pbaseState.medicamentos.find(x => x.slug === p.medicamentoBaseSlug);
-    return `<div class="pro-presc-item"><span>${esc(m ? m.nome : p.medicamentoBaseSlug)} ${String(p.doseInicialMg).replace('.', ',')}mg</span><span class="pro-presc-meta">${esc(p.frequencia)} · ${esc(p.status)}</span></div>`;
+    return `<div class="pro-presc-item"><span>${esc(m ? m.nome : p.medicamentoBaseSlug)}${p.doseInicialMg > 0 ? ' ' + String(p.doseInicialMg).replace('.', ',') + 'mg' : ''}</span><span class="pro-presc-meta">${esc(p.frequencia)} · ${esc(p.status)}</span></div>`;
   }).join('') + '<div class="pro-sep"></div>';
 }
 
