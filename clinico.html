@@ -6110,7 +6110,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-D</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-E</b></span></div>
   </div>
 </div>
 
@@ -25365,6 +25365,13 @@ async function proStatus(id, novo) {
 // MEDICAMENTO-BASE (GLP-1/GIP) — prescrição (Fase 2c)
 // ============================================================
 const PBASE_FREQ_LBL = { semanal: 'Semanal', '2x_semana': '2x na semana', quinzenal: 'Quinzenal (a cada 15 dias)', dose_unica: 'Dose única' };
+// A unidade do degrau da titulação segue a frequência: quinzenal conta em "quinzenas" (1 quinzena = 2 semanas).
+// O que fica salvo continua sendo semanas de CALENDÁRIO (semanas = unidades × fator); só a tela muda de unidade.
+function pbaseFreqUnidade(freq) {
+  if (freq === 'quinzenal') return { plural: 'quinzenas', singular: 'quinzena', fator: 2 };
+  return { plural: 'semanas', singular: 'semana', fator: 1 };
+}
+function pbaseFreqAtual() { const el = document.getElementById('pbase-freq'); return el ? el.value : 'semanal'; }
 let pbaseState = { patientId: null, medicamentos: [], titul: [] };
 
 // Formulário do medicamento-base. Vive DENTRO da aba de prescrição (#pr-medbase-wrap), igual ao
@@ -25384,7 +25391,7 @@ function pbaseFormHtml() {
       </div>
       <div class="pac-field">
         <label>Frequência <span class="req">*</span></label>
-        <select id="pbase-freq"></select>
+        <select id="pbase-freq" onchange="pbaseRenderTitulacao()"></select>
       </div>
     </div>
     <div id="pbase-alertas" style="margin-top:8px;"></div>
@@ -25454,13 +25461,14 @@ function pbaseDrogaMudou() {
 function pbaseRenderTitulacao() {
   const m = pbaseDrogaAtual();
   const doses = (m && m.dosesMg) || [];
+  const u = pbaseFreqUnidade(pbaseFreqAtual());   // degrau contado na unidade da frequência (quinzenal -> quinzenas)
   document.getElementById('pbase-titul').innerHTML = pbaseState.titul.map((t, i) => `
     <div class="pbase-titul-row">
       <select onchange="pbaseState.titul[${i}].dose_mg = Number(this.value)">
         ${doses.map(d => `<option value="${d}" ${Number(t.dose_mg) === d ? 'selected' : ''}>${String(d).replace('.', ',')} mg</option>`).join('')}
       </select>
-      <input type="number" min="1" placeholder="semanas" value="${t.semanas == null ? '' : t.semanas}" onchange="pbaseState.titul[${i}].semanas = this.value === '' ? null : Number(this.value)">
-      <span class="pbase-titul-ate">${t.semanas == null ? 'manutenção' : 'semanas'}</span>
+      <input type="number" min="1" step="1" placeholder="${u.plural}" value="${t.semanas == null ? '' : (t.semanas / u.fator)}" onchange="pbaseState.titul[${i}].semanas = this.value === '' ? null : Math.round(Number(this.value) * ${u.fator})">
+      <span class="pbase-titul-ate">${t.semanas == null ? 'manutenção' : u.plural}</span>
       <button type="button" class="pbase-titul-del" onclick="pbaseRemoveTitul(${i})"><i class="ti ti-x"></i></button>
     </div>`).join('') || '<div class="pro-vazio">Sem degraus — dose fixa.</div>';
 }
