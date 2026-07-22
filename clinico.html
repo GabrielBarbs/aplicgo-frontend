@@ -6110,7 +6110,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-F</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-G</b></span></div>
   </div>
 </div>
 
@@ -25511,8 +25511,19 @@ async function pbaseCarregarLista(patientId) {
   if (!lista.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = '<div class="pro-grp-lbl">Já prescritos</div>' + lista.map(p => {
     const m = pbaseState.medicamentos.find(x => x.slug === p.medicamentoBaseSlug);
-    return `<div class="pro-presc-item"><span>${esc(m ? m.nome : p.medicamentoBaseSlug)}${p.doseInicialMg > 0 ? ' ' + String(p.doseInicialMg).replace('.', ',') + 'mg' : ''}</span><span class="pro-presc-meta">${esc(p.frequencia)} · ${esc(p.status)}</span></div>`;
+    const del = (typeof temPermissao !== 'function' || temPermissao('prontuario.prescrever')) ? `<button class="pro-status-btn cancelar" onclick="pbaseExcluir('${p.id}', this)" title="Excluir prescrição"><i class="ti ti-trash"></i></button>` : '';
+    return `<div class="pro-presc-item"><span>${esc(m ? m.nome : p.medicamentoBaseSlug)}${p.doseInicialMg > 0 ? ' ' + String(p.doseInicialMg).replace('.', ',') + 'mg' : ''}</span><span style="display:flex;align-items:center;gap:8px"><span class="pro-presc-meta">${esc(p.frequencia)} · ${esc(p.status)}</span>${del}</span></div>`;
   }).join('') + '<div class="pro-sep"></div>';
+}
+
+async function pbaseExcluir(id, btn) {
+  if (!confirm('Excluir esta prescrição de medicamento base?')) return;
+  if (btn) btn.disabled = true;
+  const r = await pacApi('/api/clinico/protocolos/prescricoes-base/' + id, { method: 'DELETE' });
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não excluiu: ' + ((r.data && r.data.erro) || 'erro')); if (btn) btn.disabled = false; return; }
+  if (typeof homeToast === 'function') homeToast('Prescrição excluída.');
+  if (typeof prState !== 'undefined' && prState) prState.baseCache = null;   // faz a aba Base da enfermagem recarregar
+  pbaseCarregarLista(pbaseState.patientId);
 }
 
 function prAddItem() {
