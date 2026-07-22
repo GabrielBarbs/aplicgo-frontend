@@ -12571,10 +12571,17 @@ function injPrescResumo(pr) {
   const om = { incluso: { t: 'Tudo incluso', c: '#3fb950' }, parcial: { t: 'Parcial', c: '#e3b341' }, nao_incluso: { t: 'Não incluso', c: 'var(--tx3)' } }[pr.origem_inclusao] || { t: pr.origem_inclusao, c: 'var(--tx3)' };
   let dt = ''; try { dt = new Date(pr.data).toLocaleDateString('pt-BR'); } catch (e) {}
   const head = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;color:var(--tx3)">${esc(pr.protocolo_id || 'Avulsa')} · ${dt}</div><span class="inj-badge" style="color:${om.c};border:1px solid ${om.c}">${esc(om.t)}</span></div>`;
+  // Aplicar/Desfazer por SEMANA: quem pode aplicar marca a sessão feita (baixa) ou desfaz (devolve).
+  const podeAplicar = temPermissao('prontuario.aplicacao.registrar');
   const itens = (pr.itens || []).map((it) => {
     const meta = `sem ${it.semana}${it.dose ? ' · ' + esc(it.dose) : ''}${it.frequencia ? ' · ' + esc(it.frequencia) : ''}${it.responsavel ? ' · <i class="ti ti-user"></i> ' + esc(it.responsavel) : ''}${it.incluso ? ' · <span style="color:#3fb950">no pacote</span>' : ''}`;
     const obs = it.observacao ? `<div style="font-size:11px;color:var(--tx4);padding:0 0 4px 2px"><i class="ti ti-note"></i> ${esc(it.observacao)}</div>` : '';
-    return `<div style="border-top:1px solid var(--bg3)"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:4px 0"><span>${esc(it.sku_ativo)} <span style="color:var(--tx4)">${meta}</span></span>${injBadge(it.status_item)}</div>${obs}</div>`;
+    let acao = '';
+    if (podeAplicar) {
+      if (['liberado', 'agendado'].includes(it.status_item)) acao = `<button class="inj-mini" title="marcar aplicado (baixa estoque)" onclick="injAplicar('${it.id}',this)"><i class="ti ti-vaccine"></i> aplicar</button>`;
+      else if (it.status_item === 'aplicado') acao = `<button class="inj-mini" title="desfazer (devolve ao estoque)" onclick="injDesaplicar('${it.id}',this)"><i class="ti ti-arrow-back-up"></i> desfazer</button>`;
+    }
+    return `<div style="border-top:1px solid var(--bg3)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:4px 0"><span>${esc(it.sku_ativo)} <span style="color:var(--tx4)">${meta}</span></span><span style="display:flex;align-items:center;gap:6px">${injBadge(it.status_item)}${acao}</span></div>${obs}</div>`;
   }).join('');
   return `<div class="dash-card" style="margin-bottom:10px;padding:12px;background:var(--bg2)">${head}${itens}</div>`;
 }
@@ -12702,12 +12709,23 @@ async function injAplicar(itemId, btn) {
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
   let d = null;
   try { const r = await pacApi('/api/clinico/prescricoes-inj/itens/' + itemId + '/aplicar', { method: 'POST', body: JSON.stringify({}) }); if (r.ok) d = r.data; } catch (e) {}
-  if (!d) { homeToast('Não foi possível aplicar (item não liberado ou sem estoque).'); }
-  else { homeToast(d.baixa_estoque ? 'Aplicado — baixa de estoque (FEFO) feita.' : 'Aplicado. ' + (d.aviso || 'Sem baixa de estoque.')); }
+  if (!d) { homeToast((d && d.erro) || 'Não foi possível aplicar (item não liberado, sem dose em mg, ou sem estoque).'); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-vaccine"></i> Aplicar'; } }
+  else { homeToast(d.baixa_estoque ? 'Aplicado — baixa de estoque feita.' : 'Aplicado. ' + (d.aviso || 'Sem baixa de estoque.')); }
   injCarregarLiberados();
+  if (document.getElementById('inj-presc-recent')) injCarregarRecentes();   // atualiza o badge no resumo por semana
   // Aplicar o último item conclui a tarefa da enfermagem no servidor, mas NÃO sincroniza a home
   // daqui: esta tela só existe dentro da view Injetáveis, com a home escondida — seria buscar
   // 3 endpoints pra repintar o que ninguém está vendo. Quem cobre é o hook de trocarView('painel').
+}
+// Desfazer uma aplicação ("não aplicado"): devolve os mg/ampola ao estoque no servidor.
+async function injDesaplicar(itemId, btn) {
+  if (!confirm('Desfazer esta aplicação?\n\nO que foi baixado volta pro estoque e a sessão volta a "liberada".')) return;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  let ok = false, msg = '';
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/itens/' + itemId + '/desaplicar', { method: 'POST', body: JSON.stringify({}) }); ok = r.ok && r.data && r.data.ok; if (r.data) msg = r.data.erro || ''; } catch (e) {}
+  homeToast(ok ? 'Aplicação desfeita — estoque devolvido.' : (msg || 'Não foi possível desfazer.'));
+  if (document.getElementById('inj-liberados')) injCarregarLiberados();
+  if (document.getElementById('inj-presc-recent')) injCarregarRecentes();
 }
 
 // --- Aba PREÇOS (comercial/admin) ---
@@ -25793,6 +25811,11 @@ function esRenderProdutos() {
   </table>`;
 }
 
+// Saldo de um lote: produto que conta em mg mostra mg (÷1000); os outros, o número de ampolas.
+function esFmtQtd(qtd, prod) {
+  if (prod && prod.conta_em_mg) return (qtd / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' mg';
+  return String(qtd);
+}
 function esRenderLotes() {
   const wrap = document.getElementById('es-conteudo');
   if (esState.lotes.length === 0) {
@@ -25820,8 +25843,8 @@ function esRenderLotes() {
           <td><strong style="color:var(--ac); font-family:monospace; font-size:11px;">${l.lote}</strong></td>
           <td>${l.validade}</td>
           <td>${l.unidade.nome}</td>
-          <td style="text-align:right;"><strong style="color:${l.esgotado ? '#f85149' : (l.qtd_atual < 5 ? '#EF9F27' : 'var(--tx1)')};">${l.qtd_atual}</strong></td>
-          <td style="text-align:right; color:var(--tx3b);">${l.qtd_inicial}</td>
+          <td style="text-align:right;"><strong style="color:${l.esgotado ? '#f85149' : (!l.produto.conta_em_mg && l.qtd_atual < 5 ? '#EF9F27' : 'var(--tx1)')};">${esFmtQtd(l.qtd_atual, l.produto)}</strong></td>
+          <td style="text-align:right; color:var(--tx3b);">${esFmtQtd(l.qtd_inicial, l.produto)}</td>
           <td>${tag}</td>
         </tr>`;
       }).join('')}
