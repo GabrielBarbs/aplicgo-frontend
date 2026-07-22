@@ -6110,7 +6110,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-C</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-D</b></span></div>
   </div>
 </div>
 
@@ -25341,7 +25341,7 @@ function pbaseFormHtml() {
       <button type="button" class="pbase-titul-add" onclick="pbaseAddTitul()"><i class="ti ti-plus"></i> Degrau</button>
     </div>
     <div id="pbase-titul"></div>
-    <label class="pro-confirma" style="color:var(--tx2); margin-top:10px;"><input type="checkbox" id="pbase-auto" checked> Auto-administrado (paciente aplica em casa)</label>
+    <label class="pro-confirma" style="color:var(--tx2); margin-top:10px;"><input type="checkbox" id="pbase-auto"> Auto-administrado (paciente aplica em casa)</label>
     <div class="pac-field" style="margin-top:10px;">
       <label>Observações</label>
       <textarea id="pbase-obs" placeholder="Notas do médico"></textarea>
@@ -25374,8 +25374,10 @@ async function pbaseCarregarCatalogo() {
 }
 
 function pbasePopularDrogas() {
+  // Já começa com a tirzepatida selecionada, se estiver no catálogo (senão, a 1ª droga).
+  const alvo = pbaseState.medicamentos.find(m => /tirzep/i.test(m.slug) || /tirzep/i.test(m.nome || ''));
   document.getElementById('pbase-droga').innerHTML = pbaseState.medicamentos.map(m =>
-    `<option value="${esc(m.slug)}">${esc(m.nome)}${m.classe ? ' (' + esc(m.classe) + ')' : ''}</option>`).join('');
+    `<option value="${esc(m.slug)}" ${alvo && m.slug === alvo.slug ? 'selected' : ''}>${esc(m.nome)}${m.classe ? ' (' + esc(m.classe) + ')' : ''}</option>`).join('');
 }
 
 function pbaseDrogaAtual() { return pbaseState.medicamentos.find(m => m.slug === document.getElementById('pbase-droga').value); }
@@ -25387,7 +25389,11 @@ function pbaseDrogaMudou() {
     `<option value="${d}" ${d === m.doseInicialPadrao ? 'selected' : ''}>${String(d).replace('.', ',')} mg</option>`).join('');
   document.getElementById('pbase-freq').innerHTML = (m.frequenciasPermitidas || []).map(f =>
     `<option value="${esc(f)}" ${f === m.frequenciaPadrao ? 'selected' : ''}>${PBASE_FREQ_LBL[f] || f}</option>`).join('');
-  pbaseState.titul = Array.isArray(m.titulacaoPadrao) ? m.titulacaoPadrao.map(t => ({ dose_mg: t.dose_mg, semanas: t.semanas })) : [];
+  // Começa com APENAS UM degrau (o 1º da titulação padrão, ou a dose inicial). O resto o médico adiciona no "+ Degrau".
+  const passo0 = (Array.isArray(m.titulacaoPadrao) && m.titulacaoPadrao.length)
+    ? { dose_mg: m.titulacaoPadrao[0].dose_mg, semanas: m.titulacaoPadrao[0].semanas }
+    : { dose_mg: m.doseInicialPadrao, semanas: 4 };
+  pbaseState.titul = [passo0];
   pbaseRenderTitulacao();
   const ale = (m.alertas || []).filter(a => a && a !== m.classe).map(a => `<span class="pro-alerta">${esc(injRotulo(a))}</span>`).join('');
   document.getElementById('pbase-alertas').innerHTML = ale ? `<div class="pro-alertas">${ale}</div>` : '';
