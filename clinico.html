@@ -6110,7 +6110,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-H</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-I</b></span></div>
   </div>
 </div>
 
@@ -23189,7 +23189,9 @@ function pbaseNome(nome, p) {
   const iniStr = ini && !isNaN(ini) ? ini.toLocaleDateString('pt-BR') : '';
   let fimStr = '';
   if (ini && !isNaN(ini) && p.total_finito) {
-    const fim = new Date(ini.getTime() + p.total_finito * 7 * 86400000);
+    // total_finito = nº de aplicações (na unidade da frequência); em semanas de calendário = × fator.
+    const semanasCal = p.total_finito * pbaseFreqUnidade(p.frequencia).fator;
+    const fim = new Date(ini.getTime() + semanasCal * 7 * 86400000);
     fimStr = fim.toLocaleDateString('pt-BR');
   }
   const periodo = iniStr && fimStr ? iniStr + ' → ' + fimStr : iniStr;
@@ -23265,17 +23267,18 @@ function prBaseHtml(prescs, cat) {
     const freq = PR_BASE_FREQ[p.frequencia] || p.frequencia || '';
     const inicio = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '';
 
-    // Semanas finitas: linha por semana, com aplicar/desfazer.
+    // Cada linha é uma aplicação, na cadência da frequência: semanal->"Semana N", quinzenal->"Quinzena N".
     const doseInpStyle = 'width:76px;padding:5px 7px;font-size:12px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px';
+    const _us = pbaseFreqUnidade(p.frequencia).singular; const uSlot = _us.charAt(0).toUpperCase() + _us.slice(1);
     const linhaSem = (s) => {
       if (s.aplicada) {
         const doseSpan = s.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(s.dose_mg))}</span>` : '';
-        return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${s.semana}</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(s)}</div>${btnDesf(p.id, s.semana)}</div>`;
+        return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">${uSlot} ${s.semana}</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(s)}</div>${btnDesf(p.id, s.semana)}</div>`;
       }
-      // Dose digitada na hora da aplicação (cada semana pode ser diferente).
+      // Dose digitada na hora da aplicação (cada aplicação pode ser diferente).
       const inp = podeAplicar ? `<input type="number" step="0.1" min="0" id="pbdose-${p.id}-${s.semana}" placeholder="dose mg" style="${doseInpStyle}">` : '';
       const btn = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prBaseAplicar('${p.id}', ${s.semana}, this)"><i class="ti ti-check"></i> Aplicar</button>` : '';
-      return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${s.semana}</span> <span class="st" style="color:#8B8578">não aplicado</span></div><div style="display:flex;gap:6px;align-items:center">${inp}${btn}</div></div>`;
+      return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">${uSlot} ${s.semana}</span> <span class="st" style="color:#8B8578">não aplicado</span></div><div style="display:flex;gap:6px;align-items:center">${inp}${btn}</div></div>`;
     };
     const semanas = p.semanas || [];
     const semHtml = semanas.length ? `<div class="pr-inj-sec-tit" style="margin-top:9px">Aplicações por semana</div>${semanas.map(linhaSem).join('')}` : '';
@@ -25410,10 +25413,10 @@ function pbaseFormHtml() {
       </div>
       <div class="pac-field">
         <label>Frequência <span class="req">*</span></label>
-        <select id="pbase-freq"></select>
+        <select id="pbase-freq" onchange="pbaseDurAtualizarUnid()"></select>
       </div>
       <div class="pac-field">
-        <label>Duração (nº de semanas) <span class="req">*</span></label>
+        <label>Duração (nº de <span id="pbase-dur-unid">semanas</span>) <span class="req">*</span></label>
         <input type="number" id="pbase-dur" min="1" step="1" value="12" placeholder="ex: 12">
       </div>
     </div>
@@ -25465,8 +25468,15 @@ function pbaseDrogaMudou() {
   if (!m) return;
   document.getElementById('pbase-freq').innerHTML = (m.frequenciasPermitidas || []).map(f =>
     `<option value="${esc(f)}" ${f === m.frequenciaPadrao ? 'selected' : ''}>${PBASE_FREQ_LBL[f] || f}</option>`).join('');
+  pbaseDurAtualizarUnid();   // o rótulo da duração segue a frequência (semanas / quinzenas)
   const ale = (m.alertas || []).filter(a => a && a !== m.classe).map(a => `<span class="pro-alerta">${esc(injRotulo(a))}</span>`).join('');
   document.getElementById('pbase-alertas').innerHTML = ale ? `<div class="pro-alertas">${ale}</div>` : '';
+}
+
+// Rótulo da Duração acompanha a frequência: quinzenal -> "quinzenas" (e cada uma vira 1 aplicação/slot).
+function pbaseDurAtualizarUnid() {
+  const el = document.getElementById('pbase-dur-unid');
+  if (el) el.textContent = pbaseFreqUnidade(pbaseFreqAtual()).plural;
 }
 
 function pbaseRenderTitulacao() {
