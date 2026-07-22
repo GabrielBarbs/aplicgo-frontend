@@ -12393,18 +12393,19 @@ function injRenderPrescrever() {
   // Alvo configurável: por padrão a aba, mas embutido no modal do prontuário usa #pr-inj-wrap.
   const c = document.getElementById(injState.prescEl || 'inj-conteudo'); if (!c) return;
   const p = injState.patient;
+  const ed = !!injState.editId;   // modo edição: veio de um "Editar" numa prescrição existente
   c.innerHTML = '<div class="dash-card"><div class="cart-blk-ttl">Paciente</div>'
     + (p
       ? `<div class="inj-res-item"><div><strong>${esc(p.nome)}</strong> <span style="color:var(--tx4);font-size:11px">${esc(p.codigo || '')}</span></div><button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injTrocarPaciente()">Trocar</button></div>`
       : '<input class="pac-search" id="inj-pac-q" oninput="injPacBusca(this.value)" placeholder="🔍 Buscar paciente por nome, código, CPF…"><div id="inj-pac-res"></div>')
     + '</div>'
     + (p
-      ? '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Montar prescrição — por semana</div>'
+      ? '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">' + (ed ? '<i class="ti ti-edit"></i> Editando prescrição' : 'Montar prescrição — por semana') + '</div>'
         + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">'
         + '<select id="inj-prot" class="pac-search" style="flex:1;min-width:180px" onchange="injBuilderFromTemplate(this.value)"><option value="">Carregar de um protocolo…</option></select>'
         + '<button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injBuilderBlank()">Em branco</button></div>'
         + '<div id="inj-builder"><div class="pac-empty" style="padding:12px">Carregando catálogo…</div></div>'
-        + '<div style="margin-top:12px;display:flex;justify-content:flex-end"><button class="tk-btn primary" onclick="injPrescrever2()"><i class="ti ti-prescription"></i> Prescrever</button></div>'
+        + '<div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">' + (ed ? '<button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injCancelarEdicao()">Cancelar edição</button>' : '') + '<button class="tk-btn primary" onclick="injPrescrever2()"><i class="ti ti-prescription"></i> ' + (ed ? 'Salvar alterações' : 'Prescrever') + '</button></div>'
         + '<div id="inj-presc-result" style="margin-top:12px"></div></div>'
         + '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">Prescrições do paciente</div><div id="inj-presc-recent"><div class="pac-empty" style="padding:12px">Carregando…</div></div></div>'
       : '');
@@ -12428,9 +12429,10 @@ function injPacPick(i) {
   const p = (injState.pacResults || [])[i]; if (!p) return;
   injState.patient = { id: p.id, nome: p.nome_completo, codigo: p.codigo };
   injState.builder = null;   // novo paciente começa em branco (não herda itens/responsáveis do anterior)
+  injState.editId = null; injState.editObs = null;   // e nunca herda o modo edição de outra prescrição
   injRenderPrescrever();
 }
-function injTrocarPaciente() { injState.patient = null; injState.builder = null; injRenderPrescrever(); }
+function injTrocarPaciente() { injState.patient = null; injState.builder = null; injState.editId = null; injState.editObs = null; injRenderPrescrever(); }
 // Builder semana-a-semana: carrega catálogo (insumos), profissionais e protocolos.
 async function injBuilderInit() {
   injState.catErr = false;
@@ -12600,13 +12602,26 @@ async function injPrescrever2() {
   if (semDose.length) { homeToast('Informe a dose em mg da(s) sessão(ões) ' + [...new Set(semDose)].sort((a, b) => a - b).join(', ') + '.'); return; }
   if (!itens.length) { homeToast('Adicione ao menos um item com insumo.'); return; }
   const res = document.getElementById('inj-presc-result');
-  res.innerHTML = '<div class="pac-empty" style="padding:10px">Prescrevendo…</div>';
+  // Modo edição: PUT na prescrição existente (substitui os itens); senão POST cria uma nova.
+  const editId = injState.editId || null;
+  res.innerHTML = `<div class="pac-empty" style="padding:10px">${editId ? 'Salvando…' : 'Prescrevendo…'}</div>`;
   let d = null, msg = '';
-  try { const r = await pacApi('/api/clinico/prescricoes-inj', { method: 'POST', body: JSON.stringify({ patient_id: injState.patient.id, itens_avulsos: itens }) }); if (r.ok) d = r.data; else if (r.data) msg = r.data.erro || ''; } catch (e) {}
-  if (!d || !d.prescricao) { res.innerHTML = `<div class="pac-empty" style="padding:10px;color:#f85149">Não foi possível prescrever. ${esc(msg)}</div>`; return; }
-  res.innerHTML = '<div style="font-size:12px;color:#3fb950;margin-bottom:8px"><i class="ti ti-check"></i> Prescrição criada</div>' + injPrescResumo(d.prescricao);
-  injBuilderBlank();
-  injCarregarRecentes();
+  const url = editId ? '/api/clinico/prescricoes-inj/' + editId : '/api/clinico/prescricoes-inj';
+  const corpo = editId ? { itens_avulsos: itens, observacoes: injState.editObs ?? null } : { patient_id: injState.patient.id, itens_avulsos: itens };
+  try { const r = await pacApi(url, { method: editId ? 'PUT' : 'POST', body: JSON.stringify(corpo) }); if (r.ok) d = r.data; else if (r.data) msg = r.data.erro || ''; } catch (e) {}
+  if (!d || !d.prescricao) { res.innerHTML = `<div class="pac-empty" style="padding:10px;color:#f85149">${editId ? 'Não foi possível salvar' : 'Não foi possível prescrever'}. ${esc(msg)}</div>`; return; }
+  injState.editId = null; injState.editObs = null;
+  if (editId) {
+    // Sai do modo edição e volta a tela pro estado de criar; a lista de prescrições reflete a alteração.
+    homeToast('Prescrição atualizada.');
+    injState.builder = null;
+    injRenderPrescrever();
+    injCarregarRecentes();
+  } else {
+    res.innerHTML = '<div style="font-size:12px;color:#3fb950;margin-bottom:8px"><i class="ti ti-check"></i> Prescrição criada</div>' + injPrescResumo(d.prescricao);
+    injBuilderBlank();
+    injCarregarRecentes();
+  }
 }
 async function injCarregarRecentes() {
   if (!injState.patient) return;
@@ -12618,7 +12633,13 @@ async function injCarregarRecentes() {
 function injPrescResumo(pr) {
   const om = { incluso: { t: 'Tudo incluso', c: '#3fb950' }, parcial: { t: 'Parcial', c: '#e3b341' }, nao_incluso: { t: 'Não incluso', c: 'var(--tx3)' } }[pr.origem_inclusao] || { t: pr.origem_inclusao, c: 'var(--tx3)' };
   let dt = ''; try { dt = new Date(pr.data).toLocaleDateString('pt-BR'); } catch (e) {}
-  const head = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;color:var(--tx3)">${esc(pr.protocolo_id || 'Avulsa')} · ${dt}</div><span class="inj-badge" style="color:${om.c};border:1px solid ${om.c}">${esc(om.t)}</span></div>`;
+  // Editar só antes de qualquer ação: nenhum item aplicado/agendado/em cobrança e prescrição não cancelada.
+  // (O backend é a fonte de verdade — se algo escapar aqui, o PUT devolve 409 com o motivo.)
+  // Fonte da verdade é o flag do servidor (ele conhece orçamento/agendamento — que NÃO mudam o status do
+  // item). Fallback pro heurístico só se a resposta antiga não trouxer o flag.
+  const editavel = (pr.editavel !== undefined) ? pr.editavel : (pr.status !== 'cancelado' && !(pr.itens || []).some((it) => ['aplicado', 'agendado', 'aguardando_pagamento'].includes(it.status_item)));
+  const btnEditar = (editavel && temPermissao('prescricao_inj.criar')) ? `<button class="inj-mini" title="editar a prescrição (reabre a tela de criação)" onclick="injEditar('${pr.id}')"><i class="ti ti-edit"></i> editar</button>` : '';
+  const head = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;color:var(--tx3)">${esc(pr.protocolo_id || 'Avulsa')} · ${dt}</div><span style="display:flex;align-items:center;gap:6px">${btnEditar}<span class="inj-badge" style="color:${om.c};border:1px solid ${om.c}">${esc(om.t)}</span></span></div>`;
   // Aplicar/Desfazer por SEMANA: quem pode aplicar marca a sessão feita (baixa) ou desfaz (devolve).
   // Prescrição cancelada não mostra os botões — não se aplica nem se reabre um tratamento cancelado.
   const podeAplicar = temPermissao('prontuario.aplicacao.registrar') && pr.status !== 'cancelado';
@@ -12633,6 +12654,35 @@ function injPrescResumo(pr) {
     return `<div style="border-top:1px solid var(--bg3)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:4px 0"><span>${esc(it.sku_ativo)} <span style="color:var(--tx4)">${meta}</span></span><span style="display:flex;align-items:center;gap:6px">${injBadge(it.status_item)}${acao}</span></div>${obs}</div>`;
   }).join('');
   return `<div class="dash-card" style="margin-bottom:10px;padding:12px;background:var(--bg2)">${head}${itens}</div>`;
+}
+// Reabre a tela de criação já preenchida com os itens da prescrição (fonte fresca via GET /:id) pra editar.
+async function injEditar(prescId) {
+  if (!injState.patient) return;
+  let pr = null;
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/' + prescId); if (r.ok) pr = r.data.prescricao; } catch (e) {}
+  if (!pr) { homeToast('Não consegui carregar a prescrição pra editar.'); return; }
+  injState.editId = prescId;
+  injState.editObs = pr.observacoes || null;
+  injState.builder = (pr.itens || []).map((it) => ({
+    id: 'b' + (injState._bid = (injState._bid || 0) + 1),
+    semana: it.semana || 1,
+    sku: it.sku_ativo,
+    dose: it.dose || '',
+    dose_mg: it.dose_mcg ? String(it.dose_mcg / 1000).replace('.', ',') : '',
+    via: injViaFirst(it.via),
+    // Usa a política ORIGINAL do item (o backend passou a devolvê-la). Assim, ao salvar, o motor reavalia
+    // a cobertura igual ao prescrever, em vez de congelar como 'incluso' um item que só era grátis pelo plano.
+    // Fallback pra itens antigos (sem incluso_padrao gravado): infere pelo resultado calculado.
+    incluso_padrao: it.incluso_padrao ? (it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano') : (it.incluso ? 'incluso' : 'depende_plano'),
+    observacao: it.observacao || '',
+  }));
+  if (!injState.builder.length) injState.builder = null;
+  injRenderPrescrever();
+  try { const el = document.getElementById('inj-builder'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+}
+function injCancelarEdicao() {
+  injState.editId = null; injState.editObs = null; injState.builder = null;
+  injRenderPrescrever();
 }
 
 // --- Aba COBRANÇA (recepção) ---
@@ -24830,6 +24880,7 @@ function prAbrirInjetaveis() {
   if (!p || !p.id) { if (typeof homeToast === 'function') homeToast('Abra o paciente primeiro.'); return; }
   injState.patient = { id: p.id, nome: p.nome || p.nome_completo || p.nomeCompleto || '', codigo: p.codigo || '' };
   injState.builder = null;               // prescrição nova pra esse paciente
+  injState.editId = null; injState.editObs = null;   // NUNCA herdar o modo edição de outra tela/paciente (senão o PUT sobrescreveria a prescrição errada)
   injState.prescEl = 'pr-inj-wrap';      // renderiza dentro do modal, não na aba
   rxState.tipoDoc = 'injetaveis';
   rxRerender(false);                     // re-renderiza o modal com o container #pr-inj-wrap
