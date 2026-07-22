@@ -12572,7 +12572,8 @@ function injPrescResumo(pr) {
   let dt = ''; try { dt = new Date(pr.data).toLocaleDateString('pt-BR'); } catch (e) {}
   const head = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;color:var(--tx3)">${esc(pr.protocolo_id || 'Avulsa')} · ${dt}</div><span class="inj-badge" style="color:${om.c};border:1px solid ${om.c}">${esc(om.t)}</span></div>`;
   // Aplicar/Desfazer por SEMANA: quem pode aplicar marca a sessão feita (baixa) ou desfaz (devolve).
-  const podeAplicar = temPermissao('prontuario.aplicacao.registrar');
+  // Prescrição cancelada não mostra os botões — não se aplica nem se reabre um tratamento cancelado.
+  const podeAplicar = temPermissao('prontuario.aplicacao.registrar') && pr.status !== 'cancelado';
   const itens = (pr.itens || []).map((it) => {
     const meta = `sem ${it.semana}${it.dose ? ' · ' + esc(it.dose) : ''}${it.frequencia ? ' · ' + esc(it.frequencia) : ''}${it.responsavel ? ' · <i class="ti ti-user"></i> ' + esc(it.responsavel) : ''}${it.incluso ? ' · <span style="color:#3fb950">no pacote</span>' : ''}`;
     const obs = it.observacao ? `<div style="font-size:11px;color:var(--tx4);padding:0 0 4px 2px"><i class="ti ti-note"></i> ${esc(it.observacao)}</div>` : '';
@@ -12707,9 +12708,10 @@ async function injCarregarLiberados() {
 }
 async function injAplicar(itemId, btn) {
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
-  let d = null;
-  try { const r = await pacApi('/api/clinico/prescricoes-inj/itens/' + itemId + '/aplicar', { method: 'POST', body: JSON.stringify({}) }); if (r.ok) d = r.data; } catch (e) {}
-  if (!d) { homeToast((d && d.erro) || 'Não foi possível aplicar (item não liberado, sem dose em mg, ou sem estoque).'); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-vaccine"></i> Aplicar'; } }
+  let d = null, msg = '';
+  try { const r = await pacApi('/api/clinico/prescricoes-inj/itens/' + itemId + '/aplicar', { method: 'POST', body: JSON.stringify({}) }); if (r.ok) d = r.data; else if (r.data) msg = r.data.erro || ''; } catch (e) {}
+  // Mostra o erro REAL do servidor (ex.: "defina a dose em mg na prescrição") em vez de um genérico.
+  if (!d) { homeToast(msg || 'Não foi possível aplicar (item não liberado, sem dose em mg, ou sem estoque).'); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-vaccine"></i> Aplicar'; } }
   else { homeToast(d.baixa_estoque ? 'Aplicado — baixa de estoque feita.' : 'Aplicado. ' + (d.aviso || 'Sem baixa de estoque.')); }
   injCarregarLiberados();
   if (document.getElementById('inj-presc-recent')) injCarregarRecentes();   // atualiza o badge no resumo por semana
