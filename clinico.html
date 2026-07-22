@@ -3023,6 +3023,22 @@
     .pr-inj-btn:disabled { opacity: .55; cursor: default; }
     .pr-inj-obs { font-size: 11px; color: var(--tx4); font-style: italic; padding: 4px 2px; }
     .pr-inj-presc { font-size: 9.5px; color: var(--tx4); border: 1px solid var(--bd1); border-radius: 5px; padding: 0 4px; white-space: nowrap; }
+    /* Aba "Base": medicamento base + escada de dose */
+    .pr-base-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 10px; padding: 12px 13px; margin-bottom: 10px; }
+    .pr-base-head { font-size: 13.5px; color: var(--tx1); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .pr-base-head i { color: #E8945A; }
+    .pr-base-head .cls { font-size: 10px; color: var(--tx4); border: 1px solid var(--bd1); border-radius: 5px; padding: 0 5px; }
+    .pr-base-meta { font-size: 11.5px; color: var(--tx3b); margin-top: 4px; }
+    .pr-base-flags { display: flex; gap: 6px; margin-top: 7px; }
+    .pr-base-flag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .3px; color: #3fb950; background: rgba(63,185,80,.10); border: 1px solid rgba(63,185,80,.30); border-radius: 5px; padding: 1px 6px; }
+    .pr-base-escada { display: flex; flex-direction: column; gap: 3px; }
+    .pr-base-degrau { display: flex; align-items: center; gap: 10px; padding: 5px 9px; background: var(--bg1); border: 1px solid var(--bg3); border-radius: 7px; font-size: 12px; }
+    .pr-base-degrau .d-dose { color: var(--tx1); font-weight: 600; min-width: 58px; }
+    .pr-base-degrau .d-sem { color: var(--tx3b); flex: 1; }
+    .pr-base-degrau.atual { border-color: #E8945A; background: rgba(232,148,90,.10); }
+    .pr-base-degrau .d-tag { font-size: 9.5px; font-weight: 700; color: #E8945A; text-transform: uppercase; letter-spacing: .3px; }
+    .pr-base-alerta { margin-top: 8px; font-size: 11px; color: #E68A47; background: rgba(230,138,71,.08); border: 1px solid rgba(230,138,71,.22); border-radius: 7px; padding: 6px 9px; }
+    .pr-base-alerta i { margin-right: 3px; }
 
     .pr-card-prof-ultima .meta-row {
       display: flex; justify-content: space-between; align-items: center;
@@ -22190,7 +22206,9 @@ function prRenderTimeline() {
 
   // A aba "Aplicações" (enfermagem) é async: todo re-render recria o #pr-inj-box no placeholder (ou no
   // cache). Reidrata aqui — senão, ao recolher/expandir o card ou trocar de paciente, ela ficaria presa.
-  if (prState.cardAba && prState.cardAba['ENFERMAGEM'] === 'inj' && document.getElementById('pr-inj-box')) prInjCarregar();
+  const _abaEnf = prState.cardAba && prState.cardAba['ENFERMAGEM'];
+  if (_abaEnf === 'inj' && document.getElementById('pr-inj-box')) prInjCarregar();
+  if (_abaEnf === 'base' && document.getElementById('pr-base-box')) prBaseCarregar();
 
   // Se veio de uma marcação, rola até a evolução-alvo e destaca
   if (prState.evolucaoAlvo) {
@@ -22851,6 +22869,12 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
     const _pidInj = prState.pacienteAtual && prState.pacienteAtual.id;
     const _injHtml = (prState.injCache && prState.injCache.pid === _pidInj) ? prState.injCache.html : '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando aplicações…</div>';
     conteudoHtml = '<div id="pr-inj-box" class="pr-inj-box">' + _injHtml + '</div>';
+  } else if (aba === 'base' && prof.tipo === 'ENFERMAGEM') {
+    // Aba "Base": medicamento base (GLP-1) + escada de dose, do fluxo de prescrição base (sem cobrança,
+    // auto-aplicado). Carrega async (prBaseCarregar); mesmo esquema de cache do "inj".
+    const _pidB = prState.pacienteAtual && prState.pacienteAtual.id;
+    const _bHtml = (prState.baseCache && prState.baseCache.pid === _pidB) ? prState.baseCache.html : '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando medicamento base…</div>';
+    conteudoHtml = '<div id="pr-base-box" class="pr-inj-box">' + _bHtml + '</div>';
   } else if (!evMostrar) {
     conteudoHtml = `
       <div class="pr-card-prof-vazio">
@@ -22951,7 +22975,8 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
         <div class="pr-card-abas" onclick="event.stopPropagation()">
           <button class="aba ${aba === 'anterior' ? 'ativa' : ''}" ${podeAnterior ? '' : 'disabled'} onclick="prCardTrocarAba('${prof.tipo}', 'anterior')">Anterior</button>
           <button class="aba ${aba === 'atual' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'atual')">Atual</button>
-          ${prof.tipo === 'ENFERMAGEM' ? `<button class="aba ${aba === 'inj' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'inj')" title="Medicamento, aplicações e próximas doses"><i class="ti ti-vaccine"></i> Aplicações</button>` : ''}
+          ${prof.tipo === 'ENFERMAGEM' ? `<button class="aba ${aba === 'inj' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'inj')" title="Soroterapia / injetáveis: próximas e histórico de aplicações"><i class="ti ti-vaccine"></i> Aplicações</button>` : ''}
+          ${prof.tipo === 'ENFERMAGEM' ? `<button class="aba ${aba === 'base' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'base')" title="Medicamento base (GLP-1) e a escada de dose — auto-aplicado, sem cobrança"><i class="ti ti-pill"></i> Base</button>` : ''}
           ${totalEvs > 0 ? `<button class="aba aba-todas" onclick="event.stopPropagation(); prVerTodasSetor('${prof.tipo}')" title="Ver todas as evoluções deste setor"><i class="ti ti-history"></i> Todas</button>` : ''}
         </div>
         ${conteudoHtml}
@@ -23073,28 +23098,24 @@ async function prInjCarregar() {
   // Só mostra o spinner se não houver cache deste paciente — evita o "pisca" em re-render.
   const temCache = prState.injCache && prState.injCache.pid === pid;
   if (!temCache) box.innerHTML = '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando aplicações…</div>';
-  // allSettled + independentes: a "medicação atual" (droga) é secundária — se ela falhar, mostramos o
-  // resto assim mesmo. Só falha a aba se as PRESCRIÇÕES não vierem. E o erro mostra o motivo real.
-  let presc = null, med = null, motivo = '';
-  const [rp, rm] = await Promise.allSettled([
-    pacApi('/api/clinico/prescricoes-inj?patient_id=' + encodeURIComponent(pid)),
-    pacApi('/api/clinico/patients/' + encodeURIComponent(pid) + '/medicacoes'),
-  ]);
+  let presc = null, motivo = '';
+  let rp;
+  try { rp = await pacApi('/api/clinico/prescricoes-inj?patient_id=' + encodeURIComponent(pid)); }
+  catch (e) { rp = { ok: false, data: {}, _reason: e }; }
   if (!prState.pacienteAtual || prState.pacienteAtual.id !== pid) return;   // trocou de paciente no meio
-  if (rp.status === 'fulfilled' && rp.value && rp.value.ok) presc = rp.value.data.prescricoes || [];
-  else motivo = (rp.status === 'fulfilled' && rp.value && rp.value.data && rp.value.data.erro) || (rp.reason && rp.reason.message) || 'sem resposta do servidor';
-  if (rm.status === 'fulfilled' && rm.value && rm.value.ok) med = ((rm.value.data.injetaveis || [])[0]) || null;
+  if (rp && rp.ok) presc = rp.data.prescricoes || [];
+  else motivo = (rp && rp.data && rp.data.erro) || (rp && rp._reason && rp._reason.message) || 'sem resposta do servidor';
   const box2 = document.getElementById('pr-inj-box');
   if (!box2) return;
-  if (presc === null) {   // só as PRESCRIÇÕES são obrigatórias
+  if (presc === null) {
     box2.innerHTML = '<div class="pr-card-prof-vazio">Não consegui carregar as aplicações' + (motivo ? ' <span style="opacity:.7">(' + esc(motivo) + ')</span>' : '') + '. <button class="pr-inj-retry" onclick="prInjCarregar()"><i class="ti ti-refresh"></i> tentar de novo</button></div>';
     return;
   }
-  const html = prInjHtml(presc, med);
+  const html = prInjHtml(presc);
   prState.injCache = { pid: pid, html: html };
   box2.innerHTML = html;
 }
-function prInjHtml(presc, med) {
+function prInjHtml(presc) {
   const podeAplicar = typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar');
   const ativas = (presc || []).filter((p) => p.status !== 'cancelado');   // cancelada não mostra aplicar/desfazer
   const multi = ativas.length > 1;   // com 2+ prescrições ativas, rotula cada linha pra não confundir "Semana 1"
@@ -23107,16 +23128,7 @@ function prInjHtml(presc, med) {
   const proximas = itens.filter((it) => it.status_item === 'liberado' || it.status_item === 'agendado').sort((a, b) => a.semana - b.semana);
   const pendentes = itens.filter((it) => it.status_item === 'pendente_orcamento' || it.status_item === 'aguardando_pagamento');
 
-  // 1) medicamento base (droga atual, do cadastro de medicação)
-  let drogaHtml;
-  if (med) {
-    const prox = med.proxima_dose_prevista ? ` <span class="sub">· próxima: ${esc(new Date(med.proxima_dose_prevista).toLocaleDateString('pt-BR'))}</span>` : '';
-    drogaHtml = `<div class="pr-inj-droga"><i class="ti ti-vaccine"></i> <strong>${esc(med.nome || 'Injetável')}</strong>${med.dose ? ' · ' + esc(med.dose) : ''}${prox}</div>`;
-  } else {
-    drogaHtml = `<div class="pr-inj-droga vazio"><i class="ti ti-vaccine"></i> Sem injetável no cadastro de medicação. <span class="sub">Preencha em "Medicação atual".</span></div>`;
-  }
-
-  // 2) próximas aplicações (com botão aplicar)
+  // 1) próximas aplicações (com botão aplicar). O medicamento base saiu pra aba "Base".
   const linhaProx = (it) => {
     const dose = prInjDose(it);
     const st = PR_INJ_ST[it.status_item] || { txt: it.status_item, cor: '#8B8578' };
@@ -23140,7 +23152,7 @@ function prInjHtml(presc, med) {
   histHtml += aplicados.length ? aplicados.map(linhaHist).join('') : `<div class="pr-inj-obs">Nenhuma aplicação registrada ainda.</div>`;
   histHtml += `</div>`;
 
-  return `<div class="pr-inj-wrap">${drogaHtml}${proxHtml}${histHtml}</div>`;
+  return `<div class="pr-inj-wrap">${proxHtml}${histHtml}</div>`;
 }
 async function prInjAplicar(itemId, btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
@@ -23160,6 +23172,75 @@ async function prInjDesaplicar(itemId, btn) {
   if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não desfez: ' + ((r.data && r.data.erro) || 'verifique a conexão')); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-arrow-back-up"></i>'; } return; }
   if (typeof homeToast === 'function') homeToast('Aplicação desfeita.');
   prInjCarregar();
+}
+
+// ===== Aba "Base" do card de ENFERMAGEM: medicamento base (GLP-1) + escada de dose (sem cobrança) =====
+const PR_BASE_FREQ = { semanal: 'semanal', '2x_semana': '2x/semana', quinzenal: 'quinzenal', dose_unica: 'dose única' };
+// Estimativa do degrau atual da escada pela data de início (o banco NÃO guarda a posição real).
+function prBaseEscadaAtual(titul, createdAt) {
+  if (!Array.isArray(titul) || !titul.length || !createdAt) return -1;
+  const dias = (Date.now() - new Date(createdAt).getTime()) / 86400000;
+  if (isNaN(dias) || dias < 0) return -1;
+  const semanas = Math.floor(dias / 7);
+  let acc = 0;
+  for (let i = 0; i < titul.length; i++) {
+    if (titul[i].semanas == null) return i;            // manutenção: fica indefinidamente
+    if (semanas < acc + titul[i].semanas) return i;
+    acc += titul[i].semanas;
+  }
+  return titul.length - 1;                              // passou de tudo -> último degrau
+}
+async function prBaseCarregar() {
+  const box = document.getElementById('pr-base-box');
+  if (!box) return;
+  const pid = prState.pacienteAtual && prState.pacienteAtual.id;
+  if (!pid) { box.innerHTML = '<div class="pr-card-prof-vazio">Abra um paciente.</div>'; return; }
+  const temCache = prState.baseCache && prState.baseCache.pid === pid;
+  if (!temCache) box.innerHTML = '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando medicamento base…</div>';
+  let prescs = null, cat = {}, motivo = '';
+  const [rp, rc] = await Promise.allSettled([
+    pacApi('/api/clinico/protocolos/prescricoes-base/' + encodeURIComponent(pid)),
+    pacApi('/api/clinico/protocolos/medicamentos-base'),
+  ]);
+  if (!prState.pacienteAtual || prState.pacienteAtual.id !== pid) return;
+  if (rp.status === 'fulfilled' && rp.value && rp.value.ok) prescs = rp.value.data.prescricoes || [];
+  else motivo = (rp.status === 'fulfilled' && rp.value && rp.value.data && rp.value.data.erro) || (rp.reason && rp.reason.message) || 'sem resposta do servidor';
+  if (rc.status === 'fulfilled' && rc.value && rc.value.ok) (rc.value.data.medicamentos || []).forEach((m) => { cat[m.slug] = m; });
+  const box2 = document.getElementById('pr-base-box');
+  if (!box2) return;
+  if (prescs === null) { box2.innerHTML = '<div class="pr-card-prof-vazio">Não consegui carregar o medicamento base' + (motivo ? ' <span style="opacity:.7">(' + esc(motivo) + ')</span>' : '') + '. <button class="pr-inj-retry" onclick="prBaseCarregar()"><i class="ti ti-refresh"></i> tentar de novo</button></div>'; return; }
+  const html = prBaseHtml(prescs, cat);
+  prState.baseCache = { pid: pid, html: html };
+  box2.innerHTML = html;
+}
+function prBaseHtml(prescs, cat) {
+  const ativas = (prescs || []).filter((p) => p.status !== 'cancelada');
+  if (!ativas.length) {
+    return '<div class="pr-inj-wrap"><div class="pr-card-prof-vazio"><i class="ti ti-pill"></i> Sem medicamento base prescrito.<span style="display:block;font-style:normal;margin-top:4px;color:var(--tx4)">É prescrito no prontuário como "Medicamento base (GLP-1)".</span></div></div>';
+  }
+  const bloco = (p) => {
+    const m = cat[p.medicamentoBaseSlug] || {};
+    const nome = m.nome || p.medicamentoBaseSlug || 'Medicamento base';
+    const via = p.via || m.via || 'SC';
+    const freq = PR_BASE_FREQ[p.frequencia] || p.frequencia || '';
+    const titul = Array.isArray(p.titulacao) ? p.titulacao : [];
+    const atual = prBaseEscadaAtual(titul, p.createdAt);
+    const escada = titul.map((s, i) => {
+      const semTxt = s.semanas == null ? 'manutenção' : (s.semanas + (s.semanas === 1 ? ' semana' : ' semanas'));
+      const cur = i === atual;
+      return `<div class="pr-base-degrau${cur ? ' atual' : ''}"><span class="d-dose">${esc(String(s.dose_mg).replace('.', ','))} mg</span><span class="d-sem">${esc(semTxt)}</span>${cur ? '<span class="d-tag">~ atual</span>' : ''}</div>`;
+    }).join('');
+    const inicio = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '';
+    return `<div class="pr-base-card">
+      <div class="pr-base-head"><i class="ti ti-pill"></i> <strong>${esc(nome)}</strong>${m.classe ? ` <span class="cls">${esc(m.classe)}</span>` : ''}</div>
+      <div class="pr-base-meta">Início ${esc(String(p.doseInicialMg).replace('.', ','))} mg · ${esc(freq)} · ${esc(via)}${inicio ? ' · desde ' + esc(inicio) : ''}</div>
+      <div class="pr-base-flags"><span class="pr-base-flag">auto-aplicado</span><span class="pr-base-flag">sem cobrança</span></div>
+      ${titul.length ? `<div class="pr-inj-sec-tit" style="margin-top:9px">Escada de dose</div><div class="pr-base-escada">${escada}</div>${atual >= 0 ? '<div class="pr-inj-obs">"~ atual" é estimado pela data de início — o degrau real depende da titulação do paciente.</div>' : ''}` : ''}
+      ${p.observacoes ? `<div class="pr-inj-obs" style="font-style:normal;color:var(--tx3b)">${esc(p.observacoes)}</div>` : ''}
+      ${(m.alertas && m.alertas.length) ? `<div class="pr-base-alerta"><i class="ti ti-alert-triangle"></i> ${m.alertas.map(esc).join(' · ')}</div>` : ''}
+    </div>`;
+  };
+  return `<div class="pr-inj-wrap">${ativas.map(bloco).join('')}</div>`;
 }
 
 // ===== CARD 4 · RODA DA VIDA (radar início -> atual, lê das evoluções) =====

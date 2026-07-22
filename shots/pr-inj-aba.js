@@ -51,7 +51,7 @@ const PORT = process.argv[2] || '8170';
     await new Promise(x => setTimeout(x, 40));
     const box = document.getElementById('pr-inj-box');
     const t = box.textContent;
-    r.tem_droga = /Tirzepatida/.test(t) && /próxima/i.test(t);
+    r.droga_saiu = !/Tirzepatida/.test(t);   // droga base agora vive na aba "Base", não aqui
     r.tem_secao_proximas = /Próximas aplicações/.test(t);
     r.tem_secao_historico = /Histórico de aplicações/.test(t);
     // próximas: semana 2 liberada com botão Aplicar; semana 3 é "aguardando cobrança" (obs)
@@ -75,14 +75,14 @@ const PORT = process.argv[2] || '8170';
     await new Promise(x => setTimeout(x, 40));
     const box2 = document.getElementById('pr-inj-box');
     r.sem_perm_sem_botao = !box2.querySelector('.pr-inj-btn');
-    r.sem_perm_ainda_mostra = /Tirzepatida/.test(box2.textContent) && /Ana Enfermeira/.test(box2.textContent);
+    r.sem_perm_ainda_mostra = /Ana Enfermeira/.test(box2.textContent) && /Semana 1/.test(box2.textContent);
     window.temPermissao = () => true;
     await prInjCarregar();
 
     // E) conserto do review: re-render da timeline não pode travar em "Carregando". O card usa o cache.
     prState.cardAba = { ENFERMAGEM: 'inj' };
     const htmlRe = prRenderCardProfissional(enf, null, null, true, false);
-    r.cache_no_render = /Tirzepatida/.test(htmlRe) && !/Carregando aplicações/.test(htmlRe);
+    r.cache_no_render = /Histórico de aplicações/.test(htmlRe) && !/Carregando aplicações/.test(htmlRe);
     r.cache_guardado = !!(prState.injCache && prState.injCache.pid === 'p1');
     return r;
   });
@@ -92,7 +92,7 @@ const PORT = process.argv[2] || '8170';
   ok('card de enfermagem tem "Aplicações"', out.enf_tem_aba);
   ok('outros cards NÃO têm', out.med_nao_tem_aba);
   console.log('\n--- conteúdo ---');
-  ok('mostra o medicamento base (droga atual)', out.tem_droga);
+  ok('droga base saiu da aba Aplicações (foi pra aba Base)', out.droga_saiu);
   ok('seção Próximas aplicações', out.tem_secao_proximas);
   ok('seção Histórico de aplicações', out.tem_secao_historico);
   ok('próxima (semana 2) com botão Aplicar', out.prox_tem_aplicar && out.prox_semana2);
@@ -105,7 +105,7 @@ const PORT = process.argv[2] || '8170';
   ok('Aplicar posta pro item certo', out.aplicou_postou);
   console.log('\n--- sem permissão (só leitura) ---');
   ok('sem botões de aplicar/desfazer', out.sem_perm_sem_botao);
-  ok('ainda mostra droga + histórico', out.sem_perm_ainda_mostra);
+  ok('ainda mostra o histórico (leitura)', out.sem_perm_ainda_mostra);
   console.log('\n--- re-render não trava (conserto do review) ---');
   ok('cache guardado', out.cache_guardado);
   ok('re-render mostra o conteúdo (não "Carregando")', out.cache_no_render);
@@ -114,7 +114,7 @@ const PORT = process.argv[2] || '8170';
   const el = await p.$('#pr-inj-box');
   if (el) { await el.screenshot({ path: 'shots/pr_inj_aba.png' }); console.log('screenshot: shots/pr_inj_aba.png'); }
 
-  const tudo = out.enf_tem_aba && out.med_nao_tem_aba && out.tem_droga && out.tem_secao_proximas && out.tem_secao_historico
+  const tudo = out.enf_tem_aba && out.med_nao_tem_aba && out.droga_saiu && out.tem_secao_proximas && out.tem_secao_historico
     && out.prox_tem_aplicar && out.prox_semana2 && out.aviso_cobranca && out.hist_quem && out.hist_dose && out.hist_desfazer
     && out.aplicou_postou && out.sem_perm_sem_botao && out.sem_perm_ainda_mostra && out.cache_guardado && out.cache_no_render && !errs.length;
   await b.close();
