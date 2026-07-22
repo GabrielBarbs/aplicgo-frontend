@@ -2997,6 +2997,32 @@
       color: var(--tx4); font-size: 11px; font-style: italic;
     }
     .pr-card-prof-vazio i { display: block; font-size: 20px; margin-bottom: 6px; color: var(--bd1); }
+    /* Aba "Aplicações" do card de enfermagem */
+    .pr-inj-box { padding: 4px 2px; }
+    .pr-inj-load { text-align: center; padding: 20px; color: var(--tx4); font-size: 11px; }
+    .pr-inj-retry { background: none; border: 1px solid var(--bd1); color: var(--tx3); border-radius: 6px; padding: 2px 8px; font: inherit; font-size: 11px; cursor: pointer; margin-top: 8px; }
+    .pr-inj-wrap { display: flex; flex-direction: column; gap: 10px; }
+    .pr-inj-droga { background: rgba(232,148,90,0.10); border: 1px solid rgba(232,148,90,0.25); border-radius: 9px; padding: 9px 12px; font-size: 12.5px; color: var(--tx1); }
+    .pr-inj-droga i { color: #E8945A; margin-right: 3px; }
+    .pr-inj-droga.vazio { background: var(--bg2); border-color: var(--bd1); color: var(--tx3); font-style: italic; }
+    .pr-inj-droga .sub { color: var(--tx3b); font-weight: 400; font-style: normal; }
+    .pr-inj-sec-tit { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--tx4); margin: 2px 0 5px; }
+    .pr-inj-lin { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; background: var(--bg2); border: 1px solid var(--bd1); border-radius: 8px; margin-bottom: 4px; }
+    .pr-inj-lin-info { font-size: 12px; color: var(--tx2); min-width: 0; }
+    .pr-inj-lin-info .sem { color: var(--tx1); font-weight: 600; }
+    .pr-inj-lin-info .dose { color: var(--tx1); }
+    .pr-inj-lin-info .st { font-size: 11px; font-weight: 600; }
+    .pr-inj-lin-info .hist-meta { font-size: 10.5px; color: var(--tx3b); margin-top: 2px; }
+    .pr-inj-lin-info .hist-meta i { font-size: 10px; margin-right: 2px; }
+    .pr-inj-lin-info .hist-meta .tx4 { color: var(--tx4); font-style: italic; }
+    .pr-inj-btn { flex-shrink: 0; border: 0; border-radius: 7px; font: inherit; font-size: 11px; font-weight: 600; padding: 5px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+    .pr-inj-btn.aplicar { background: #2BB673; color: #04260d; }
+    .pr-inj-btn.aplicar:hover { filter: brightness(1.08); }
+    .pr-inj-btn.desfazer { background: transparent; border: 1px solid var(--bd1); color: var(--tx3); padding: 5px 8px; }
+    .pr-inj-btn.desfazer:hover { color: #f85149; border-color: #f8514955; }
+    .pr-inj-btn:disabled { opacity: .55; cursor: default; }
+    .pr-inj-obs { font-size: 11px; color: var(--tx4); font-style: italic; padding: 4px 2px; }
+    .pr-inj-presc { font-size: 9.5px; color: var(--tx4); border: 1px solid var(--bd1); border-radius: 5px; padding: 0 4px; white-space: nowrap; }
 
     .pr-card-prof-ultima .meta-row {
       display: flex; justify-content: space-between; align-items: center;
@@ -22162,6 +22188,10 @@ function prRenderTimeline() {
     + anexosBar
     + histHtml;
 
+  // A aba "Aplicações" (enfermagem) é async: todo re-render recria o #pr-inj-box no placeholder (ou no
+  // cache). Reidrata aqui — senão, ao recolher/expandir o card ou trocar de paciente, ela ficaria presa.
+  if (prState.cardAba && prState.cardAba['ENFERMAGEM'] === 'inj' && document.getElementById('pr-inj-box')) prInjCarregar();
+
   // Se veio de uma marcação, rola até a evolução-alvo e destaca
   if (prState.evolucaoAlvo) {
     const alvo = prState.evolucaoAlvo;
@@ -22814,7 +22844,14 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
   const totalEvs = (atual ? 1 : 0) + (anterior ? 1 : 0);
 
   let conteudoHtml;
-  if (!evMostrar) {
+  if (aba === 'inj' && prof.tipo === 'ENFERMAGEM') {
+    // Aba "Aplicações": droga atual + histórico (dose/quem/data) + próximas com aplicar/desfazer.
+    // Carrega async (prInjCarregar). Usa cache pra NÃO piscar "Carregando" a cada re-render da timeline
+    // (recolher/expandir, load async); cache de outro paciente cai no loading até recarregar.
+    const _pidInj = prState.pacienteAtual && prState.pacienteAtual.id;
+    const _injHtml = (prState.injCache && prState.injCache.pid === _pidInj) ? prState.injCache.html : '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando aplicações…</div>';
+    conteudoHtml = '<div id="pr-inj-box" class="pr-inj-box">' + _injHtml + '</div>';
+  } else if (!evMostrar) {
     conteudoHtml = `
       <div class="pr-card-prof-vazio">
         <i class="ti ti-file-off"></i>
@@ -22914,6 +22951,7 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
         <div class="pr-card-abas" onclick="event.stopPropagation()">
           <button class="aba ${aba === 'anterior' ? 'ativa' : ''}" ${podeAnterior ? '' : 'disabled'} onclick="prCardTrocarAba('${prof.tipo}', 'anterior')">Anterior</button>
           <button class="aba ${aba === 'atual' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'atual')">Atual</button>
+          ${prof.tipo === 'ENFERMAGEM' ? `<button class="aba ${aba === 'inj' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'inj')" title="Medicamento, aplicações e próximas doses"><i class="ti ti-vaccine"></i> Aplicações</button>` : ''}
           ${totalEvs > 0 ? `<button class="aba aba-todas" onclick="event.stopPropagation(); prVerTodasSetor('${prof.tipo}')" title="Ver todas as evoluções deste setor"><i class="ti ti-history"></i> Todas</button>` : ''}
         </div>
         ${conteudoHtml}
@@ -23005,7 +23043,119 @@ function prTipoLabel(tipo) {
 function prCardTrocarAba(tipo, aba) {
   if (!prState.cardAba) prState.cardAba = {};
   prState.cardAba[tipo] = aba;
-  prRenderTimeline();
+  prRenderTimeline();   // se a aba for 'inj', o próprio prRenderTimeline reidrata o #pr-inj-box
+}
+
+// ===== Aba "Aplicações" do card de ENFERMAGEM (medicamento base + histórico + próximas) =====
+const PR_INJ_ST = {
+  pendente_orcamento: { txt: 'aguardando cobrança', cor: '#8B8578' },
+  aguardando_pagamento: { txt: 'aguardando pagamento', cor: '#E68A47' },
+  liberado: { txt: 'liberado', cor: '#3fb950' },
+  agendado: { txt: 'agendado', cor: '#4A90E2' },
+  aplicado: { txt: 'aplicado', cor: '#2BB673' },
+  cancelado: { txt: 'cancelado', cor: '#C56847' },
+};
+function prInjDataHora(iso) {
+  const d = new Date(iso); if (isNaN(d)) return '';
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+// Dose exibível: prefere a string livre; senão converte dose_mcg (microgramas) pra mg.
+function prInjDose(it) {
+  if (it.dose) return it.dose;
+  if (it.dose_mcg != null) return String(it.dose_mcg / 1000).replace('.', ',') + ' mg';
+  return null;
+}
+async function prInjCarregar() {
+  const box = document.getElementById('pr-inj-box');
+  if (!box) return;
+  const pid = prState.pacienteAtual && prState.pacienteAtual.id;
+  if (!pid) { box.innerHTML = '<div class="pr-card-prof-vazio">Abra um paciente.</div>'; return; }
+  // Só mostra o spinner se não houver cache deste paciente — evita o "pisca" em re-render.
+  const temCache = prState.injCache && prState.injCache.pid === pid;
+  if (!temCache) box.innerHTML = '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando aplicações…</div>';
+  let presc = [], med = null, erro = false;
+  try {
+    const [rp, rm] = await Promise.all([
+      pacApi('/api/clinico/prescricoes-inj?patient_id=' + encodeURIComponent(pid)),
+      pacApi('/api/clinico/patients/' + encodeURIComponent(pid) + '/medicacoes'),
+    ]);
+    if (rp && rp.ok) presc = rp.data.prescricoes || []; else erro = true;
+    if (rm && rm.ok) med = ((rm.data.injetaveis || [])[0]) || null;
+  } catch (e) { erro = true; }
+  if (!prState.pacienteAtual || prState.pacienteAtual.id !== pid) return;   // trocou de paciente no meio
+  const html = erro
+    ? '<div class="pr-card-prof-vazio">Não consegui carregar as aplicações. <button class="pr-inj-retry" onclick="prInjCarregar()"><i class="ti ti-refresh"></i> tentar de novo</button></div>'
+    : prInjHtml(presc, med);
+  if (!erro) prState.injCache = { pid: pid, html: html };   // não cacheia erro
+  const box2 = document.getElementById('pr-inj-box');
+  if (box2) box2.innerHTML = html;
+}
+function prInjHtml(presc, med) {
+  const podeAplicar = typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar');
+  const ativas = (presc || []).filter((p) => p.status !== 'cancelado');   // cancelada não mostra aplicar/desfazer
+  const multi = ativas.length > 1;   // com 2+ prescrições ativas, rotula cada linha pra não confundir "Semana 1"
+  const itens = [];
+  ativas.forEach((p) => {
+    const pd = p.data ? new Date(p.data).toLocaleDateString('pt-BR') : '';
+    (p.itens || []).forEach((it) => itens.push(multi ? Object.assign({ _prescData: pd }, it) : it));
+  });
+  const aplicados = itens.filter((it) => it.status_item === 'aplicado').sort((a, b) => new Date(b.data_aplicacao || 0) - new Date(a.data_aplicacao || 0));
+  const proximas = itens.filter((it) => it.status_item === 'liberado' || it.status_item === 'agendado').sort((a, b) => a.semana - b.semana);
+  const pendentes = itens.filter((it) => it.status_item === 'pendente_orcamento' || it.status_item === 'aguardando_pagamento');
+
+  // 1) medicamento base (droga atual, do cadastro de medicação)
+  let drogaHtml;
+  if (med) {
+    const prox = med.proxima_dose_prevista ? ` <span class="sub">· próxima: ${esc(new Date(med.proxima_dose_prevista).toLocaleDateString('pt-BR'))}</span>` : '';
+    drogaHtml = `<div class="pr-inj-droga"><i class="ti ti-vaccine"></i> <strong>${esc(med.nome || 'Injetável')}</strong>${med.dose ? ' · ' + esc(med.dose) : ''}${prox}</div>`;
+  } else {
+    drogaHtml = `<div class="pr-inj-droga vazio"><i class="ti ti-vaccine"></i> Sem injetável no cadastro de medicação. <span class="sub">Preencha em "Medicação atual".</span></div>`;
+  }
+
+  // 2) próximas aplicações (com botão aplicar)
+  const linhaProx = (it) => {
+    const dose = prInjDose(it);
+    const st = PR_INJ_ST[it.status_item] || { txt: it.status_item, cor: '#8B8578' };
+    const btn = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prInjAplicar('${it.id}', this)"><i class="ti ti-check"></i> Aplicar</button>` : '';
+    return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${it.semana}</span>${dose ? ` · <span class="dose">${esc(dose)}</span>` : ''} <span class="st" style="color:${st.cor}">${st.txt}</span>${it._prescData ? ` <span class="pr-inj-presc">presc. ${esc(it._prescData)}</span>` : ''}</div>${btn}</div>`;
+  };
+  let proxHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Próximas aplicações</div>`;
+  proxHtml += proximas.length ? proximas.map(linhaProx).join('') : `<div class="pr-inj-obs">Nenhuma aplicação liberada no momento.</div>`;
+  if (pendentes.length) proxHtml += `<div class="pr-inj-obs">${pendentes.length} sessão(ões) aguardando cobrança na recepção.</div>`;
+  proxHtml += `</div>`;
+
+  // 3) histórico (dose + quem aplicou + data), com desfazer
+  const linhaHist = (it) => {
+    const dose = prInjDose(it);
+    const quem = it.enfermeiro || null;
+    const data = it.data_aplicacao ? prInjDataHora(it.data_aplicacao) : null;
+    const btn = podeAplicar ? `<button class="pr-inj-btn desfazer" onclick="prInjDesaplicar('${it.id}', this)" title="Desfazer aplicação"><i class="ti ti-arrow-back-up"></i></button>` : '';
+    return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${it.semana}</span>${dose ? ` · <span class="dose">${esc(dose)}</span>` : ''}${it._prescData ? ` <span class="pr-inj-presc">presc. ${esc(it._prescData)}</span>` : ''}<div class="hist-meta">${quem ? 'por ' + esc(quem) : '<span class="tx4">quem aplicou: —</span>'}${data ? ' · ' + esc(data) : ''}</div></div>${btn}</div>`;
+  };
+  let histHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Histórico de aplicações</div>`;
+  histHtml += aplicados.length ? aplicados.map(linhaHist).join('') : `<div class="pr-inj-obs">Nenhuma aplicação registrada ainda.</div>`;
+  histHtml += `</div>`;
+
+  return `<div class="pr-inj-wrap">${drogaHtml}${proxHtml}${histHtml}</div>`;
+}
+async function prInjAplicar(itemId, btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
+  let r;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/itens/' + itemId + '/aplicar', { method: 'POST', body: '{}' }); }
+  catch (e) { r = { ok: false, data: {} }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não aplicou: ' + ((r.data && r.data.erro) || 'verifique a conexão')); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Aplicar'; } return; }
+  if (typeof homeToast === 'function') homeToast(r.data.baixa_estoque ? 'Aplicado — estoque baixado.' : ('Aplicado.' + (r.data.aviso ? ' ' + r.data.aviso : '')));
+  prInjCarregar();
+}
+async function prInjDesaplicar(itemId, btn) {
+  if (!confirm('Desfazer esta aplicação? O estoque que foi baixado volta pro lote.')) return;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
+  let r;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/itens/' + itemId + '/desaplicar', { method: 'POST', body: '{}' }); }
+  catch (e) { r = { ok: false, data: {} }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não desfez: ' + ((r.data && r.data.erro) || 'verifique a conexão')); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-arrow-back-up"></i>'; } return; }
+  if (typeof homeToast === 'function') homeToast('Aplicação desfeita.');
+  prInjCarregar();
 }
 
 // ===== CARD 4 · RODA DA VIDA (radar início -> atual, lê das evoluções) =====
