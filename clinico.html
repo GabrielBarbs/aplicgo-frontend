@@ -3028,6 +3028,20 @@
     .pr-inj-btn:disabled { opacity: .55; cursor: default; }
     .pr-inj-obs { font-size: 11px; color: var(--tx4); font-style: italic; padding: 4px 2px; }
     .pr-inj-presc { font-size: 9.5px; color: var(--tx4); border: 1px solid var(--bd1); border-radius: 5px; padding: 0 4px; white-space: nowrap; }
+    /* Sessão (Semana X) com os componentes discriminados + flags (falta contrato/agendamento, vencido) */
+    .pr-inj-sess { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 9px; padding: 8px 10px; margin-bottom: 6px; }
+    .pr-inj-sess-tit { font-size: 12px; color: var(--tx1); font-weight: 600; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+    .pr-inj-sess-tit .tx4 { color: var(--tx4); font-weight: 400; }
+    .pr-inj-flag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; border-radius: 5px; padding: 1px 6px; }
+    .pr-inj-flag.falta { color: #E68A47; background: rgba(230,138,71,.14); }
+    .pr-inj-flag.agenda { color: #4A90E2; background: rgba(74,144,226,.14); }
+    .pr-inj-flag.venc { color: #f85149; background: rgba(248,81,73,.16); }
+    .pr-inj-comp { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--tx2); padding: 4px 0 4px 10px; border-left: 2px solid var(--bd1); margin: 2px 0; }
+    .pr-inj-comp-info { min-width: 0; }
+    .pr-inj-comp .cnome { color: var(--tx1); font-weight: 600; }
+    .pr-inj-comp .st { font-size: 10.5px; font-weight: 600; }
+    .pr-inj-incl { font-size: 9.5px; color: var(--tx4); }
+    .pr-inj-incl.avulso { color: #E68A47; }
     /* Aba "Base": medicamento base + escada de dose */
     .pr-base-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 10px; padding: 12px 13px; margin-bottom: 10px; }
     .pr-base-head { font-size: 13.5px; color: var(--tx1); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
@@ -6110,7 +6124,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-K</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-L</b></span></div>
   </div>
 </div>
 
@@ -23176,38 +23190,70 @@ async function prInjCarregar() {
 function prInjHtml(presc) {
   const podeAplicar = typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar');
   const ativas = (presc || []).filter((p) => p.status !== 'cancelado');   // cancelada não mostra aplicar/desfazer
-  const multi = ativas.length > 1;   // com 2+ prescrições ativas, rotula cada linha pra não confundir "Semana 1"
-  const itens = [];
-  ativas.forEach((p) => {
-    const pd = p.data ? new Date(p.data).toLocaleDateString('pt-BR') : '';
-    (p.itens || []).forEach((it) => itens.push(multi ? Object.assign({ _prescData: pd }, it) : it));
-  });
-  const aplicados = itens.filter((it) => it.status_item === 'aplicado').sort((a, b) => new Date(b.data_aplicacao || 0) - new Date(a.data_aplicacao || 0));
-  const proximas = itens.filter((it) => it.status_item === 'liberado' || it.status_item === 'agendado').sort((a, b) => a.semana - b.semana);
-  const pendentes = itens.filter((it) => it.status_item === 'pendente_orcamento' || it.status_item === 'aguardando_pagamento');
+  const multi = ativas.length > 1;   // com 2+ prescrições ativas, mostra a data da prescrição pra desambiguar
+  const agora = Date.now();
 
-  // 1) próximas aplicações (com botão aplicar). O medicamento base saiu pra aba "Base".
-  const linhaProx = (it) => {
-    const dose = prInjDose(it);
-    const st = PR_INJ_ST[it.status_item] || { txt: it.status_item, cor: '#8B8578' };
-    const btn = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prInjAplicar('${it.id}', this)"><i class="ti ti-check"></i> Aplicar</button>` : '';
-    return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${it.semana}</span>${dose ? ` · <span class="dose">${esc(dose)}</span>` : ''} <span class="st" style="color:${st.cor}">${st.txt}</span>${it._prescData ? ` <span class="pr-inj-presc">presc. ${esc(it._prescData)}</span>` : ''}</div>${btn}</div>`;
+  // Agrupa os itens por SESSÃO (prescrição + semana). Cada sessão discrimina TODOS os seus componentes.
+  const sessMap = new Map();
+  ativas.forEach((p) => {
+    const prescData = p.data ? new Date(p.data).toLocaleDateString('pt-BR') : '';
+    (p.itens || []).forEach((it) => {
+      const key = p.id + '|' + it.semana;
+      let s = sessMap.get(key);
+      if (!s) { s = { prescId: p.id, semana: it.semana, prescData: prescData, itens: [], agendamento: null }; sessMap.set(key, s); }
+      if (!s.agendamento && it.agendamento && it.agendamento.data) s.agendamento = it.agendamento;
+      s.itens.push(it);
+    });
+  });
+  const sessoes = [...sessMap.values()];
+  sessoes.forEach((s) => {
+    s.todosAplicados = s.itens.length > 0 && s.itens.every((i) => i.status_item === 'aplicado');
+    s.faltaContrato = s.itens.some((i) => i.status_item === 'pendente_orcamento' || i.status_item === 'aguardando_pagamento');
+    s.temAgendamento = !!(s.agendamento && s.agendamento.data);
+    s.faltaAgendamento = !s.temAgendamento && s.itens.some((i) => i.status_item === 'liberado');
+    s.vencido = s.temAgendamento && new Date(s.agendamento.data).getTime() < agora && !s.todosAplicados;
+  });
+
+  const flags = (s) => {
+    let f = '';
+    if (s.faltaContrato) f += '<span class="pr-inj-flag falta">falta contrato</span>';
+    if (s.faltaAgendamento) f += '<span class="pr-inj-flag agenda">falta agendamento</span>';
+    if (s.vencido) f += '<span class="pr-inj-flag venc">vencido</span>';
+    return f;
   };
+  const titulo = (s) => `Semana ${s.semana}` + (s.temAgendamento ? ' · ' + esc(prInjDataHora(s.agendamento.data)) : ' · <span class="tx4">sem agendamento</span>');
+
+  // Um componente (ativo/insumo) da sessão: nome + dose/via/frequência + incluído/avulso + responsável + status/ação.
+  const comp = (it, comBtn) => {
+    const dose = prInjDose(it);
+    const nome = esc(it.nome_ativo || it.sku_ativo || 'item');
+    const meta = [dose ? esc(dose) : null, it.via ? esc(it.via) : null, it.frequencia ? esc(it.frequencia) : null].filter(Boolean).join(' · ');
+    const incl = it.incluso === true ? ' · <span class="pr-inj-incl">incluído</span>' : (it.incluso === false ? ' · <span class="pr-inj-incl avulso">avulso</span>' : '');
+    const resp = it.responsavel ? ' · resp: ' + esc(it.responsavel) : '';
+    const aplicado = it.status_item === 'aplicado';
+    const st = PR_INJ_ST[it.status_item] || { txt: it.status_item, cor: '#8B8578' };
+    const stTxt = aplicado
+      ? ` <span class="tx4" style="font-size:10px">aplicado${it.enfermeiro ? ' por ' + esc(it.enfermeiro) : ''}${it.data_aplicacao ? ' · ' + esc(prInjDataHora(it.data_aplicacao)) : ''}</span>`
+      : ` <span class="st" style="color:${st.cor}">${st.txt}</span>`;
+    const btn = (comBtn && podeAplicar && (it.status_item === 'liberado' || it.status_item === 'agendado')) ? `<button class="pr-inj-btn aplicar" onclick="prInjAplicar('${it.id}', this)"><i class="ti ti-check"></i> Aplicar</button>` : '';
+    const desf = (aplicado && podeAplicar) ? `<button class="pr-inj-btn desfazer" onclick="prInjDesaplicar('${it.id}', this)" title="Desfazer aplicação"><i class="ti ti-arrow-back-up"></i></button>` : '';
+    return `<div class="pr-inj-comp"><div class="pr-inj-comp-info"><span class="cnome">${nome}</span>${meta ? ' · ' + meta : ''}${incl}${resp}${stTxt}</div>${btn}${desf}</div>`;
+  };
+  const card = (s, comBtn) => `<div class="pr-inj-sess"><div class="pr-inj-sess-tit">${titulo(s)}${multi && s.prescData ? ` <span class="pr-inj-presc">presc. ${esc(s.prescData)}</span>` : ''}${flags(s)}</div>${s.itens.map((it) => comp(it, comBtn)).join('')}</div>`;
+
+  const proximas = sessoes.filter((s) => !s.todosAplicados).sort((a, b) => (a.semana - b.semana) || (a.prescId < b.prescId ? -1 : 1));
+  const aplicadas = sessoes.filter((s) => s.todosAplicados).sort((a, b) => {
+    const da = Math.max(0, ...a.itens.map((i) => new Date(i.data_aplicacao || 0).getTime()));
+    const db = Math.max(0, ...b.itens.map((i) => new Date(i.data_aplicacao || 0).getTime()));
+    return db - da;
+  });
+
   let proxHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Próximas aplicações</div>`;
-  proxHtml += proximas.length ? proximas.map(linhaProx).join('') : `<div class="pr-inj-obs">Nenhuma aplicação liberada no momento.</div>`;
-  if (pendentes.length) proxHtml += `<div class="pr-inj-obs">${pendentes.length} sessão(ões) aguardando cobrança na recepção.</div>`;
+  proxHtml += proximas.length ? proximas.map((s) => card(s, true)).join('') : `<div class="pr-inj-obs">Nenhuma sessão pendente.</div>`;
   proxHtml += `</div>`;
 
-  // 3) histórico (dose + quem aplicou + data), com desfazer
-  const linhaHist = (it) => {
-    const dose = prInjDose(it);
-    const quem = it.enfermeiro || null;
-    const data = it.data_aplicacao ? prInjDataHora(it.data_aplicacao) : null;
-    const btn = podeAplicar ? `<button class="pr-inj-btn desfazer" onclick="prInjDesaplicar('${it.id}', this)" title="Desfazer aplicação"><i class="ti ti-arrow-back-up"></i></button>` : '';
-    return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Semana ${it.semana}</span>${dose ? ` · <span class="dose">${esc(dose)}</span>` : ''}${it._prescData ? ` <span class="pr-inj-presc">presc. ${esc(it._prescData)}</span>` : ''}<div class="hist-meta">${quem ? 'por ' + esc(quem) : '<span class="tx4">quem aplicou: —</span>'}${data ? ' · ' + esc(data) : ''}</div></div>${btn}</div>`;
-  };
   let histHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Histórico de aplicações</div>`;
-  histHtml += aplicados.length ? aplicados.map(linhaHist).join('') : `<div class="pr-inj-obs">Nenhuma aplicação registrada ainda.</div>`;
+  histHtml += aplicadas.length ? aplicadas.map((s) => card(s, false)).join('') : `<div class="pr-inj-obs">Nenhuma aplicação registrada ainda.</div>`;
   histHtml += `</div>`;
 
   return `<div class="pr-inj-wrap">${proxHtml}${histHtml}</div>`;
