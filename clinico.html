@@ -2920,6 +2920,8 @@
     @keyframes wvRecPulse { 0%,100%{opacity:1;} 50%{opacity:.25;} }
     .wv-rec-time { font-variant-numeric:tabular-nums; font-size:14px; color:var(--tx1); font-weight:600; }
     .wv-rec-hint { flex:1; font-size:12px; color:var(--tx3); }
+    .cp-mic { width:36px; height:36px; border:0; background:transparent; color:var(--tx3); font-size:17px; cursor:pointer; flex-shrink:0; align-items:center; justify-content:center; border-radius:9px; }
+    .cp-mic:hover { color:var(--tx1); background:rgba(var(--bg3-rgb),0.5); }
     .wv-clip { width:38px; height:38px; border-radius:50%; border:1px solid var(--bd1); background:transparent; color:var(--tx3); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
     .wv-clip:hover { color:var(--tx1); border-color:var(--ac); }
     .wv-clip:disabled { opacity:.4; cursor:default; }
@@ -16031,6 +16033,7 @@ function chatPopAbrir(modo) {
   chatPopModo(modo || cpState.modo || 'whatsapp');
 }
 function chatPopFechar() {
+  cpMicAbortar();
   cpState.aberto = false;
   chatPopPararPoll();
   cpPararPollWa();
@@ -16038,6 +16041,7 @@ function chatPopFechar() {
   document.getElementById('chat-pop').style.display = 'none';
 }
 function chatPopModo(modo) {
+  cpMicAbortar();
   cpState.modo = modo;
   cpState.filtro = '';
   chatPopPararPoll();
@@ -16168,8 +16172,11 @@ function chatPopMostrarConversa() {
   cpPararPollLista();
   document.getElementById('cp-vista-lista').style.display = 'none';
   document.getElementById('cp-vista-conversa').style.display = 'flex';
+  // mic só faz sentido no WhatsApp (o Interno é texto). Áudio não depende de telefone.
+  const mic = document.getElementById('cp-mic'); if (mic) mic.style.display = (cpState.modo === 'whatsapp' && wvMicSuportado()) ? 'flex' : 'none';
 }
 function chatPopVoltar() {
+  cpMicAbortar();
   chatPopPararPoll();
   cpPararPollWa();
   cpState.intPeer = null; cpState.waContato = null; cpState.waJid = null; cpState.waMsgs = [];
@@ -16187,6 +16194,7 @@ function cpMostrarConversaWa(nome, telefone) {
 }
 // chave: jid completo (da lista) OU numero (paciente). numero: telefone real p/ exibir/ligar (pode ser '')
 async function cpAbrirConversaWa(chave, nome, numero, alt) {
+  cpMicAbortar();   // descarta gravação em curso ao trocar de conversa (o destino já foi fixado no start)
   if (!cpState.aberto) { cpState.aberto = true; document.getElementById('chat-pop').style.display = 'flex'; }
   cpState.modo = 'whatsapp';
   chatPopPararPoll();
@@ -16328,9 +16336,80 @@ function cpLigar() {
 function cpWaWeb() {
   const c = cpState.waContato;
   if (!c || !c.telefone) return;
-  const l = String(c.telefone).replace(/\D/g, '');
-  if (!l) return;
-  window.open('https://wa.me/' + telWa(l), '_blank');
+  window.open('https://wa.me/' + telWa(String(c.telefone).trim()), '_blank'); // sem replace(/\D/): telWa respeita o '+'
+}
+
+// ---- Áudio no POPUP (espelha o wvMic* da página cheia; usa cpState/ids cp-*) ----
+// Áudio funciona mesmo sem número (vai pelo jid, inclusive @lid) — por isso o mic aparece em toda
+// conversa de WhatsApp, diferente do "Ligar" que exige telefone.
+let cpRec = { rec: null, chunks: [], stream: null, timer: null, t0: 0, mime: '', enviar: false, jid: null, numero: '' };
+async function cpMicToggle() {
+  if (cpState.modo !== 'whatsapp' || !cpState.waJid || cpState.waEnviando) return;
+  if (cpRec.rec) return;
+  if (!wvMicSuportado()) { if (typeof homeToast === 'function') homeToast('Este navegador não grava áudio aqui.'); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { if (typeof homeToast === 'function') homeToast('Preciso da permissão do microfone pra gravar.'); return; }
+  if (cpState.modo !== 'whatsapp' || !cpState.waJid) { stream.getTracks().forEach(t => t.stop()); return; }
+  const mime = wvMicMime();
+  let rec;
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); }
+  catch (e) { try { rec = new MediaRecorder(stream); } catch (e2) { stream.getTracks().forEach(t => t.stop()); if (typeof homeToast === 'function') homeToast('Não consegui iniciar a gravação.'); return; } }
+  cpRec.rec = rec; cpRec.chunks = []; cpRec.stream = stream; cpRec.mime = rec.mimeType || mime || 'audio/webm'; cpRec.enviar = false;
+  cpRec.jid = cpState.waJid; cpRec.numero = (cpState.waContato && cpState.waContato.telefone) || ''; // destino fixado no início
+  rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) cpRec.chunks.push(ev.data); };
+  rec.onstop = cpMicOnStop;
+  try { rec.start(); } catch (e) { cpMicLimpar(); if (typeof homeToast === 'function') homeToast('Não consegui iniciar a gravação.'); return; }
+  cpRec.t0 = Date.now();
+  const bar = document.getElementById('cp-rec'); if (bar) bar.style.display = 'flex';
+  const comp = document.getElementById('cp-input-bar'); if (comp) comp.style.display = 'none';
+  cpMicTick();
+  cpRec.timer = setInterval(cpMicTick, 250);
+}
+function cpMicTick() {
+  const s = Math.max(0, Math.floor((Date.now() - cpRec.t0) / 1000));
+  const el = document.getElementById('cp-rec-time');
+  if (el) el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  if (s >= 300) cpMicEnviar();
+}
+function cpMicEnviar() { if (!cpRec.rec) return; cpRec.enviar = true; try { cpRec.rec.stop(); } catch (e) { cpMicLimpar(); } }
+function cpMicCancelar() { if (!cpRec.rec) return; cpRec.enviar = false; try { cpRec.rec.stop(); } catch (e) { cpMicLimpar(); } }
+function cpMicAbortar() { if (!cpRec.rec) return; cpRec.enviar = false; try { cpRec.rec.stop(); } catch (e) {} cpMicLimpar(); }
+function cpMicLimpar() {
+  if (cpRec.timer) { clearInterval(cpRec.timer); cpRec.timer = null; }
+  if (cpRec.stream) { try { cpRec.stream.getTracks().forEach(t => t.stop()); } catch (e) {} }
+  cpRec.rec = null; cpRec.chunks = []; cpRec.stream = null;
+  const bar = document.getElementById('cp-rec'); if (bar) bar.style.display = 'none';
+  const comp = document.getElementById('cp-input-bar'); if (comp) comp.style.display = '';
+}
+async function cpMicOnStop() {
+  const enviar = cpRec.enviar, mime = cpRec.mime, chunks = cpRec.chunks.slice();
+  const dur = Math.max(1, Math.round((Date.now() - cpRec.t0) / 1000));
+  const jid = cpRec.jid, numeroReal = cpRec.numero || '';
+  cpMicLimpar();
+  if (!enviar || !chunks.length || !jid) return;
+  const blob = new Blob(chunks, { type: mime });
+  if (blob.size < 900) { if (typeof homeToast === 'function') homeToast('Áudio curto demais.'); return; }
+  if (blob.size > 10 * 1024 * 1024) { if (typeof homeToast === 'function') homeToast('Áudio grande demais (máx 10MB).'); return; }
+  if (cpState.waEnviando) return;
+  cpState.waEnviando = true;
+  if (typeof homeToast === 'function') homeToast('Enviando áudio…');
+  try {
+    const dataUrl = await new Promise(function (res, rej) { const fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(blob); });
+    const base64 = String(dataUrl).split(',')[1] || '';
+    const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/audio', {
+      method: 'POST',
+      body: JSON.stringify({ base64, mimetype: mime, numero: numeroReal }),
+    });
+    if (!r.ok) { if (typeof homeToast === 'function') homeToast('Falha ao enviar o áudio: ' + ((r.data && r.data.erro) || 'verifique a conexão')); return; }
+    if (cpState.waJid === jid) { cpState.waMsgs.push(Object.assign({ tipo: 'audio', dur: dur }, r.data.mensagem)); cpRenderMsgsWa(true); }
+    const ch = (cpState.waChats || []).find(c => c.id === jid);
+    if (ch) { ch.ultima = '🎤 Áudio'; ch.ultima_em = r.data.mensagem.data; ch.ultima_de_mim = true; }
+  } catch (e) {
+    if (typeof homeToast === 'function') homeToast('Sem conexão — o áudio NÃO foi enviado.');
+  } finally {
+    cpState.waEnviando = false;
+  }
 }
 
 // ============================================================
@@ -26178,8 +26257,16 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="ci-conversa-head" id="cp-conv-head"></div>
     <div class="ci-msgs cp-scroll" id="cp-msgs"></div>
     <div class="ci-input-bar" id="cp-input-bar">
+      <button class="cp-mic" id="cp-mic" onclick="cpMicToggle()" title="Gravar áudio" style="display:none;"><i class="ti ti-microphone"></i></button>
       <textarea id="cp-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" oninput="chatPopInput(this)" onkeydown="chatPopInputKey(event)"></textarea>
       <button class="ci-send" id="cp-send" onclick="chatPopEnviarAtual()" title="Enviar"><i class="ti ti-send"></i></button>
+    </div>
+    <div class="wv-rec" id="cp-rec" style="display:none;">
+      <button class="wv-rec-cancel" onclick="cpMicCancelar()" title="Descartar"><i class="ti ti-trash"></i></button>
+      <span class="wv-rec-dot"></span>
+      <span class="wv-rec-time" id="cp-rec-time">0:00</span>
+      <span class="wv-rec-hint">gravando…</span>
+      <button class="ci-send" onclick="cpMicEnviar()" title="Enviar áudio"><i class="ti ti-send"></i></button>
     </div>
   </div>
 </div>

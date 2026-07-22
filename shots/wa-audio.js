@@ -106,6 +106,28 @@ const PORT = process.argv[2] || '8150';
     await new Promise((x) => setTimeout(x, 80));
     r.troca_cancelou = wvRec.rec === null && document.getElementById('wv-rec').style.display === 'none' && document.getElementById('wv-composer').style.display !== 'none';
 
+    // ===== POPUP (cp): a superfície onde o Matheus estava =====
+    posts.length = 0;
+    cpState.aberto = true; cpState.modo = 'whatsapp'; cpState.waJid = JID;
+    cpState.waContato = { telefone: '553499990000' }; cpState.waMsgs = []; cpState.waChats = [{ id: JID }]; cpState.waEnviando = false;
+    chatPopMostrarConversa();
+    r.cp_mic_wa = document.getElementById('cp-mic').style.display === 'flex';
+    cpState.modo = 'interno'; chatPopMostrarConversa();
+    r.cp_mic_interno_oculto = document.getElementById('cp-mic').style.display === 'none';
+    cpState.modo = 'whatsapp'; chatPopMostrarConversa();
+    await cpMicToggle();
+    r.cp_gravando = !!cpRec.rec && document.getElementById('cp-rec').style.display === 'flex' && document.getElementById('cp-input-bar').style.display === 'none';
+    cpMicEnviar();
+    await new Promise((x) => setTimeout(x, 150));
+    r.cp_enviou = posts.length === 1 && ((posts[0] && posts[0]._url) || '').indexOf(encodeURIComponent(JID)) !== -1;
+    r.cp_msg_entrou = (cpState.waMsgs || []).some(m => m.tipo === 'audio');
+    r.cp_barra_sumiu = document.getElementById('cp-rec').style.display === 'none' && document.getElementById('cp-input-bar').style.display !== 'none';
+    // aborta ao trocar de conversa no popup
+    await cpMicToggle();
+    r.cp_grav2 = !!cpRec.rec;
+    cpMicAbortar();
+    r.cp_abortou = cpRec.rec === null && document.getElementById('cp-rec').style.display === 'none';
+
     return r;
   });
 
@@ -136,9 +158,18 @@ const PORT = process.argv[2] || '8150';
   ok('áudio vai pro contato de ORIGEM mesmo trocando jid', out.audio_foi_pra_origem);
   ok('áudio NÃO vaza pro contato novo', out.audio_nao_foi_pro_novo);
   ok('trocar de conversa descarta a gravação e restaura o composer', out.troca_cancelou, 'gravando antes: ' + out.gravando_antes_troca);
+  console.log('\n--- POPUP (onde o Matheus estava) ---');
+  ok('mic aparece no modo WhatsApp', out.cp_mic_wa);
+  ok('mic some no modo Interno', out.cp_mic_interno_oculto);
+  ok('grava (barra abre, composer some)', out.cp_gravando);
+  ok('envia pro contato certo', out.cp_enviou);
+  ok('mensagem de áudio entra na thread', out.cp_msg_entrou);
+  ok('barra some e composer volta', out.cp_barra_sumiu);
+  ok('abortar limpa o estado', out.cp_abortou, 'gravando antes: ' + out.cp_grav2);
   console.log('\nERROS:', errs.length ? errs.join(' | ') : '(nenhum)');
   const tudo = out.head_tem_ligar && out.head_tem_whatsapp && out.gravando && out.qtd_posts === 1 && out.tem_base64 && out.tem_numero && out.msg_entrou && out.barra_sumiu && out.cancelar_sem_post && out.mic_negado_ok && out.wa_abriu
-    && out.rec_jid_capturado && out.audio_foi_pra_origem && out.audio_nao_foi_pro_novo && out.troca_cancelou && !errs.length;
+    && out.rec_jid_capturado && out.audio_foi_pra_origem && out.audio_nao_foi_pro_novo && out.troca_cancelou
+    && out.cp_mic_wa && out.cp_mic_interno_oculto && out.cp_gravando && out.cp_enviou && out.cp_msg_entrou && out.cp_barra_sumiu && out.cp_abortou && !errs.length;
   await b.close();
   process.exit(tudo ? 0 : 1);
 })().catch((e) => { console.error('ERR', e.message); process.exit(1); });
