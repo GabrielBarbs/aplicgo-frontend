@@ -19,12 +19,12 @@ const PORT = process.argv[2] || '8180';
     window.pacApi = async (url) => {
       if (/\/protocolos\/prescricoes-base\//.test(url)) return { ok: true, data: { prescricoes: [{
         id: 'pb1', patientId: 'p1', medicamentoBaseSlug: 'tirzepatida', doseInicialMg: 1.25, via: 'SC',
-        frequencia: 'semanal', autoAdministrado: true, observacoes: 'Aplicar coxa/abdômen, rodar o local.',
+        frequencia: 'semanal', autoAdministrado: false, observacoes: 'Aplicar coxa/abdômen, rodar o local.',
         status: 'prescrita', createdAt: cincoSemanas,
         titulacao: [{ dose_mg: 1.25, semanas: 4 }, { dose_mg: 2.5, semanas: 4 }, { dose_mg: 5, semanas: null }],
       }] } };
       if (/\/protocolos\/medicamentos-base$/.test(url)) return { ok: true, data: { medicamentos: [
-        { slug: 'tirzepatida', nome: 'Tirzepatida', classe: 'GLP-1/GIP', via: 'SC', alertas: ['Náusea comum no início', 'Contraindicado em CMT'] },
+        { slug: 'tirzepatida', nome: 'Tirzepatida', classe: 'glp1_gi', via: 'SC', alertas: ['glp1_gi', 'titular_lento', 'contraindicado_mtc_men2', 'pancreatite', 'contraindicado_gestacao'] },
       ] } };
       return { ok: true, data: {} };
     };
@@ -45,12 +45,13 @@ const PORT = process.argv[2] || '8180';
     await new Promise(x => setTimeout(x, 40));
     const box = document.getElementById('pr-base-box');
     const t = box.textContent;
-    r.tem_droga = /Tirzepatida/.test(t) && /GLP-1\/GIP/.test(t);
+    r.tem_droga = /Tirzepatida/.test(t) && /GLP-1\/GIP/.test(t);   // classe glp1_gi -> humanizada
     r.tem_inicial = /1,25 mg/.test(t) && /semanal/.test(t);
-    r.tem_flags = /auto-aplicado/.test(t) && /sem cobrança/.test(t);
+    r.flag_clinica = /aplicado na clínica/.test(t) && !/auto-aplicado/.test(t) && /sem cobrança/.test(t); // autoAdministrado=false
     r.tem_escada = /Escada de dose/.test(t);
     r.tem_manutencao = /manutenção/.test(t);
-    r.tem_alertas = /Náusea/.test(t);
+    r.alertas_traduzidos = /Titular a dose devagar/.test(t) && /Contraindicado na gestação/.test(t);
+    r.alertas_sem_slug = !/titular_lento/.test(t) && !/contraindicado_gestacao/.test(t) && !/glp1_gi/.test(t);
     r.sem_cobranca_de_verdade = !/Aplicar<\/button>/.test(box.innerHTML) && !box.querySelector('.pr-inj-btn');
     // degrau atual estimado: 5 semanas -> índice 1 (2,5 mg) marcado
     const degraus = [...box.querySelectorAll('.pr-base-degrau')];
@@ -81,9 +82,9 @@ const PORT = process.argv[2] || '8180';
   console.log('\n--- conteúdo ---');
   ok('droga base + classe (do catálogo)', out.tem_droga);
   ok('dose inicial + frequência', out.tem_inicial);
-  ok('flags auto-aplicado + sem cobrança', out.tem_flags);
+  ok('flag reflete autoAdministrado=false ("aplicado na clínica")', out.flag_clinica);
   ok('escada de dose + manutenção', out.tem_escada && out.tem_manutencao);
-  ok('alertas do catálogo', out.tem_alertas);
+  ok('alertas TRADUZIDOS (sem slug cru)', out.alertas_traduzidos && out.alertas_sem_slug);
   ok('NÃO tem botão de aplicar/cobrar', out.sem_cobranca_de_verdade);
   console.log('\n--- escada ---');
   ok('3 degraus', out.n_degraus === 3, String(out.n_degraus));
@@ -95,14 +96,14 @@ const PORT = process.argv[2] || '8180';
   console.log('\nERROS:', errs.length ? errs.join(' | ') : '(nenhum)');
 
   await p.evaluate(async () => { prState.baseCache = null; window.pacApi = async (url) => {
-    if (/\/protocolos\/prescricoes-base\//.test(url)) return { ok: true, data: { prescricoes: [{ id: 'pb1', medicamentoBaseSlug: 'tirzepatida', doseInicialMg: 1.25, via: 'SC', frequencia: 'semanal', autoAdministrado: true, observacoes: 'Aplicar coxa/abdômen, rodar o local.', status: 'prescrita', createdAt: new Date(Date.now() - 35 * 86400000).toISOString(), titulacao: [{ dose_mg: 1.25, semanas: 4 }, { dose_mg: 2.5, semanas: 4 }, { dose_mg: 5, semanas: null }] }] } };
-    if (/\/protocolos\/medicamentos-base$/.test(url)) return { ok: true, data: { medicamentos: [{ slug: 'tirzepatida', nome: 'Tirzepatida', classe: 'GLP-1/GIP', via: 'SC', alertas: ['Náusea comum no início'] }] } };
+    if (/\/protocolos\/prescricoes-base\//.test(url)) return { ok: true, data: { prescricoes: [{ id: 'pb1', medicamentoBaseSlug: 'tirzepatida', doseInicialMg: 1.25, via: 'SC', frequencia: 'semanal', autoAdministrado: false, observacoes: 'Aplicar coxa/abdômen, rodar o local.', status: 'prescrita', createdAt: new Date(Date.now() - 35 * 86400000).toISOString(), titulacao: [{ dose_mg: 1.25, semanas: 4 }, { dose_mg: 2.5, semanas: 4 }, { dose_mg: 5, semanas: null }] }] } };
+    if (/\/protocolos\/medicamentos-base$/.test(url)) return { ok: true, data: { medicamentos: [{ slug: 'tirzepatida', nome: 'Tirzepatida', classe: 'glp1_gi', via: 'SC', alertas: ['glp1_gi', 'titular_lento', 'contraindicado_mtc_men2', 'pancreatite', 'contraindicado_gestacao'] }] } };
     return { ok: true, data: {} };
   }; await prBaseCarregar(); await new Promise(x => setTimeout(x, 60)); });
   const el = await p.$('#pr-base-box'); if (el) { await el.screenshot({ path: 'shots/pr_base_aba.png' }); console.log('screenshot: shots/pr_base_aba.png'); }
 
-  const tudo = out.tem_aba_base && out.tem_droga && out.tem_inicial && out.tem_flags && out.tem_escada && out.tem_manutencao
-    && out.tem_alertas && out.sem_cobranca_de_verdade && out.n_degraus === 3 && out.atual_marcado && out.escada5 && out.escada10 && out.vazio_honesto && !errs.length;
+  const tudo = out.tem_aba_base && out.tem_droga && out.tem_inicial && out.flag_clinica && out.tem_escada && out.tem_manutencao
+    && out.alertas_traduzidos && out.alertas_sem_slug && out.sem_cobranca_de_verdade && out.n_degraus === 3 && out.atual_marcado && out.escada5 && out.escada10 && out.vazio_honesto && !errs.length;
   await b.close();
   process.exit(tudo ? 0 : 1);
 })().catch((e) => { console.error('ERR', e.message); process.exit(1); });

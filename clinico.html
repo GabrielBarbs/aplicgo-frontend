@@ -3036,6 +3036,7 @@
     .pr-base-meta { font-size: 11.5px; color: var(--tx3b); margin-top: 4px; }
     .pr-base-flags { display: flex; gap: 6px; margin-top: 7px; }
     .pr-base-flag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .3px; color: #3fb950; background: rgba(63,185,80,.10); border: 1px solid rgba(63,185,80,.30); border-radius: 5px; padding: 1px 6px; }
+    .pr-base-flag.clinica { color: #4A90E2; background: rgba(74,144,226,.10); border-color: rgba(74,144,226,.30); }
     .pr-base-escada { display: flex; flex-direction: column; gap: 3px; }
     .pr-base-degrau { display: flex; align-items: center; gap: 10px; padding: 5px 9px; background: var(--bg1); border: 1px solid var(--bg3); border-radius: 7px; font-size: 12px; }
     .pr-base-degrau .d-dose { color: var(--tx1); font-weight: 600; min-width: 58px; }
@@ -23181,6 +23182,22 @@ async function prInjDesaplicar(itemId, btn) {
 
 // ===== Aba "Base" do card de ENFERMAGEM: medicamento base (GLP-1) + escada de dose (sem cobrança) =====
 const PR_BASE_FREQ = { semanal: 'semanal', '2x_semana': '2x/semana', quinzenal: 'quinzenal', dose_unica: 'dose única' };
+// Classe/alertas do catálogo são guardados como SLUGS (código). Traduz pro humano; slug desconhecido
+// vira texto legível (troca _ por espaço, capitaliza).
+const INJ_ROTULOS = {
+  glp1_gi: 'GLP-1/GIP', glp1: 'GLP-1',
+  titular_lento: 'Titular a dose devagar',
+  contraindicado_mtc_men2: 'Contraindicado: carcinoma medular de tireoide / NEM-2',
+  pancreatite: 'Atenção a pancreatite',
+  contraindicado_gestacao: 'Contraindicado na gestação',
+  controlado: 'Medicamento controlado',
+  monitorar_hemat_psa: 'Monitorar hematócrito e PSA',
+  confirmacao_obrigatoria: 'Confirmação obrigatória',
+};
+function injRotulo(slug) {
+  if (!slug) return '';
+  return INJ_ROTULOS[slug] || String(slug).replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+}
 // Estimativa do degrau atual da escada pela data de início (o banco NÃO guarda a posição real).
 function prBaseEscadaAtual(titul, createdAt) {
   if (!Array.isArray(titul) || !titul.length || !createdAt) return -1;
@@ -23237,12 +23254,12 @@ function prBaseHtml(prescs, cat) {
     }).join('');
     const inicio = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '';
     return `<div class="pr-base-card">
-      <div class="pr-base-head"><i class="ti ti-pill"></i> <strong>${esc(nome)}</strong>${m.classe ? ` <span class="cls">${esc(m.classe)}</span>` : ''}</div>
+      <div class="pr-base-head"><i class="ti ti-pill"></i> <strong>${esc(nome)}</strong>${m.classe ? ` <span class="cls">${esc(injRotulo(m.classe))}</span>` : ''}</div>
       <div class="pr-base-meta">Início ${esc(String(p.doseInicialMg).replace('.', ','))} mg · ${esc(freq)} · ${esc(via)}${inicio ? ' · desde ' + esc(inicio) : ''}</div>
-      <div class="pr-base-flags"><span class="pr-base-flag">auto-aplicado</span><span class="pr-base-flag">sem cobrança</span></div>
+      <div class="pr-base-flags"><span class="pr-base-flag${p.autoAdministrado ? '' : ' clinica'}">${p.autoAdministrado ? 'auto-aplicado' : 'aplicado na clínica'}</span><span class="pr-base-flag">sem cobrança</span></div>
       ${titul.length ? `<div class="pr-inj-sec-tit" style="margin-top:9px">Escada de dose</div><div class="pr-base-escada">${escada}</div>${atual >= 0 ? '<div class="pr-inj-obs">"~ atual" é estimado pela data de início — o degrau real depende da titulação do paciente.</div>' : ''}` : ''}
       ${p.observacoes ? `<div class="pr-inj-obs" style="font-style:normal;color:var(--tx3b)">${esc(p.observacoes)}</div>` : ''}
-      ${(m.alertas && m.alertas.length) ? `<div class="pr-base-alerta"><i class="ti ti-alert-triangle"></i> ${m.alertas.map(esc).join(' · ')}</div>` : ''}
+      ${(() => { const al = (m.alertas || []).filter((a) => a && a !== m.classe); return al.length ? `<div class="pr-base-alerta"><i class="ti ti-alert-triangle"></i> ${al.map((a) => esc(injRotulo(a))).join(' · ')}</div>` : ''; })()}
     </div>`;
   };
   return `<div class="pr-inj-wrap">${ativas.map(bloco).join('')}</div>`;
@@ -25373,7 +25390,7 @@ function pbaseDrogaMudou() {
     `<option value="${esc(f)}" ${f === m.frequenciaPadrao ? 'selected' : ''}>${PBASE_FREQ_LBL[f] || f}</option>`).join('');
   pbaseState.titul = Array.isArray(m.titulacaoPadrao) ? m.titulacaoPadrao.map(t => ({ dose_mg: t.dose_mg, semanas: t.semanas })) : [];
   pbaseRenderTitulacao();
-  const ale = (m.alertas || []).map(a => `<span class="pro-alerta">${esc(a)}</span>`).join('');
+  const ale = (m.alertas || []).filter(a => a && a !== m.classe).map(a => `<span class="pro-alerta">${esc(injRotulo(a))}</span>`).join('');
   document.getElementById('pbase-alertas').innerHTML = ale ? `<div class="pro-alertas">${ale}</div>` : '';
 }
 
