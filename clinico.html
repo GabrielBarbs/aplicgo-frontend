@@ -23270,8 +23270,8 @@ function prBaseHtml(prescs, cat) {
     // Manutenção (contínua, sob demanda): as já aplicadas + um botão pra registrar a próxima.
     let manutHtml = '';
     if (p.manutencao) {
-      const linhas = (p.manutencao.aplicadas || []).map((a) => {
-        const n = a.semana - (p.total_finito || 0);
+      const linhas = (p.manutencao.aplicadas || []).map((a, i) => {
+        const n = i + 1; // ordinal pela posição na lista (já ordenada por semana) — sem buraco após desfazer uma do meio
         const doseSpan = a.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(a.dose_mg))}</span>` : '';
         return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Extra ${n}ª</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(a)}</div>${btnDesf(p.id, a.semana)}</div>`;
       }).join('');

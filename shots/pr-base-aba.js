@@ -1,9 +1,9 @@
-// Aba "Base" no card de ENFERMAGEM: medicamento base (GLP-1), UMA linha de aplicação por semana da
-// escada + botão aplicar/desfazer + manutenção sob demanda. Sem cobrança.
+// Aba "Base" no card de ENFERMAGEM: UMA linha por semana da escada + dose DIGITADA na hora + aplicar/
+// desfazer + aplicações "extras" (além da duração). Sem cobrança.
 // Roda de total/: node shots/pr-base-aba.js <porta>
 const puppeteer = require('puppeteer-core');
 const CHROME = String.raw`C:\Program Files\Google\Chrome\Application\chrome.exe`;
-const PORT = process.argv[2] || '8180';
+const PORT = process.argv[2] || '8195';
 
 (async () => {
   const b = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'], defaultViewport: { width: 900, height: 1100 } });
@@ -17,11 +17,11 @@ const PORT = process.argv[2] || '8180';
     const r = {};
     window.homeToast = () => {};
     window.temPermissao = () => true; // enfermeira com permissão de aplicar
-    const cincoSemanas = new Date(Date.now() - 35 * 86400000).toISOString();
+    const cinco = new Date(Date.now() - 35 * 86400000).toISOString();
 
-    // GET expandido: 8 semanas finitas (4x1,25 + 4x2,5), semana 1 já aplicada; manutenção 5 mg sob demanda.
+    // GET expandido: 8 semanas finitas, semana 1 já aplicada (dose registrada); "extras" 9 e 11 (gap: a 10 foi desfeita).
     const semanasMock = [
-      { semana: 1, dose_mg: 1.25, aplicada: true, aplicacao_id: 'a1', data_aplicacao: cincoSemanas, enfermeiro: 'Ana Enf', baixa_estoque: true },
+      { semana: 1, dose_mg: 1.25, aplicada: true, aplicacao_id: 'a1', data_aplicacao: cinco, enfermeiro: 'Ana Enf', baixa_estoque: true },
       { semana: 2, dose_mg: 1.25, aplicada: false },
       { semana: 3, dose_mg: 1.25, aplicada: false },
       { semana: 4, dose_mg: 1.25, aplicada: false },
@@ -33,9 +33,12 @@ const PORT = process.argv[2] || '8180';
     const baseResp = () => ({ ok: true, data: { prescricoes: [{
       id: 'pb1', patientId: 'p1', medicamentoBaseSlug: 'tirzepatida', doseInicialMg: 1.25, via: 'SC',
       frequencia: 'semanal', autoAdministrado: false, observacoes: 'Aplicar coxa/abdômen, rodar o local.',
-      status: 'prescrita', createdAt: cincoSemanas, total_finito: 8,
+      status: 'prescrita', createdAt: cinco, total_finito: 8,
       semanas: JSON.parse(JSON.stringify(semanasMock)),
-      manutencao: { dose_mg: 5, aplicadas: [] },
+      manutencao: { dose_mg: 5, aplicadas: [
+        { semana: 9, dose_mg: 5, aplicada: true, data_aplicacao: cinco, enfermeiro: 'Ana Enf', baixa_estoque: true },
+        { semana: 11, dose_mg: 5, aplicada: true, data_aplicacao: cinco, enfermeiro: 'Ana Enf', baixa_estoque: true },
+      ] },
     }] } });
     window.pacApi = async (url) => {
       if (/\/protocolos\/prescricoes-base\//.test(url)) return baseResp();
@@ -68,43 +71,49 @@ const PORT = process.argv[2] || '8180';
     r.sem_escada_velha = !/Escada de dose/.test(t) && !box.querySelector('.pr-base-degrau') && !/~ atual/.test(t);
     r.sem_alerta = !box.querySelector('.pr-base-alerta') && !/contraindicad/i.test(t) && !/Titular a dose/.test(t) && !/pancreatite/i.test(t);
 
-    // C) uma linha por semana (8), com dose por degrau
+    // C) uma linha por semana (8)
     const linhas = [...box.querySelectorAll('.pr-inj-lin')];
     r.n_linhas_sem = linhas.filter(l => /Semana \d/.test(l.textContent)).length; // 8 semanas
     r.tem_titulo_semanas = /Aplicações por semana/.test(t);
-    // semana 1 aplicada -> mostra "aplicado" + enfermeiro + botão desfazer
+    // semana 1 aplicada -> "aplicado" + enfermeiro + botão desfazer + dose registrada
     const l1 = linhas.find(l => /Semana 1\b/.test(l.textContent));
-    r.sem1_aplicada = !!l1 && /aplicado/.test(l1.textContent) && /Ana Enf/.test(l1.textContent) && !!l1.querySelector('.pr-inj-btn.desfazer');
-    // semana 2 pendente -> "não aplicado" + botão Aplicar
+    r.sem1_aplicada = !!l1 && /aplicado/.test(l1.textContent) && /Ana Enf/.test(l1.textContent) && !!l1.querySelector('.pr-inj-btn.desfazer') && /1,25 mg/.test(l1.textContent);
+    // semana 2 pendente -> "não aplicado" + INPUT de dose + botão Aplicar
     const l2 = linhas.find(l => /Semana 2\b/.test(l.textContent));
-    r.sem2_pendente = !!l2 && /não aplicado/.test(l2.textContent) && !!l2.querySelector('.pr-inj-btn.aplicar');
-    // doses corretas por degrau
-    r.doses_degrau = /Semana 5/.test(t) && [...linhas].some(l => /Semana 5/.test(l.textContent) && /2,5 mg/.test(l.textContent));
+    r.sem2_pendente = !!l2 && /não aplicado/.test(l2.textContent) && !!l2.querySelector('.pr-inj-btn.aplicar') && !!document.getElementById('pbdose-pb1-2');
 
-    // D) manutenção sob demanda
-    r.tem_manut_sec = /Manutenção · 5 mg · contínua/.test(t);
-    r.tem_btn_manut = /Registrar aplicação de manutenção/.test(box.innerHTML);
+    // D) aplicações extras (além da duração) + ordinal DENSO (fix: 9 e 11 -> "Extra 1ª" e "Extra 2ª", não "3ª")
+    r.tem_extras_sec = /Aplicações extras/.test(t);
+    r.tem_btn_extra = /Registrar aplicação extra/.test(box.innerHTML) && !!document.getElementById('pbdose-pb1-manut');
+    r.extra_ordinal_denso = /Extra 1ª/.test(t) && /Extra 2ª/.test(t) && !/Extra 3ª/.test(t);
 
     // E) as funções existem
     r.fns = typeof prBaseAplicar === 'function' && typeof prBaseDesaplicar === 'function' && typeof prBaseAplicarManut === 'function';
 
-    // F) clicar Aplicar na semana 2 -> POST /aplicar {semana:2}; e simular resposta ok
-    let corpoEnviado = null, urlEnviada = null;
+    // F) exige dose antes de aplicar (input vazio -> não chama a API)
+    let urlEnviada = null, corpoEnviado = null;
     window.pacApi = async (url, opts) => {
-      if (/\/protocolos\/prescricoes-base\/pb1\/aplicar$/.test(url)) { urlEnviada = url; corpoEnviado = JSON.parse(opts.body); return { ok: true, data: { ok: true, semana: 2, baixa_estoque: true } }; }
-      if (/\/protocolos\/prescricoes-base\//.test(url)) { const rr = baseResp(); rr.data.prescricoes[0].semanas[1].aplicada = true; rr.data.prescricoes[0].semanas[1].enfermeiro = 'Eu Mesmo'; rr.data.prescricoes[0].semanas[1].data_aplicacao = new Date().toISOString(); rr.data.prescricoes[0].semanas[1].baixa_estoque = true; return rr; }
+      if (/\/prescricoes-base\/pb1\/aplicar$/.test(url)) { urlEnviada = url; corpoEnviado = JSON.parse(opts.body); return { ok: true, data: { ok: true, semana: 2, baixa_estoque: true } }; }
+      if (/\/protocolos\/prescricoes-base\//.test(url)) { const rr = baseResp(); rr.data.prescricoes[0].semanas[1].aplicada = true; rr.data.prescricoes[0].semanas[1].dose_mg = 1.25; rr.data.prescricoes[0].semanas[1].enfermeiro = 'Eu Mesmo'; rr.data.prescricoes[0].semanas[1].data_aplicacao = new Date().toISOString(); rr.data.prescricoes[0].semanas[1].baixa_estoque = true; return rr; }
       if (/\/protocolos\/medicamentos-base$/.test(url)) return { ok: true, data: { medicamentos: [{ slug: 'tirzepatida', nome: 'Tirzepatida', classe: 'glp1_gi', via: 'SC', alertas: [] }] } };
       return { ok: true, data: {} };
     };
     const btnAplicar = l2.querySelector('.pr-inj-btn.aplicar');
+    await prBaseAplicar('pb1', 2, btnAplicar); // input vazio
+    await new Promise(x => setTimeout(x, 30));
+    r.bloqueia_sem_dose = urlEnviada === null; // não chamou a API sem dose
+
+    // G) com dose digitada -> POST /aplicar {semana:2, dose_mg:1.25}
+    // (input type=number guarda sempre com PONTO; vírgula seria rejeitada pelo browser)
+    document.getElementById('pbdose-pb1-2').value = '1.25';
     await prBaseAplicar('pb1', 2, btnAplicar);
     await new Promise(x => setTimeout(x, 60));
-    r.aplicar_chamou = urlEnviada && /\/aplicar$/.test(urlEnviada) && corpoEnviado && corpoEnviado.semana === 2;
+    r.aplicar_com_dose = urlEnviada && /\/aplicar$/.test(urlEnviada) && corpoEnviado && corpoEnviado.semana === 2 && Number(corpoEnviado.dose_mg) === 1.25;
     const box2 = document.getElementById('pr-base-box');
     const l2b = [...box2.querySelectorAll('.pr-inj-lin')].find(l => /Semana 2\b/.test(l.textContent));
     r.sem2_virou_aplicada = !!l2b && /aplicado/.test(l2b.textContent) && /Eu Mesmo/.test(l2b.textContent);
 
-    // G) sem prescrição base -> vazio honesto
+    // H) sem prescrição base -> vazio honesto
     window.pacApi = async (url) => {
       if (/\/protocolos\/prescricoes-base\//.test(url)) return { ok: true, data: { prescricoes: [] } };
       if (/\/protocolos\/medicamentos-base$/.test(url)) return { ok: true, data: { medicamentos: [] } };
@@ -128,15 +137,16 @@ const PORT = process.argv[2] || '8180';
   console.log('\n--- semanas ---');
   ok('uma linha por semana (8 finitas)', out.n_linhas_sem === 8, String(out.n_linhas_sem));
   ok('título "Aplicações por semana"', out.tem_titulo_semanas);
-  ok('semana 1 aplicada (enfermeiro + desfazer)', out.sem1_aplicada);
-  ok('semana 2 pendente ("não aplicado" + Aplicar)', out.sem2_pendente);
-  ok('dose por degrau (semana 5 -> 2,5 mg)', out.doses_degrau);
-  console.log('\n--- manutenção ---');
-  ok('seção de manutenção contínua', out.tem_manut_sec);
-  ok('botão registrar manutenção', out.tem_btn_manut);
+  ok('semana 1 aplicada (enfermeiro + desfazer + dose)', out.sem1_aplicada);
+  ok('semana 2 pendente ("não aplicado" + input + Aplicar)', out.sem2_pendente);
+  console.log('\n--- extras (além da duração) ---');
+  ok('seção "Aplicações extras"', out.tem_extras_sec);
+  ok('input + botão registrar extra', out.tem_btn_extra);
+  ok('ordinal denso após gap (Extra 1ª/2ª, sem 3ª)', out.extra_ordinal_denso);
   console.log('\n--- ações ---');
   ok('funções prBaseAplicar/Desaplicar/AplicarManut', out.fns);
-  ok('clicar Aplicar -> POST /aplicar {semana:2}', out.aplicar_chamou);
+  ok('bloqueia aplicar sem dose digitada', out.bloqueia_sem_dose);
+  ok('com dose -> POST /aplicar {semana:2, dose_mg:1,25}', out.aplicar_com_dose);
   ok('após aplicar, semana 2 vira "aplicado"', out.sem2_virou_aplicada);
   console.log('\n--- vazio ---');
   ok('sem base -> mensagem honesta', out.vazio_honesto);
@@ -154,8 +164,8 @@ const PORT = process.argv[2] || '8180';
 
   const tudo = out.tem_aba_base && out.tem_droga && out.tem_inicial && out.flag_clinica && out.sem_escada_velha
     && out.sem_alerta && out.n_linhas_sem === 8 && out.tem_titulo_semanas && out.sem1_aplicada && out.sem2_pendente
-    && out.doses_degrau && out.tem_manut_sec && out.tem_btn_manut && out.fns && out.aplicar_chamou && out.sem2_virou_aplicada
-    && out.vazio_honesto && !errs.length;
+    && out.tem_extras_sec && out.tem_btn_extra && out.extra_ordinal_denso && out.fns && out.bloqueia_sem_dose
+    && out.aplicar_com_dose && out.sem2_virou_aplicada && out.vazio_honesto && !errs.length;
   await b.close();
   process.exit(tudo ? 0 : 1);
 })().catch((e) => { console.error('ERR', e.message); process.exit(1); });
