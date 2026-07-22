@@ -23073,22 +23073,26 @@ async function prInjCarregar() {
   // Só mostra o spinner se não houver cache deste paciente — evita o "pisca" em re-render.
   const temCache = prState.injCache && prState.injCache.pid === pid;
   if (!temCache) box.innerHTML = '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando aplicações…</div>';
-  let presc = [], med = null, erro = false;
-  try {
-    const [rp, rm] = await Promise.all([
-      pacApi('/api/clinico/prescricoes-inj?patient_id=' + encodeURIComponent(pid)),
-      pacApi('/api/clinico/patients/' + encodeURIComponent(pid) + '/medicacoes'),
-    ]);
-    if (rp && rp.ok) presc = rp.data.prescricoes || []; else erro = true;
-    if (rm && rm.ok) med = ((rm.data.injetaveis || [])[0]) || null;
-  } catch (e) { erro = true; }
+  // allSettled + independentes: a "medicação atual" (droga) é secundária — se ela falhar, mostramos o
+  // resto assim mesmo. Só falha a aba se as PRESCRIÇÕES não vierem. E o erro mostra o motivo real.
+  let presc = null, med = null, motivo = '';
+  const [rp, rm] = await Promise.allSettled([
+    pacApi('/api/clinico/prescricoes-inj?patient_id=' + encodeURIComponent(pid)),
+    pacApi('/api/clinico/patients/' + encodeURIComponent(pid) + '/medicacoes'),
+  ]);
   if (!prState.pacienteAtual || prState.pacienteAtual.id !== pid) return;   // trocou de paciente no meio
-  const html = erro
-    ? '<div class="pr-card-prof-vazio">Não consegui carregar as aplicações. <button class="pr-inj-retry" onclick="prInjCarregar()"><i class="ti ti-refresh"></i> tentar de novo</button></div>'
-    : prInjHtml(presc, med);
-  if (!erro) prState.injCache = { pid: pid, html: html };   // não cacheia erro
+  if (rp.status === 'fulfilled' && rp.value && rp.value.ok) presc = rp.value.data.prescricoes || [];
+  else motivo = (rp.status === 'fulfilled' && rp.value && rp.value.data && rp.value.data.erro) || (rp.reason && rp.reason.message) || 'sem resposta do servidor';
+  if (rm.status === 'fulfilled' && rm.value && rm.value.ok) med = ((rm.value.data.injetaveis || [])[0]) || null;
   const box2 = document.getElementById('pr-inj-box');
-  if (box2) box2.innerHTML = html;
+  if (!box2) return;
+  if (presc === null) {   // só as PRESCRIÇÕES são obrigatórias
+    box2.innerHTML = '<div class="pr-card-prof-vazio">Não consegui carregar as aplicações' + (motivo ? ' <span style="opacity:.7">(' + esc(motivo) + ')</span>' : '') + '. <button class="pr-inj-retry" onclick="prInjCarregar()"><i class="ti ti-refresh"></i> tentar de novo</button></div>';
+    return;
+  }
+  const html = prInjHtml(presc, med);
+  prState.injCache = { pid: pid, html: html };
+  box2.innerHTML = html;
 }
 function prInjHtml(presc, med) {
   const podeAplicar = typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar');
