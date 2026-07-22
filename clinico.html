@@ -3717,6 +3717,10 @@
     .cp-tag-editrow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
     .cp-tag-del { cursor: pointer; opacity: .6; margin-left: 3px; }
     .cp-tag-del:hover { opacity: 1; }
+    .cp-pick-lbl { font-size: 10px; color: var(--tx4); text-transform: uppercase; letter-spacing: .4px; margin: 10px 0 4px; }
+    .cp-pick-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .cp-pick { font-size: 11px; padding: 3px 9px; border-radius: 6px; border: 1px dashed var(--bd1); color: var(--tx2); background: var(--bg1); cursor: pointer; white-space: nowrap; }
+    .cp-pick:hover { border-color: var(--ac); color: var(--ac); border-style: solid; }
     .cp-banner { padding: 8px 12px; font-size: 11px; color: #f0b4b0; background: rgba(248,81,73,0.08); border-bottom: 1px solid rgba(248,81,73,0.2); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .cp-scroll { flex: 1; overflow-y: auto; min-height: 0; }
     .cp-conv-back { background: transparent; border: none; color: var(--tx3); cursor: pointer; font-size: 20px; display: flex; align-items: center; padding: 2px; border-radius: 6px; flex-shrink: 0; }
@@ -16139,7 +16143,11 @@ function cpChipsDoContato(c) {
   let out = '';
   if (c.paciente_unidade) out += `<span class="ci-tag ci-tag-un">${esc(c.paciente_unidade)}</span>`;
   if (c.paciente_status) out += `<span class="ci-tag pac-tag ${esc(c.paciente_status)}" style="text-transform:none">${esc(labelStatus(c.paciente_status))}</span>`;
-  for (const t of cpTagsLivres(c)) out += `<span class="ci-tag" style="${cpTagCorLivre(t)}">${esc(t)}</span>`;
+  // Não repete a unidade: se o paciente já mostra "Centro" (derivada), uma tag livre "Centro" some.
+  for (const t of cpTagsLivres(c)) {
+    if (c.paciente_unidade && t.toLowerCase() === String(c.paciente_unidade).toLowerCase()) continue;
+    out += `<span class="ci-tag" style="${cpTagCorLivre(t)}">${esc(t)}</span>`;
+  }
   return out;
 }
 
@@ -16192,7 +16200,18 @@ function cpTagFiltro(tipo, valor) {
 // Editor de tags LIVRES de um contato (as estáticas são do cadastro, não se editam aqui).
 // O nome NÃO vem por parâmetro: é derivado do estado (cpTagNomeAtual). Passá-lo pelo onclick era um
 // sink de XSS — o nome vem do pushName do WhatsApp, controlado por quem manda mensagem pra clínica.
-function cpTagEditorAbrir(contatoKey) {
+// Nomes das unidades reais da clínica (pra oferecer no "+"). Reusa o apoio já carregado.
+function cpUnidades() {
+  const src = (typeof pacState !== 'undefined' && pacState.unidades && pacState.unidades.length) ? pacState.unidades
+    : ((typeof meData !== 'undefined' && meData && meData.unidades) || []);
+  return src.map(u => u && u.nome).filter(Boolean);
+}
+// "Situação" que dá pra colocar na mão (a do paciente aparece sozinha; esta serve pra qualquer contato).
+const CP_SITUACOES = ['Ativo', 'Inativo'];
+
+async function cpTagEditorAbrir(contatoKey) {
+  // Garante a lista de unidades antes de abrir (o popup pode ser usado sem passar pela aba Pacientes).
+  if (!cpUnidades().length && typeof pacCarregarApoio === 'function') { try { await pacCarregarApoio(); } catch (e) {} }
   cpTagEditorRender(contatoKey);
 }
 function cpTagEditorRender(contatoKey) {
@@ -16204,18 +16223,30 @@ function cpTagEditorRender(contatoKey) {
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
     document.body.appendChild(ov);
   }
+  const c = (cpState.waChats || []).find(x => cpContatoKey(x) === contatoKey);
+  const unidadeDerivada = c ? c.paciente_unidade : null;   // a unidade que já aparece sozinha (paciente)
   const atuais = cpState.waTags[contatoKey] || [];
+  const temCI = (v) => atuais.some(t => t.toLowerCase() === String(v).toLowerCase());
   const vocab = [...new Set(Object.values(cpState.waTags || {}).flat())].filter(t => !atuais.includes(t)).sort();
   const chips = atuais.length
     ? atuais.map(t => `<span class="ci-tag" style="${cpTagCorLivre(t)}">${esc(t)} <i class="ti ti-x cp-tag-del" onclick="cpTagRemover(cpDec('${cpEnc(contatoKey)}'),cpDec('${cpEnc(t)}'))"></i></span>`).join('')
     : '<span style="font-size:12px;color:var(--tx4)">Nenhuma tag ainda.</span>';
+  // Botão que adiciona a estática como tag. Encoda o valor (nome da unidade pode ter aspa).
+  const pick = (v) => `<span class="cp-pick" onclick="cpTagAdicionar(cpDec('${cpEnc(contatoKey)}'),cpDec('${cpEnc(v)}'))">+ ${esc(v)}</span>`;
+  // Oferece só o que o contato ainda não tem (e, no caso de unidade, o que não é a derivada do paciente).
+  const unidadesOfer = cpUnidades().filter(u => !temCI(u) && u !== unidadeDerivada);
+  const situacoesOfer = CP_SITUACOES.filter(s => !temCI(s));
+  const secUnidade = unidadesOfer.length ? `<div class="cp-pick-lbl">Unidade</div><div class="cp-pick-row">${unidadesOfer.map(pick).join('')}</div>` : '';
+  const secSituacao = situacoesOfer.length ? `<div class="cp-pick-lbl">Situação</div><div class="cp-pick-row">${situacoesOfer.map(pick).join('')}</div>` : '';
   ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:360px;width:100%;padding:18px">
     <div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:2px">Tags — ${esc(nome || 'contato')}</div>
-    <div style="font-size:11px;color:var(--tx4);margin-bottom:12px">Unidade e status do plano vêm do cadastro do paciente e aparecem sozinhos. Aqui você cria as suas.</div>
+    <div style="font-size:11px;color:var(--tx4);margin-bottom:12px">Unidade e status do PACIENTE aparecem sozinhos, do cadastro. Aqui você adiciona as suas — livres, ou uma unidade/situação pra qualquer contato.</div>
     <div class="cp-tag-editrow">${chips}</div>
+    ${secUnidade}${secSituacao}
+    <div class="cp-pick-lbl">Tag livre</div>
     <input id="cp-tag-input" list="cp-tag-vocab" placeholder="Nova tag + Enter" maxlength="40" autocomplete="off"
       style="width:100%;background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:8px 10px;color:var(--tx1);font-size:13px"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();cpTagAdicionar(cpDec('${cpEnc(contatoKey)}'),this.value);this.value='';}"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();cpTagAdicionar(cpDec('${cpEnc(contatoKey)}'),this.value);this.value='';}">
     <datalist id="cp-tag-vocab">${vocab.map(t => `<option value="${esc(t)}">`).join('')}</datalist>
     <button class="tk-btn" style="margin-top:12px;width:100%;background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('cp-tag-modal').remove()">Fechar</button>
   </div>`;
