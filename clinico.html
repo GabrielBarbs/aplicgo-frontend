@@ -6110,7 +6110,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-G</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-H</b></span></div>
   </div>
 </div>
 
@@ -23182,6 +23182,19 @@ async function prInjDesaplicar(itemId, btn) {
 
 // ===== Aba "Base" do card de ENFERMAGEM: medicamento base (GLP-1) + escada de dose (sem cobrança) =====
 const PR_BASE_FREQ = { semanal: 'semanal', '2x_semana': '2x/semana', quinzenal: 'quinzenal', dose_unica: 'dose única' };
+// Nome legível da prescrição base: droga · frequência · início → fim (fim = início + total_finito semanas).
+function pbaseNome(nome, p) {
+  const freq = PR_BASE_FREQ[p.frequencia] || p.frequencia || '';
+  const ini = p.createdAt ? new Date(p.createdAt) : null;
+  const iniStr = ini && !isNaN(ini) ? ini.toLocaleDateString('pt-BR') : '';
+  let fimStr = '';
+  if (ini && !isNaN(ini) && p.total_finito) {
+    const fim = new Date(ini.getTime() + p.total_finito * 7 * 86400000);
+    fimStr = fim.toLocaleDateString('pt-BR');
+  }
+  const periodo = iniStr && fimStr ? iniStr + ' → ' + fimStr : iniStr;
+  return [nome, freq, periodo].filter(Boolean).join(' · ');
+}
 // Classe/alertas do catálogo são guardados como SLUGS (código). Traduz pro humano; slug desconhecido
 // vira texto legível (troca _ por espaço, capitaliza).
 const INJ_ROTULOS = {
@@ -23281,8 +23294,8 @@ function prBaseHtml(prescs, cat) {
     }
 
     return `<div class="pr-base-card">
-      <div class="pr-base-head"><i class="ti ti-pill"></i> <strong>${esc(nome)}</strong>${m.classe ? ` <span class="cls">${esc(injRotulo(m.classe))}</span>` : ''}</div>
-      <div class="pr-base-meta">${p.doseInicialMg > 0 ? 'Início ' + esc(doseTxt(p.doseInicialMg)) + ' · ' : ''}${esc(freq)} · ${esc(via)}${inicio ? ' · desde ' + esc(inicio) : ''}</div>
+      <div class="pr-base-head"><i class="ti ti-pill"></i> <strong>${esc(pbaseNome(nome, p))}</strong>${m.classe ? ` <span class="cls">${esc(injRotulo(m.classe))}</span>` : ''}</div>
+      <div class="pr-base-meta">${p.doseInicialMg > 0 ? 'Início ' + esc(doseTxt(p.doseInicialMg)) + ' · ' : ''}via ${esc(via)}</div>
       <div class="pr-base-flags"><span class="pr-base-flag${p.autoAdministrado ? '' : ' clinica'}">${p.autoAdministrado ? 'auto-aplicado' : 'aplicado na clínica'}</span><span class="pr-base-flag">sem cobrança</span></div>
       ${semHtml}
       ${manutHtml}
@@ -25512,7 +25525,7 @@ async function pbaseCarregarLista(patientId) {
   wrap.innerHTML = '<div class="pro-grp-lbl">Já prescritos</div>' + lista.map(p => {
     const m = pbaseState.medicamentos.find(x => x.slug === p.medicamentoBaseSlug);
     const del = (typeof temPermissao !== 'function' || temPermissao('prontuario.prescrever')) ? `<button class="pro-status-btn cancelar" onclick="pbaseExcluir('${p.id}', this)" title="Excluir prescrição"><i class="ti ti-trash"></i></button>` : '';
-    return `<div class="pro-presc-item"><span>${esc(m ? m.nome : p.medicamentoBaseSlug)}${p.doseInicialMg > 0 ? ' ' + String(p.doseInicialMg).replace('.', ',') + 'mg' : ''}</span><span style="display:flex;align-items:center;gap:8px"><span class="pro-presc-meta">${esc(p.frequencia)} · ${esc(p.status)}</span>${del}</span></div>`;
+    return `<div class="pro-presc-item"><span>${esc(pbaseNome(m ? m.nome : p.medicamentoBaseSlug, p))}</span><span style="display:flex;align-items:center;gap:8px"><span class="pro-presc-meta">${esc(p.status)}</span>${del}</span></div>`;
   }).join('') + '<div class="pro-sep"></div>';
 }
 
