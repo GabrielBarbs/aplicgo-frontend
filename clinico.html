@@ -12402,8 +12402,12 @@ async function injBuilderInit() {
 }
 function injNewBItem(sem) {
   const cat = injState.catalogo || [];
-  return { id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: sem, sku: cat[0] ? cat[0].sku : '', dose: '', via: '', incluso_padrao: 'depende_plano', observacao: '' };
+  return { id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: sem, sku: cat[0] ? cat[0].sku : '', dose: '', dose_mg: '', via: '', incluso_padrao: 'depende_plano', observacao: '' };
 }
+// Este insumo é controlado em MG? (vem do catálogo: conta_em_mg do produto de estoque.)
+function injSkuMg(sku) { return (injState.catalogo || []).find((c) => c.sku === sku && c.conta_em_mg) || null; }
+// "2,5" / "2.5" -> 2.5. Vírgula é o decimal do usuário BR.
+function injParseMg(v) { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; }
 function injViaFirst(v) { const s = (v || '').toUpperCase(); for (const x of ['IM', 'EV', 'SC', 'ID']) if (s.indexOf(x) >= 0) return x; return ''; }
 function injBuilderBlank() { injState.builder = [injNewBItem(1)]; injBuilderRender(); }
 function injBuilderFromTemplate(protId) {
@@ -12413,7 +12417,7 @@ function injBuilderFromTemplate(protId) {
   // 'nao_incluso' e 'depende_plano' têm o mesmo efeito no motor (o plano decide) — normalizo p/ não exibir rótulo enganoso.
   // frequencia do modelo NÃO é mais puxada: o campo saiu da tela, então trazer o valor aqui
   // gravaria um dado que ninguém vê nem consegue editar.
-  injState.builder = (m.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku_ativo, dose: it.dose || '', via: injViaFirst(it.via), incluso_padrao: it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano', observacao: it.observacao || '' }));
+  injState.builder = (m.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku_ativo, dose: it.dose || '', dose_mg: it.dose_mcg ? String(it.dose_mcg / 1000).replace('.', ',') : '', via: injViaFirst(it.via), incluso_padrao: it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano', observacao: it.observacao || '' }));
   injBuilderRenumber();
   if (!injState.builder.length) injBuilderBlank(); else injBuilderRender();
 }
@@ -12451,10 +12455,16 @@ function injBuilderRow(it) {
   const incOpts = [['depende_plano', 'Cobrança: plano'], ['incluso', 'Incluso (grátis)']].map(([v, l]) => `<option value="${v}"${incVal === v ? ' selected' : ''}>${l}</option>`).join('');
   const obsOpen = (injState._obsOpen && injState._obsOpen[it.id]) || !!(it.observacao && it.observacao.trim());
   const obsLine = obsOpen ? `<input class="pac-search inj-obs" data-bid="${it.id}" data-f="observacao" value="${injAttr(it.observacao)}" placeholder="obs clínica (opcional): diluir em 100 ml SF, infusão lenta…" onchange="injBuilderSet(this)">` : '';
+  // Produto controlado em mg (ex.: tirzepatida): a dose é a escada em MG, numérica — é o que baixa
+  // o estoque. Os outros seguem com dose em texto livre.
+  const mg = injSkuMg(it.sku);
+  const doseInput = mg
+    ? `<div style="display:flex;align-items:center;gap:3px;flex:1"><input class="pac-search" style="flex:1" type="text" inputmode="decimal" data-bid="${it.id}" data-f="dose_mg" value="${injAttr(it.dose_mg)}" placeholder="dose mg" onchange="injBuilderSet(this)"><span style="font-size:11px;color:var(--tx4)">mg</span></div>`
+    : `<input class="pac-search" data-bid="${it.id}" data-f="dose" value="${injAttr(it.dose)}" placeholder="dose" onchange="injBuilderSet(this)">`;
   return '<div class="inj-item">'
     + '<div class="inj-row">'
-    + `<select class="pac-search" data-bid="${it.id}" data-f="sku" onchange="injBuilderSet(this)">${opts}</select>`
-    + `<input class="pac-search" data-bid="${it.id}" data-f="dose" value="${injAttr(it.dose)}" placeholder="dose" onchange="injBuilderSet(this)">`
+    + `<select class="pac-search" data-bid="${it.id}" data-f="sku" onchange="injBuilderSetSku(this)">${opts}</select>`
+    + doseInput
     + `<select class="pac-search" data-bid="${it.id}" data-f="via" onchange="injBuilderSet(this)">${viaOpts}</select>`
     // "freq" e "responsável" saíram da linha (serão reimplementados de outra forma).
     + `<select class="pac-search" data-bid="${it.id}" data-f="incluso_padrao" onchange="injBuilderSet(this)" title="Incluso = liberado sem cobrança">${incOpts}</select>`
@@ -12468,6 +12478,8 @@ function injBuilderRow(it) {
     + '</div>';
 }
 function injBuilderSet(el) { const it = (injState.builder || []).find((x) => x.id === el.dataset.bid); if (it) it[el.dataset.f] = el.value; }
+// Trocar o insumo pode mudar o TIPO da dose (texto <-> mg): grava e re-renderiza a linha.
+function injBuilderSetSku(el) { injBuilderSync(); injBuilderSet(el); injBuilderRender(); }
 function injBuilderSync() { document.querySelectorAll('#inj-builder [data-bid]').forEach(injBuilderSet); }
 function injBuilderAddItem(sem) { injBuilderSync(); injState.builder.push(injNewBItem(sem)); injBuilderRender(); }
 function injBuilderAddSemana() { injBuilderSync(); const maxSem = Math.max(0, ...injState.builder.map((i) => i.semana)); injState.builder.push(injNewBItem(maxSem + 1)); injBuilderRender(); }
@@ -12525,7 +12537,19 @@ async function injPrescrever2() {
   if (fora.length) { homeToast('Insumo fora do catálogo: ' + fora.join(', ') + '. Escolha um insumo válido antes de prescrever.'); return; }
   // frequencia e responsavel_id saíram do fluxo (serão reimplementados de outra forma) -> não
   // são mais enviados. As colunas seguem no backend; prescrições antigas mantêm o que já tinham.
-  const itens = (injState.builder || []).filter((i) => i.sku).map((i) => ({ sku_ativo: i.sku, semana: i.semana, dose: i.dose || null, via: i.via || null, incluso_padrao: i.incluso_padrao || 'depende_plano', observacao: (i.observacao && i.observacao.trim()) ? i.observacao.trim() : null }));
+  // Item em mg: manda dose_mcg (mg*1000) e uma dose-texto derivada só pra exibição. Bloqueia aqui,
+  // com semana, se faltar a dose — mais claro que o 400 do servidor.
+  const semDose = [];
+  const itens = (injState.builder || []).filter((i) => i.sku).map((i) => {
+    const mg = injSkuMg(i.sku);
+    if (mg) {
+      const val = injParseMg(i.dose_mg);
+      if (!val) { semDose.push(i.semana); return null; }
+      return { sku_ativo: i.sku, semana: i.semana, dose: String(i.dose_mg).replace('.', ',') + 'mg', dose_mcg: Math.round(val * 1000), via: i.via || null, incluso_padrao: i.incluso_padrao || 'depende_plano', observacao: (i.observacao && i.observacao.trim()) ? i.observacao.trim() : null };
+    }
+    return { sku_ativo: i.sku, semana: i.semana, dose: i.dose || null, via: i.via || null, incluso_padrao: i.incluso_padrao || 'depende_plano', observacao: (i.observacao && i.observacao.trim()) ? i.observacao.trim() : null };
+  });
+  if (semDose.length) { homeToast('Informe a dose em mg da(s) sessão(ões) ' + [...new Set(semDose)].sort((a, b) => a - b).join(', ') + '.'); return; }
   if (!itens.length) { homeToast('Adicione ao menos um item com insumo.'); return; }
   const res = document.getElementById('inj-presc-result');
   res.innerHTML = '<div class="pac-empty" style="padding:10px">Prescrevendo…</div>';
