@@ -1578,18 +1578,23 @@
     .agpd-chead .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .agpd-chead .c { font-size: 9.5px; font-weight: 500; color: var(--tx4); flex-shrink: 0; }
     .agpd-gut { position: sticky; left: 0; z-index: 3; background: var(--bg2); border-right: 1px solid var(--bd1); }
-    .agpd-gut .h { position: absolute; right: 6px; font-size: 9.5px; color: var(--tx4); transform: translateY(-6px); }
+    .agpd-gut .h { position: absolute; right: 6px; top: 0; font-size: 9.5px; color: var(--tx4); transform: translateY(1px); }
     .agpd-col { position: relative; border-right: 1px solid var(--bg3); }
+    .agpd-col.hoje { background: rgba(var(--ac-rgb), .045); }
+    .agpd-chead.hoje { color: var(--ac); }
+    .agpd-chead.hoje .c { color: var(--ac); opacity: .85; }
     .agpd-slot { position: absolute; left: 0; right: 0; height: 30px; border-bottom: 1px dashed rgba(var(--bg3-rgb), .7); box-sizing: border-box; }
     .agpd-slot.livre { cursor: pointer; }
     .agpd-slot.livre:hover { background: rgba(63,185,80,.16); }
     .agpd-ev { position: absolute; left: 3px; right: 3px; border-radius: 6px; padding: 2px 6px; box-sizing: border-box; font-size: 10px; line-height: 1.2; overflow: hidden; border-left: 3px solid; pointer-events: none; }
     .agpd-ev .hh { font-size: 9px; opacity: .8; }
     .agpd-ev.bl { background: rgba(139,148,158,.28); color: var(--tx2); border-left-color: #8B8578; }
-    /* coluna "pool" da enfermagem da unidade (onde a aplicação, sem enfermeira, é agendada) */
-    .agpd-chead.pool { background: rgba(var(--ac-rgb), .10); color: var(--ac); border-right: 1px solid var(--bd1); }
-    .agpd-chead.pool .c { color: var(--ac); opacity: .8; }
-    .agpd-col.pool { background: rgba(var(--ac-rgb), .05); border-right: 1px solid var(--bd1); }
+    .agpd-ev.app { background: rgba(var(--ac-rgb), .16); color: var(--ac); border-left-color: var(--ac); font-weight: 500; }
+    /* janela grande (semana inteira) + navegação de semana */
+    .agpd-modal { max-width: 1400px; width: 97vw; }
+    .agpd-titulo { font-size: 12px; color: var(--tx3); font-weight: 500; }
+    .agpd-nav { background: transparent; border: 1px solid var(--bd1); color: var(--tx3); border-radius: 6px; width: 24px; height: 22px; cursor: pointer; vertical-align: middle; margin: 0 2px; }
+    .agpd-nav:hover { border-color: var(--ac); color: var(--ac); }
     /* Bisemanal: os dois dias, cada um com seu horário */
     .ag-bisem { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--bd1); display: grid; gap: 8px; }
     .ag-bisem-hint { font-size: 11.5px; color: var(--tx3); line-height: 1.5; }
@@ -18071,127 +18076,123 @@ function agPanoHhMm(min) {
   return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
 }
 
+let agPanoRef = null;   // um dia da semana exibida (yyyy-mm-dd)
+function agPanoISO(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function agPanoFmtDia(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+
 async function agPanoAbrir() {
   const dia = document.getElementById('ag-data').value;
-  if (!dia) return homeToast('Escolha a data primeiro — o panorama é do dia.');
-  const unitId = document.getElementById('ag-unit').value || '';
-  const unitNome = (pacState.unidades.find((u) => u.id === unitId) || {}).nome || 'todas as unidades';
-  const enfs = (pacState.profissionais || []).filter((p) => p.role === 'enfermagem');
-
+  if (!dia) return homeToast('Escolha a data primeiro — a agenda mostra a semana dela.');
+  agPanoRef = dia;
   let ov = document.getElementById('ag-pano-ov'); if (ov) ov.remove();
   ov = document.createElement('div'); ov.id = 'ag-pano-ov'; ov.className = 'atn-overlay';
   ov.onclick = (e) => { if (e.target.id === 'ag-pano-ov') agPanoFechar(); };
-  ov.innerHTML = `<div class="atn-modal" style="max-width:960px; width:96vw;">
+  ov.innerHTML = `<div class="atn-modal agpd-modal" style="max-width:1400px; width:97vw;">
     <div class="atn-modal-head">
-      <div class="ttl"><i class="ti ti-calendar-week" style="color:var(--ac)"></i> Agenda das enfermeiras · ${esc(dataDiaBR(dia + 'T00:00:00Z'))}</div>
+      <div class="ttl"><i class="ti ti-calendar-week" style="color:var(--ac)"></i> Agenda das enfermeiras
+        <button class="agpd-nav" onclick="agPanoNavSemana(-1)" title="Semana anterior"><i class="ti ti-chevron-left"></i></button>
+        <span id="ag-pano-titulo" class="agpd-titulo"></span>
+        <button class="agpd-nav" onclick="agPanoNavSemana(1)" title="Próxima semana"><i class="ti ti-chevron-right"></i></button>
+      </div>
       <button class="x" onclick="agPanoFechar()">×</button>
     </div>
     <div class="atn-modal-body" id="ag-pano-body" style="padding:0"><div class="atn-empty"><i class="ti ti-loader"></i> Carregando…</div></div>
   </div>`;
   document.body.appendChild(ov);
+  agPanoCarregar();
+}
+function agPanoNavSemana(delta) {
+  const d = new Date(agPanoRef + 'T00:00:00'); d.setDate(d.getDate() + delta * 7);
+  agPanoRef = agPanoISO(d);
+  agPanoCarregar();
+}
+async function agPanoCarregar() {
   const body = document.getElementById('ag-pano-body');
+  if (!body) return;
+  const unitId = document.getElementById('ag-unit').value || '';
+  const unitNome = (pacState.unidades.find((u) => u.id === unitId) || {}).nome || 'todas as unidades';
+  const enfs = (pacState.profissionais || []).filter((p) => p.role === 'enfermagem');
+  if (!enfs.length) { body.innerHTML = '<div class="atn-empty" style="padding:30px">Nenhuma enfermeira cadastrada como profissional.</div>'; return; }
+  const enfsSet = new Set(enfs.map((p) => p.id));
+  const N = enfs.length;
+  body.innerHTML = '<div class="atn-empty" style="padding:30px"><i class="ti ti-loader"></i> Carregando…</div>';
 
-  if (!enfs.length) {
-    body.innerHTML = '<div class="atn-empty" style="padding:30px">Nenhuma enfermeira cadastrada como profissional.</div>';
-    return;
-  }
+  // Semana Dom–Sáb que contém agPanoRef.
+  const baseD = new Date(agPanoRef + 'T00:00:00');
+  const dom = new Date(baseD); dom.setDate(baseD.getDate() - baseD.getDay()); dom.setHours(0, 0, 0, 0);
+  const dias = []; for (let i = 0; i < 7; i++) { const dd = new Date(dom); dd.setDate(dom.getDate() + i); dias.push(dd); }
+  const fimSem = new Date(dias[6]); fimSem.setHours(23, 59, 59, 999);
+  const tit = document.getElementById('ag-pano-titulo'); if (tit) tit.textContent = agPanoFmtDia(dias[0]) + ' – ' + agPanoFmtDia(dias[6]);
 
-  const de = new Date(dia + 'T00:00:00');
-  const ate = new Date(de.getTime() + 86400000 - 1);
-  // SEM filtro por profissional de propósito: a APLICAÇÃO de injetável não tem enfermeira
-  // (professional_id null) e sumiria de um ?prof=<ids>. Puxamos a unidade inteira e separamos aqui:
-  // consultas por enfermeira, aplicações no "pool" da unidade, médicos são ignorados.
-  const q = 'start=' + encodeURIComponent(de.toISOString()) + '&end=' + encodeURIComponent(ate.toISOString())
-    + (unitId ? '&unit=' + encodeURIComponent(unitId) : '');
+  // SEM filtro por profissional: a APLICAÇÃO de injetável não tem enfermeira (professional_id null) e
+  // sumiria de um ?prof=<ids>. Puxa a unidade inteira e separa aqui.
+  const q = 'start=' + encodeURIComponent(dom.toISOString()) + '&end=' + encodeURIComponent(fimSem.toISOString()) + (unitId ? '&unit=' + encodeURIComponent(unitId) : '');
   let ags = [], blocos = [];
   try {
-    const [ra, rb] = await Promise.all([
-      pacApi('/api/clinico/appointments?' + q),
-      pacApi('/api/clinico/appointments/blocks/list?' + q),
-    ]);
+    const [ra, rb] = await Promise.all([pacApi('/api/clinico/appointments?' + q), pacApi('/api/clinico/appointments/blocks/list?' + q)]);
     if (!ra.ok) throw new Error('agenda');
     ags = (ra.data.agendamentos || []).filter((a) => !['CANCELADO', 'REAGENDADO'].includes(a.status));
     blocos = (rb.ok && rb.data.blocos) ? rb.data.blocos : [];
   } catch (e) {
-    // Erro != "tudo livre": marcar a grade toda como livre mandaria a recepcionista agendar em cima.
-    body.innerHTML = '<div class="atn-empty" style="padding:30px">Não consegui carregar a agenda das enfermeiras agora.'
-      + '<br><button class="pac-btn-secondary" style="margin-top:10px" onclick="agPanoAbrir()"><i class="ti ti-refresh"></i> Tentar de novo</button></div>';
+    body.innerHTML = '<div class="atn-empty" style="padding:30px">Não consegui carregar a agenda agora.<br><button class="pac-btn-secondary" style="margin-top:10px" onclick="agPanoCarregar()"><i class="ti ti-refresh"></i> Tentar de novo</button></div>';
     return;
   }
 
-  // Separa: consultas POR enfermeira, aplicações no POOL da unidade (sem enfermeira), médicos fora.
+  const idxDia = (iso) => { const d = new Date(iso); d.setHours(0, 0, 0, 0); const diff = Math.round((d - dom) / 86400000); return (diff >= 0 && diff < 7) ? diff : -1; };
   const minDoDia = (iso) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
-  const enfsSet = new Set(enfs.map((p) => p.id));
-  const ocup = new Map(enfs.map((p) => [p.id, []]));
-  const apps = [];   // aplicações da unidade (professional null) — contam pra capacidade, não têm coluna própria
+
+  // Por dia: blocos a desenhar + ocupação por enfermeira + aplicações (pra capacidade).
+  const porDia = dias.map(() => ({ blocos: [], enf: new Map(enfs.map((p) => [p.id, []])), apps: [] }));
   for (const a of ags) {
+    const di = idxDia(a.start_at); if (di < 0) continue;
     const pid = a.professional?.id || a.professional_id || null;
-    const o = { ini: minDoDia(a.start_at), fim: minDoDia(a.end_at), tipo: 'ag', cor: AG_STATUS_COR[a.status] || '#4A90E2', txt: (a.patient?.nomeCompleto || 'Agendamento').split(' ')[0] };
-    if (pid == null) apps.push(o);
-    else if (enfsSet.has(pid)) ocup.get(pid).push(o);   // médico/outros: ignora
+    const iniA = minDoDia(a.start_at), fimA = minDoDia(a.end_at), nome = (a.patient?.nomeCompleto || 'Agendamento').split(' ')[0];
+    if (pid == null) { porDia[di].apps.push({ ini: iniA, fim: fimA }); porDia[di].blocos.push({ ini: iniA, fim: fimA, tipo: 'app', txt: nome }); }
+    else if (enfsSet.has(pid)) { porDia[di].enf.get(pid).push({ ini: iniA, fim: fimA }); porDia[di].blocos.push({ ini: iniA, fim: fimA, tipo: 'ag', cor: AG_STATUS_COR[a.status] || '#4A90E2', txt: nome }); }
   }
   for (const b of blocos) {
+    const di = idxDia(b.start_at); if (di < 0) continue;
     const pid = b.professional?.id || b.professional_id || null;
-    if (pid != null && enfsSet.has(pid)) ocup.get(pid).push({ ini: minDoDia(b.start_at), fim: minDoDia(b.end_at), tipo: 'bl', txt: b.titulo || 'Bloqueado' });
+    if (pid != null && enfsSet.has(pid)) { const iniB = minDoDia(b.start_at), fimB = minDoDia(b.end_at); porDia[di].enf.get(pid).push({ ini: iniB, fim: fimB }); porDia[di].blocos.push({ ini: iniB, fim: fimB, tipo: 'bl', txt: b.titulo || 'Bloqueado' }); }
   }
 
-  // Janela 07–20 (recorte), esticada pra caber tudo que existe no dia (inclusive aplicações).
+  // Janela de horas (07–20), esticada pra caber qualquer compromisso da semana.
   let ini = AG_PANO_H_INI * 60, fim = AG_PANO_H_FIM * 60;
-  const esticar = (arr) => { for (const o of arr) { if (o.ini < ini) ini = Math.floor(o.ini / 60) * 60; if (o.fim > fim) fim = Math.ceil(o.fim / 60) * 60; } };
-  for (const arr of ocup.values()) esticar(arr);
-  esticar(apps);
-  const SCALE = 1;   // px por minuto (30 min = 30px, mesma escala da agenda principal)
-  const H = (fim - ini) * SCALE;
-  const N = enfs.length;
+  for (const d of porDia) for (const o of d.blocos) { if (o.ini < ini) ini = Math.floor(o.ini / 60) * 60; if (o.fim > fim) fim = Math.ceil(o.fim / 60) * 60; }
+  const SCALE = 1, H = (fim - ini) * SCALE;
 
-  // CAPACIDADE: quantas enfermeiras SOBRAM num slot = total − ocupadas por consulta/bloqueio − aplicações.
-  // É o coração da regra: só é "livre" se sobrar enfermeira pra fazer a aplicação.
   const cruza = (arr, m) => arr.some((o) => o.ini < m + AG_PANO_PASSO && o.fim > m);
   const nCruza = (arr, m) => arr.reduce((c, o) => c + (o.ini < m + AG_PANO_PASSO && o.fim > m ? 1 : 0), 0);
-  const enfOcupadas = (m) => enfs.reduce((c, p) => c + (cruza(ocup.get(p.id) || [], m) ? 1 : 0), 0);
-  const sobra = (m) => N - enfOcupadas(m) - nCruza(apps, m);   // > 0 = dá pra encaixar
+  // CAPACIDADE por dia+slot: total − enfermeiras ocupadas − aplicações. > 0 = dá pra encaixar.
+  const sobra = (d, m) => { let busy = 0; for (const p of enfs) if (cruza(d.enf.get(p.id) || [], m)) busy++; return N - busy - nCruza(d.apps, m); };
 
-  // Régua de horas à esquerda.
   let gut = '';
   for (let m = Math.ceil(ini / 60) * 60; m <= fim; m += 60) gut += `<div class="h" style="top:${(m - ini) * SCALE}px">${agPanoHhMm(m)}</div>`;
 
-  // Blocos (agendamentos/bloqueios) de uma coluna, posicionados por horário.
-  const blocosHtml = (arr) => arr.map((o) => {
-    const top = (Math.max(o.ini, ini) - ini) * SCALE;
-    const h = Math.max(16, (Math.min(o.fim, fim) - Math.max(o.ini, ini)) * SCALE - 2);
-    if (o.tipo === 'bl') return `<div class="agpd-ev bl" style="top:${top}px;height:${h}px" title="${esc(o.txt)} · ${agPanoHhMm(o.ini)}–${agPanoHhMm(o.fim)}"><i class="ti ti-lock" style="font-size:9px"></i> ${esc(o.txt)}</div>`;
-    const cor = o.cor || '#4A90E2';
-    return `<div class="agpd-ev" style="top:${top}px;height:${h}px;background:${cor}22;border-left-color:${cor};color:var(--tx1)" title="${esc(o.txt)} · ${agPanoHhMm(o.ini)}–${agPanoHhMm(o.fim)}"><span class="hh">${agPanoHhMm(o.ini)}</span> ${esc(o.txt)}</div>`;
-  }).join('');
-
-  // Slots clicáveis. Enfermeira: livre se ELA está livre E sobra capacidade. Pool: só depende da capacidade
-  // (o pool empilha aplicações, então não usa a própria ocupação — quem manda é o "sobra").
-  const slotsHtml = (arr, pickProf, ehPool) => {
-    let s = '', livres = 0;
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const heads = [], colunas = [];
+  dias.forEach((dd, di) => {
+    const d = porDia[di];
+    const eHoje = dd.getTime() === hoje.getTime();
+    let slots = '', livres = 0;
     for (let m = ini; m < fim; m += AG_PANO_PASSO) {
       const top = (m - ini) * SCALE;
-      const pode = sobra(m) > 0 && (ehPool || !cruza(arr, m));
-      if (pode) { livres++; s += `<div class="agpd-slot livre" style="top:${top}px" title="livre às ${agPanoHhMm(m)} · ${sobra(m)} enfermeira${sobra(m) === 1 ? '' : 's'} sobrando" onclick="agPanoEscolher('${pickProf}','${agPanoHhMm(m)}')"></div>`; }
-      else { s += `<div class="agpd-slot" style="top:${top}px"></div>`; }
+      if (sobra(d, m) > 0) { livres++; slots += `<div class="agpd-slot livre" style="top:${top}px" title="livre às ${agPanoHhMm(m)}" onclick="agPanoEscolher('${agPanoISO(dd)}','${agPanoHhMm(m)}')"></div>`; }
+      else slots += `<div class="agpd-slot" style="top:${top}px"></div>`;
     }
-    return { s, livres };
-  };
+    let evs = '';
+    for (const o of d.blocos) {
+      const top = (Math.max(o.ini, ini) - ini) * SCALE, h = Math.max(15, (Math.min(o.fim, fim) - Math.max(o.ini, ini)) * SCALE - 2);
+      if (o.tipo === 'bl') evs += `<div class="agpd-ev bl" style="top:${top}px;height:${h}px" title="${esc(o.txt)} · ${agPanoHhMm(o.ini)}–${agPanoHhMm(o.fim)}"><i class="ti ti-lock" style="font-size:9px"></i> ${esc(o.txt)}</div>`;
+      else if (o.tipo === 'app') evs += `<div class="agpd-ev app" style="top:${top}px;height:${h}px" title="Aplicação · ${esc(o.txt)} · ${agPanoHhMm(o.ini)}–${agPanoHhMm(o.fim)}"><i class="ti ti-vaccine" style="font-size:9px"></i> ${esc(o.txt)}</div>`;
+      else { const cor = o.cor || '#4A90E2'; evs += `<div class="agpd-ev" style="top:${top}px;height:${h}px;background:${cor}22;border-left-color:${cor};color:var(--tx1)" title="${esc(o.txt)} · ${agPanoHhMm(o.ini)}–${agPanoHhMm(o.fim)}"><span class="hh">${agPanoHhMm(o.ini)}</span> ${esc(o.txt)}</div>`; }
+    }
+    heads.push(`<div class="agpd-chead${eHoje ? ' hoje' : ''}"><span class="n">${AG_DIAS_SEMANA[dd.getDay()]} ${agPanoFmtDia(dd)}</span><span class="c">${livres ? livres + ' livres' : 'cheio'}</span></div>`);
+    colunas.push(`<div class="agpd-col${eHoje ? ' hoje' : ''}" style="height:${H}px">${slots}${evs}</div>`);
+  });
 
-  const heads = [], colunas = [];
-  // Coluna POOL primeiro: as aplicações da unidade (sem enfermeira) + onde a recepção agenda a aplicação.
-  const poolS = slotsHtml(apps, '', true);
-  heads.push(`<div class="agpd-chead pool"><span class="n"><i class="ti ti-vaccine" style="font-size:11px"></i> Enfermagem</span><span class="c">${poolS.livres ? poolS.livres + ' livres' : 'cheio'}</span></div>`);
-  colunas.push(`<div class="agpd-col pool" style="height:${H}px">${poolS.s}${blocosHtml(apps)}</div>`);
-  // Uma coluna por enfermeira (consultas dela). Serve pra ver quem está ocupada.
-  for (const p of enfs) {
-    const arr = ocup.get(p.id) || [];
-    const st = slotsHtml(arr, p.id, false);
-    heads.push(`<div class="agpd-chead"><span class="n" title="${esc(p.nome)}">${esc(p.nome)}</span><span class="c">${st.livres ? st.livres + ' livres' : 'cheio'}</span></div>`);
-    colunas.push(`<div class="agpd-col" style="height:${H}px">${st.s}${blocosHtml(arr)}</div>`);
-  }
-
-  body.innerHTML = `<div class="agpd-hint">${esc(unitNome)} · clique num espaço <span style="color:#3fb950">livre</span> pra usar aquele horário. Só fica livre se sobrar enfermeira (consultas + aplicações &lt; ${N} enfermeira${N === 1 ? '' : 's'} da unidade). Cores dos blocos = as da agenda.</div>
-    <div class="agpd-scroll"><div class="agpd-grid" style="grid-template-columns:46px repeat(${enfs.length + 1}, minmax(132px, 1fr))">
+  body.innerHTML = `<div class="agpd-hint">${esc(unitNome)} · clique num espaço <span style="color:#3fb950">livre</span> pra usar o dia+horário. Só fica livre se sobrar enfermeira (consultas + aplicações &lt; ${N} enfermeira${N === 1 ? '' : 's'}). <i class="ti ti-vaccine"></i> aplicação · <i class="ti ti-lock"></i> bloqueio. Cores = as da agenda.</div>
+    <div class="agpd-scroll"><div class="agpd-grid" style="grid-template-columns:52px repeat(7, minmax(118px, 1fr))">
       <div class="agpd-corner"></div>${heads.join('')}
       <div class="agpd-gut" style="height:${H}px">${gut}</div>${colunas.join('')}
     </div></div>`;
@@ -18199,15 +18200,18 @@ async function agPanoAbrir() {
 
 function agPanoFechar() { const o = document.getElementById('ag-pano-ov'); if (o) o.remove(); }
 
-// Clicar num espaço livre preenche hora + profissional no formulário (é o que a recepção faria na mão).
-function agPanoEscolher(profId, hora) {
+// Clicar num espaço livre preenche DIA + hora no formulário (a semana pode ser de outro dia que não o
+// digitado, então a data também muda). Não mexe no profissional: a aplicação é da enfermagem da unidade.
+function agPanoEscolher(iso, hora) {
+  if (iso) {
+    const p = iso.split('-');
+    const vis = document.querySelector('.inp-data[data-alvo="ag-data"]');
+    if (vis) vis.value = p[2] + '/' + p[1] + '/' + p[0];
+    const hid = document.getElementById('ag-data'); if (hid) hid.value = iso;
+    if (typeof agBisemPreview === 'function') agBisemPreview();
+  }
   const h = document.getElementById('ag-hora');
   if (h && !h.disabled) h.value = hora;
-  // No modo aplicação de injetável o profissional é null (é da enfermagem da unidade) e o campo fica
-  // escondido/zerado — NÃO repor a enfermeira aqui, senão vaza um professional_id no agendamento da
-  // aplicação (hoje só não vaza pelo guard do agSalvar; não depender só dele).
-  const pf = document.getElementById('ag-prof');
-  if (pf && !(typeof agModoInjecao === 'function' && agModoInjecao())) pf.value = profId;
   agPanoFechar();
 }
 
