@@ -6110,7 +6110,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-B</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-C</b></span></div>
   </div>
 </div>
 
@@ -26233,7 +26233,7 @@ async function esSalvarLote() {
     lote: document.getElementById('es-lote-num').value.trim(),
     validade: document.getElementById('es-lote-validade').value,
     qtd_inicial: parseInt(document.getElementById('es-lote-qtd').value) || 0,
-    preco_compra_reais: parseFloat(document.getElementById('es-lote-preco').value) || null,
+    preco_compra_reais: parseFloat(document.getElementById('es-lote-preco').value) || undefined,  // vazio = ausente (o schema rejeita null)
     fornecedor: document.getElementById('es-lote-fornecedor').value.trim() || null,
     nota_fiscal: document.getElementById('es-lote-nf').value.trim() || null,
   };
