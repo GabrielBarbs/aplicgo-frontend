@@ -3682,6 +3682,20 @@
     .cp-lista-topo { padding: 8px 10px; border-bottom: 1px solid var(--bg3); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .cp-lista-topo i { color: var(--tx3b); }
     .cp-lista-topo input { flex: 1; background: var(--bg2); border: 1px solid var(--bd1); border-radius: 8px; padding: 7px 10px; color: var(--tx1); font-size: 12px; font-family: inherit; }
+    /* Barra de tags (filtro) no topo da lista do WhatsApp. Rola no eixo x: o popup só tem ~336px. */
+    .cp-tagbar { display: flex; gap: 5px; padding: 6px 10px; border-bottom: 1px solid var(--bg3); overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+    .cp-tagbar::-webkit-scrollbar { height: 0; }
+    .cp-tagchip { font-size: 10px; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--bd1); background: var(--bg2); color: var(--tx2); white-space: nowrap; cursor: pointer; flex-shrink: 0; }
+    .cp-tagchip.ativo { background: rgba(var(--ac-rgb),0.16); border-color: var(--ac); color: var(--ac); }
+    /* Chips por contato, abaixo da prévia. */
+    .ci-conv-tags { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; align-items: center; }
+    .ci-tag { font-size: 8.5px; padding: 1px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap; letter-spacing: .2px; }
+    .ci-tag-un { background: rgba(74,144,226,0.14); color: #4A90E2; }
+    .ci-tag-add { font-size: 12px; line-height: 1; color: var(--tx4); cursor: pointer; border: 1px dashed var(--bd1); border-radius: 4px; padding: 0 5px; }
+    .ci-tag-add:hover { color: var(--ac); border-color: var(--ac); }
+    .cp-tag-editrow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+    .cp-tag-del { cursor: pointer; opacity: .6; margin-left: 3px; }
+    .cp-tag-del:hover { opacity: 1; }
     .cp-banner { padding: 8px 12px; font-size: 11px; color: #f0b4b0; background: rgba(248,81,73,0.08); border-bottom: 1px solid rgba(248,81,73,0.2); display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .cp-scroll { flex: 1; overflow-y: auto; min-height: 0; }
     .cp-conv-back { background: transparent; border: none; color: var(--tx3); cursor: pointer; font-size: 20px; display: flex; align-items: center; padding: 2px; border-radius: 6px; flex-shrink: 0; }
@@ -16022,6 +16036,7 @@ function waThreadHtml(msgs, jid) {
 let cpState = {
   aberto: false, modo: 'whatsapp', vista: 'lista', filtro: '',
   waChats: [], waContato: null, waJid: null, waMsgs: [], waPoll: null, waListaPoll: null, waSemDevice: false, waDeviceId: null,
+  waTags: {}, tagFiltro: null,   // waTags: contato_key -> [texto]; tagFiltro: {tipo,valor} ativo na barra
   intUsuarios: [], intConversas: {}, intEquipe: null, intPeer: null, intLastTs: null, intMsgs: [], poll: null,
 };
 
@@ -16044,6 +16059,8 @@ function chatPopModo(modo) {
   cpMicAbortar();
   cpState.modo = modo;
   cpState.filtro = '';
+  cpState.tagFiltro = null;   // tag só existe no WhatsApp; trocar de aba zera o filtro
+  const tb = document.getElementById('cp-tagbar'); if (tb) tb.style.display = 'none';
   chatPopPararPoll();
   cpPararPollWa();
   const tw = document.getElementById('cp-tab-wa'), ti = document.getElementById('cp-tab-int');
@@ -16067,14 +16084,166 @@ function chatPopMostrarLista() {
 }
 function chatPopBusca(v) { cpState.filtro = v; chatPopRenderLista(); }
 
+// ============================================================
+// Tags dos contatos do WhatsApp: estáticas (unidade/status do paciente, derivadas) + livres (o
+// usuário cria; guardadas por contato). Filtro na barra do topo, chips em cada contato.
+// ============================================================
+// Chave estável do contato: vem pronta do backend (contato_key). O fallback ESPELHA o telCore do
+// servidor — um fallback cru (só últimos 10 dígitos) geraria chave divergente e tag órfã.
+function cpTelCore(tel) {
+  let d = String(tel || '').replace(/\D/g, '');
+  if (d.startsWith('55') && d.length >= 12) d = d.slice(2);      // tira DDI
+  if (d.length === 11) d = d.slice(0, 2) + d.slice(3);           // tira o 9 do meio
+  return d.length >= 10 ? d.slice(-10) : d;
+}
+function cpContatoKey(c) { return c.contato_key || (c.numero ? cpTelCore(c.numero) : c.id); }
+
+// Texto LIVRE (tag, nome de contato) que vai parar dentro de um onclick inline é veneno: esc() não
+// salva porque o navegador decodifica a entidade ANTES do JS rodar — uma aspa fecha o handler e
+// injeta HTML (XSS armazenado, visto por toda a equipe no poll de 6s). base64 não tem aspa, `<`, `>`
+// nem `&`, então é seguro no atributo E na string JS. Decodifica no clique.
+function cpEnc(s) { return btoa(unescape(encodeURIComponent(String(s == null ? '' : s)))); }
+function cpDec(s) { try { return decodeURIComponent(escape(atob(s))); } catch (e) { return ''; } }
+function cpTagsLivres(c) { return cpState.waTags[cpContatoKey(c)] || []; }
+
+// Cor determinística da tag livre a partir do texto — a mesma tag tem sempre a mesma cor.
+function cpTagCorLivre(t) {
+  let h = 0; const s = String(t || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return `background:hsla(${h},60%,50%,0.16);color:hsl(${h},55%,64%)`;
+}
+
+// Chips renderizados em cada linha: unidade, status (com a cor que o sistema já usa) e as livres.
+function cpChipsDoContato(c) {
+  let out = '';
+  if (c.paciente_unidade) out += `<span class="ci-tag ci-tag-un">${esc(c.paciente_unidade)}</span>`;
+  if (c.paciente_status) out += `<span class="ci-tag pac-tag ${esc(c.paciente_status)}" style="text-transform:none">${esc(labelStatus(c.paciente_status))}</span>`;
+  for (const t of cpTagsLivres(c)) out += `<span class="ci-tag" style="${cpTagCorLivre(t)}">${esc(t)}</span>`;
+  return out;
+}
+
+// A linha passa no filtro ativo? tipo = unidade | status | tag.
+function cpTagMatch(c) {
+  const f = cpState.tagFiltro;
+  if (!f) return true;
+  if (f.tipo === 'unidade') return c.paciente_unidade === f.valor;
+  if (f.tipo === 'status') return c.paciente_status === f.valor;
+  if (f.tipo === 'tag') return cpTagsLivres(c).includes(f.valor);
+  return true;
+}
+
+// Monta a barra de tags: "Todas" + as unidades/status presentes na lista + o vocabulário de livres.
+// Some quando não há nada pra filtrar (nenhum paciente e nenhuma tag).
+function cpTagbarRender() {
+  const bar = document.getElementById('cp-tagbar');
+  if (!bar) return;
+  const unidades = [...new Set((cpState.waChats || []).map(c => c.paciente_unidade).filter(Boolean))].sort();
+  const status = [...new Set((cpState.waChats || []).map(c => c.paciente_status).filter(Boolean))].sort();
+  const livres = [...new Set(Object.values(cpState.waTags || {}).flat())].sort((a, b) => a.localeCompare(b));
+  // Auto-cura do filtro órfão: se o valor filtrado sumiu (paciente mudou de status, outro removeu a
+  // tag no poll de 6s), limpa — senão a lista ficaria vazia sem nenhum chip aceso pra entender.
+  const f0 = cpState.tagFiltro;
+  if (f0) {
+    const conj = f0.tipo === 'unidade' ? unidades : f0.tipo === 'status' ? status : livres;
+    if (!conj.includes(f0.valor)) cpState.tagFiltro = null;
+  }
+  if (!unidades.length && !status.length && !livres.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const f = cpState.tagFiltro;
+  // O valor vai codificado (base64) e é decodificado no clique: nunca texto livre cru dentro do onclick.
+  const chip = (tipo, valor, label, extra) => {
+    const ativo = f && f.tipo === tipo && f.valor === valor;
+    return `<span class="cp-tagchip${ativo ? ' ativo' : ''}" ${extra || ''} onclick="cpTagFiltro('${tipo}',cpDec('${cpEnc(valor)}'))">${esc(label)}</span>`;
+  };
+  let html = `<span class="cp-tagchip${f ? '' : ' ativo'}" onclick="cpTagFiltro(null,null)">Todas</span>`;
+  html += livres.map(t => chip('tag', t, t, `style="${cpTagCorLivre(t)};border-color:transparent"`)).join('');
+  html += unidades.map(u => chip('unidade', u, u)).join('');
+  html += status.map(s => chip('status', s, labelStatus(s))).join('');
+  bar.innerHTML = html;
+}
+// Clicar na tag ativa/desativa o filtro (clicar na já ativa limpa).
+function cpTagFiltro(tipo, valor) {
+  const f = cpState.tagFiltro;
+  cpState.tagFiltro = (!tipo || (f && f.tipo === tipo && f.valor === valor)) ? null : { tipo, valor };
+  chatPopRenderLista();
+}
+
+// Editor de tags LIVRES de um contato (as estáticas são do cadastro, não se editam aqui).
+// O nome NÃO vem por parâmetro: é derivado do estado (cpTagNomeAtual). Passá-lo pelo onclick era um
+// sink de XSS — o nome vem do pushName do WhatsApp, controlado por quem manda mensagem pra clínica.
+function cpTagEditorAbrir(contatoKey) {
+  cpTagEditorRender(contatoKey);
+}
+function cpTagEditorRender(contatoKey) {
+  const nome = cpTagNomeAtual(contatoKey);
+  let ov = document.getElementById('cp-tag-modal');
+  if (!ov) {
+    ov = document.createElement('div'); ov.id = 'cp-tag-modal';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+    document.body.appendChild(ov);
+  }
+  const atuais = cpState.waTags[contatoKey] || [];
+  const vocab = [...new Set(Object.values(cpState.waTags || {}).flat())].filter(t => !atuais.includes(t)).sort();
+  const chips = atuais.length
+    ? atuais.map(t => `<span class="ci-tag" style="${cpTagCorLivre(t)}">${esc(t)} <i class="ti ti-x cp-tag-del" onclick="cpTagRemover(cpDec('${cpEnc(contatoKey)}'),cpDec('${cpEnc(t)}'))"></i></span>`).join('')
+    : '<span style="font-size:12px;color:var(--tx4)">Nenhuma tag ainda.</span>';
+  ov.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;max-width:360px;width:100%;padding:18px">
+    <div style="font-size:14px;font-weight:700;color:var(--tx1);margin-bottom:2px">Tags — ${esc(nome || 'contato')}</div>
+    <div style="font-size:11px;color:var(--tx4);margin-bottom:12px">Unidade e status do plano vêm do cadastro do paciente e aparecem sozinhos. Aqui você cria as suas.</div>
+    <div class="cp-tag-editrow">${chips}</div>
+    <input id="cp-tag-input" list="cp-tag-vocab" placeholder="Nova tag + Enter" maxlength="40" autocomplete="off"
+      style="width:100%;background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:8px 10px;color:var(--tx1);font-size:13px"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();cpTagAdicionar(cpDec('${cpEnc(contatoKey)}'),this.value);this.value='';}"
+    <datalist id="cp-tag-vocab">${vocab.map(t => `<option value="${esc(t)}">`).join('')}</datalist>
+    <button class="tk-btn" style="margin-top:12px;width:100%;background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('cp-tag-modal').remove()">Fechar</button>
+  </div>`;
+  const inp = document.getElementById('cp-tag-input'); if (inp) inp.focus();
+}
+async function cpTagAdicionar(contatoKey, texto) {
+  texto = String(texto || '').trim();
+  if (!texto) return;
+  if ((cpState.waTags[contatoKey] || []).some(t => t.toLowerCase() === texto.toLowerCase())) return;   // já tem
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/whatsapp/tags', { method: 'POST', body: JSON.stringify({ contato_key: contatoKey, texto }) }); ok = r.ok && r.data && r.data.ok; } catch (e) {}
+  if (!ok) { homeToast('Não consegui salvar a tag.'); return; }
+  // Relê o estado FRESCO (não o snapshot de antes do await): dois adds concorrentes não se
+  // sobrescrevem. Como o backend é upsert idempotente, reconcatenar sem duplicar é seguro.
+  const atual = cpState.waTags[contatoKey] || [];
+  if (!atual.some(t => t.toLowerCase() === texto.toLowerCase())) cpState.waTags[contatoKey] = atual.concat([texto]);
+  cpTagEditorRender(contatoKey);
+  chatPopRenderLista();
+}
+async function cpTagRemover(contatoKey, texto) {
+  let ok = false;
+  try { const r = await pacApi('/api/clinico/whatsapp/tags', { method: 'DELETE', body: JSON.stringify({ contato_key: contatoKey, texto }) }); ok = r.ok && r.data && r.data.ok; } catch (e) {}
+  if (!ok) { homeToast('Não consegui remover a tag.'); return; }
+  cpState.waTags[contatoKey] = (cpState.waTags[contatoKey] || []).filter(t => t !== texto);
+  // Se o filtro apontava pra essa tag e ela sumiu do vocabulário, limpa pra não travar numa lista vazia.
+  if (cpState.tagFiltro && cpState.tagFiltro.tipo === 'tag' && !Object.values(cpState.waTags).flat().includes(cpState.tagFiltro.valor)) cpState.tagFiltro = null;
+  cpTagEditorRender(contatoKey);
+  chatPopRenderLista();
+}
+function cpTagNomeAtual(contatoKey) {
+  const c = (cpState.waChats || []).find(x => cpContatoKey(x) === contatoKey);
+  return c ? (c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato')) : 'contato';
+}
+
 async function chatPopCarregarLista(silent) {
   const wrap = document.getElementById('cp-lista');
   if (!silent) wrap.innerHTML = '<div class="ci-loading">Carregando...</div>';
   if (cpState.modo === 'whatsapp') {
-    const r = await pacApi('/api/clinico/whatsapp/chats');
+    const [r, rt] = await Promise.all([
+      pacApi('/api/clinico/whatsapp/chats'),
+      pacApi('/api/clinico/whatsapp/tags'),
+    ]);
     cpState.waSemDevice = !r.ok || r.data.sem_device || r.data.configurado === false;
     cpState.waChats = (r.ok && r.data.chats) ? r.data.chats : [];
     cpState.waDeviceId = r.ok ? (r.data.device_id || null) : null;
+    // Índice contato_key -> [texto]. Tag falha não derruba a lista (segue sem tags livres).
+    const idx = {};
+    if (rt.ok && rt.data.tags) rt.data.tags.forEach(t => { (idx[t.contato_key] = idx[t.contato_key] || []).push(t.texto); });
+    cpState.waTags = idx;
   } else {
     const [ru, rc] = await Promise.all([
       pacApi('/api/clinico/chat/usuarios'),
@@ -16106,9 +16275,13 @@ function chatPopRenderLista() {
       return;
     }
     if (banner) banner.style.display = 'none';
+    cpTagbarRender();
     const lista = (cpState.waChats || []).filter(c =>
-      !f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(f));
-    if (!lista.length) { wrap.innerHTML = '<div class="ci-loading">Nenhuma conversa ainda. Abra um paciente (na aba Pacientes) e mande a primeira mensagem.</div>'; return; }
+      (!f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(f)) && cpTagMatch(c));
+    if (!lista.length) {
+      const vazioTag = cpState.tagFiltro ? 'Nenhum contato com essa tag.' : 'Nenhuma conversa ainda. Abra um paciente (na aba Pacientes) e mande a primeira mensagem.';
+      wrap.innerHTML = '<div class="ci-loading">' + vazioTag + '</div>'; return;
+    }
     wrap.innerHTML = lista.map(c => {
       const nome = c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato');
       const ini = waIni(nome);
@@ -16117,17 +16290,20 @@ function chatPopRenderLista() {
       const txtCap = esc(waTrunc(waPreviewTxt(c), 46));
       const prev = c.ultima ? (tick + txtCap) : ('<span style="color:var(--tx4);">' + txtCap + '</span>');
       const keyEsc = String(c.id).replace(/'/g, '');
-      const nomeAttr = String(c.nome || '').replace(/'/g, '');
       const numAttr = String(c.numero || '');
       const altAttr = String(c.jid_alt || '').replace(/'/g, '');
       const av = c.foto
         ? `<img src="${esc(c.foto)}" class="cp-av-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="ci-av cp-av-ini" style="display:none; background:#25D36622; color:#25D366; border-color:#25D36655;">${esc(ini)}</div>`
         : `<div class="ci-av cp-av-ini" style="background:#25D36622; color:#25D366; border-color:#25D36655;">${ini}</div>`;
-      return `<div class="ci-conv" onclick="cpAbrirConversaWa('${keyEsc}','${nomeAttr}','${numAttr}','${altAttr}')">
+      const keyTag = cpContatoKey(c);
+      // nome vem do pushName do WhatsApp (controlado por quem escreve pra clínica): codificado, nunca
+      // cru dentro do onclick — uma aspa no pushName fecharia o handler e injetaria HTML (XSS).
+      return `<div class="ci-conv" onclick="cpAbrirConversaWa('${keyEsc}',cpDec('${cpEnc(c.nome || '')}'),'${numAttr}','${altAttr}')">
         <div class="cp-av">${av}<span class="cp-av-wa"><i class="ti ti-brand-whatsapp"></i></span></div>
         <div class="ci-conv-info">
           <div class="ci-conv-nome">${String(nome).replace(/</g, '&lt;')}</div>
           <div class="ci-conv-prev">${prev}</div>
+          <div class="ci-conv-tags">${cpChipsDoContato(c)}<span class="ci-tag-add" title="Etiquetar" onclick="event.stopPropagation();cpTagEditorAbrir(cpDec('${cpEnc(keyTag)}'))">+</span></div>
         </div>
         <div class="cp-conv-meta">
           <div class="cp-conv-hora">${cpHora(c.ultima_em)}</div>
@@ -26249,6 +26425,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <i class="ti ti-search"></i>
       <input id="cp-busca" placeholder="Buscar..." oninput="chatPopBusca(this.value)">
     </div>
+    <div class="cp-tagbar" id="cp-tagbar" style="display:none;"></div>
     <div class="cp-banner" id="cp-banner" style="display:none;"></div>
     <div class="cp-scroll" id="cp-lista"><div class="ci-loading">Carregando...</div></div>
   </div>
