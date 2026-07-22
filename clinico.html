@@ -7724,7 +7724,10 @@
         <button class="ag-modal-tab active" id="ag-tab-btn-agendamento" onclick="agTrocarTab('agendamento')">
           <i class="ti ti-calendar-event"></i> <span id="ag-modal-title">Novo agendamento</span>
         </button>
-        <button class="ag-modal-tab" id="ag-tab-btn-bloqueio" onclick="agTrocarTab('bloqueio')">
+        <!-- Aba "Bloquear horário" REMOVIDA da janela de agendamento (pedido do Matheus). O botão fica
+             escondido (não some do DOM) só pra agTrocarTab/agSalvarTab seguirem funcionando; bloquear
+             horário continua pelo botão da barra da agenda (agAbrirModalBloqueio). -->
+        <button class="ag-modal-tab" id="ag-tab-btn-bloqueio" onclick="agTrocarTab('bloqueio')" style="display:none;">
           <i class="ti ti-lock"></i> Bloquear horário
         </button>
       </div>
@@ -17578,6 +17581,9 @@ function agTrocarTab(tab) {
     ag.style.display = 'none';
     bl.style.display = '';
     if (btnSalvarTxt) btnSalvarTxt.textContent = 'Bloquear';
+    // A aba de bloqueio não tem mais botão visível; quando aberta pela barra da agenda, o título
+    // (dentro do único botão que sobra) precisa dizer o que é.
+    const _t = document.getElementById('ag-modal-title'); if (_t) _t.textContent = 'Bloquear horário';
     agPopularSelectsBloqueio();
   } else {
     document.getElementById('ag-tab-btn-agendamento').classList.add('active');
@@ -17938,8 +17944,9 @@ function agResetForm() {
   document.getElementById('ag-data').value = '';
   document.getElementById('ag-hora').value = '';
   document.getElementById('ag-duracao').value = '';
-  // Reseta campos da aba de bloqueio + restaura visibilidade da aba (caso edição tenha escondido)
-  document.getElementById('ag-tab-btn-bloqueio').style.display = '';
+  // Reseta campos da aba de bloqueio. A aba fica SEMPRE escondida na janela de agendamento (o bloqueio
+  // é feito pelo botão da barra da agenda); não reexibir aqui.
+  document.getElementById('ag-tab-btn-bloqueio').style.display = 'none';
   ['ag-bloq-titulo','ag-bloq-motivo','ag-bloq-start','ag-bloq-end'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
