@@ -3051,6 +3051,12 @@
     .pr-inj-hdet { padding-left: 6px; margin: -2px 0 6px; }
     .pr-inj-vermais { width: 100%; background: transparent; border: 1px dashed var(--bd1); color: var(--tx3); border-radius: 8px; padding: 6px; font: inherit; font-size: 11px; cursor: pointer; margin-top: 2px; }
     .pr-inj-vermais:hover { color: var(--tx1); border-color: var(--ac); }
+    /* Filtros da Soroterapia (Próximas aplicações): prontas / falta contrato / falta agendamento / vencidas */
+    .pr-inj-filtros { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .pinj-fbtn { font-size: 10.5px; font-weight: 600; background: var(--bg2); border: 1px solid var(--bd1); color: var(--tx3); border-radius: 20px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+    .pinj-fbtn:hover { color: var(--tx1); }
+    .pinj-fbtn.on { background: rgba(var(--ac-rgb),0.14); border-color: rgba(var(--ac-rgb),0.4); color: var(--ac); }
+    .pinj-fn { background: rgba(128,128,128,0.18); border-radius: 8px; padding: 0 5px; font-size: 9.5px; }
     /* Diálogo de checklist de aplicação (soroterapia): marca o que aplicou / não aplicou + motivo */
     .injck-ov { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .injck-modal { background: var(--bg1); border: 1px solid var(--bd1); border-radius: 14px; width: 100%; max-width: 460px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: var(--sh-3); }
@@ -6149,7 +6155,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-P</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-Q</b></span></div>
   </div>
 </div>
 
@@ -23230,6 +23236,21 @@ async function prInjCarregar() {
   box2.innerHTML = html;
 }
 let PRINJ_SESS = {};   // itens aplicáveis por sessão (prescId|semana), populado no render pro checklist ler no clique
+let PRINJ_FILTRO = 'liberado';   // filtro ativo da Soroterapia (padrão: "Prontas" — liberadas sem restrição/vencimento)
+// Filtra as sessões das "Próximas aplicações" por categoria (liberado/contrato/agenda/vencido).
+function prInjFiltrar(cat, btn) {
+  PRINJ_FILTRO = cat;
+  const wrap = (btn && btn.closest('.pr-inj-wrap')) || document;
+  wrap.querySelectorAll('.pr-inj-filtros .pinj-fbtn').forEach((b) => b.classList.toggle('on', b === btn));
+  let n = 0;
+  wrap.querySelectorAll('.pr-inj-sess[data-cats]').forEach((c) => {
+    const ok = (c.getAttribute('data-cats') || '').split(' ').includes(cat);
+    c.style.display = ok ? '' : 'none';
+    if (ok) n++;
+  });
+  const vazio = wrap.querySelector('#pr-inj-filtro-vazio');
+  if (vazio) vazio.style.display = n ? 'none' : 'block';
+}
 function prInjHtml(presc) {
   const podeAplicar = typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar');
   const ativas = (presc || []).filter((p) => p.status !== 'cancelado');   // cancelada não mostra aplicar/desfazer
