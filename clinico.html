@@ -25764,7 +25764,7 @@ function pbaseFormHtml() {
         <label>Frequência <span class="req">*</span></label>
         <select id="pbase-freq" onchange="pbaseDurAtualizarUnid()"></select>
       </div>
-      <div class="pac-field">
+      <div class="pac-field" id="pbase-dur-field">
         <label>Duração (nº de <span id="pbase-dur-unid">semanas</span>) <span class="req">*</span></label>
         <input type="number" id="pbase-dur" min="1" step="1" value="12" placeholder="ex: 12">
       </div>
@@ -25828,8 +25828,12 @@ function pbaseDrogaMudou() {
 
 // Rótulo da Duração acompanha a frequência: quinzenal -> "quinzenas" (e cada uma vira 1 aplicação/slot).
 function pbaseDurAtualizarUnid() {
+  const freq = pbaseFreqAtual();
   const el = document.getElementById('pbase-dur-unid');
-  if (el) el.textContent = pbaseFreqUnidade(pbaseFreqAtual()).plural;
+  if (el) el.textContent = pbaseFreqUnidade(freq).plural;
+  // Dose única não tem duração (é uma aplicação só) — esconde o campo.
+  const durField = document.getElementById('pbase-dur-field');
+  if (durField) durField.style.display = freq === 'dose_unica' ? 'none' : '';
 }
 
 function pbaseRenderTitulacao() {
@@ -25859,15 +25863,23 @@ async function pbaseSalvar() {
   const errEl = document.getElementById('pbase-erro');
   const freqSel = document.getElementById('pbase-freq').value;
   const uFreq = pbaseFreqUnidade(freqSel);
-  const dur = parseInt(document.getElementById('pbase-dur').value, 10);
-  if (!Number.isInteger(dur) || dur < 1) { errEl.textContent = 'Informe a duração (nº de ' + uFreq.plural + ').'; errEl.style.display = 'block'; btn.disabled = false; return; }
+  // Dose única = UMA aplicação só, sem duração (o campo fica escondido). Demais frequências: nº de slots =
+  // duração × aplicações-por-unidade (2x/semana dobra).
+  let slots;
+  if (freqSel === 'dose_unica') {
+    slots = 1;
+  } else {
+    const dur = parseInt(document.getElementById('pbase-dur').value, 10);
+    if (!Number.isInteger(dur) || dur < 1) { errEl.textContent = 'Informe a duração (nº de ' + uFreq.plural + ').'; errEl.style.display = 'block'; btn.disabled = false; return; }
+    slots = dur * uFreq.appsPorUnid;
+  }
   const body = {
     patient_id: pbaseState.patientId,
     medicamento_base_slug: document.getElementById('pbase-droga').value,
     frequencia: freqSel,
-    // Sem dose pré-definida: a titulação guarda só o cronograma. semanas = nº de SLOTS de aplicação
-    // (duração × aplicações-por-unidade: 2x/semana dobra). A dose vai na aplicação.
-    titulacao: [{ semanas: dur * uFreq.appsPorUnid }],
+    // Sem dose pré-definida: a titulação guarda só o cronograma. semanas = nº de SLOTS de aplicação.
+    // A dose vai na aplicação.
+    titulacao: [{ semanas: slots }],
     auto_administrado: document.getElementById('pbase-auto').checked,
     observacoes: document.getElementById('pbase-obs').value || null,
   };
