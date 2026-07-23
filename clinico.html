@@ -2229,6 +2229,28 @@
     .pr-h2-bloco.fase { background: rgba(74,144,226,0.10); border-color: rgba(74,144,226,0.35); color: #4A90E2; }
     .pr-h2-bloco.clinico-ATENCAO { background: rgba(239,159,39,0.12); border-color: rgba(239,159,39,0.40); color: #EF9F27; }
     .pr-h2-bloco.clinico-URGENCIA { background: rgba(248,81,73,0.15); border-color: rgba(248,81,73,0.45); color: #f85149; }
+    .pr-h2-bloco.metas { background: rgba(29,158,117,0.10); border-color: rgba(29,158,117,0.35); color: #1D9E75; }
+    .pr-h2-bloco.metas:hover { border-color: rgba(29,158,117,0.6); background: rgba(29,158,117,0.16); }
+    /* Modal de metas mensais */
+    .metas-mes-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .metas-mes-nav .mnav-btn { background: var(--bg3); border: 1px solid var(--bd1); color: var(--tx2); width: 30px; height: 30px; border-radius: 7px; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
+    .metas-mes-nav .mnav-btn:disabled { opacity: .35; cursor: default; }
+    .metas-mes-nav .mnav-lbl { font-weight: 700; color: var(--tx1); font-size: 15px; text-transform: capitalize; }
+    .metas-score { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .metas-score .sc-num { font-size: 26px; font-weight: 800; color: #1D9E75; line-height: 1; }
+    .metas-score .sc-den { font-size: 14px; color: var(--tx3b); }
+    .metas-score .sc-bar { flex: 1; height: 8px; border-radius: 5px; background: var(--bg3); overflow: hidden; }
+    .metas-score .sc-fill { height: 100%; background: #1D9E75; border-radius: 5px; transition: width .3s; }
+    .meta-item { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-top: 1px solid var(--bg3); }
+    .meta-item .mck { width: 20px; height: 20px; flex-shrink: 0; cursor: pointer; accent-color: #1D9E75; margin-top: 1px; }
+    .meta-item .mtxt { flex: 1; font-size: 13px; color: var(--tx1); }
+    .meta-item.feita .mtxt { color: var(--tx3b); text-decoration: line-through; }
+    .meta-item .mmeta { font-size: 10.5px; color: var(--tx4); margin-top: 2px; }
+    .meta-item .mdel { background: none; border: 0; color: var(--tx4); cursor: pointer; font-size: 14px; padding: 2px; }
+    .meta-item .mdel:hover { color: #f85149; }
+    .metas-add { display: flex; gap: 6px; margin-top: 12px; }
+    .metas-add input { flex: 1; padding: 8px 10px; background: var(--bg2); border: 1px solid var(--bg3); color: var(--tx1); border-radius: 7px; font-size: 13px; }
+    .metas-add button { background: #1D9E75; border: 0; color: #fff; border-radius: 7px; padding: 0 12px; cursor: pointer; font-weight: 600; }
     .pr-h2-editar {
       background: transparent; border: 1px solid var(--bd1);
       color: var(--tx3); width: 34px; height: 34px;
@@ -19032,6 +19054,97 @@ async function prCarregarHeader() {
   `;
 }
 
+// ===== Metas mensais (card pequeno do header -> janela). Por mês, várias metas; qualquer um marca;
+// pontuação 0-10 = concluídas/total × 10. =====
+let prMetasState = { pid: null, mesSel: null, metas: [] };
+const PR_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+function prMesAtualBRT() { return new Date(Date.now() - 180 * 60000).toISOString().slice(0, 7); }
+function prMesLabel(mes) { const [y, m] = mes.split('-'); return (PR_MESES[Number(m) - 1] || m) + ' ' + y; }
+function prMesShift(mes, delta) { const [y, m] = mes.split('-').map(Number); return new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7); }
+function prMetasScore(doMes) { const total = doMes.length, feitas = doMes.filter(x => x.concluida).length; return { total, feitas, score: total ? Math.round((feitas / total) * 100) / 10 : 0 }; }
+
+async function prAbrirMetasMes() {
+  const pac = prState.pacienteAtual; if (!pac) return;
+  prMetasState = { pid: pac.id, mesSel: prMesAtualBRT(), metas: [] };
+  let ov = document.getElementById('pr-metas-modal'); if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'pr-metas-modal';
+  ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'pr-metas-modal') ov.remove(); };
+  ov.innerHTML = '<div class="pac-modal" style="max-width:500px;">'
+    + '<div class="pac-modal-head"><div class="ttl"><i class="ti ti-target"></i> Metas do mês</div>'
+    + '<button class="pac-modal-close" onclick="document.getElementById(\'pr-metas-modal\').remove()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body" id="pr-metas-body"><div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando…</div></div></div>';
+  document.body.appendChild(ov);
+  await prMetasCarregar();
+}
+async function prMetasCarregar() {
+  let metas = [];
+  try { const r = await pacApi('/api/clinico/prontuario/patient/' + prMetasState.pid + '/metas-mes'); if (r.ok) metas = r.data.metas || []; } catch (e) {}
+  prMetasState.metas = metas;
+  prMetasRender();
+}
+function prMetasRender() {
+  const body = document.getElementById('pr-metas-body');
+  if (!body) return;   // modal fechado durante o fetch
+  const mes = prMetasState.mesSel;
+  const doMes = prMetasState.metas.filter(m => m.mes === mes);
+  const { total, feitas, score } = prMetasScore(doMes);
+  const nav = `<div class="metas-mes-nav">
+    <button class="mnav-btn" onclick="prMetasNav(-1)" title="Mês anterior"><i class="ti ti-chevron-left"></i></button>
+    <span class="mnav-lbl">${esc(prMesLabel(mes))}</span>
+    <button class="mnav-btn" onclick="prMetasNav(1)" title="Próximo mês"><i class="ti ti-chevron-right"></i></button>
+  </div>`;
+  const sc = `<div class="metas-score">
+    <span><span class="sc-num">${String(score).replace('.', ',')}</span><span class="sc-den">/10</span></span>
+    <div class="sc-bar"><div class="sc-fill" style="width:${total ? (feitas / total * 100) : 0}%"></div></div>
+    <span class="sc-den">${feitas}/${total} metas</span>
+  </div>`;
+  const lista = doMes.length ? doMes.map(m => `
+    <div class="meta-item${m.concluida ? ' feita' : ''}">
+      <input type="checkbox" class="mck" ${m.concluida ? 'checked' : ''} onchange="prMetasToggle('${m.id}', this.checked)">
+      <div class="mtxt">${esc(m.descricao)}${m.concluida && m.concluida_por ? `<div class="mmeta"><i class="ti ti-check"></i> ${esc(m.concluida_por)}</div>` : ''}</div>
+      <button class="mdel" onclick="prMetasDel('${m.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
+    </div>`).join('') : '<div class="pr-inj-obs" style="padding:10px 0;font-style:normal">Nenhuma meta neste mês. Adicione a primeira embaixo.</div>';
+  const add = `<div class="metas-add">
+    <input id="pr-meta-nova" maxlength="500" placeholder="Nova meta deste mês…" onkeydown="if(event.key==='Enter')prMetasAdd()">
+    <button onclick="prMetasAdd()"><i class="ti ti-plus"></i></button>
+  </div>`;
+  body.innerHTML = nav + sc + lista + add;
+}
+function prMetasNav(delta) { prMetasState.mesSel = prMesShift(prMetasState.mesSel, delta); prMetasRender(); }
+async function prMetasAdd() {
+  const inp = document.getElementById('pr-meta-nova'); if (!inp) return;
+  const descricao = (inp.value || '').trim(); if (!descricao) { inp.focus(); return; }
+  inp.disabled = true;
+  let r; try { r = await pacApi('/api/clinico/prontuario/patient/' + prMetasState.pid + '/metas-mes', { method: 'POST', body: JSON.stringify({ mes: prMetasState.mesSel, descricao }) }); } catch (e) { r = { ok: false, data: {} }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não adicionou: ' + ((r.data && r.data.erro) || 'erro')); inp.disabled = false; return; }
+  if (r.data && r.data.meta) prMetasState.metas.push({ ...r.data.meta, concluida: false, concluida_por: null });
+  prMetasRender();
+  prMetasHeaderRefresh();
+}
+async function prMetasToggle(id, concluida) {
+  try { await pacApi('/api/clinico/prontuario/metas-mes/' + id, { method: 'PATCH', body: JSON.stringify({ concluida }) }); } catch (e) {}
+  const m = prMetasState.metas.find(x => x.id === id); if (m) { m.concluida = concluida; m.concluida_por = concluida ? 'você' : null; }
+  prMetasRender();
+  prMetasHeaderRefresh();
+}
+async function prMetasDel(id) {
+  if (!confirm('Excluir esta meta?')) return;
+  try { await pacApi('/api/clinico/prontuario/metas-mes/' + id, { method: 'DELETE' }); } catch (e) {}
+  prMetasState.metas = prMetasState.metas.filter(x => x.id !== id);
+  prMetasRender();
+  prMetasHeaderRefresh();
+}
+// Atualiza o número do card do header (mês ATUAL) in-place, sem re-render pesado da timeline.
+function prMetasHeaderRefresh() {
+  const mesAtual = prMesAtualBRT();
+  const { total, feitas, score } = prMetasScore(prMetasState.metas.filter(m => m.mes === mesAtual));
+  if (prState.headerData) prState.headerData.metas_mes = { mes: mesAtual, feitas, total, score };
+  const el = document.querySelector('.pr-h2-bloco.metas .bl-valor');
+  if (el) el.textContent = String(score).replace('.', ',') + '/10';
+}
+
 // Novo agendamento pro paciente já aberto: abre o MESMO modal da agenda, sem sair do prontuário.
 // Os selects do modal (tipo/unidade/profissional) são preenchidos por agInit(), que só roda quando
 // a agenda abre — quem entra direto no prontuário abriria o modal vazio. Daí carregar o apoio antes.
@@ -19226,9 +19339,10 @@ function prRenderHeaderRico() {
     ...(h.semana_atual_de ? [{ label: 'Semana', valor: `${h.semana_atual_de}${h.total_semanas ? ' / ' + h.total_semanas : ''}`, classe: 'semana', icone: 'calendar-stats' }] : []),
     ...(h.fase_atual ? [{ label: 'Fase atual', valor: prFmtFase(h.fase_atual), classe: 'fase', icone: 'flame' }] : []),
     ...(h.status_clinico && h.status_clinico !== 'ESTAVEL' ? [{ label: 'Status clínico', valor: prFmtStatusClinico(h.status_clinico), classe: 'clinico-' + h.status_clinico, icone: 'activity-heartbeat' }] : []),
+    ...(h.metas_mes ? [{ label: 'Metas do mês', valor: String(h.metas_mes.score).replace('.', ',') + '/10', classe: 'metas', icone: 'target', onclick: 'prAbrirMetasMes()' }] : []),
   ];
   const blocosHtml = infoBlocos.map(b => `
-    <div class="pr-h2-bloco ${b.classe}">
+    <div class="pr-h2-bloco ${b.classe}"${b.onclick ? ` onclick="${b.onclick}" style="cursor:pointer;" title="Metas de cada mês (clique)"` : ''}>
       <div class="bl-label"><i class="ti ti-${b.icone}"></i> ${b.label}</div>
       <div class="bl-valor">${b.valor}</div>
     </div>
