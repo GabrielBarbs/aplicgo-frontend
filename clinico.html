@@ -6133,7 +6133,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-M</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-N</b></span></div>
   </div>
 </div>
 
@@ -23056,8 +23056,8 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
         <div class="pr-card-abas" onclick="event.stopPropagation()">
           <button class="aba ${aba === 'anterior' ? 'ativa' : ''}" ${podeAnterior ? '' : 'disabled'} onclick="prCardTrocarAba('${prof.tipo}', 'anterior')">Anterior</button>
           <button class="aba ${aba === 'atual' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'atual')">Atual</button>
-          ${prof.tipo === 'ENFERMAGEM' ? `<button class="aba ${aba === 'inj' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'inj')" title="Soroterapia / injetáveis: próximas e histórico de aplicações"><i class="ti ti-vaccine"></i> Aplicações</button>` : ''}
-          ${(prof.tipo === 'ENFERMAGEM' || prof.tipo === 'MEDICA') ? `<button class="aba ${aba === 'base' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'base')" title="Medicamento base (GLP-1): prescrições e aplicações"><i class="ti ti-pill"></i> Base</button>` : ''}
+          ${prof.tipo === 'ENFERMAGEM' ? `<button class="aba ${aba === 'inj' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'inj')" title="Soroterapia / injetáveis: próximas e histórico de aplicações"><i class="ti ti-vaccine"></i> Soroterapia</button>` : ''}
+          ${(prof.tipo === 'ENFERMAGEM' || prof.tipo === 'MEDICA') ? `<button class="aba ${aba === 'base' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'base')" title="Medicamento base (GLP-1): prescrições e aplicações"><i class="ti ti-pill"></i> Aplicações</button>` : ''}
           ${totalEvs > 0 ? `<button class="aba aba-todas" onclick="event.stopPropagation(); prVerTodasSetor('${prof.tipo}')" title="Ver todas as evoluções deste setor"><i class="ti ti-history"></i> Todas</button>` : ''}
         </div>
         ${conteudoHtml}
