@@ -20,7 +20,7 @@
     body{
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",system-ui,sans-serif;
       background:var(--bg1); color:var(--tx2); -webkit-font-smoothing:antialiased;
-      padding-top:48px; min-height:100vh;
+      padding-top:48px; padding-left:240px; min-height:100vh;  /* limpa a sidebar fixa (240) + topbar fina (48) */
     }
     a{color:inherit}
     .hidden{display:none!important}
@@ -143,7 +143,7 @@
     .toast.show{opacity:1;transform:none}
 
     @media(max-width:860px){
-      body{padding-top:0}
+      body{padding-top:0;padding-left:0}
       .app-sidebar{position:static;width:100%;flex-direction:row;flex-wrap:wrap;height:auto;border-right:0;border-bottom:1px solid var(--bd1)}
       .sidebar-brand{border-bottom:0;margin:0;padding-right:16px}
       .sidebar-nav{flex-direction:row;flex-wrap:wrap;flex:1 1 100%}
