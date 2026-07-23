@@ -18681,6 +18681,10 @@ function agRenderPacienteSelecionado() {
 function agLimparPaciente() {
   agState.pacienteSelecionado = null;
   document.getElementById('ag-form-patient-id').value = '';
+  // Trocar de paciente NÃO pode manter o vínculo da tarefa "Agendar consulta": senão, ao salvar, o
+  // agendamento do NOVO paciente concluiria (e depois reabriria) a tarefa do paciente ANTERIOR. O
+  // backend também barra (confere o dono), mas limpar aqui evita o erro e salva como consulta normal.
+  agState.consultaVinculo = null;
   agRenderPacienteSelecionado();
   setTimeout(() => document.getElementById('ag-pat-search').focus(), 50);
 }
