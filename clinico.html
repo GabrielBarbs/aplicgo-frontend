@@ -6149,7 +6149,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-O</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-P</b></span></div>
   </div>
 </div>
 
@@ -9412,6 +9412,10 @@
     </div>
     <div class="ag-acoes-info" id="ag-acoes-info"></div>
     <div class="ag-acoes-list">
+      <button class="ag-acao-btn ag-acao-primary" id="ag-acao-aplicar" style="display:none" onclick="agAcaoAplicarInj()">
+        <i class="ti ti-vaccine"></i>
+        <span>Aplicar soroterapia</span>
+      </button>
       <button class="ag-acao-btn ag-acao-primary" onclick="agAcaoAlterarAgendamento()" data-perm="agenda.editar">
         <i class="ti ti-edit"></i>
         <span>Alterar o agendamento</span>
@@ -15597,6 +15601,9 @@ function agAbrirAcoesModal(id) {
   document.querySelectorAll('#ag-acoes-modal [data-perm]').forEach(el => {
     el.style.display = temPermissaoExpr(el.dataset.perm) ? '' : 'none';
   });
+  // "Aplicar soroterapia" só aparece em agendamento de injetável e com permissão de aplicar.
+  const btnAp = document.getElementById('ag-acao-aplicar');
+  if (btnAp) btnAp.style.display = (ag && ag.prescricao_inj_id && (typeof temPermissao !== 'function' || temPermissao('prontuario.aplicacao.registrar'))) ? '' : 'none';
   document.getElementById('ag-acoes-modal').classList.add('aberto');
 }
 function agFecharAcoesModal() {
@@ -15620,6 +15627,15 @@ function agAcaoAlterarSituacao() {
   const id = agState.statusModalId;
   agFecharAcoesModal();
   if (id) agAbrirStatusModal(id);
+}
+
+// Aplicar soroterapia a partir do agendamento: abre o mesmo checklist da aba Soroterapia.
+function agAcaoAplicarInj() {
+  const id = agState.statusModalId;
+  const ag = (agState.agendamentos || []).find(x => x.id === id);
+  agFecharAcoesModal();
+  if (!ag || !ag.prescricao_inj_id || !ag.prescricao_semana) { if (typeof homeToast === 'function') homeToast('Este agendamento não é de soroterapia.'); return; }
+  injChecklistDaAgenda(ag.patient && ag.patient.id, ag.prescricao_inj_id, ag.prescricao_semana);
 }
 
 async function agAcaoExcluir() {
@@ -23327,6 +23343,16 @@ function injChecklistDaSoro(key) {
   const itens = PRINJ_SESS[key];
   if (!itens || !itens.length) { if (typeof homeToast === 'function') homeToast('Nada aplicável nesta sessão.'); return; }
   injChecklistAbrir(itens, key.split('|')[1]);
+}
+// Da AGENDA: busca os itens aplicáveis da sessão (prescrição+semana) e abre o mesmo checklist.
+async function injChecklistDaAgenda(patientId, prescId, semana) {
+  if (!patientId || !prescId || !semana) { if (typeof homeToast === 'function') homeToast('Agendamento sem vínculo de sessão.'); return; }
+  let r; try { r = await pacApi('/api/clinico/prescricoes-inj?patient_id=' + encodeURIComponent(patientId)); } catch (e) { r = { ok: false }; }
+  if (!r || !r.ok) { if (typeof homeToast === 'function') homeToast('Não carregou os itens da sessão.'); return; }
+  const presc = (r.data.prescricoes || []).find((p) => p.id === prescId);
+  const itens = presc ? (presc.itens || []).filter((it) => String(it.semana) === String(semana) && (it.status_item === 'liberado' || it.status_item === 'agendado')).map((it) => ({ id: it.id, nome: it.nome_ativo || it.sku_ativo || 'item', dose: prInjDose(it), via: it.via || '' })) : [];
+  if (!itens.length) { if (typeof homeToast === 'function') homeToast('Nada aplicável nesta sessão (já aplicada?).'); return; }
+  injChecklistAbrir(itens, semana);
 }
 function injChecklistAbrir(itens, semana) {
   const rows = itens.map((it) => `
