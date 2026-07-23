@@ -2232,25 +2232,33 @@
     .pr-h2-bloco.metas { background: rgba(29,158,117,0.10); border-color: rgba(29,158,117,0.35); color: #1D9E75; }
     .pr-h2-bloco.metas:hover { border-color: rgba(29,158,117,0.6); background: rgba(29,158,117,0.16); }
     /* Modal de metas mensais */
-    .metas-mes-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-    .metas-mes-nav .mnav-btn { background: var(--bg3); border: 1px solid var(--bd1); color: var(--tx2); width: 30px; height: 30px; border-radius: 7px; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; }
-    .metas-mes-nav .mnav-btn:disabled { opacity: .35; cursor: default; }
+    .metas-mes-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .metas-mes-nav .mnav-btn { background: var(--bg3); border: 1px solid var(--bd1); color: var(--tx2); width: 32px; height: 32px; border-radius: 9px; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s, color .15s; }
+    .metas-mes-nav .mnav-btn:hover { background: rgba(29,158,117,0.14); border-color: rgba(29,158,117,0.4); color: #1D9E75; }
     .metas-mes-nav .mnav-lbl { font-weight: 700; color: var(--tx1); font-size: 15px; text-transform: capitalize; }
-    .metas-score { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .metas-score .sc-num { font-size: 26px; font-weight: 800; color: #1D9E75; line-height: 1; }
-    .metas-score .sc-den { font-size: 14px; color: var(--tx3b); }
-    .metas-score .sc-bar { flex: 1; height: 8px; border-radius: 5px; background: var(--bg3); overflow: hidden; }
-    .metas-score .sc-fill { height: 100%; background: #1D9E75; border-radius: 5px; transition: width .3s; }
-    .meta-item { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-top: 1px solid var(--bg3); }
-    .meta-item .mck { width: 20px; height: 20px; flex-shrink: 0; cursor: pointer; accent-color: #1D9E75; margin-top: 1px; }
-    .meta-item .mtxt { flex: 1; font-size: 13px; color: var(--tx1); }
-    .meta-item.feita .mtxt { color: var(--tx3b); text-decoration: line-through; }
-    .meta-item .mmeta { font-size: 10.5px; color: var(--tx4); margin-top: 2px; }
-    .meta-item .mdel { background: none; border: 0; color: var(--tx4); cursor: pointer; font-size: 14px; padding: 2px; }
+    .metas-score { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; padding: 12px 14px; background: rgba(29,158,117,0.07); border: 1px solid rgba(29,158,117,0.18); border-radius: 12px; }
+    .metas-score .sc-num { font-size: 30px; font-weight: 800; color: #1D9E75; line-height: 1; letter-spacing: -0.5px; }
+    .metas-score .sc-den { font-size: 13px; color: var(--tx3b); white-space: nowrap; }
+    .metas-score .sc-bar { flex: 1; height: 8px; border-radius: 6px; background: rgba(var(--bg3-rgb),0.7); overflow: hidden; }
+    .metas-score .sc-fill { height: 100%; background: linear-gradient(90deg, #1D9E75, #2BB673); border-radius: 6px; transition: width .35s ease; }
+    .metas-lista { margin-top: 8px; }
+    .meta-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 8px; border-radius: 8px; transition: background .12s; }
+    .meta-item + .meta-item { border-top: 1px solid var(--bg3); }
+    .meta-item:hover { background: rgba(var(--bg3-rgb),0.35); }
+    .meta-item .mck { width: 19px; height: 19px; flex-shrink: 0; cursor: pointer; accent-color: #1D9E75; margin-top: 1px; }
+    .meta-item .mtxt { flex: 1; font-size: 13px; color: var(--tx1); line-height: 1.35; }
+    .meta-item .mdesc { color: var(--tx1); }
+    .meta-item.feita .mdesc { color: var(--tx3b); text-decoration: line-through; }
+    .meta-item .mmeta { font-size: 10.5px; color: var(--tx4); margin-top: 3px; display: flex; align-items: center; gap: 3px; }
+    .meta-item .mmeta i { font-size: 12px; color: #1D9E75; }
+    .meta-item .mdel { background: none; border: 0; color: var(--tx4); cursor: pointer; font-size: 14px; padding: 3px; border-radius: 6px; opacity: 0; transition: opacity .12s, color .12s; }
+    .meta-item:hover .mdel { opacity: 1; }
     .meta-item .mdel:hover { color: #f85149; }
-    .metas-add { display: flex; gap: 6px; margin-top: 12px; }
-    .metas-add input { flex: 1; padding: 8px 10px; background: var(--bg2); border: 1px solid var(--bg3); color: var(--tx1); border-radius: 7px; font-size: 13px; }
-    .metas-add button { background: #1D9E75; border: 0; color: #fff; border-radius: 7px; padding: 0 12px; cursor: pointer; font-weight: 600; }
+    .metas-add { display: flex; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--bg3); }
+    .metas-add input { flex: 1; padding: 9px 12px; background: var(--bg2); border: 1px solid var(--bg3); color: var(--tx1); border-radius: 9px; font-size: 13px; }
+    .metas-add input:focus { outline: none; border-color: rgba(29,158,117,0.5); }
+    .metas-add button { background: #1D9E75; border: 0; color: #fff; border-radius: 9px; padding: 0 14px; cursor: pointer; font-weight: 600; font-size: 16px; display: flex; align-items: center; }
+    .metas-add button:hover { background: #17835f; }
     .pr-h2-editar {
       background: transparent; border: 1px solid var(--bd1);
       color: var(--tx3); width: 34px; height: 34px;
@@ -19071,8 +19079,8 @@ async function prAbrirMetasMes() {
   ov.id = 'pr-metas-modal';
   ov.className = 'ag-modal-overlay aberto';
   ov.onclick = function (e) { if (e.target.id === 'pr-metas-modal') ov.remove(); };
-  ov.innerHTML = '<div class="pac-modal" style="max-width:500px;">'
-    + '<div class="pac-modal-head"><div class="ttl"><i class="ti ti-target"></i> Metas do mês</div>'
+  ov.innerHTML = '<div class="pac-modal" style="max-width:480px;">'
+    + '<div class="pac-modal-header"><div class="ttl"><i class="ti ti-target"></i> Metas do mês</div>'
     + '<button class="pac-modal-close" onclick="document.getElementById(\'pr-metas-modal\').remove()"><i class="ti ti-x"></i></button></div>'
     + '<div class="pac-modal-body" id="pr-metas-body"><div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando…</div></div></div>';
   document.body.appendChild(ov);
@@ -19101,12 +19109,13 @@ function prMetasRender() {
     <div class="sc-bar"><div class="sc-fill" style="width:${total ? (feitas / total * 100) : 0}%"></div></div>
     <span class="sc-den">${feitas}/${total} metas</span>
   </div>`;
-  const lista = doMes.length ? doMes.map(m => `
+  const itens = doMes.length ? doMes.map(m => `
     <div class="meta-item${m.concluida ? ' feita' : ''}">
       <input type="checkbox" class="mck" ${m.concluida ? 'checked' : ''} onchange="prMetasToggle('${m.id}', this.checked)">
-      <div class="mtxt">${esc(m.descricao)}${m.concluida && m.concluida_por ? `<div class="mmeta"><i class="ti ti-check"></i> ${esc(m.concluida_por)}</div>` : ''}</div>
+      <div class="mtxt"><span class="mdesc">${esc(m.descricao)}</span>${m.concluida && m.concluida_por ? `<div class="mmeta"><i class="ti ti-check"></i> ${esc(m.concluida_por)}</div>` : ''}</div>
       <button class="mdel" onclick="prMetasDel('${m.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
-    </div>`).join('') : '<div class="pr-inj-obs" style="padding:10px 0;font-style:normal">Nenhuma meta neste mês. Adicione a primeira embaixo.</div>';
+    </div>`).join('') : '<div class="pr-inj-obs" style="padding:14px 4px;font-style:normal">Nenhuma meta neste mês. Adicione a primeira embaixo.</div>';
+  const lista = `<div class="metas-lista">${itens}</div>`;
   const add = `<div class="metas-add">
     <input id="pr-meta-nova" maxlength="500" placeholder="Nova meta deste mês…" onkeydown="if(event.key==='Enter')prMetasAdd()">
     <button onclick="prMetasAdd()"><i class="ti ti-plus"></i></button>
