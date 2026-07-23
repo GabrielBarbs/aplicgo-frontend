@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AA</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AB</b></span></div>
   </div>
 </div>
 
@@ -14573,7 +14573,7 @@ function pacFecharModal() {
 async function pacLookupTelefone() {
   const tel = document.getElementById('pac-telefone1').value;
   if (!tel) return;
-  const r = await pacApi('/api/clinico/patients/lookup?phone=' + encodeURIComponent(tel));
+  const r = await pacApi('/api/clinico/patients/lookup', { method: 'POST', body: JSON.stringify({ phone: tel }) });
   if (!r.ok) return;
   const alertWrap = document.getElementById('pac-lead-alert-wrap');
   if (r.data.paciente) {
