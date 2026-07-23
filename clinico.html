@@ -6155,7 +6155,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-Q</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-R</b></span></div>
   </div>
 </div>
 
@@ -22974,6 +22974,14 @@ function prRenderCardsPorProfissional() {
   return `<div class="pr-cards-profissionais" id="pr-cards-grid">${slots}</div>`;
 }
 
+// REGRA DE UNIDADE: só quem é da unidade do paciente vê Soroterapia/Aplicações dele. Paciente sem
+// unidade, ou usuário sem unidades cadastradas (ex.: admin), não esconde. O backend também barra a ação.
+function prNaUnidadeDoPaciente() {
+  const pu = prState.headerData && prState.headerData.unidade && prState.headerData.unidade.id;
+  if (!pu) return true;
+  if (!meData || !Array.isArray(meData.unidades) || !meData.unidades.length) return true;
+  return meData.unidades.some((u) => u.id === pu);
+}
 function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
   const cor = prof.cor;
   const aba = (prState.cardAba?.[prof.tipo]) || 'atual';
@@ -22981,14 +22989,14 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
   const totalEvs = (atual ? 1 : 0) + (anterior ? 1 : 0);
 
   let conteudoHtml;
-  if (aba === 'inj' && prof.tipo === 'ENFERMAGEM') {
+  if (aba === 'inj' && prof.tipo === 'ENFERMAGEM' && prNaUnidadeDoPaciente()) {
     // Aba "Aplicações": droga atual + histórico (dose/quem/data) + próximas com aplicar/desfazer.
     // Carrega async (prInjCarregar). Usa cache pra NÃO piscar "Carregando" a cada re-render da timeline
     // (recolher/expandir, load async); cache de outro paciente cai no loading até recarregar.
     const _pidInj = prState.pacienteAtual && prState.pacienteAtual.id;
     const _injHtml = (prState.injCache && prState.injCache.pid === _pidInj) ? prState.injCache.html : '<div class="pr-inj-load"><i class="ti ti-loader"></i> Carregando aplicações…</div>';
     conteudoHtml = '<div id="pr-inj-box" class="pr-inj-box">' + _injHtml + '</div>';
-  } else if (aba === 'base' && (prof.tipo === 'ENFERMAGEM' || prof.tipo === 'MEDICA')) {
+  } else if (aba === 'base' && (prof.tipo === 'ENFERMAGEM' || prof.tipo === 'MEDICA') && prNaUnidadeDoPaciente()) {
     // Aba "Base": medicamento base (GLP-1). Enfermagem E médica veem/aplicam. Uso CLASSE pr-base-box (não id)
     // porque os dois cards podem ter a Base aberta ao mesmo tempo — prBaseCarregar popula todos.
     const _pidB = prState.pacienteAtual && prState.pacienteAtual.id;
@@ -23094,8 +23102,8 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
         <div class="pr-card-abas" onclick="event.stopPropagation()">
           <button class="aba ${aba === 'anterior' ? 'ativa' : ''}" ${podeAnterior ? '' : 'disabled'} onclick="prCardTrocarAba('${prof.tipo}', 'anterior')">Anterior</button>
           <button class="aba ${aba === 'atual' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'atual')">Atual</button>
-          ${prof.tipo === 'ENFERMAGEM' ? `<button class="aba ${aba === 'inj' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'inj')" title="Soroterapia / injetáveis: próximas e histórico de aplicações"><i class="ti ti-vaccine"></i> Soroterapia</button>` : ''}
-          ${(prof.tipo === 'ENFERMAGEM' || prof.tipo === 'MEDICA') ? `<button class="aba ${aba === 'base' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'base')" title="Medicamento base (GLP-1): prescrições e aplicações"><i class="ti ti-pill"></i> Aplicações</button>` : ''}
+          ${prof.tipo === 'ENFERMAGEM' && prNaUnidadeDoPaciente() ? `<button class="aba ${aba === 'inj' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'inj')" title="Soroterapia / injetáveis: próximas e histórico de aplicações"><i class="ti ti-vaccine"></i> Soroterapia</button>` : ''}
+          ${(prof.tipo === 'ENFERMAGEM' || prof.tipo === 'MEDICA') && prNaUnidadeDoPaciente() ? `<button class="aba ${aba === 'base' ? 'ativa' : ''}" onclick="prCardTrocarAba('${prof.tipo}', 'base')" title="Medicamento base (GLP-1): prescrições e aplicações"><i class="ti ti-pill"></i> Aplicações</button>` : ''}
           ${totalEvs > 0 ? `<button class="aba aba-todas" onclick="event.stopPropagation(); prVerTodasSetor('${prof.tipo}')" title="Ver todas as evoluções deste setor"><i class="ti ti-history"></i> Todas</button>` : ''}
         </div>
         ${conteudoHtml}
