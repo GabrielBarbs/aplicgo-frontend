@@ -11063,6 +11063,10 @@ function homeTkRenderDetalhe() {
   if (!concl && t.origem_tipo === 'inj_agendar' && t.origem_id && t.origem_semana && t.patient_id && podeAgir) {
     acts.push(`<button class="tk-btn primary" onclick="homeTarefaAgendarSessao('${t.origem_id}', ${t.origem_semana}, '${t.patient_id}', this)"><i class="ti ti-calendar-plus"></i> Agendar sessão ${t.origem_semana}</button>`);
   }
+  // Consulta recomendada no onboarding: abre a agenda no paciente -> ao salvar, esta tarefa se conclui sozinha.
+  if (!concl && t.origem_tipo === 'consulta_agendar' && t.patient_id && podeAgir) {
+    acts.push(`<button class="tk-btn primary" onclick="homeTarefaAgendarConsulta('${t.id}', '${t.patient_id}', this)"><i class="ti ti-calendar-plus"></i> Agendar consulta</button>`);
+  }
   // recusada "quicou" pro criador: ele resolve via Reatribuir/Cancelar, não Concluir direto.
   if (!concl && t.aceite !== 'recusada' && podeAgir && t.origem_tipo !== 'inj_contrato') acts.push(`<button class="tk-btn primary" onclick="homeTarefaConcluir('${t.id}', this)"><i class="ti ti-check"></i> Concluir</button>`);
   if (concl && podeAgir) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReabrir('${t.id}')"><i class="ti ti-refresh"></i> Reabrir</button>`);
@@ -11183,6 +11187,23 @@ async function homeTarefaAgendarSessao(prescId, semana, patientId, btn) {
   // Por ÚLTIMO: o modo deriva do vínculo, e quando não acha o tipo ele avisa. Se rodasse antes do
   // toast acima, o aviso seria apagado 1ms depois e ninguém leria justamente o que exige ação.
   agAplicarModoInjecao();
+}
+// Igual ao de sessão, mas pra a "próxima consulta recomendada" do onboarding: abre a agenda no paciente
+// e amarra a tarefa (consultaVinculo). Consulta NORMAL — não entra no modo injeção.
+async function homeTarefaAgendarConsulta(taskId, patientId, btn) {
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Abrindo...'; }
+  try { if (typeof prGarantirApoioAgenda === 'function') await prGarantirApoioAgenda(); }
+  catch (e) { if (btn) { btn.disabled = false; btn.innerHTML = orig; } homeToast('Não consegui carregar os tipos de atendimento agora. Tente de novo.'); return; }
+  let pac = null;
+  try { const r = await pacApi('/api/clinico/patients/' + patientId); if (r.ok && r.data) pac = r.data.paciente || r.data; } catch (e) {}
+  if (btn) { btn.disabled = false; btn.innerHTML = orig; }
+  if (!pac || !pac.id) { homeToast('Não consegui carregar o paciente desta tarefa.'); return; }
+  homeAtencaoFechar();
+  agAbrirNovoModal();   // agResetForm() limpa o vínculo
+  agSelecionarPaciente({ id: pac.id, codigo: pac.codigo, nome: pac.nome_completo || pac.nome, telefone: pac.telefone1, status: pac.status });
+  agState.consultaVinculo = { taskId };   // depois do reset -> ao salvar, conclui a tarefa
+  homeToast('Agendando a consulta. Ao salvar, a tarefa se conclui sozinha.');
 }
 
 // Tarefa de contrato = COBRAR, e só. Leva pra fila de cobrança (gerar orçamento -> registrar
@@ -18172,6 +18193,7 @@ function agResetForm() {
   // Limpar aqui é obrigatório: sem isso o PRÓXIMO agendamento herdaria a sessão do anterior e
   // fecharia a tarefa errada. Quem vem da tarefa seta o vínculo DEPOIS deste reset.
   agState.injVinculo = null;
+  agState.consultaVinculo = null;
   agState.injSemProf = false;
   agRenderPacienteSelecionado();
   document.getElementById('ag-type').value = '';
@@ -18809,6 +18831,8 @@ async function agSalvar() {
     body.prescricao_inj_id = agState.injVinculo.prescricaoId;
     body.prescricao_semana = agState.injVinculo.semana;
   }
+  // Veio da tarefa "Agendar consulta" (onboarding): ao salvar, a tarefa se conclui sozinha.
+  if (!id && agState.consultaVinculo) body.consulta_task_id = agState.consultaVinculo.taskId;
 
   // Recorrência: vale na criação e também na edição (aí reescreve a série daqui pra frente).
   const recorTog = document.getElementById('ag-recorrente-toggle');
@@ -18856,14 +18880,14 @@ async function agSalvar() {
     return;
   }
   if (mudouRecor) homeToast(`Série atualizada: ${r.data.criados} agendamento(s) daqui pra frente.`);
-  const eraInj = !!body.prescricao_inj_id;
+  const eraVinculo = !!body.prescricao_inj_id || !!body.consulta_task_id;
   agFecharModal();
   agCarregar();
   // Agendar a sessão CONCLUI a tarefa no servidor, e o toast promete isso pra quem clicou. Mas o
   // modal abre por cima da HOME, então sem este sync a tarefa que acabou de fechar continuava na
   // cara da pessoa até um F5 — a tela desmentindo a própria promessa. Só quando houve vínculo:
   // agendamento comum não mexe em tarefa nenhuma.
-  if (eraInj && typeof homeTarefasSync === 'function') homeTarefasSync();
+  if (eraVinculo && typeof homeTarefasSync === 'function') homeTarefasSync();
 }
 
 // A recorrência mudou em relação ao que estava salvo? Só isso justifica reescrever a série.
