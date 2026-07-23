@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#6f7c5e" />
-  <title>Avaliação Inicial de Saúde com o Dr. Matheus Severino</title>
+  <title>Avaliação Estratégica de Saúde | Dr. Matheus Severino — Mobile V2</title>
 
   <meta name="theme-color" content="#263128">
   <meta name="color-scheme" content="light">
   <meta name="format-detection" content="telephone=no">
-  <meta name="description" content="Responda 8 perguntas e receba uma leitura inicial da sua saúde feita pelo Dr. Matheus Severino, antes da sua primeira conversa com a equipe dele.">
+  <meta name="description" content="Avaliação Estratégica de Saúde com o Dr. Matheus Severino.">
   <link rel="preload" href="/assets/hero-clinica-m.webp" as="image" type="image/webp" media="(max-width:959px)">
   <link rel="preload" href="/assets/hero-clinica-d.webp" as="image" type="image/webp" media="(min-width:960px)">
   <link rel="preload" href="/assets/face.webp" as="image" type="image/webp">
@@ -1563,22 +1563,22 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
     <section id="intro" class="screen active card">
       <div class="hero">
         <div class="hero-copy">
-          <span class="eyebrow">Avaliação inicial · Dr. Matheus Severino</span>
-          <h1>Antes da nossa primeira conversa, vamos entender o seu estado de saúde.</h1>
-          <p class="lead">Em menos de 2 minutos, você responde e o Dr. Matheus recebe um mapa inicial da sua saúde para orientar sua prioridade e conduzir o primeiro contato.</p>
+          <span class="eyebrow">Avaliação estratégica de saúde</span>
+          <h1>Seu corpo, sua energia e sua saúde refletem a vida que você deseja viver?</h1>
+          <p class="lead">Em menos de 2 minutos, identifique quais áreas merecem prioridade e ajude nossa equipe a compreender seu momento antes do primeiro contato.</p>
           <div class="trust-row">
             <span>✓ 8 perguntas rápidas</span>
-            <span>✓ Leitura clínica personalizada</span>
-            <span>✓ Analisada pelo próprio Dr. Matheus</span>
+            <span>✓ Resultado inicial personalizado</span>
+            <span>✓ Análise pela equipe</span>
           </div>
           <div>
-            <a id="startAssessmentBtn" class="primary-btn" href="#questionScreen" role="button">Iniciar minha avaliação com o Dr. Matheus →</a>
+            <a id="startAssessmentBtn" class="primary-btn" href="#questionScreen" role="button">Iniciar minha avaliação →</a>
           </div>
         </div>
         <div class="hero-art">
           <div class="art-content">
             <div class="art-number">01</div>
-            <p>Uma primeira leitura da sua saúde, que o Dr. Matheus analisa antes da nossa conversa. Não substitui consulta, avaliação clínica ou diagnóstico médico.</p>
+            <p>Uma primeira leitura da sua prioridade. Não substitui consulta, avaliação clínica ou diagnóstico médico.</p>
           </div>
         </div>
       </div>
@@ -1616,8 +1616,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
       <div class="question">
         <div class="question-head">
           <small>Última etapa</small>
-          <h2>Para o Dr. Matheus analisar suas respostas</h2>
-          <p>Preencha seus dados para o Dr. Matheus chegar à conversa com uma leitura mais direcionada. O Instagram é opcional e ajuda a entender melhor o seu contexto.</p>
+          <h2>Para nossa equipe analisar suas respostas</h2>
+          <p>Preencha seus dados para receber uma abordagem mais direcionada. O Instagram ajuda nossa equipe a compreender melhor seu contexto.</p>
         </div>
         <form id="contactForm">
           <div class="form-grid">
@@ -1631,11 +1631,11 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
             </div>
             <div class="field">
               <label for="whatsapp">WhatsApp *</label>
-              <input id="whatsapp" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" placeholder="(34) 99999-9999" minlength="8" required />
+              <input id="whatsapp" name="whatsapp" type="tel" autocomplete="tel" placeholder="(34) 99999-9999" required />
             </div>
             <div class="field">
-              <label for="instagram">Instagram</label>
-              <input id="instagram" name="instagram" type="text" placeholder="@seuinstagram" autocomplete="off" />
+              <label for="instagram">Instagram *</label>
+              <input id="instagram" name="instagram" type="text" placeholder="@seuinstagram" required />
             </div>
             <div class="field">
               <label for="email">E-mail</label>
@@ -1670,7 +1670,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
           </div>
           <label class="consent">
             <input id="consent" type="checkbox" required />
-            <span>Autorizo o uso destas informações para análise da minha solicitação e contato da equipe Aplic &amp; Go, conforme a <a href="https://aplicgo.com/privacidade" target="_blank" rel="noopener">política de privacidade</a>. Esta avaliação não representa diagnóstico médico.</span>
+            <span>Autorizo o uso destas informações para análise da minha solicitação e contato da equipe Aplic & Go, conforme a política de privacidade. Esta avaliação não representa diagnóstico médico.</span>
           </label>
           <div class="question-actions">
             <button id="contactBackBtn" type="button" class="back-btn">← Voltar</button>
@@ -1682,7 +1682,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
 
     <section id="resultScreen" class="screen card">
       <div class="result">
-        <span class="result-badge">Seu mapa inicial de saúde</span>
+        <span class="result-badge">Mapa inicial de prioridades</span>
         <h2 id="resultTitle" style="margin-top:16px"></h2>
         <p id="resultIntro" class="lead"></p>
         <div class="result-grid">
@@ -1693,20 +1693,20 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
           </div>
           <div class="result-panel">
             <div id="scoreRing" class="score-ring"><strong id="scoreValue">✓</strong></div>
-            <p class="score-note">Seu mapa inicial foi concluído. A classificação de prioridade é usada apenas pelo Dr. Matheus e pela equipe dele, e não representa diagnóstico médico.</p>
+            <p class="score-note">Seu mapa inicial foi concluído. A classificação de prioridade é usada apenas pela equipe e não representa diagnóstico médico.</p>
           </div>
         </div>
         <div class="result-panel" style="margin-top:20px">
-          <h3>Seu próximo passo com o Dr. Matheus</h3>
-          <p>A equipe do Dr. Matheus recebe seu mapa e o próprio Dr. orienta sua prioridade e o próximo passo. Para antecipar a conversa, fale com a gente agora.</p>
-          <a id="whatsappCta" class="primary-btn" href="#" target="_blank" rel="noopener">Falar com a equipe do Dr. Matheus →</a>
+          <h3>Próximo passo</h3>
+          <p>Nossa equipe receberá suas respostas e poderá entrar em contato de forma contextualizada. Caso deseje antecipar a conversa, use o botão abaixo.</p>
+          <a id="whatsappCta" class="primary-btn" href="#" target="_blank" rel="noopener">Falar com a equipe no WhatsApp</a>
         </div>
       </div>
     </section>
   </main>
 
   <footer>
-    Dr. Matheus Severino • Aplic & Go • Uberlândia e Ituiutaba • Conteúdo informativo, sem finalidade diagnóstica.
+    Aplic & Go • Uberlândia e Ituiutaba • Conteúdo informativo, sem finalidade diagnóstica.
   </footer>
 </div>
 
@@ -1865,17 +1865,9 @@ const questions = [
     ]
   },
   {
-    id:"pain", type:"single",
-    title:"Qual dessas situações mais se aproxima do que você vive hoje?",
-    subtitle:"Escolha a que melhor representa seu principal desafio neste momento.",
-    options:[
-      ["corpo_disposicao","Percebi piora no corpo e na disposição"],
-      ["sono_estresse","Meu sono, estresse e rendimento estão se afetando"],
-      ["saude_composicao","Quero melhorar minha saúde e minha composição corporal"],
-      ["performance_longevidade","Quero ter mais performance hoje sem comprometer minha saúde no futuro"],
-      ["varias_areas","Sinto que várias áreas da minha saúde precisam de atenção"],
-      ["nao_sei","Não consigo identificar por onde devo começar"]
-    ]
+    id:"pain", type:"dynamic",
+    title:"Qual situação melhor representa seu momento atual?",
+    subtitle:"Escolha o ponto que mais incomoda ou limita você."
   },
   {
     id:"impact", type:"range",
@@ -1910,14 +1902,14 @@ const questions = [
   },
   {
     id:"care", type:"single",
-    title:"Como você imagina o acompanhamento ideal para você?",
+    title:"Qual nível de acompanhamento faria mais sentido para você?",
     subtitle:"Essa resposta nos ajuda a compreender sua expectativa.",
     options:[
-      ["evaluation","Quero entender meu cenário primeiro"],
-      ["plan","Quero um plano personalizado com retornos pontuais"],
-      ["multi","Quero um programa estruturado para atingir um objetivo específico"],
-      ["management","Quero alguém acompanhando minha saúde de forma contínua"],
-      ["unsure","Ainda não sei qual faz mais sentido para mim"]
+      ["evaluation","Uma avaliação médica para entender meu cenário"],
+      ["plan","Um plano personalizado com revisões"],
+      ["multi","Um programa completo com equipe e acompanhamento"],
+      ["management","Gestão contínua da saúde, com dados e ajustes"],
+      ["unsure","Ainda não sei qual formato é o mais adequado"]
     ]
   },
   {
@@ -2032,11 +2024,11 @@ function renderMicroInsight(id){
   }
 
   if(id==="care"){
-    content="<strong>Mais não significa melhor.</strong> O Dr. Matheus prioriza combinar avaliação, estratégia e ajustes na intensidade certa para o seu momento — não acumular protocolos isolados.";
+    content="<strong>Mais não significa melhor.</strong> O valor está em combinar avaliação, estratégia e ajustes na intensidade certa para o seu momento.";
   }
 
   if(id==="priority"){
-    content="<strong>Seu mapa de saúde já está quase pronto.</strong> Até aqui o Dr. Matheus já enxerga sua prioridade, o impacto na rotina, suas tentativas e o acompanhamento que faz sentido para você.";
+    content="<strong>Seu mapa já está quase pronto.</strong> Até aqui entendemos sua prioridade, o impacto na rotina, suas tentativas e o nível de acompanhamento que você procura.";
   }
 
   el.innerHTML=content;
@@ -2061,6 +2053,7 @@ function optionButton(id,value,title,subtitle,icon,multi=false,max=99){
       }
       state.answers[id]=arr; renderQuestion();
     }else{
+      if(id==="goal" && state.answers.goal!==value) delete state.answers.pain;
       state.answers[id]=value;
       document.querySelectorAll(".option").forEach(x=>{x.classList.remove("selected");x.setAttribute("aria-pressed","false");});
       b.classList.add("selected"); b.setAttribute("aria-pressed","true");
@@ -2230,7 +2223,7 @@ function showResult(lead){
   qs("resultList").innerHTML=c.list.map(x=>`<li>${x}</li>`).join("");
   qs("scoreValue").textContent="✓";
   qs("scoreRing").style.background="conic-gradient(var(--olive) 360deg,#e4e8e0 0deg)";
-  const msg=`Olá! Fiz a avaliação inicial do Dr. Matheus Severino e gostaria de falar com a equipe dele. Minha prioridade principal é ${LABELS.goal[lead.answers.goal]}. Meu nome é ${lead.name}.`;
+  const msg=`Olá! Concluí a Avaliação Estratégica de Saúde do Dr. Matheus. Minha prioridade principal é ${LABELS.goal[lead.answers.goal]}. Meu nome é ${lead.name}.`;
   qs("whatsappCta").href=`https://wa.me/${normalizeBR(CONFIG.WHATSAPP_NUMBER)}?text=${encodeURIComponent(msg)}`;
   setScreen("resultScreen");
 }
@@ -2284,6 +2277,10 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function valueLabel(id,value){
   if(id==="unit")return {udi:"Uberlândia",itb:"Ituiutaba",remote:"Possibilidades remotas",unsure:"Ainda não sei"}[value]||value;
   const q=questions.find(x=>x.id===id);
+  if(id==="pain"){
+    const lead=getLeads().find(x=>x.id===currentLeadId);
+    const o=(painOptions[lead?.answers.goal]||[]).find(x=>x[0]===value);return o?.[1]||value;
+  }
   const o=q?.options?.find(x=>x[0]===value);return o?.[1]||value;
 }
 function listLabels(id,arr){return (arr||[]).map(v=>valueLabel(id,v)).join(", ")||"—"}
@@ -2344,6 +2341,7 @@ function exportCSV(){
   downloadBlob(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),"leads_aplic.csv");
 }
 function valueLabelForLead(l,id,value){
+  if(id==="pain"){const o=(painOptions[l.answers.goal]||[]).find(x=>x[0]===value);return o?.[1]||value}
   return valueLabel(id,value);
 }
 function listLabelsForLead(l,id,arr){return (arr||[]).map(v=>valueLabelForLead(l,id,v)).join(", ")}
