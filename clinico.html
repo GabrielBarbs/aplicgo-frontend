@@ -24270,6 +24270,8 @@ function prEvolRenderForm() {
       let _op = '<option value="">--</option>';
       for (let _n = 0; _n <= 10; _n++) _op += `<option value="${_n}" ${String(valor) === String(_n) ? 'selected' : ''}>${_n}</option>`;
       inputHtml = `<select id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:90px;">${_op}</select>`;
+    } else if (c.tipo === 'data') {
+      inputHtml = `<input type="date" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:180px;">`;
     } else {
       inputHtml = `<input type="text" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)">`;
     }
