@@ -14,7 +14,6 @@
   <link rel="preload" href="/assets/hero-clinica-d.webp" as="image" type="image/webp" media="(min-width:960px)">
   <link rel="icon" href="/assets/aplic-mark.png" type="image/png">
 
-  <meta name="description" content="Avaliação estratégica de corpo, metabolismo, energia, performance e longevidade." />
   <style>
     :root{
       --olive:#6f7c5e;
@@ -1591,7 +1590,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
           <div class="trust-row">
             <span>✓ 8 perguntas rápidas</span>
             <span>✓ Seu Mapa Aplic inicial</span>
-            <span>✓ Método integrado: médico, nutrição, treino e dados</span>
+            <span>✓ Método Aplic: médico, nutrição, treino, sono e dados</span>
           </div>
           <div>
             <a id="startAssessmentBtn" class="primary-btn" href="#questionScreen" role="button">Descobrir meu caminho Aplic →</a>
@@ -2219,25 +2218,25 @@ function resultCopy(goal){
     body:{
       title:"Sua prioridade principal está em corpo e metabolismo.",
       intro:"Suas respostas mostram que a questão provavelmente vai além de uma meta isolada na balança.",
-      interpretation:"A condução tende a exigir uma leitura integrada de composição corporal, histórico de tentativas, manutenção, rotina e segurança médica.",
+      interpretation:"No Método Aplic, a condução integra composição corporal, histórico de tentativas, manutenção, rotina e segurança médica — o caminho de cuidado é montado a partir dessa leitura, não de uma ação isolada.",
       list:["Composição corporal e metabolismo","Estratégia de perda e preservação de massa magra","Plano de manutenção e acompanhamento contínuo"]
     },
     performance:{
       title:"Sua prioridade principal está em energia e performance.",
       intro:"Sua rotina parece exigir mais do que seu corpo e sua recuperação estão entregando neste momento.",
-      interpretation:"Energia, foco, sono, condicionamento e recuperação devem ser analisados em conjunto antes de definir qualquer estratégia.",
+      interpretation:"No Método Aplic, energia, foco, sono, condicionamento e recuperação são lidos em conjunto para desenhar o caminho de cuidado mais adequado ao seu momento.",
       list:["Sono e recuperação","Capacidade física e composição corporal","Marcadores clínicos e impacto da rotina"]
     },
     longevity:{
       title:"Sua prioridade principal está em longevidade e prevenção.",
       intro:"Você não está buscando apenas resolver um sintoma, mas construir saúde para os próximos anos.",
-      interpretation:"O próximo passo é transformar dados, histórico familiar, capacidade física e marcadores clínicos em prioridades acompanháveis.",
+      interpretation:"No Método Aplic, dados, histórico familiar, capacidade física e marcadores clínicos viram prioridades acompanháveis dentro de um caminho de cuidado contínuo.",
       list:["Risco metabólico e biomarcadores","Força, aptidão e autonomia","Estratégia contínua de prevenção"]
     },
     integrated:{
       title:"Seu cenário pede uma avaliação integrada.",
       intro:"Quando corpo, energia, sono e saúde futura se misturam, escolher uma solução isolada pode ser insuficiente.",
-      interpretation:"A prioridade é organizar o cenário, identificar os fatores de maior impacto e definir uma sequência de intervenção possível para sua rotina.",
+      interpretation:"O Método Aplic organiza o cenário, identifica os fatores de maior impacto e define a sequência do seu caminho de cuidado — na intensidade certa para a sua rotina.",
       list:["Hierarquia das prioridades","Integração entre corpo, rotina e marcadores","Acompanhamento com ajustes ao longo do processo"]
     }
   }[goal||"integrated"];
@@ -2252,7 +2251,7 @@ function showResult(lead){
   qs("resultList").innerHTML=c.list.map(x=>`<li>${x}</li>`).join("");
   qs("scoreValue").textContent="✓";
   qs("scoreRing").style.background="conic-gradient(var(--olive) 360deg,#e4e8e0 0deg)";
-  const msg=`Olá, equipe Aplic & Go! Concluí minha Avaliação Estratégica (meu Mapa Aplic). Minha prioridade principal é ${LABELS.goal[lead.answers.goal]}. Meu nome é ${lead.name}.`;
+  const msg=`Olá, equipe Aplic & Go! Concluí minha Avaliação Estratégica (meu Mapa Aplic) e quero conhecer o caminho de cuidado que faz mais sentido pra mim. Minha prioridade principal é ${LABELS.goal[lead.answers.goal]}. Meu nome é ${lead.name}.`;
   qs("whatsappCta").href=`https://wa.me/${normalizeBR(CONFIG.WHATSAPP_NUMBER)}?text=${encodeURIComponent(msg)}`;
   setScreen("resultScreen");
 }
