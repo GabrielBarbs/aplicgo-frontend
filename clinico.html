@@ -6155,7 +6155,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-R</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-S</b></span></div>
   </div>
 </div>
 
@@ -23559,7 +23559,30 @@ function prBaseHtml(prescs, cat) {
   const btnDesf = (pid, semana) => podeAplicar ? `<button class="pr-inj-btn desfazer" onclick="prBaseDesaplicar('${pid}', ${semana}, this)" title="Desfazer"><i class="ti ti-arrow-back-up"></i></button>` : '';
   const metaAplic = (a) => `<div class="hist-meta">${a.enfermeiro ? 'por ' + esc(a.enfermeiro) : ''}${a.data_aplicacao ? ' · ' + esc(prInjDataHora(a.data_aplicacao)) : ''}${a.baixa_estoque === false ? ' <span class="tx4">(sem baixa de estoque)</span>' : ''}</div>`;
 
+  // Filtro por MÊS: cada aplicação cai num mês — aplicada = data real; pendente = data PLANEJADA (início + offset da frequência).
+  const MESES_ABR = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const mesKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  const mesLabel = (k) => { const a = k.split('-'); return MESES_ABR[Number(a[1]) - 1] + '/' + a[0]; };
+  const wpsDe = (p) => { const u = pbaseFreqUnidade(p.frequencia); return u.semanasPorUnid / u.appsPorUnid; };  // semanas de calendário por aplicação
+  const slotMes = (p, s, wps) => {
+    if (s.aplicada && s.data_aplicacao) { const d = new Date(s.data_aplicacao); if (!isNaN(d)) return mesKey(d); }
+    const ini = p.createdAt ? new Date(p.createdAt) : null;
+    if (!ini || isNaN(ini)) return mesKey(new Date());
+    return mesKey(new Date(ini.getTime() + (s.semana - 1) * wps * 7 * 86400000));
+  };
+  const mesesSet = new Map();
+  ativas.forEach((p) => {
+    const wps = wpsDe(p);
+    (p.semanas || []).forEach((s) => { const k = slotMes(p, s, wps); mesesSet.set(k, (mesesSet.get(k) || 0) + 1); });
+    if (p.manutencao) (p.manutencao.aplicadas || []).forEach((a) => { if (a.data_aplicacao) { const d = new Date(a.data_aplicacao); if (!isNaN(d)) { const k = mesKey(d); mesesSet.set(k, (mesesSet.get(k) || 0) + 1); } } });
+  });
+  const meses = [...mesesSet.keys()].sort();
+  const filtrarMes = meses.length > 1;   // só faz sentido filtrar com 2+ meses
+  if (filtrarMes) { const hoje = mesKey(new Date()); if (!PRBASE_MES || !mesesSet.has(PRBASE_MES)) PRBASE_MES = mesesSet.has(hoje) ? hoje : meses[meses.length - 1]; }
+  const mesVis = (k) => !filtrarMes || k === PRBASE_MES;
+
   const bloco = (p) => {
+    const wps = wpsDe(p);
     const m = cat[p.medicamentoBaseSlug] || {};
     const nome = m.nome || p.medicamentoBaseSlug || 'Medicamento base';
     const via = p.via || m.via || 'SC';
@@ -23570,14 +23593,16 @@ function prBaseHtml(prescs, cat) {
     const doseInpStyle = 'width:76px;padding:5px 7px;font-size:12px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px';
     const linhaSem = (s) => {
       const rot = pbaseSlotLabel(p.frequencia, s.semana);
+      const mk = slotMes(p, s, wps);
+      const at = ` data-mes="${mk}"${mesVis(mk) ? '' : ' style="display:none"'}`;
       if (s.aplicada) {
         const doseSpan = s.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(s.dose_mg))}</span>` : '';
-        return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">${esc(rot)}</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(s)}</div>${btnDesf(p.id, s.semana)}</div>`;
+        return `<div class="pr-inj-lin"${at}><div class="pr-inj-lin-info"><span class="sem">${esc(rot)}</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(s)}</div>${btnDesf(p.id, s.semana)}</div>`;
       }
       // Dose digitada na hora da aplicação (cada aplicação pode ser diferente).
       const inp = podeAplicar ? `<input type="number" step="0.1" min="0" id="pbdose-${p.id}-${s.semana}" placeholder="dose mg" style="${doseInpStyle}">` : '';
       const btn = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prBaseAplicar('${p.id}', ${s.semana}, this)"><i class="ti ti-check"></i> Aplicar</button>` : '';
-      return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">${esc(rot)}</span> <span class="st" style="color:#8B8578">não aplicado</span></div><div style="display:flex;gap:6px;align-items:center">${inp}${btn}</div></div>`;
+      return `<div class="pr-inj-lin"${at}><div class="pr-inj-lin-info"><span class="sem">${esc(rot)}</span> <span class="st" style="color:#8B8578">não aplicado</span></div><div style="display:flex;gap:6px;align-items:center">${inp}${btn}</div></div>`;
     };
     const semanas = p.semanas || [];
     const semHtml = semanas.length ? `<div class="pr-inj-sec-tit" style="margin-top:9px">Aplicações</div>${semanas.map(linhaSem).join('')}` : '';
@@ -23588,7 +23613,9 @@ function prBaseHtml(prescs, cat) {
       const linhas = (p.manutencao.aplicadas || []).map((a, i) => {
         const n = i + 1; // ordinal pela posição na lista (já ordenada por semana) — sem buraco após desfazer uma do meio
         const doseSpan = a.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(a.dose_mg))}</span>` : '';
-        return `<div class="pr-inj-lin"><div class="pr-inj-lin-info"><span class="sem">Extra ${n}ª</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(a)}</div>${btnDesf(p.id, a.semana)}</div>`;
+        const dmk = a.data_aplicacao ? mesKey(new Date(a.data_aplicacao)) : '';
+        const at = dmk ? ` data-mes="${dmk}"${mesVis(dmk) ? '' : ' style="display:none"'}` : '';
+        return `<div class="pr-inj-lin"${at}><div class="pr-inj-lin-info"><span class="sem">Extra ${n}ª</span>${doseSpan} <span class="st" style="color:#2BB673">aplicado</span>${metaAplic(a)}</div>${btnDesf(p.id, a.semana)}</div>`;
       }).join('');
       const inpM = podeAplicar ? `<input type="number" step="0.1" min="0" id="pbdose-${p.id}-manut" placeholder="dose mg" style="${doseInpStyle}">` : '';
       const add = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prBaseAplicarManut('${p.id}', this)"><i class="ti ti-plus"></i> Registrar aplicação extra</button>` : '';
@@ -23604,7 +23631,22 @@ function prBaseHtml(prescs, cat) {
       ${p.observacoes ? `<div class="pr-inj-obs" style="font-style:normal;color:var(--tx3b);margin-top:8px">${esc(p.observacoes)}</div>` : ''}
     </div>`;
   };
-  return `<div class="pr-inj-wrap">${ativas.map(bloco).join('')}</div>`;
+  const chips = filtrarMes ? `<div class="pr-inj-filtros">${meses.map((k) => `<button class="pinj-fbtn${PRBASE_MES === k ? ' on' : ''}" onclick="prBaseFiltrarMes('${k}', this)">${mesLabel(k)} <span class="pinj-fn">${mesesSet.get(k)}</span></button>`).join('')}</div>` : '';
+  const algumNoMes = !filtrarMes || ativas.some((p) => { const wps = wpsDe(p); return (p.semanas || []).some((s) => slotMes(p, s, wps) === PRBASE_MES) || (p.manutencao && (p.manutencao.aplicadas || []).some((a) => a.data_aplicacao && mesKey(new Date(a.data_aplicacao)) === PRBASE_MES)); });
+  const vazioMes = filtrarMes ? `<div class="pr-inj-obs" id="pr-base-mes-vazio"${algumNoMes ? ' style="display:none"' : ''}>Nenhuma aplicação neste mês.</div>` : '';
+  return `<div class="pr-inj-wrap">${chips}${ativas.map(bloco).join('')}${vazioMes}</div>`;
+}
+// Global do mês selecionado no filtro da aba Aplicações (medicamento base).
+let PRBASE_MES = null;
+// Filtra as aplicações do medicamento base pelo mês (aplicada->data real; pendente->planejada).
+function prBaseFiltrarMes(key, btn) {
+  PRBASE_MES = key;
+  const wrap = (btn && btn.closest('.pr-inj-wrap')) || document;
+  wrap.querySelectorAll('.pr-inj-filtros .pinj-fbtn').forEach((b) => b.classList.toggle('on', b === btn));
+  let n = 0;
+  wrap.querySelectorAll('.pr-inj-lin[data-mes]').forEach((r) => { const ok = r.getAttribute('data-mes') === key; r.style.display = ok ? '' : 'none'; if (ok) n++; });
+  const vazio = wrap.querySelector('#pr-base-mes-vazio');
+  if (vazio) vazio.style.display = n ? 'none' : 'block';
 }
 async function prBaseAplicar(prescId, semana, btn) {
   const inp = document.getElementById('pbdose-' + prescId + '-' + semana);
