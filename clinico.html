@@ -3053,6 +3053,7 @@
     .pr-inj-vermais:hover { color: var(--tx1); border-color: var(--ac); }
     /* Filtros da Soroterapia (Próximas aplicações): prontas / falta contrato / falta agendamento / vencidas */
     .pr-inj-filtros { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .pr-base-addextra { margin-top: 6px; display: flex; gap: 6px; align-items: center; }
     .pinj-fbtn { font-size: 10.5px; font-weight: 600; background: var(--bg2); border: 1px solid var(--bd1); color: var(--tx3); border-radius: 20px; padding: 4px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
     .pinj-fbtn:hover { color: var(--tx1); }
     .pinj-fbtn.on { background: rgba(var(--ac-rgb),0.14); border-color: rgba(var(--ac-rgb),0.4); color: var(--ac); }
@@ -6155,7 +6156,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-T</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-U</b></span></div>
   </div>
 </div>
 
@@ -23545,6 +23546,8 @@ async function prBaseCarregar() {
   const html = prBaseHtml(prescs, cat);
   prState.baseCache = { pid: pid, html: html };
   setBoxes(html);
+  // Aplica o filtro de mês atual já no 1º render (esconde cartão/seção sem nada no balde) — sem botão clicado.
+  if (typeof PRBASE_MES !== 'undefined' && PRBASE_MES && document.querySelector('.pr-inj-filtros')) prBaseFiltrarMes(PRBASE_MES);
 }
 function prBaseHtml(prescs, cat) {
   const ativas = (prescs || []).filter((p) => p.status !== 'cancelada');
@@ -23618,7 +23621,7 @@ function prBaseHtml(prescs, cat) {
       }).join('');
       const inpM = podeAplicar ? `<input type="number" step="0.1" min="0" id="pbdose-${p.id}-manut" placeholder="dose mg" style="${doseInpStyle}">` : '';
       const add = podeAplicar ? `<button class="pr-inj-btn aplicar" onclick="prBaseAplicarManut('${p.id}', this)"><i class="ti ti-plus"></i> Registrar aplicação extra</button>` : '';
-      manutHtml = `<div class="pr-inj-sec-tit" style="margin-top:11px">Aplicações extras (além da duração)</div>${linhas}<div style="margin-top:6px;display:flex;gap:6px;align-items:center">${inpM}${add}</div>`;
+      manutHtml = `<div class="pr-inj-sec-tit" style="margin-top:11px">Aplicações extras (além da duração)</div>${linhas}<div class="pr-base-addextra" data-mes="pend"${mesVis('pend') ? '' : ' style="display:none"'}>${inpM}${add}</div>`;
     }
 
     return `<div class="pr-base-card">
@@ -23630,7 +23633,7 @@ function prBaseHtml(prescs, cat) {
       ${p.observacoes ? `<div class="pr-inj-obs" style="font-style:normal;color:var(--tx3b);margin-top:8px">${esc(p.observacoes)}</div>` : ''}
     </div>`;
   };
-  const chips = filtrarMes ? `<div class="pr-inj-filtros">${meses.map((k) => `<button class="pinj-fbtn${PRBASE_MES === k ? ' on' : ''}" onclick="prBaseFiltrarMes('${k}', this)">${bucketLabel(k)} <span class="pinj-fn">${mesesSet.get(k)}</span></button>`).join('')}</div>` : '';
+  const chips = filtrarMes ? `<div class="pr-inj-filtros">${meses.map((k) => `<button class="pinj-fbtn${PRBASE_MES === k ? ' on' : ''}" data-k="${k}" onclick="prBaseFiltrarMes('${k}', this)">${bucketLabel(k)} <span class="pinj-fn">${mesesSet.get(k)}</span></button>`).join('')}</div>` : '';
   const algumNoMes = !filtrarMes || ativas.some((p) => (p.semanas || []).some((s) => slotBucket(s) === PRBASE_MES) || (p.manutencao && (p.manutencao.aplicadas || []).some((a) => a.data_aplicacao && mesKey(new Date(a.data_aplicacao)) === PRBASE_MES)));
   const vazioMes = filtrarMes ? `<div class="pr-inj-obs" id="pr-base-mes-vazio"${algumNoMes ? ' style="display:none"' : ''}>Nada neste período.</div>` : '';
   return `<div class="pr-inj-wrap">${chips}${ativas.map(bloco).join('')}${vazioMes}</div>`;
@@ -23641,11 +23644,26 @@ let PRBASE_MES = null;
 function prBaseFiltrarMes(key, btn) {
   PRBASE_MES = key;
   const wrap = (btn && btn.closest('.pr-inj-wrap')) || document;
-  wrap.querySelectorAll('.pr-inj-filtros .pinj-fbtn').forEach((b) => b.classList.toggle('on', b === btn));
-  let n = 0;
-  wrap.querySelectorAll('.pr-inj-lin[data-mes]').forEach((r) => { const ok = r.getAttribute('data-mes') === key; r.style.display = ok ? '' : 'none'; if (ok) n++; });
+  // Ativo pela CHAVE (não pela referência do botão) — assim funciona também quando aplico o filtro
+  // programaticamente no 1º render, sem um botão clicado.
+  wrap.querySelectorAll('.pr-inj-filtros .pinj-fbtn').forEach((b) => b.classList.toggle('on', b.getAttribute('data-k') === key));
+  let total = 0;
+  // Some com o cartão inteiro e com os títulos de seção que ficarem sem NADA no filtro — não deixa casca vazia.
+  wrap.querySelectorAll('.pr-base-card').forEach((card) => {
+    let cardVis = false, curTit = null, curTitVis = false;
+    const flush = () => { if (curTit) curTit.style.display = curTitVis ? '' : 'none'; };
+    Array.from(card.children).forEach((el) => {
+      if (el.classList.contains('pr-inj-sec-tit')) { flush(); curTit = el; curTitVis = false; return; }
+      if (!el.hasAttribute('data-mes')) return;   // cabeçalho/meta/flags/obs ficam sempre
+      const ok = el.getAttribute('data-mes') === key;
+      el.style.display = ok ? '' : 'none';
+      if (ok) { curTitVis = true; if (el.classList.contains('pr-inj-lin')) { cardVis = true; total++; } }
+    });
+    flush();
+    card.style.display = cardVis ? '' : 'none';
+  });
   const vazio = wrap.querySelector('#pr-base-mes-vazio');
-  if (vazio) vazio.style.display = n ? 'none' : 'block';
+  if (vazio) vazio.style.display = total ? 'none' : 'block';
 }
 async function prBaseAplicar(prescId, semana, btn) {
   const inp = document.getElementById('pbdose-' + prescId + '-' + semana);
