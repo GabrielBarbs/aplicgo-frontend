@@ -267,11 +267,14 @@
     let LEADS = [];
 
     const LABELS = {
-      goal:{body:"Corpo e metabolismo",performance:"Energia e performance",longevity:"Longevidade e prevenção",integrated:"Transformação integrada"},
+      goal:{body:"Corpo e metabolismo",performance:"Energia e performance",longevity:"Longevidade e prevenção",integrated:"Transformação integrada",
+        corpo:"Corpo e composição",energia:"Energia e performance",saude:"Saúde e longevidade",inchaco:"Inchaço e alterações corporais",estetica:"Cabelo, pele e aparência",mental:"Sono, foco e mente",integrada:"Várias áreas (integrada)"},
+      protocolo:{burn_build:"Burn&Build",performa:"Performa+",longevity:"Longevity+",lipedema:"Lipedema",hairglow:"Hair&Glow",neurorecovery:"NeuroRecovery",club:"Club"},
       source:{instagram_aplic:"Instagram · Clínica",instagram_matheus:"Instagram · Dr. Matheus"},
       start:{asap:"Imediato","15d":"Até 15 dias","30to60":"30–60 dias",exploring:"Conhecendo"}
     };
     const startLabel = v => LABELS.start[v] || v || "—";
+    const protoLabel = k => (LABELS.protocolo[k]||k||"—");
     const sourceLabel = v => LABELS.source[v] || v || "—";
 
     function showToast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400);}
@@ -342,15 +345,16 @@
       if(!list.length){ $("empty").classList.remove("hidden"); return; }
       $("empty").classList.add("hidden");
       for(const l of list){
-        const goal=(l.answers&&l.answers.goal)||l.goal;
+        const goal=(l.answers&&(l.answers.transformacao||l.answers.goal))||l.goal;
         const impact=(l.answers&&l.answers.impact);
-        const start=(l.answers&&l.answers.start);
+        const start=(l.answers&&(l.answers.prazo||l.answers.start));
+        const afp=l.afinidade&&l.afinidade.principal;
         const srcIcon = l.source==="instagram_matheus" ? "ti-user" : "ti-building-hospital";
         const tr=document.createElement("tr");
         tr.innerHTML=`
           <td><div class="nm">${esc(l.name)}</div><div class="sub">${esc(l.instagram||"—")} · ${esc(l.city||"—")}</div></td>
           <td><span class="src"><i class="ti ${srcIcon}"></i>${esc(sourceLabel(l.source))}</span></td>
-          <td>${esc(LABELS.goal[goal]||"—")}</td>
+          <td>${afp?`${esc(protoLabel(afp))}${l.afinidade.integrada?' <span class="st" style="font-size:9px">integrada</span>':''}`:esc(LABELS.goal[goal]||"—")}</td>
           <td>${l.class?`<span class="pill ${esc(l.class)}">${esc(l.class)}</span>`:"—"}</td>
           <td>${impact!=null?esc(impact)+"/10":"—"}</td>
           <td>${esc(startLabel(start))}</td>
@@ -383,12 +387,22 @@
           ${det("Idade", l.age)}
           ${det("Melhor horário", l.contactTime)}
         </div>
+        ${l.afinidade?`<div class="sec">Afinidade de protocolo (interno)</div>
+        <div>
+          ${ans("Principal", protoLabel(l.afinidade.principal))}
+          ${ans("Secundária", protoLabel(l.afinidade.secundaria))}
+          ${ans("Complementar", protoLabel(l.afinidade.complementar))}
+          ${ans("Jornada integrada", l.afinidade.integrada?"Sim — necessidade integrada":"Não")}
+          ${ans("Indicação Club", (l.afinidade.integrada||(l.afinidade.club>=8))?"Possível":"—")}
+        </div>`:""}
         <div class="sec">Mapa do lead</div>
         <div>
-          ${ans("Objetivo", LABELS.goal[a.goal]||a.goal||"—")}
+          ${ans("Transformação desejada", (l.labels&&l.labels.transformacao)||LABELS.goal[a.transformacao||a.goal]||a.transformacao||a.goal||"—")}
+          ${(l.labels&&l.labels.queixas&&l.labels.queixas.length)?ans("Queixas ("+l.labels.queixas.length+")", l.labels.queixas.join(", ")):""}
+          ${(l.labels&&l.labels.principal)?ans("Queixa principal", l.labels.principal):""}
           ${ans("Impacto na vida", a.impact!=null?a.impact+"/10":"—")}
-          ${ans("Prioridade declarada", a.priority!=null?a.priority+"/5":"—")}
-          ${ans("Prazo p/ começar", startLabel(a.start))}
+          ${ans("Prazo p/ começar", startLabel(a.prazo||a.start))}
+          ${(a.unidade)?ans("Unidade", ({udi:"Uberlândia",itb:"Ituiutaba",remote:"Remoto",unsure:"Ainda não sei"}[a.unidade]||a.unidade)):""}
           ${ans("Tentativas", Array.isArray(a.attempts)?a.attempts.join(", "):"—")}
           ${ans("Score interno", (l.score!=null?l.score:"—")+(l.class?(" · Classe "+l.class):""))}
         </div>

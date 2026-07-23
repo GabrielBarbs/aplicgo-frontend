@@ -1559,6 +1559,25 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
   background-repeat:no-repeat !important;
   box-shadow:none !important;
 }
+
+/* ===== Queixas: acordeão de categorias (múltipla seleção) ===== */
+.qgroups{display:flex;flex-direction:column;gap:10px}
+.qgroup{border:1px solid rgba(38,49,40,.15);background:rgba(255,254,250,.7)}
+.qgroup.has-sel{border-color:var(--olive)}
+.qgroup-head{width:100%;display:flex;align-items:center;gap:10px;padding:15px 16px;background:transparent;border:0;font:inherit;text-align:left;cursor:pointer}
+.qg-name{font-family:Georgia,"Times New Roman",serif;font-size:16px;color:var(--ink)}
+.qg-count{font-size:11px;color:var(--olive-dark);font-weight:700;letter-spacing:.02em}
+.qg-caret{margin-left:auto;color:var(--olive-dark);transition:transform .2s;font-size:13px}
+.qgroup.open .qg-caret{transform:rotate(180deg)}
+.qgroup-body{display:none;flex-wrap:wrap;gap:8px;padding:0 16px 16px}
+.qgroup.open .qgroup-body{display:flex}
+.qchip{border:1px solid rgba(38,49,40,.2);background:#fff;color:var(--ink);border-radius:0;padding:11px 14px;font:inherit;font-size:13px;line-height:1.3;text-align:left;cursor:pointer;transition:.12s;min-height:44px}
+.qchip:hover{border-color:var(--olive)}
+.qchip.on{border-color:var(--olive-dark);background:var(--olive-dark);color:#fff}
+.qchip.on::before{content:"✓ ";font-weight:700}
+/* Prioridade + unidade/prazo */
+.lp-block{margin-bottom:18px}
+.lp-lab{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--olive-dark);font-weight:700;margin-bottom:9px}
 </style>
 </head>
 <body>
@@ -1586,7 +1605,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
         <div class="hero-copy">
           <span class="eyebrow">Avaliação estratégica · Método Aplic</span>
           <h1>Qual transformação faria mais diferença na sua vida hoje?</h1>
-          <p class="lead">Em menos de 2 minutos, o Mapa Aplic identifica sua prioridade e mostra qual caminho de cuidado da nossa clínica faz mais sentido para o seu momento.</p>
+          <p class="lead">Em menos de 2 minutos, conheça o caminho Aplic que mais combina com o seu momento. Selecione suas prioridades, conte o que tem incomodado você e deixe nossa equipe compreender seu cenário antes do primeiro contato.</p>
           <div class="trust-row">
             <span>✓ 8 perguntas rápidas</span>
             <span>✓ Seu Mapa Aplic inicial</span>
@@ -1667,16 +1686,6 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{
               <input id="city" name="city" type="text" autocomplete="address-level2" required />
             </div>
 
-            <div class="field">
-              <label for="unit">Unidade ou formato preferido *</label>
-              <select id="unit" name="unit" required>
-                <option value="">Selecione</option>
-                <option value="udi">Uberlândia</option>
-                <option value="itb">Ituiutaba</option>
-                <option value="remote">Quero entender as possibilidades remotas</option>
-                <option value="unsure">Ainda não sei</option>
-              </select>
-            </div>
             <div class="field full">
               <label for="contactTime">Melhor período para contato *</label>
               <select id="contactTime" name="contactTime" required>
@@ -1829,137 +1838,141 @@ const CONFIG = {
   QUEUE_KEY: "aplic_leads_clinica_queue_v1"
 };
 
-const LABELS = {
-  goal: {
-    body: "Corpo e metabolismo",
-    performance: "Energia e performance",
-    longevity: "Longevidade e prevenção",
-    integrated: "Transformação integrada"
-  }
+const PROTOCOLOS = {
+  burn_build:   { area:"Corpo e composição corporal" },
+  performa:     { area:"Energia e performance" },
+  longevity:    { area:"Prevenção e longevidade" },
+  lipedema:     { area:"Inchaço, pernas e circulação" },
+  hairglow:     { area:"Cabelo, pele e aparência" },
+  neurorecovery:{ area:"Sono, foco e equilíbrio mental" },
+  club:         { area:"Jornada integrada de saúde" }
 };
-
-const painOptions = {
-  body: [
-    ["weight","Ganho de peso ou dificuldade para emagrecer"],
-    ["abdomen","Gordura abdominal e composição corporal"],
-    ["muscle","Perda de massa muscular ou definição"],
-    ["regain","Efeito sanfona ou dificuldade de manutenção"],
-    ["medication","Uso de medicação sem acompanhamento estruturado"],
-    ["other","Mais de um desses pontos"]
-  ],
-  performance: [
-    ["fatigue","Cansaço frequente"],
-    ["focus","Queda de foco, clareza ou produtividade"],
-    ["training","Falta de disposição para treinar"],
-    ["recovery","Recuperação física lenta"],
-    ["sleep","Sono ruim ou não reparador"],
-    ["potential","Sensação de estar abaixo do próprio potencial"]
-  ],
-  longevity: [
-    ["prevention","Construir prevenção de forma estruturada"],
-    ["family","Histórico familiar ou preocupação com risco futuro"],
-    ["labs","Exames ou marcadores alterados"],
-    ["vitality","Preservar energia e vitalidade ao envelhecer"],
-    ["muscle","Manter força, massa muscular e autonomia"],
-    ["direction","Tenho dados, mas não uma estratégia clara"]
-  ],
-  integrated: [
-    ["multiple","Tenho várias prioridades ao mesmo tempo"],
-    ["body_energy","Corpo e energia pioraram juntos"],
-    ["stress_sleep","Estresse, sono e produtividade estão conectados"],
-    ["health_image","Quero cuidar da saúde sem abrir mão da imagem"],
-    ["prevention_performance","Quero performance hoje e saúde no futuro"],
-    ["direction","Não sei por onde começar"]
-  ]
-};
+const TRANSFORMACOES = [
+  ["corpo","Melhorar meu corpo e minha composição corporal", {burn_build:6}],
+  ["energia","Ter mais energia, rendimento e capacidade física", {performa:6}],
+  ["saude","Cuidar da saúde, prevenção e longevidade", {longevity:6}],
+  ["inchaco","Reduzir desconfortos, inchaço e alterações corporais", {lipedema:6}],
+  ["estetica","Melhorar cabelo, pele, unhas e aparência saudável", {hairglow:6}],
+  ["mental","Recuperar sono, foco, memória e equilíbrio mental", {neurorecovery:6}],
+  ["integrada","Organizar várias áreas da minha saúde ao mesmo tempo", {club:8}]
+];
+const QUEIXAS = [
+  { cat:"Corpo e metabolismo", items:[
+    ["gordura","Dificuldade para reduzir gordura", {burn_build:8, performa:1}],
+    ["peso","Ganho ou recuperação de peso", {burn_build:8, longevity:1}],
+    ["massa","Dificuldade para ganhar massa muscular", {burn_build:7, performa:3}],
+    ["flacidez","Flacidez ou perda de definição", {burn_build:6, hairglow:1}],
+    ["naoresponde","Meu corpo não responde como antes", {burn_build:5, longevity:3, performa:2}],
+    ["fome","Alterações frequentes de fome ou saciedade", {burn_build:5, neurorecovery:2, longevity:2}]
+  ]},
+  { cat:"Energia e performance", items:[
+    ["cansaco","Cansaço ou baixa disposição", {performa:6, neurorecovery:4, longevity:2}],
+    ["rendimento","Queda de rendimento físico", {performa:8, burn_build:2}],
+    ["recup","Dificuldade de recuperação após treinos", {performa:7, neurorecovery:3}],
+    ["forca","Perda de força ou condicionamento", {performa:6, burn_build:4}],
+    ["produtividade","Baixa produtividade ao longo do dia", {performa:5, neurorecovery:5}]
+  ]},
+  { cat:"Sono, mente e recuperação", items:[
+    ["sono","Sono leve ou não reparador", {neurorecovery:8, performa:4, longevity:3}],
+    ["estresse","Estresse elevado", {neurorecovery:8, performa:2, longevity:2}],
+    ["concentracao","Dificuldade de concentração", {neurorecovery:8, performa:2}],
+    ["memoria","Queda de memória", {neurorecovery:7, longevity:3}],
+    ["ansiedade","Ansiedade ou sensação de sobrecarga", {neurorecovery:8, longevity:1}],
+    ["irritabilidade","Irritabilidade ou oscilação emocional", {neurorecovery:7, longevity:1}]
+  ]},
+  { cat:"Lipedema e circulação", items:[
+    ["dorpernas","Dor ou sensibilidade nas pernas", {lipedema:10, longevity:2, burn_build:1}],
+    ["inchaco_q","Inchaço frequente", {lipedema:10, longevity:2, burn_build:1}],
+    ["pesopernas","Sensação de peso nas pernas", {lipedema:9, longevity:1}],
+    ["hematomas","Hematomas com facilidade", {lipedema:8, longevity:2}],
+    ["desproporcao","Desproporção entre tronco e membros inferiores", {lipedema:9, burn_build:2}],
+    ["gordurapernas","Gordura localizada resistente, principalmente nas pernas", {lipedema:8, burn_build:4, performa:1}]
+  ]},
+  { cat:"Cabelo, pele e unhas", items:[
+    ["queda","Queda de cabelo", {hairglow:10, longevity:2, neurorecovery:2}],
+    ["fios","Fios mais finos ou frágeis", {hairglow:9, longevity:1}],
+    ["volume","Redução de volume capilar", {hairglow:9}],
+    ["pele","Pele opaca ou ressecada", {hairglow:8, longevity:2}],
+    ["acne","Alterações de acne ou oleosidade", {hairglow:7}],
+    ["unhas","Unhas frágeis", {hairglow:7, longevity:1}],
+    ["cansada","Aparência cansada mesmo cuidando da rotina", {hairglow:5, neurorecovery:4, longevity:2}]
+  ]},
+  { cat:"Saúde e longevidade", items:[
+    ["historico","Histórico familiar que me preocupa", {longevity:8, burn_build:1}],
+    ["exames","Alterações em exames", {longevity:8, burn_build:1}],
+    ["prevenir","Quero prevenir problemas futuros", {longevity:8}],
+    ["autonomia","Quero envelhecer com autonomia", {longevity:7, performa:2, burn_build:1}],
+    ["dados","Quero compreender melhor meus dados de saúde", {longevity:8, club:2}],
+    ["gestao","Sinto que minha saúde precisa de uma gestão mais organizada", {longevity:6, club:6}]
+  ]},
+  { cat:"", items:[
+    ["naosei","Não consigo identificar exatamente o que está acontecendo", {club:3, longevity:2}]
+  ]}
+];
+const QUEIXA_LABEL={}, QUEIXA_PESOS={}, TRANSF_LABEL={}, TRANSF_PESOS={};
+QUEIXAS.forEach(g=>g.items.forEach(([k,l,pes])=>{ QUEIXA_LABEL[k]=l; QUEIXA_PESOS[k]=pes; }));
+TRANSFORMACOES.forEach(([k,l,pes])=>{ TRANSF_LABEL[k]=l; TRANSF_PESOS[k]=pes; });
+const LABELS = { goal: TRANSF_LABEL };  // compat com admin/CSV
 
 const questions = [
-  {
-    id:"goal", type:"single",
+  { id:"transformacao", type:"single",
     title:"Qual transformação faria mais diferença na sua vida hoje?",
     subtitle:"Escolha o caminho que melhor representa o que você busca com a Aplic.",
+    options: TRANSFORMACOES.map(t=>[t[0],t[1]]) },
+  { id:"queixas", type:"grouped", max:5,
+    title:"O que mais tem incomodado ou limitado você atualmente?",
+    subtitle:"Você pode selecionar mais de uma opção (até 5). Escolha tudo o que fizer parte do seu momento." },
+  { id:"principal", type:"priority",
+    title:"Entre o que você marcou, o que mais interfere na sua vida hoje?",
+    subtitle:"Isso ajuda a priorizar o seu cuidado." },
+  { id:"impact", type:"range",
+    title:"Quanto esse conjunto de questões afeta sua qualidade de vida?",
+    subtitle:"Considere sua rotina, confiança, disposição, sono, trabalho e capacidade física." },
+  { id:"attempts", type:"multi", max:6,
+    title:"O que você já tentou para melhorar essas questões?",
+    subtitle:"Pode marcar mais de uma.",
     options:[
-      ["body","Corpo e metabolismo","Peso, composição corporal, massa muscular e manutenção."],
-      ["performance","Energia e performance","Disposição, foco, sono, recuperação e capacidade física."],
-      ["longevity","Longevidade e prevenção","Biomarcadores, autonomia, prevenção e vitalidade."],
-      ["integrated","Mais de uma prioridade","Quando corpo, energia e saúde parecem fazer parte do mesmo cenário."]
-    ]
-  },
-  {
-    id:"pain", type:"single",
-    title:"Qual dessas situações mais se aproxima do que você vive hoje?",
-    subtitle:"Escolha a que melhor representa seu principal desafio neste momento.",
-    options:[
-      ["corpo_disposicao","Percebi piora no corpo e na disposição"],
-      ["sono_estresse","Meu sono, estresse e rendimento estão se afetando"],
-      ["saude_composicao","Quero melhorar minha saúde e minha composição corporal"],
-      ["performance_longevidade","Quero ter mais performance hoje sem comprometer minha saúde no futuro"],
-      ["varias_areas","Sinto que várias áreas da minha saúde precisam de atenção"],
-      ["nao_sei","Não consigo identificar por onde devo começar"]
-    ]
-  },
-  {
-    id:"impact", type:"range",
-    title:"Quanto isso afeta sua qualidade de vida hoje?",
-    subtitle:"Considere sua rotina, confiança, sono, produtividade e capacidade física."
-  },
-  {
-    id:"attempts", type:"multi3",
-    title:"O que você já tentou para melhorar isso?",
-    subtitle:"Escolha até três alternativas.",
-    options:[
-      ["diet","Mudanças alimentares ou dietas"],
-      ["training","Treinos ou atividade física"],
+      ["diet","Mudanças alimentares"],
+      ["training","Treino ou atividade física"],
       ["medication","Medicamentos"],
       ["supplements","Suplementação"],
-      ["medical","Acompanhamento médico ou nutricional"],
-      ["none","Ainda não fiz um tratamento estruturado"]
-    ]
-  },
-  {
-    id:"barrier", type:"single",
-    title:"O que mais dificultou manter um bom resultado?",
+      ["estetica","Tratamentos estéticos"],
+      ["medical","Acompanhamento médico"],
+      ["nutri","Acompanhamento nutricional"],
+      ["psico","Psicoterapia ou cuidado emocional"],
+      ["capilar","Tratamento capilar ou dermatológico"],
+      ["circulatorio","Drenagem, compressão ou cuidado circulatório"],
+      ["none","Ainda não fiz uma estratégia estruturada"]
+    ] },
+  { id:"barrier", type:"single",
+    title:"O que mais dificultou alcançar ou manter um bom resultado?",
     subtitle:"Nem sempre o problema é falta de esforço.",
     options:[
+      ["avaliacao","Faltou uma avaliação mais profunda"],
       ["strategy","Faltou uma estratégia personalizada"],
+      ["integrado","Os profissionais não trabalhavam de forma integrada"],
       ["followup","Faltou acompanhamento e ajuste"],
       ["routine","Minha rotina dificultou a constância"],
-      ["sideeffects","Tive desconfortos ou efeitos adversos"],
-      ["regain","Tive resultado, mas não consegui manter"],
-      ["unknown","Ainda não entendi o que está me limitando"]
-    ]
-  },
-  {
-    id:"care", type:"single",
+      ["regain","Tive melhora, mas o problema voltou"],
+      ["unknown","Ainda não entendi a origem do problema"]
+    ] },
+  { id:"metodo", type:"insight" },
+  { id:"care", type:"single",
     title:"Como você imagina o acompanhamento ideal para você?",
     subtitle:"Essa resposta nos ajuda a compreender sua expectativa.",
     options:[
-      ["evaluation","Quero entender meu cenário primeiro"],
+      ["evaluation","Quero entender meu cenário com profundidade"],
       ["plan","Quero um plano personalizado com retornos pontuais"],
-      ["multi","Quero um programa estruturado para atingir um objetivo específico"],
-      ["management","Quero alguém acompanhando minha saúde de forma contínua"],
-      ["unsure","Ainda não sei qual faz mais sentido para mim"]
-    ]
-  },
-  {
-    id:"start", type:"single",
-    title:"Quando você gostaria de começar?",
-    subtitle:"Isso define a velocidade ideal do contato da equipe.",
-    options:[
-      ["asap","O mais breve possível"],
-      ["15d","Nos próximos 15 dias"],
-      ["30to60","Nos próximos 30 a 60 dias"],
-      ["exploring","Estou apenas conhecendo as possibilidades"]
-    ]
-  },
-  {
-    id:"priority", type:"range5",
-    title:"Qual é sua prioridade para resolver isso?",
-    subtitle:"1 significa baixa prioridade agora. 5 significa que você quer agir rapidamente."
-  }
+      ["multi","Quero um programa estruturado para um objetivo específico"],
+      ["management","Quero uma gestão contínua e integrada da minha saúde"],
+      ["unsure","Ainda não sei qual caminho faz mais sentido"]
+    ] },
+  { id:"local", type:"localprazo",
+    title:"Onde e quando você gostaria de começar?",
+    subtitle:"Assim a equipe já chega no ritmo e na unidade certos." }
 ];
 
-let state = { step:0, answers:{impact:5, priority:3}, utm:{} };
+let state = { step:0, answers:{impact:5, queixas:[]}, utm:{} };
 let currentLeadId = null;
 
 function qs(id){return document.getElementById(id)}
@@ -1990,7 +2003,7 @@ function startAssessment(){
 }
 function renderQuestion(){
   const q=questions[state.step];
-  const pct=Math.round((state.step/(questions.length+1))*100);
+  const pct=Math.round(((state.step+1)/(questions.length+1))*100);
   qs("progressBar").style.width=pct+"%";
   qs("progressText").textContent=`Etapa ${state.step+1} de ${questions.length+1}`;
   qs("questionStep").textContent=`Etapa ${state.step+1}`;
@@ -2006,62 +2019,94 @@ function renderQuestion(){
   if(q.type==="single"){
     box.className="options two";
     q.options.forEach((o,i)=>box.appendChild(optionButton(q.id,o[0],o[1],o[2],String(i+1))));
-  } else if(q.type==="dynamic"){
+  } else if(q.type==="multi"){
     box.className="options two";
-    const list=painOptions[state.answers.goal]||painOptions.integrated;
-    list.forEach((o,i)=>box.appendChild(optionButton(q.id,o[0],o[1],"",String(i+1))));
-  } else if(q.type==="multi" || q.type==="multi3"){
-    box.className="options two";
-    q.options.forEach((o,i)=>box.appendChild(optionButton(q.id,o[0],o[1],"",String(i+1),true,q.type==="multi3"?3:99)));
-  } else if(q.type==="range" || q.type==="range5"){
-    const min=q.type==="range5"?1:0, max=q.type==="range5"?5:10;
-    const value=state.answers[q.id]??(q.type==="range5"?3:5);
+    q.options.forEach((o,i)=>box.appendChild(optionButton(q.id,o[0],o[1],"",String(i+1),true,q.max||99)));
+  } else if(q.type==="grouped"){
+    renderGrouped(q, box);
+  } else if(q.type==="priority"){
+    renderPriority(q, box);
+  } else if(q.type==="localprazo"){
+    renderLocalPrazo(q, box);
+  } else if(q.type==="range"){
+    const value=state.answers[q.id]??5;
     box.className="";
     box.innerHTML=`
       <div class="range-box">
         <div id="rangeValue" class="range-value">${value}</div>
-        <input id="rangeInput" type="range" min="${min}" max="${max}" step="1" value="${value}" aria-labelledby="questionTitle">
-        <div class="range-labels"><span>${q.type==="range5"?"Baixa prioridade":"Quase não interfere"}</span><span>${q.type==="range5"?"Quero agir agora":"Interfere intensamente"}</span></div>
+        <input id="rangeInput" type="range" min="0" max="10" step="1" value="${value}" aria-labelledby="questionTitle">
+        <div class="range-labels"><span>Quase não interfere</span><span>Interfere intensamente</span></div>
       </div>`;
-    const _mx=max, setVT=v=>qs("rangeInput").setAttribute("aria-valuetext",`${v} de ${_mx}`);
+    const setVT=v=>qs("rangeInput").setAttribute("aria-valuetext",`${v} de 10`);
     setVT(value);
-    qs("rangeInput").addEventListener("input",e=>{
-      state.answers[q.id]=Number(e.target.value); qs("rangeValue").textContent=e.target.value; setVT(e.target.value);
-    });
+    qs("rangeInput").addEventListener("input",e=>{ state.answers[q.id]=Number(e.target.value); qs("rangeValue").textContent=e.target.value; setVT(e.target.value); });
   }
   renderMicroInsight(q.id);
 }
+// ---- Queixas: categorias expansíveis (acordeão), múltipla seleção (até q.max) ----
+function renderGrouped(q, box){
+  box.className="qgroups";
+  const chosen=()=> state.answers[q.id]||[];
+  QUEIXAS.forEach((g,gi)=>{
+    const wrap=document.createElement("div"); wrap.className="qgroup"; if(gi===0) wrap.classList.add("open");
+    const head=document.createElement("button"); head.type="button"; head.className="qgroup-head";
+    head.innerHTML=`<span class="qg-name">${g.cat||"Outro"}</span><span class="qg-count"></span><span class="qg-caret">▾</span>`;
+    head.onclick=()=> wrap.classList.toggle("open");
+    const body=document.createElement("div"); body.className="qgroup-body";
+    g.items.forEach(([k,l])=>{
+      const b=document.createElement("button"); b.type="button"; b.className="qchip";
+      if(chosen().includes(k)) b.classList.add("on");
+      b.setAttribute("aria-pressed", chosen().includes(k)?"true":"false");
+      b.textContent=l;
+      b.onclick=()=>{
+        let arr=chosen();
+        if(arr.includes(k)) arr=arr.filter(x=>x!==k);
+        else{ if(arr.length>=(q.max||99)){ showToast(`Selecione até ${q.max} opções.`); return; } arr=arr.concat(k); }
+        state.answers[q.id]=arr;
+        const on=arr.includes(k); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on?"true":"false");
+        updateCounts();
+      };
+      body.appendChild(b);
+    });
+    wrap.appendChild(head); wrap.appendChild(body); box.appendChild(wrap);
+  });
+  function updateCounts(){
+    box.querySelectorAll(".qgroup").forEach((wrap,gi)=>{
+      const c=QUEIXAS[gi].items.filter(it=>chosen().includes(it[0])).length;
+      wrap.querySelector(".qg-count").textContent = c? `${c} selecionada${c>1?"s":""}` : "";
+      wrap.classList.toggle("has-sel", c>0);
+    });
+  }
+  updateCounts();
+}
+// ---- Prioridade: escolha única ENTRE as queixas marcadas ----
+function renderPriority(q, box){
+  const sel=state.answers.queixas||[];
+  if(!sel.length){ box.className=""; box.innerHTML=`<div class="micro-insight">Volte uma etapa e marque ao menos uma queixa.</div>`; return; }
+  box.className="options";
+  sel.forEach((k,i)=> box.appendChild(optionButton(q.id, k, QUEIXA_LABEL[k]||k, "", String(i+1))));
+}
+// ---- Unidade + prazo numa tela ----
+function renderLocalPrazo(q, box){
+  box.className="lp";
+  const uOpts=[["udi","Uberlândia"],["itb","Ituiutaba"],["remote","Quero entender possibilidades remotas"],["unsure","Ainda não sei"]];
+  const pOpts=[["asap","O mais breve possível"],["15d","Nos próximos 15 dias"],["30to60","Nos próximos 30 a 60 dias"],["exploring","Estou apenas conhecendo"]];
+  const grp=(lab,name,opts,cur)=>`<div class="lp-block"><div class="lp-lab">${lab}</div><div class="options">${opts.map(o=>`<button type="button" class="option lp-opt${o[0]===cur?" selected":""}" data-n="${name}" data-v="${o[0]}"><div class="option-icon">${o[0]===cur?"✓":"·"}</div><div><strong>${o[1]}</strong></div></button>`).join("")}</div></div>`;
+  box.innerHTML = grp("Unidade","unidade",uOpts,state.answers.unidade) + grp("Prazo para começar","prazo",pOpts,state.answers.prazo);
+  box.querySelectorAll(".lp-opt").forEach(b=>b.onclick=()=>{
+    const n=b.dataset.n; state.answers[n]=b.dataset.v;
+    box.querySelectorAll(`.lp-opt[data-n="${n}"]`).forEach(x=>{ x.classList.remove("selected"); x.querySelector(".option-icon").textContent="·"; });
+    b.classList.add("selected"); b.querySelector(".option-icon").textContent="✓";
+  });
+}
 
 function renderMicroInsight(id){
-  const el=qs("questionInsight");
-  if(!el)return;
-  const goal=state.answers.goal||"integrated";
+  const el=qs("questionInsight"); if(!el) return;
   let content="";
-
-  if(id==="impact"){
-    content="<strong>Uma leitura importante:</strong> o quanto isso limita sua vida costuma ser mais relevante do que observar apenas um número isolado na balança ou em um exame.";
-  }
-
-  if(id==="attempts"){
-    const evidence={
-      body:'<strong>Evidência em 10 segundos:</strong> estudos de extensão mostram que a manutenção do peso precisa ser planejada desde o início; sem continuidade, parte relevante do resultado pode ser recuperada. <a href="https://pubmed.ncbi.nlm.nih.gov/35441470/" target="_blank" rel="noopener">Ver referência</a>.',
-      performance:'<strong>Evidência em 10 segundos:</strong> em um ensaio clínico, ampliar o tempo de sono reduziu a ingestão energética em adultos que dormiam pouco. Recuperação também faz parte da estratégia. <a href="https://pubmed.ncbi.nlm.nih.gov/35129580/" target="_blank" rel="noopener">Ver referência</a>.',
-      longevity:'<strong>Evidência em 10 segundos:</strong> maior aptidão cardiorrespiratória apresenta associação consistente com menor risco de mortalidade e doenças crônicas. Capacidade física também é um dado de saúde. <a href="https://pubmed.ncbi.nlm.nih.gov/38599681/" target="_blank" rel="noopener">Ver referência</a>.',
-      integrated:'<strong>Uma visão integrada:</strong> corpo, sono, energia e capacidade física não evoluem de forma independente. Identificar a prioridade e a sequência correta costuma ser mais útil do que acumular ações isoladas.'
-    };
-    content=evidence[goal];
-  }
-
-  if(id==="care"){
-    content="<strong>Mais não significa melhor.</strong> No Método Aplic, o valor está em integrar médico, nutrição, treino, sono e dados na intensidade certa para o seu momento — não em acumular protocolos isolados.";
-  }
-
-  if(id==="priority"){
-    content="<strong>Seu Mapa Aplic já está quase pronto.</strong> Até aqui entendemos sua prioridade, o impacto na rotina, suas tentativas e o nível de acompanhamento que faz sentido para você.";
-  }
-
-  el.innerHTML=content;
-  el.classList.toggle("hidden",!content);
+  if(id==="queixas") content="<strong>Pode marcar mais de uma.</strong> Sinais de áreas diferentes ajudam nossa equipe a enxergar o conjunto, não só um sintoma isolado.";
+  else if(id==="impact") content="<strong>Uma leitura importante:</strong> o quanto isso limita sua vida costuma dizer mais do que um número isolado na balança ou num exame.";
+  else if(id==="care") content="<strong>Mais não significa melhor.</strong> No Método Aplic, o valor está em integrar avaliação, nutrição, treino, sono e dados na intensidade certa para o seu momento.";
+  el.innerHTML=content; el.classList.toggle("hidden", !content);
 }
 
 function optionButton(id,value,title,subtitle,icon,multi=false,max=99){
@@ -2091,43 +2136,22 @@ function optionButton(id,value,title,subtitle,icon,multi=false,max=99){
   return b;
 }
 function renderInsight(){
-  const goal=state.answers.goal||"integrated";
-  const data={
-    body:{
-      title:"Perder peso e sustentar o resultado são problemas diferentes.",
-      text:"Na extensão do STEP 1, participantes que interromperam a semaglutida 2,4 mg recuperaram, em média, cerca de dois terços do peso perdido ao longo do ano seguinte. O dado reforça a importância de planejar manutenção, comportamento, composição corporal e acompanhamento — não apenas a fase de perda.",
-      source:'Wilding et al., 2022. <a href="https://pubmed.ncbi.nlm.nih.gov/35441470/" target="_blank" rel="noopener">PubMed 35441470</a>. O resultado de um estudo não determina a conduta individual.'
-    },
-    performance:{
-      title:"Sono não é apenas descanso. É parte da estratégia metabólica.",
-      text:"Em um ensaio clínico com adultos com sobrepeso e sono habitualmente curto, a extensão do sono reduziu a ingestão energética em condições de vida real. Para quem exige produtividade e composição corporal, ignorar o sono pode limitar o resultado.",
-      source:'Tasali et al., 2022. <a href="https://pubmed.ncbi.nlm.nih.gov/35129580/" target="_blank" rel="noopener">PubMed 35129580</a>. Associação e resposta individual devem ser interpretadas clinicamente.'
-    },
-    longevity:{
-      title:"Capacidade física é um marcador clínico, não apenas esportivo.",
-      text:"Uma revisão de 2024 encontrou evidência consistente de que maior aptidão cardiorrespiratória está associada a menor risco de mortalidade e de diferentes condições crônicas. Longevidade exige transformar capacidade física em algo mensurável e acompanhável.",
-      source:'Lang et al., 2024. <a href="https://pubmed.ncbi.nlm.nih.gov/38599681/" target="_blank" rel="noopener">PubMed 38599681</a>. Associação não equivale a diagnóstico individual.'
-    },
-    integrated:{
-      title:"O que parece um conjunto de sintomas pode exigir uma leitura integrada.",
-      text:"Corpo, sono, capacidade física, ingestão alimentar e metabolismo não evoluem de forma independente. Estudos sobre manutenção de peso, sono e aptidão cardiorrespiratória mostram por que decisões isoladas podem ser insuficientes quando o objetivo é resultado sustentável e saúde futura.",
-      source:'Referências: <a href="https://pubmed.ncbi.nlm.nih.gov/35441470/" target="_blank" rel="noopener">STEP 1 extensão</a> • <a href="https://pubmed.ncbi.nlm.nih.gov/35129580/" target="_blank" rel="noopener">Extensão do sono</a> • <a href="https://pubmed.ncbi.nlm.nih.gov/38599681/" target="_blank" rel="noopener">Aptidão cardiorrespiratória</a>.'
-    }
-  }[goal];
-  qs("insightTitle").textContent=data.title;
-  qs("insightText").textContent=data.text;
-  qs("insightSource").innerHTML=data.source;
-  const pct=Math.round((state.step/(questions.length+1))*100);
+  qs("insightTitle").textContent="Quando diferentes sinais aparecem juntos, olhar para um só pode não bastar.";
+  qs("insightText").textContent="O Método Aplic integra avaliação médica, nutrição, exercício, tecnologias, acompanhamento e ajustes contínuos de acordo com cada momento. O objetivo não é encaixar você em um protocolo, mas compreender quais áreas precisam de prioridade e qual jornada pode fazer mais sentido.";
+  qs("insightSource").innerHTML="";
+  const pct=Math.round(((state.step+1)/(questions.length+1))*100);
   qs("progressBar").style.width=pct+"%";
   qs("progressText").textContent=`Etapa ${state.step+1} de ${questions.length+1}`;
   setScreen("insightScreen");
 }
 function validateCurrent(){
   const q=questions[state.step];
-  if(q.type==="insight"||q.type==="range"||q.type==="range5")return true;
+  if(q.type==="insight"||q.type==="range")return true;
+  if(q.type==="localprazo"){ if(!state.answers.unidade||!state.answers.prazo){ showToast("Escolha a unidade e o prazo."); return false; } return true; }
   const v=state.answers[q.id];
-  if((q.type==="multi"||q.type==="multi3") && (!Array.isArray(v)||v.length===0)){showToast("Selecione ao menos uma opção.");return false}
-  if(!v){showToast("Selecione uma opção para continuar.");return false}
+  if(q.type==="grouped"||q.type==="multi"){ if(!Array.isArray(v)||!v.length){ showToast("Selecione ao menos uma opção."); return false; } return true; }
+  if(q.type==="priority"){ if(!v||!(state.answers.queixas||[]).includes(v)){ showToast("Escolha o que mais interfere hoje."); return false; } return true; }
+  if(!v){ showToast("Selecione uma opção para continuar."); return false; }
   return true;
 }
 function nextStep(){
@@ -2149,18 +2173,32 @@ function goBack(){
 function computeScore(a){
   let s=0;
   s+=(Number(a.impact)||0)*2.5;
-  s+=Math.min(((a.attempts||[]).filter(x=>x!=="none").length)*2,6);
-  s+=({strategy:5,followup:7,routine:4,sideeffects:5,regain:8,unknown:3}[a.barrier]||0);
+  s+=Math.min((a.queixas||[]).length*1.5,8);
+  s+=Math.min(((a.attempts||[]).filter(x=>x!=="none").length)*1.5,6);
+  s+=({avaliacao:4,strategy:5,integrado:5,followup:7,routine:4,regain:8,unknown:3}[a.barrier]||0);
   s+=({evaluation:4,plan:10,multi:15,management:18,unsure:3}[a.care]||0);
-  s+=({asap:18,"15d":14,"30to60":8,exploring:1}[a.start]||0);
-  s+=(Number(a.priority)||0)*4;
-  s+=({udi:5,itb:5,remote:2,unsure:1}[a.unit]||0);
+  s+=({asap:18,"15d":14,"30to60":8,exploring:1}[a.prazo]||0);
+  s+=({udi:5,itb:5,remote:2,unsure:1}[a.unidade]||0);
   return Math.max(0,Math.min(100,Math.round(s)));
 }
+function computeAffinity(a){
+  const sc={burn_build:0,performa:0,longevity:0,lipedema:0,hairglow:0,neurorecovery:0,club:0};
+  const add=w=>{ for(const k in (w||{})) sc[k]=(sc[k]||0)+w[k]; };
+  add(TRANSF_PESOS[a.transformacao]);
+  (a.queixas||[]).forEach(q=> add(QUEIXA_PESOS[q]));
+  if(a.principal){ const pp=QUEIXA_PESOS[a.principal]||{}; const half={}; for(const k in pp) half[k]=Math.round(pp[k]*0.5); add(half); }
+  // ranking dos protocolos ESPECÍFICOS (club fica de fora — é indicação de jornada integrada)
+  const ranked=Object.entries(sc).filter(([k,v])=>k!=="club"&&v>0).sort((x,y)=>y[1]-x[1]);
+  const relev=ranked.filter(([k,v])=>v>=6).length;
+  const integrada=relev>=3;
+  if(integrada) sc.club += relev*2;   // reforça a indicação de Club, sem entrar no ranking exibido
+  return { scores:sc, ranked, integrada, club:sc.club,
+    principal: ranked[0]?ranked[0][0]:null, secundaria: ranked[1]?ranked[1][0]:null, complementar: ranked[2]?ranked[2][0]:null };
+}
 function classification(score){return score>=70?"A":score>=50?"B":"C"}
-function initialInternalPriority(score,start,impact){
-  if(score>=70 || start==="asap" || impact>=9)return"Alta";
-  if(score>=50 || start==="15d")return"Média";
+function initialInternalPriority(score,prazo,impact){
+  if(score>=70 || prazo==="asap" || impact>=9)return"Alta";
+  if(score>=50 || prazo==="15d")return"Média";
   return"Baixa";
 }
 function uuid(){return crypto?.randomUUID?crypto.randomUUID():"lead_"+Date.now()+"_"+Math.random().toString(16).slice(2)}
@@ -2195,8 +2233,8 @@ function submitLead(e){
   e.preventDefault();
   const f=new FormData(e.target);
   const answers={...state.answers};
-  answers.unit=f.get("unit");
   const score=computeScore(answers);
+  const afin=computeAffinity(answers);
   const lead={
     id:uuid(),createdAt:new Date().toISOString(),
     source:CONFIG.SOURCE,funnel:CONFIG.FUNNEL,
@@ -2204,54 +2242,36 @@ function submitLead(e){
     whatsapp:normalizeBR(f.get("whatsapp")),instagram:(f.get("instagram")||"").trim(),
     email:(f.get("email")||"").trim(),city:f.get("city").trim(),contactTime:f.get("contactTime"),
     answers,score,class:classification(score),
-    internalPriority:initialInternalPriority(score,answers.start,answers.impact),
+    internalPriority:initialInternalPriority(score,answers.prazo,answers.impact),
+    afinidade:{ principal:afin.principal, secundaria:afin.secundaria, complementar:afin.complementar, integrada:afin.integrada, club:afin.club, scores:afin.scores },
+    labels:{ transformacao:TRANSF_LABEL[answers.transformacao]||"", queixas:(answers.queixas||[]).map(k=>QUEIXA_LABEL[k]||k), principal:QUEIXA_LABEL[answers.principal]||"" },
     status:"Novo",owner:"",nextAction:"",notes:"",
     utm:state.utm
   };
-  const leads=getLeads();leads.unshift(lead);saveLeads(leads);   // backup local
+  const leads=getLeads();leads.unshift(lead);saveLeads(leads);
   currentLeadId=lead.id;
-  showResult(lead);                                              // mostra o resultado já
-  sendLead(lead);                                                // envia ao sistema Aplic (enfileira se falhar)
-}
-function resultCopy(goal){
-  return {
-    body:{
-      title:"Sua prioridade principal está em corpo e metabolismo.",
-      intro:"Suas respostas mostram que a questão provavelmente vai além de uma meta isolada na balança.",
-      interpretation:"No Método Aplic, a condução integra composição corporal, histórico de tentativas, manutenção, rotina e segurança médica — o caminho de cuidado é montado a partir dessa leitura, não de uma ação isolada.",
-      list:["Composição corporal e metabolismo","Estratégia de perda e preservação de massa magra","Plano de manutenção e acompanhamento contínuo"]
-    },
-    performance:{
-      title:"Sua prioridade principal está em energia e performance.",
-      intro:"Sua rotina parece exigir mais do que seu corpo e sua recuperação estão entregando neste momento.",
-      interpretation:"No Método Aplic, energia, foco, sono, condicionamento e recuperação são lidos em conjunto para desenhar o caminho de cuidado mais adequado ao seu momento.",
-      list:["Sono e recuperação","Capacidade física e composição corporal","Marcadores clínicos e impacto da rotina"]
-    },
-    longevity:{
-      title:"Sua prioridade principal está em longevidade e prevenção.",
-      intro:"Você não está buscando apenas resolver um sintoma, mas construir saúde para os próximos anos.",
-      interpretation:"No Método Aplic, dados, histórico familiar, capacidade física e marcadores clínicos viram prioridades acompanháveis dentro de um caminho de cuidado contínuo.",
-      list:["Risco metabólico e biomarcadores","Força, aptidão e autonomia","Estratégia contínua de prevenção"]
-    },
-    integrated:{
-      title:"Seu cenário pede uma avaliação integrada.",
-      intro:"Quando corpo, energia, sono e saúde futura se misturam, escolher uma solução isolada pode ser insuficiente.",
-      interpretation:"O Método Aplic organiza o cenário, identifica os fatores de maior impacto e define a sequência do seu caminho de cuidado — na intensidade certa para a sua rotina.",
-      list:["Hierarquia das prioridades","Integração entre corpo, rotina e marcadores","Acompanhamento com ajustes ao longo do processo"]
-    }
-  }[goal||"integrated"];
+  showResult(lead);
+  sendLead(lead);
 }
 function showResult(lead){
-  const c=resultCopy(lead.answers.goal);
+  const a=lead.answers, afin=computeAffinity(a);
+  const areaOf=k=> (PROTOCOLOS[k]&&PROTOCOLOS[k].area)||"";
+  const prin=afin.principal?areaOf(afin.principal):"Saúde integrada";
+  const rel=[afin.secundaria,afin.complementar].filter(Boolean).map(areaOf);
   qs("progressBar").style.width="100%";
   qs("progressText").textContent="Avaliação concluída";
-  qs("resultTitle").textContent=c.title;
-  qs("resultIntro").textContent=c.intro;
-  qs("resultInterpretation").textContent=c.interpretation;
-  qs("resultList").innerHTML=c.list.map(x=>`<li>${x}</li>`).join("");
+  qs("resultTitle").textContent = afin.integrada ? "Seu Mapa Aplic aponta para uma jornada integrada." : ("Sua prioridade principal está em "+prin.toLowerCase()+".");
+  qs("resultIntro").textContent = afin.integrada
+    ? "Suas respostas indicam que mais de uma área pode estar influenciando o seu momento — uma leitura integrada tende a ajudar mais do que tratar um ponto isolado."
+    : "Suas respostas ajudam a organizar por onde o seu cuidado pode começar com mais impacto.";
+  qs("resultInterpretation").textContent = "Uma avaliação integrada pode ajudar a compreender as conexões entre seus sintomas, sua rotina e seus objetivos, e a definir qual jornada de cuidado faz mais sentido para você.";
+  const list=["Prioridade principal: "+prin];
+  if(rel.length) list.push("Áreas relacionadas: "+rel.join(" · "));
+  list.push(afin.integrada ? "Possível caminho: uma jornada de avaliação e acompanhamento integrada" : "Possível caminho: avaliação orientada para a sua prioridade, com acompanhamento");
+  qs("resultList").innerHTML=list.map(x=>`<li>${x}</li>`).join("");
   qs("scoreValue").textContent="✓";
   qs("scoreRing").style.background="conic-gradient(var(--olive) 360deg,#e4e8e0 0deg)";
-  const msg=`Olá, equipe Aplic & Go! Concluí minha Avaliação Estratégica (meu Mapa Aplic) e quero conhecer o caminho de cuidado que faz mais sentido pra mim. Minha prioridade principal é ${LABELS.goal[lead.answers.goal]}. Meu nome é ${lead.name}.`;
+  const msg=`Olá, equipe Aplic & Go! Concluí minha Avaliação Estratégica (meu Mapa Aplic) e quero conhecer o caminho de cuidado que faz mais sentido pra mim. Minha prioridade é ${prin}. Meu nome é ${lead.name}.`;
   qs("whatsappCta").href=`https://wa.me/${normalizeBR(CONFIG.WHATSAPP_NUMBER)}?text=${encodeURIComponent(msg)}`;
   setScreen("resultScreen");
 }
