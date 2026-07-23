@@ -6155,7 +6155,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-S</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-T</b></span></div>
   </div>
 </div>
 
@@ -23559,30 +23559,29 @@ function prBaseHtml(prescs, cat) {
   const btnDesf = (pid, semana) => podeAplicar ? `<button class="pr-inj-btn desfazer" onclick="prBaseDesaplicar('${pid}', ${semana}, this)" title="Desfazer"><i class="ti ti-arrow-back-up"></i></button>` : '';
   const metaAplic = (a) => `<div class="hist-meta">${a.enfermeiro ? 'por ' + esc(a.enfermeiro) : ''}${a.data_aplicacao ? ' · ' + esc(prInjDataHora(a.data_aplicacao)) : ''}${a.baixa_estoque === false ? ' <span class="tx4">(sem baixa de estoque)</span>' : ''}</div>`;
 
-  // Filtro por MÊS: cada aplicação cai num mês — aplicada = data real; pendente = data PLANEJADA (início + offset da frequência).
+  // Filtro por MÊS (honesto): só aplicação FEITA gera chip de mês (mês real da aplicação). O que ainda
+  // não foi aplicado NÃO vira data futura inventada (isso criava "mês fantasma" tipo out/2026) — vai pro
+  // balde único "A aplicar". slotBucket: aplicado -> 'YYYY-MM' real; pendente -> 'pend'.
   const MESES_ABR = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
   const mesKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  const mesLabel = (k) => { const a = k.split('-'); return MESES_ABR[Number(a[1]) - 1] + '/' + a[0]; };
-  const wpsDe = (p) => { const u = pbaseFreqUnidade(p.frequencia); return u.semanasPorUnid / u.appsPorUnid; };  // semanas de calendário por aplicação
-  const slotMes = (p, s, wps) => {
-    if (s.aplicada && s.data_aplicacao) { const d = new Date(s.data_aplicacao); if (!isNaN(d)) return mesKey(d); }
-    const ini = p.createdAt ? new Date(p.createdAt) : null;
-    if (!ini || isNaN(ini)) return mesKey(new Date());
-    return mesKey(new Date(ini.getTime() + (s.semana - 1) * wps * 7 * 86400000));
-  };
+  const bucketLabel = (k) => { if (k === 'pend') return 'A aplicar'; const a = k.split('-'); return MESES_ABR[Number(a[1]) - 1] + '/' + a[0]; };
+  const slotBucket = (s) => { if (s.aplicada && s.data_aplicacao) { const d = new Date(s.data_aplicacao); if (!isNaN(d)) return mesKey(d); } return 'pend'; };
   const mesesSet = new Map();
   ativas.forEach((p) => {
-    const wps = wpsDe(p);
-    (p.semanas || []).forEach((s) => { const k = slotMes(p, s, wps); mesesSet.set(k, (mesesSet.get(k) || 0) + 1); });
+    (p.semanas || []).forEach((s) => { const k = slotBucket(s); mesesSet.set(k, (mesesSet.get(k) || 0) + 1); });
     if (p.manutencao) (p.manutencao.aplicadas || []).forEach((a) => { if (a.data_aplicacao) { const d = new Date(a.data_aplicacao); if (!isNaN(d)) { const k = mesKey(d); mesesSet.set(k, (mesesSet.get(k) || 0) + 1); } } });
   });
-  const meses = [...mesesSet.keys()].sort();
-  const filtrarMes = meses.length > 1;   // só faz sentido filtrar com 2+ meses
-  if (filtrarMes) { const hoje = mesKey(new Date()); if (!PRBASE_MES || !mesesSet.has(PRBASE_MES)) PRBASE_MES = mesesSet.has(hoje) ? hoje : meses[meses.length - 1]; }
+  // Meses reais em ordem; o balde "A aplicar" sempre por último.
+  const meses = [...mesesSet.keys()].filter((k) => k !== 'pend').sort();
+  if (mesesSet.has('pend')) meses.push('pend');
+  const filtrarMes = meses.length > 1;   // só faz sentido filtrar com 2+ baldes
+  if (filtrarMes && (!PRBASE_MES || !mesesSet.has(PRBASE_MES))) {
+    const hoje = mesKey(new Date());   // abre no acionável: pendentes; senão mês atual; senão o último mês com aplicação
+    PRBASE_MES = mesesSet.has('pend') ? 'pend' : (mesesSet.has(hoje) ? hoje : meses[meses.length - 1]);
+  }
   const mesVis = (k) => !filtrarMes || k === PRBASE_MES;
 
   const bloco = (p) => {
-    const wps = wpsDe(p);
     const m = cat[p.medicamentoBaseSlug] || {};
     const nome = m.nome || p.medicamentoBaseSlug || 'Medicamento base';
     const via = p.via || m.via || 'SC';
@@ -23593,7 +23592,7 @@ function prBaseHtml(prescs, cat) {
     const doseInpStyle = 'width:76px;padding:5px 7px;font-size:12px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px';
     const linhaSem = (s) => {
       const rot = pbaseSlotLabel(p.frequencia, s.semana);
-      const mk = slotMes(p, s, wps);
+      const mk = slotBucket(s);
       const at = ` data-mes="${mk}"${mesVis(mk) ? '' : ' style="display:none"'}`;
       if (s.aplicada) {
         const doseSpan = s.dose_mg != null ? ` · <span class="dose">${esc(doseTxt(s.dose_mg))}</span>` : '';
@@ -23631,9 +23630,9 @@ function prBaseHtml(prescs, cat) {
       ${p.observacoes ? `<div class="pr-inj-obs" style="font-style:normal;color:var(--tx3b);margin-top:8px">${esc(p.observacoes)}</div>` : ''}
     </div>`;
   };
-  const chips = filtrarMes ? `<div class="pr-inj-filtros">${meses.map((k) => `<button class="pinj-fbtn${PRBASE_MES === k ? ' on' : ''}" onclick="prBaseFiltrarMes('${k}', this)">${mesLabel(k)} <span class="pinj-fn">${mesesSet.get(k)}</span></button>`).join('')}</div>` : '';
-  const algumNoMes = !filtrarMes || ativas.some((p) => { const wps = wpsDe(p); return (p.semanas || []).some((s) => slotMes(p, s, wps) === PRBASE_MES) || (p.manutencao && (p.manutencao.aplicadas || []).some((a) => a.data_aplicacao && mesKey(new Date(a.data_aplicacao)) === PRBASE_MES)); });
-  const vazioMes = filtrarMes ? `<div class="pr-inj-obs" id="pr-base-mes-vazio"${algumNoMes ? ' style="display:none"' : ''}>Nenhuma aplicação neste mês.</div>` : '';
+  const chips = filtrarMes ? `<div class="pr-inj-filtros">${meses.map((k) => `<button class="pinj-fbtn${PRBASE_MES === k ? ' on' : ''}" onclick="prBaseFiltrarMes('${k}', this)">${bucketLabel(k)} <span class="pinj-fn">${mesesSet.get(k)}</span></button>`).join('')}</div>` : '';
+  const algumNoMes = !filtrarMes || ativas.some((p) => (p.semanas || []).some((s) => slotBucket(s) === PRBASE_MES) || (p.manutencao && (p.manutencao.aplicadas || []).some((a) => a.data_aplicacao && mesKey(new Date(a.data_aplicacao)) === PRBASE_MES)));
+  const vazioMes = filtrarMes ? `<div class="pr-inj-obs" id="pr-base-mes-vazio"${algumNoMes ? ' style="display:none"' : ''}>Nada neste período.</div>` : '';
   return `<div class="pr-inj-wrap">${chips}${ativas.map(bloco).join('')}${vazioMes}</div>`;
 }
 // Global do mês selecionado no filtro da aba Aplicações (medicamento base).
