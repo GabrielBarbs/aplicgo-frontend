@@ -19087,6 +19087,7 @@ async function prMetasCarregar() {
 function prMetasRender() {
   const body = document.getElementById('pr-metas-body');
   if (!body) return;   // modal fechado durante o fetch
+  const digitando = (document.getElementById('pr-meta-nova') || {}).value || '';   // não perde o texto em digitação ao re-render (ex.: marcar meta enquanto digita)
   const mes = prMetasState.mesSel;
   const doMes = prMetasState.metas.filter(m => m.mes === mes);
   const { total, feitas, score } = prMetasScore(doMes);
@@ -19111,8 +19112,10 @@ function prMetasRender() {
     <button onclick="prMetasAdd()"><i class="ti ti-plus"></i></button>
   </div>`;
   body.innerHTML = nav + sc + lista + add;
+  const inpNova = document.getElementById('pr-meta-nova'); if (inpNova && digitando) inpNova.value = digitando;
 }
-function prMetasNav(delta) { prMetasState.mesSel = prMesShift(prMetasState.mesSel, delta); prMetasRender(); }
+// Trocar de mês limpa o texto em digitação (senão a meta iria pro mês errado).
+function prMetasNav(delta) { prMetasState.mesSel = prMesShift(prMetasState.mesSel, delta); prMetasRender(); const i = document.getElementById('pr-meta-nova'); if (i) i.value = ''; }
 async function prMetasAdd() {
   const inp = document.getElementById('pr-meta-nova'); if (!inp) return;
   const descricao = (inp.value || '').trim(); if (!descricao) { inp.focus(); return; }
@@ -19124,14 +19127,16 @@ async function prMetasAdd() {
   prMetasHeaderRefresh();
 }
 async function prMetasToggle(id, concluida) {
-  try { await pacApi('/api/clinico/prontuario/metas-mes/' + id, { method: 'PATCH', body: JSON.stringify({ concluida }) }); } catch (e) {}
+  let r; try { r = await pacApi('/api/clinico/prontuario/metas-mes/' + id, { method: 'PATCH', body: JSON.stringify({ concluida }) }); } catch (e) { r = { ok: false, data: {} }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não salvou a meta.'); prMetasRender(); return; }   // re-render devolve o checkbox ao estado real
   const m = prMetasState.metas.find(x => x.id === id); if (m) { m.concluida = concluida; m.concluida_por = concluida ? 'você' : null; }
   prMetasRender();
   prMetasHeaderRefresh();
 }
 async function prMetasDel(id) {
   if (!confirm('Excluir esta meta?')) return;
-  try { await pacApi('/api/clinico/prontuario/metas-mes/' + id, { method: 'DELETE' }); } catch (e) {}
+  let r; try { r = await pacApi('/api/clinico/prontuario/metas-mes/' + id, { method: 'DELETE' }); } catch (e) { r = { ok: false }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não excluiu a meta.'); return; }
   prMetasState.metas = prMetasState.metas.filter(x => x.id !== id);
   prMetasRender();
   prMetasHeaderRefresh();
@@ -19142,7 +19147,7 @@ function prMetasHeaderRefresh() {
   const { total, feitas, score } = prMetasScore(prMetasState.metas.filter(m => m.mes === mesAtual));
   if (prState.headerData) prState.headerData.metas_mes = { mes: mesAtual, feitas, total, score };
   const el = document.querySelector('.pr-h2-bloco.metas .bl-valor');
-  if (el) el.textContent = String(score).replace('.', ',') + '/10';
+  if (el) el.textContent = total ? (String(score).replace('.', ',') + '/10') : '—';
 }
 
 // Novo agendamento pro paciente já aberto: abre o MESMO modal da agenda, sem sair do prontuário.
@@ -19339,7 +19344,7 @@ function prRenderHeaderRico() {
     ...(h.semana_atual_de ? [{ label: 'Semana', valor: `${h.semana_atual_de}${h.total_semanas ? ' / ' + h.total_semanas : ''}`, classe: 'semana', icone: 'calendar-stats' }] : []),
     ...(h.fase_atual ? [{ label: 'Fase atual', valor: prFmtFase(h.fase_atual), classe: 'fase', icone: 'flame' }] : []),
     ...(h.status_clinico && h.status_clinico !== 'ESTAVEL' ? [{ label: 'Status clínico', valor: prFmtStatusClinico(h.status_clinico), classe: 'clinico-' + h.status_clinico, icone: 'activity-heartbeat' }] : []),
-    ...(h.metas_mes ? [{ label: 'Metas do mês', valor: String(h.metas_mes.score).replace('.', ',') + '/10', classe: 'metas', icone: 'target', onclick: 'prAbrirMetasMes()' }] : []),
+    ...(h.metas_mes ? [{ label: 'Metas do mês', valor: h.metas_mes.total ? (String(h.metas_mes.score).replace('.', ',') + '/10') : '—', classe: 'metas', icone: 'target', onclick: 'prAbrirMetasMes()' }] : []),
   ];
   const blocosHtml = infoBlocos.map(b => `
     <div class="pr-h2-bloco ${b.classe}"${b.onclick ? ` onclick="${b.onclick}" style="cursor:pointer;" title="Metas de cada mês (clique)"` : ''}>
