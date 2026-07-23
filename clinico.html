@@ -3051,6 +3051,22 @@
     .pr-inj-hdet { padding-left: 6px; margin: -2px 0 6px; }
     .pr-inj-vermais { width: 100%; background: transparent; border: 1px dashed var(--bd1); color: var(--tx3); border-radius: 8px; padding: 6px; font: inherit; font-size: 11px; cursor: pointer; margin-top: 2px; }
     .pr-inj-vermais:hover { color: var(--tx1); border-color: var(--ac); }
+    /* Diálogo de checklist de aplicação (soroterapia): marca o que aplicou / não aplicou + motivo */
+    .injck-ov { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .injck-modal { background: var(--bg1); border: 1px solid var(--bd1); border-radius: 14px; width: 100%; max-width: 460px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: var(--sh-3); }
+    .injck-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid var(--hair); font-size: 14px; font-weight: 600; color: var(--tx1); }
+    .injck-head i { color: #E8945A; }
+    .injck-x { background: none; border: 0; color: var(--tx3); font-size: 18px; cursor: pointer; line-height: 1; }
+    .injck-body { padding: 12px 16px; overflow-y: auto; }
+    .injck-hint { font-size: 11.5px; color: var(--tx3b); margin-bottom: 10px; }
+    .injck-row { padding: 8px 0; border-bottom: 1px solid var(--hair); }
+    .injck-row:last-child { border-bottom: 0; }
+    .injck-top { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tx2); cursor: pointer; }
+    .injck-top input[type=checkbox] { width: 16px; height: 16px; flex-shrink: 0; accent-color: #2BB673; }
+    .injck-nome { color: var(--tx1); font-weight: 600; }
+    .injck-meta { color: var(--tx3b); font-size: 12px; }
+    .injck-mot { width: 100%; margin-top: 7px; background: var(--bg2); border: 1px solid #C56847; color: var(--tx1); padding: 7px 10px; border-radius: 7px; font: inherit; font-size: 12px; box-sizing: border-box; }
+    .injck-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--hair); }
     /* Aba "Base": medicamento base + escada de dose */
     .pr-base-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 10px; padding: 12px 13px; margin-bottom: 10px; }
     .pr-base-head { font-size: 13.5px; color: var(--tx1); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
@@ -6133,7 +6149,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-N</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-O</b></span></div>
   </div>
 </div>
 
@@ -23159,6 +23175,7 @@ const PR_INJ_ST = {
   liberado: { txt: 'liberado', cor: '#3fb950' },
   agendado: { txt: 'agendado', cor: '#4A90E2' },
   aplicado: { txt: 'aplicado', cor: '#2BB673' },
+  nao_aplicado: { txt: 'não aplicado', cor: '#C56847' },
   cancelado: { txt: 'cancelado', cor: '#C56847' },
 };
 function prInjDataHora(iso) {
@@ -23196,6 +23213,7 @@ async function prInjCarregar() {
   prState.injCache = { pid: pid, html: html };
   box2.innerHTML = html;
 }
+let PRINJ_SESS = {};   // itens aplicáveis por sessão (prescId|semana), populado no render pro checklist ler no clique
 function prInjHtml(presc) {
   const podeAplicar = typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar');
   const ativas = (presc || []).filter((p) => p.status !== 'cancelado');   // cancelada não mostra aplicar/desfazer
@@ -23215,12 +23233,15 @@ function prInjHtml(presc) {
     });
   });
   const sessoes = [...sessMap.values()];
+  PRINJ_SESS = {};   // cache dos itens aplicáveis por sessão, pro checklist ler no clique
   sessoes.forEach((s) => {
-    s.todosAplicados = s.itens.length > 0 && s.itens.every((i) => i.status_item === 'aplicado');
+    s.aplicaveis = s.itens.filter((i) => i.status_item === 'liberado' || i.status_item === 'agendado');
+    s.resolvida = s.itens.length > 0 && s.itens.every((i) => i.status_item === 'aplicado' || i.status_item === 'nao_aplicado');
     s.faltaContrato = s.itens.some((i) => i.status_item === 'pendente_orcamento' || i.status_item === 'aguardando_pagamento');
     s.temAgendamento = !!(s.agendamento && s.agendamento.data);
     s.faltaAgendamento = !s.temAgendamento && s.itens.some((i) => i.status_item === 'liberado');
-    s.vencido = s.temAgendamento && new Date(s.agendamento.data).getTime() < agora && !s.todosAplicados;
+    s.vencido = s.temAgendamento && new Date(s.agendamento.data).getTime() < agora && !s.resolvida;
+    if (s.aplicaveis.length) PRINJ_SESS[s.prescId + '|' + s.semana] = s.aplicaveis.map((it) => ({ id: it.id, nome: it.nome_ativo || it.sku_ativo || 'item', dose: prInjDose(it), via: it.via || '' }));
   });
 
   const flags = (s) => {
@@ -23232,26 +23253,33 @@ function prInjHtml(presc) {
   };
   const titulo = (s) => `Semana ${s.semana}` + (s.temAgendamento ? ' · ' + esc(prInjDataHora(s.agendamento.data)) : ' · <span class="tx4">sem agendamento</span>');
 
-  // Um componente (ativo/insumo) da sessão: nome + dose/via/frequência + incluído/avulso + responsável + status/ação.
-  const comp = (it, comBtn) => {
+  // Um componente (ativo/insumo) da sessão: nome + dose/via/frequência + incluído/avulso + responsável + status.
+  // Aplicar é por SESSÃO (checklist), não por item — aqui só mostra o estado e o desfazer.
+  const comp = (it) => {
     const dose = prInjDose(it);
     const nome = esc(it.nome_ativo || it.sku_ativo || 'item');
     const meta = [dose ? esc(dose) : null, it.via ? esc(it.via) : null, it.frequencia ? esc(it.frequencia) : null].filter(Boolean).join(' · ');
     const incl = it.incluso === true ? ' · <span class="pr-inj-incl">incluído</span>' : (it.incluso === false ? ' · <span class="pr-inj-incl avulso">avulso</span>' : '');
     const resp = it.responsavel ? ' · resp: ' + esc(it.responsavel) : '';
     const aplicado = it.status_item === 'aplicado';
+    const naoAplic = it.status_item === 'nao_aplicado';
     const st = PR_INJ_ST[it.status_item] || { txt: it.status_item, cor: '#8B8578' };
     const stTxt = aplicado
       ? ` <span class="tx4" style="font-size:10px">aplicado${it.enfermeiro ? ' por ' + esc(it.enfermeiro) : ''}${it.data_aplicacao ? ' · ' + esc(prInjDataHora(it.data_aplicacao)) : ''}</span>`
-      : ` <span class="st" style="color:${st.cor}">${st.txt}</span>`;
-    const btn = (comBtn && podeAplicar && (it.status_item === 'liberado' || it.status_item === 'agendado')) ? `<button class="pr-inj-btn aplicar" onclick="prInjAplicar('${it.id}', this)"><i class="ti ti-check"></i> Aplicar</button>` : '';
-    const desf = (aplicado && podeAplicar) ? `<button class="pr-inj-btn desfazer" onclick="prInjDesaplicar('${it.id}', this)" title="Desfazer aplicação"><i class="ti ti-arrow-back-up"></i></button>` : '';
-    return `<div class="pr-inj-comp"><div class="pr-inj-comp-info"><span class="cnome">${nome}</span>${meta ? ' · ' + meta : ''}${incl}${resp}${stTxt}</div>${btn}${desf}</div>`;
+      : naoAplic
+        ? ` <span class="st" style="color:${st.cor}">não aplicado</span>${it.motivo_nao_aplicado ? ` <span class="tx4" style="font-size:10px">— ${esc(it.motivo_nao_aplicado)}</span>` : ''}`
+        : ` <span class="st" style="color:${st.cor}">${st.txt}</span>`;
+    const desf = (aplicado && podeAplicar) ? `<button class="pr-inj-btn desfazer" onclick="prInjDesaplicar('${it.id}', this)" title="Desfazer aplicação"><i class="ti ti-arrow-back-up"></i></button>`
+      : (naoAplic && podeAplicar) ? `<button class="pr-inj-btn desfazer" onclick="prInjRevertNaoAplic('${it.id}', this)" title="Desfazer 'não aplicado'"><i class="ti ti-arrow-back-up"></i></button>` : '';
+    return `<div class="pr-inj-comp"><div class="pr-inj-comp-info"><span class="cnome">${nome}</span>${meta ? ' · ' + meta : ''}${incl}${resp}${stTxt}</div>${desf}</div>`;
   };
-  const card = (s, comBtn) => `<div class="pr-inj-sess"><div class="pr-inj-sess-tit">${titulo(s)}${multi && s.prescData ? ` <span class="pr-inj-presc">presc. ${esc(s.prescData)}</span>` : ''}${flags(s)}</div>${s.itens.map((it) => comp(it, comBtn)).join('')}</div>`;
+  const card = (s, comBtn) => {
+    const btnSess = (comBtn && podeAplicar && s.aplicaveis && s.aplicaveis.length) ? `<div style="margin-top:7px"><button class="pr-inj-btn aplicar" onclick="injChecklistDaSoro('${s.prescId}|${s.semana}')"><i class="ti ti-check"></i> Aplicar sessão (${s.aplicaveis.length})</button></div>` : '';
+    return `<div class="pr-inj-sess"><div class="pr-inj-sess-tit">${titulo(s)}${multi && s.prescData ? ` <span class="pr-inj-presc">presc. ${esc(s.prescData)}</span>` : ''}${flags(s)}</div>${s.itens.map((it) => comp(it)).join('')}${btnSess}</div>`;
+  };
 
-  const proximas = sessoes.filter((s) => !s.todosAplicados).sort((a, b) => (a.semana - b.semana) || (a.prescId < b.prescId ? -1 : 1));
-  const aplicadas = sessoes.filter((s) => s.todosAplicados).sort((a, b) => {
+  const proximas = sessoes.filter((s) => !s.resolvida).sort((a, b) => (a.semana - b.semana) || (a.prescId < b.prescId ? -1 : 1));
+  const aplicadas = sessoes.filter((s) => s.resolvida).sort((a, b) => {
     const da = Math.max(0, ...a.itens.map((i) => new Date(i.data_aplicacao || 0).getTime()));
     const db = Math.max(0, ...b.itens.map((i) => new Date(i.data_aplicacao || 0).getTime()));
     return db - da;
@@ -23268,7 +23296,7 @@ function prInjHtml(presc) {
     const dt = Math.max(0, ...s.itens.map((i) => new Date(i.data_aplicacao || 0).getTime()));
     const quando = dt ? esc(prInjDataHora(new Date(dt).toISOString())) : '';
     const quem = (s.itens.find((i) => i.enfermeiro) || {}).enfermeiro;
-    return `<div class="pr-inj-hrow" onclick="prInjHistToggle(this)"><div class="pr-inj-lin-info" style="min-width:0"><span class="sem">Semana ${s.semana}</span> · <span class="dose">${nomes}</span><div class="hist-meta">aplicada${quando ? ' ' + quando : ''}${quem ? ' · por ' + esc(quem) : ''}</div></div><i class="ti ti-chevron-down pr-inj-hchev"></i></div><div class="pr-inj-hdet" style="display:none">${s.itens.map((it) => comp(it, false)).join('')}</div>`;
+    return `<div class="pr-inj-hrow" onclick="prInjHistToggle(this)"><div class="pr-inj-lin-info" style="min-width:0"><span class="sem">Semana ${s.semana}</span> · <span class="dose">${nomes}</span><div class="hist-meta">aplicada${quando ? ' ' + quando : ''}${quem ? ' · por ' + esc(quem) : ''}</div></div><i class="ti ti-chevron-down pr-inj-hchev"></i></div><div class="pr-inj-hdet" style="display:none">${s.itens.map((it) => comp(it)).join('')}</div>`;
   };
   const HIST_VIS = 6;
   let histHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Histórico de aplicações${aplicadas.length ? ' (' + aplicadas.length + ')' : ''}</div>`;
@@ -23292,6 +23320,69 @@ function prInjHistToggle(el) {
   det.style.display = aberto ? 'none' : 'block';
   const chev = el.querySelector('.pr-inj-hchev');
   if (chev) chev.style.transform = aberto ? '' : 'rotate(180deg)';
+}
+// ===== Checklist de aplicação por SESSÃO: aplica os checados (baixa estoque), marca os desmarcados
+// como "não aplicado" + motivo (NÃO baixa estoque). Aberto pela Soroterapia e pela agenda. =====
+function injChecklistDaSoro(key) {
+  const itens = PRINJ_SESS[key];
+  if (!itens || !itens.length) { if (typeof homeToast === 'function') homeToast('Nada aplicável nesta sessão.'); return; }
+  injChecklistAbrir(itens, key.split('|')[1]);
+}
+function injChecklistAbrir(itens, semana) {
+  const rows = itens.map((it) => `
+    <div class="injck-row" data-id="${esc(it.id)}">
+      <label class="injck-top"><input type="checkbox" class="injck-ap" checked onchange="injChecklistToggle(this)">
+        <span class="injck-nome">${esc(it.nome || 'item')}</span>${it.dose ? ' <span class="injck-meta">· ' + esc(it.dose) + '</span>' : ''}${it.via ? ' <span class="injck-meta">· ' + esc(it.via) + '</span>' : ''}</label>
+      <input type="text" class="injck-mot" placeholder="motivo de NÃO ter aplicado (ex.: reação alérgica)" style="display:none">
+    </div>`).join('');
+  const ov = document.createElement('div');
+  ov.className = 'injck-ov'; ov.id = 'injck-ov';
+  ov.innerHTML = `<div class="injck-modal">
+    <div class="injck-head"><span><i class="ti ti-vaccine"></i> Aplicar — Semana ${esc(String(semana))}</span><button class="injck-x" onclick="document.getElementById('injck-ov').remove()"><i class="ti ti-x"></i></button></div>
+    <div class="injck-body"><div class="injck-hint">Deixe marcado o que foi aplicado. Desmarque o que NÃO aplicou e escreva o motivo.</div>${rows}</div>
+    <div class="injck-foot"><button class="pac-btn-secondary" onclick="document.getElementById('injck-ov').remove()">Cancelar</button><button class="pac-btn-primary" onclick="injChecklistConfirmar(this)"><i class="ti ti-check"></i> Confirmar</button></div>
+  </div>`;
+  ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+function injChecklistToggle(chk) {
+  const mot = chk.closest('.injck-row').querySelector('.injck-mot');
+  if (mot) { mot.style.display = chk.checked ? 'none' : 'block'; if (!chk.checked) mot.focus(); }
+}
+async function injChecklistConfirmar(btn) {
+  const ov = document.getElementById('injck-ov');
+  const rows = [...ov.querySelectorAll('.injck-row')];
+  for (const r of rows) {
+    if (!r.querySelector('.injck-ap').checked && !r.querySelector('.injck-mot').value.trim()) {
+      if (typeof homeToast === 'function') homeToast('Escreva o motivo de cada item que você NÃO aplicou.');
+      r.querySelector('.injck-mot').focus(); return;
+    }
+  }
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Registrando…';
+  let ap = 0, nao = 0, falhas = 0;
+  for (const r of rows) {
+    const id = r.getAttribute('data-id');
+    const aplicar = r.querySelector('.injck-ap').checked;
+    try {
+      const res = aplicar
+        ? await pacApi('/api/clinico/prescricoes-inj/itens/' + id + '/aplicar', { method: 'POST', body: '{}' })
+        : await pacApi('/api/clinico/prescricoes-inj/itens/' + id + '/nao-aplicar', { method: 'POST', body: JSON.stringify({ motivo: r.querySelector('.injck-mot').value.trim() }) });
+      if (res && res.ok) { aplicar ? ap++ : nao++; } else falhas++;
+    } catch (e) { falhas++; }
+  }
+  ov.remove();
+  if (typeof homeToast === 'function') homeToast(`Sessão: ${ap} aplicado(s)${nao ? ', ' + nao + ' não aplicado(s)' : ''}${falhas ? ' · ' + falhas + ' falhou' : ''}.`);
+  prState.injCache = null;
+  if (typeof prInjCarregar === 'function') prInjCarregar();
+}
+// Desfaz um item marcado "não aplicado" (volta pra liberado, sem mexer em estoque).
+async function prInjRevertNaoAplic(id, btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
+  let r;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/itens/' + id + '/nao-aplicar', { method: 'POST', body: JSON.stringify({ desfazer: true }) }); }
+  catch (e) { r = { ok: false, data: {} }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não desfez: ' + ((r.data && r.data.erro) || 'erro')); if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-arrow-back-up"></i>'; } return; }
+  prState.injCache = null; prInjCarregar();
 }
 async function prInjAplicar(itemId, btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
