@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-Y</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-Z</b></span></div>
   </div>
 </div>
 
@@ -12503,8 +12503,10 @@ function injRenderPrescrever() {
     + (p
       ? '<div class="dash-card" style="margin-top:14px"><div class="cart-blk-ttl">' + (ed ? '<i class="ti ti-edit"></i> Editando prescrição' : 'Montar prescrição — por semana') + '</div>'
         + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">'
-        + '<select id="inj-prot" class="pac-search" style="flex:1;min-width:180px" onchange="injBuilderFromTemplate(this.value)"><option value="">Carregar de um protocolo…</option></select>'
-        + '<button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injBuilderBlank()">Em branco</button></div>'
+        + '<select id="inj-prot" class="pac-search" style="flex:1;min-width:180px" onchange="injBuilderCarregarSel(this.value)"><option value="">Carregar de um protocolo/combo…</option></select>'
+        + '<button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injBuilderBlank()">Em branco</button>'
+        + '<button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injComboSalvar()" title="Salvar os injetáveis atuais como um combo reutilizável"><i class="ti ti-device-floppy"></i> Salvar combo</button>'
+        + '<button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injComboGerenciar()" title="Gerenciar combos salvos"><i class="ti ti-list-search"></i></button></div>'
         + '<div id="inj-builder"><div class="pac-empty" style="padding:12px">Carregando catálogo…</div></div>'
         + '<div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">' + (ed ? '<button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="injCancelarEdicao()">Cancelar edição</button>' : '') + '<button class="tk-btn primary" onclick="injPrescrever2()"><i class="ti ti-prescription"></i> ' + (ed ? 'Salvar alterações' : 'Prescrever') + '</button></div>'
         + '<div id="inj-presc-result" style="margin-top:12px"></div></div>'
@@ -12541,9 +12543,9 @@ async function injBuilderInit() {
   if (!injState.catalogo) jobs.push(pacApi('/api/clinico/insumos?ativo=true').then((r) => { if (r.ok) injState.catalogo = (r.data.itens || []).map((x) => ({ sku: x.sku, produto: x.produto, categoria: x.categoria })); else injState.catErr = true; }).catch(() => { injState.catErr = true; }));
   if (!injState.profs) jobs.push(pacApi('/api/clinico/prescricoes-inj/profissionais').then((r) => { if (r.ok) injState.profs = r.data.usuarios || []; }).catch(() => {}));
   if (!injState.protocolos) jobs.push(pacApi('/api/clinico/prescricoes-inj/protocolos-modelo').then((r) => { if (r.ok) injState.protocolos = r.data.modelos || []; }).catch(() => {}));
+  if (!injState.combos) jobs.push(pacApi('/api/clinico/prescricoes-inj/combos').then((r) => { if (r.ok) injState.combos = r.data.combos || []; }).catch(() => {}));
   await Promise.all(jobs);
-  const sel = document.getElementById('inj-prot');
-  if (sel) sel.innerHTML = '<option value="">Carregar de um protocolo…</option>' + (injState.protocolos || []).map((m) => `<option value="${esc(m.protocolo_id)}">${esc(m.nome)}</option>`).join('');
+  injPopularProtCombo();
   const box = document.getElementById('inj-builder');
   // Distingue erro de servidor de catálogo vazio (não deixa o médico com selects em branco sem aviso).
   if (injState.catErr && !injState.catalogo) { if (box) box.innerHTML = INJ_ERRO; injCarregarRecentes(); return; }
@@ -12571,6 +12573,79 @@ function injBuilderFromTemplate(protId) {
   injState.builder = (m.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku_ativo, dose: it.dose || '', dose_mg: it.dose_mcg ? String(it.dose_mcg / 1000).replace('.', ',') : '', via: injViaFirst(it.via), incluso_padrao: it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano', observacao: it.observacao || '' }));
   injBuilderRenumber();
   if (!injState.builder.length) injBuilderBlank(); else injBuilderRender();
+}
+// ===== Combos: presets nomeados de injetáveis (salvar/carregar/excluir) =====
+// Popula o dropdown "Carregar…" com os protocolos-modelo E os combos do médico (2 grupos).
+function injPopularProtCombo() {
+  const sel = document.getElementById('inj-prot'); if (!sel) return;
+  const prots = injState.protocolos || [];
+  const combos = injState.combos || [];
+  let html = '<option value="">Carregar de um protocolo/combo…</option>';
+  if (prots.length) html += '<optgroup label="Protocolos">' + prots.map((m) => `<option value="${esc(m.protocolo_id)}">${esc(m.nome)}</option>`).join('') + '</optgroup>';
+  if (combos.length) html += '<optgroup label="Meus combos">' + combos.map((c) => `<option value="combo:${esc(c.id)}">${esc(c.nome)}</option>`).join('') + '</optgroup>';
+  sel.innerHTML = html;
+}
+// Roteia a escolha do dropdown: combo:<id> -> combo; senão -> protocolo-modelo.
+function injBuilderCarregarSel(val) {
+  if (!val) return;
+  if (val.indexOf('combo:') === 0) injComboLoad(val.slice(6));
+  else injBuilderFromTemplate(val);
+}
+// Carrega os itens do combo no builder (ids novos; mesmo mapeamento do protocolo).
+function injComboLoad(id) {
+  const c = (injState.combos || []).find((x) => x.id === id); if (!c) return;
+  injState.builder = (c.itens || []).map((it) => ({ id: 'b' + (injState._bid = (injState._bid || 0) + 1), semana: it.semana || 1, sku: it.sku, dose: it.dose || '', dose_mg: it.dose_mg || '', via: it.via || '', incluso_padrao: it.incluso_padrao === 'incluso' ? 'incluso' : 'depende_plano', observacao: it.observacao || '' }));
+  injBuilderRenumber();
+  if (!injState.builder.length) injBuilderBlank(); else injBuilderRender();
+  if (typeof homeToast === 'function') homeToast('Combo "' + c.nome + '" carregado.');
+}
+// Abre o diálogo pra nomear e salvar os itens atuais como combo.
+function injComboSalvar() {
+  injBuilderSync();
+  const itens = (injState.builder || []).filter((i) => i.sku).map((i) => ({ semana: i.semana || 1, sku: i.sku, dose: i.dose || '', dose_mg: i.dose_mg || '', via: i.via || '', incluso_padrao: i.incluso_padrao || 'depende_plano', observacao: i.observacao || '' }));
+  if (!itens.length) { if (typeof homeToast === 'function') homeToast('Adicione ao menos um injetável antes de salvar o combo.'); return; }
+  injState._comboPend = itens;
+  const nSem = [...new Set(itens.map((i) => i.semana))].length;
+  injOverlay(`<div style="font-weight:600;margin-bottom:10px"><i class="ti ti-device-floppy"></i> Salvar combo</div>
+    <input class="pac-search" id="inj-combo-nome" placeholder="Nome do combo (ex: Emagrecimento base)" style="width:100%;box-sizing:border-box" onkeydown="if(event.key==='Enter')injComboSalvar2()">
+    <div style="font-size:11px;color:var(--tx4);margin-top:6px">${itens.length} ${itens.length === 1 ? 'item' : 'itens'} · ${nSem} semana${nSem === 1 ? '' : 's'}</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      <button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('inj-modal').remove()">Cancelar</button>
+      <button class="tk-btn primary" onclick="injComboSalvar2()"><i class="ti ti-device-floppy"></i> Salvar</button>
+    </div>`);
+  setTimeout(() => { const el = document.getElementById('inj-combo-nome'); if (el) el.focus(); }, 50);
+}
+async function injComboSalvar2() {
+  const el = document.getElementById('inj-combo-nome');
+  const nome = (el ? el.value : '').trim();
+  if (!nome) { if (typeof homeToast === 'function') homeToast('Dê um nome ao combo.'); if (el) el.focus(); return; }
+  const itens = injState._comboPend || [];
+  let r;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/combos', { method: 'POST', body: JSON.stringify({ nome: nome, itens: itens }) }); }
+  catch (e) { r = { ok: false, data: {} }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não salvou: ' + ((r.data && r.data.erro) || 'verifique a conexão')); return; }
+  if (r.data && r.data.combo) { injState.combos = (injState.combos || []).concat([r.data.combo]).sort((a, b) => (a.nome || '').localeCompare(b.nome || '')); injPopularProtCombo(); }
+  const m = document.getElementById('inj-modal'); if (m) m.remove();
+  if (typeof homeToast === 'function') homeToast('Combo "' + nome + '" salvo.');
+}
+// Modal de gerenciamento (listar + excluir).
+function injComboGerenciar() {
+  const combos = injState.combos || [];
+  const linhas = combos.length
+    ? combos.map((c) => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd1)"><div><strong>${esc(c.nome)}</strong> <span style="color:var(--tx4);font-size:11px">${(c.itens || []).length} ${(c.itens || []).length === 1 ? 'item' : 'itens'}</span></div><button class="inj-mini" title="Excluir combo" onclick="injComboExcluir('${esc(c.id)}')"><i class="ti ti-trash"></i></button></div>`).join('')
+    : '<div class="pac-empty" style="padding:12px">Nenhum combo salvo ainda. Monte uma prescrição e clique "Salvar combo".</div>';
+  injOverlay(`<div style="font-weight:600;margin-bottom:10px"><i class="ti ti-list-search"></i> Meus combos</div><div id="inj-combo-lista">${linhas}</div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="document.getElementById('inj-modal').remove()">Fechar</button></div>`);
+}
+async function injComboExcluir(id) {
+  if (!confirm('Excluir este combo? Isso não afeta prescrições já feitas.')) return;
+  let r;
+  try { r = await pacApi('/api/clinico/prescricoes-inj/combos/' + id, { method: 'DELETE', body: '{}' }); }
+  catch (e) { r = { ok: false, data: {} }; }
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não excluiu: ' + ((r.data && r.data.erro) || 'erro')); return; }
+  injState.combos = (injState.combos || []).filter((c) => c.id !== id);
+  injPopularProtCombo();
+  injComboGerenciar();
+  if (typeof homeToast === 'function') homeToast('Combo excluído.');
 }
 function injBuilderRender() {
   const box = document.getElementById('inj-builder'); if (!box) return;
