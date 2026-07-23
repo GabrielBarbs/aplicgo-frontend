@@ -1887,9 +1887,17 @@ const questions = [
     ]
   },
   {
-    id:"pain", type:"dynamic",
-    title:"Qual situação melhor representa seu momento atual?",
-    subtitle:"Escolha o ponto que mais incomoda ou limita você."
+    id:"pain", type:"single",
+    title:"Qual dessas situações mais se aproxima do que você vive hoje?",
+    subtitle:"Escolha a que melhor representa seu principal desafio neste momento.",
+    options:[
+      ["corpo_disposicao","Percebi piora no corpo e na disposição"],
+      ["sono_estresse","Meu sono, estresse e rendimento estão se afetando"],
+      ["saude_composicao","Quero melhorar minha saúde e minha composição corporal"],
+      ["performance_longevidade","Quero ter mais performance hoje sem comprometer minha saúde no futuro"],
+      ["varias_areas","Sinto que várias áreas da minha saúde precisam de atenção"],
+      ["nao_sei","Não consigo identificar por onde devo começar"]
+    ]
   },
   {
     id:"impact", type:"range",
@@ -2075,7 +2083,6 @@ function optionButton(id,value,title,subtitle,icon,multi=false,max=99){
       }
       state.answers[id]=arr; renderQuestion();
     }else{
-      if(id==="goal" && state.answers.goal!==value) delete state.answers.pain; // troca de objetivo invalida a dor dependente (evita dado incompatível)
       state.answers[id]=value;
       document.querySelectorAll(".option").forEach(x=>{x.classList.remove("selected");x.setAttribute("aria-pressed","false");});
       b.classList.add("selected"); b.setAttribute("aria-pressed","true");
@@ -2299,10 +2306,6 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 function valueLabel(id,value){
   if(id==="unit")return {udi:"Uberlândia",itb:"Ituiutaba",remote:"Possibilidades remotas",unsure:"Ainda não sei"}[value]||value;
   const q=questions.find(x=>x.id===id);
-  if(id==="pain"){
-    const lead=getLeads().find(x=>x.id===currentLeadId);
-    const o=(painOptions[lead?.answers.goal]||[]).find(x=>x[0]===value);return o?.[1]||value;
-  }
   const o=q?.options?.find(x=>x[0]===value);return o?.[1]||value;
 }
 function listLabels(id,arr){return (arr||[]).map(v=>valueLabel(id,v)).join(", ")||"—"}
@@ -2363,7 +2366,6 @@ function exportCSV(){
   downloadBlob(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}),"leads_aplic.csv");
 }
 function valueLabelForLead(l,id,value){
-  if(id==="pain"){const o=(painOptions[l.answers.goal]||[]).find(x=>x[0]===value);return o?.[1]||value}
   return valueLabel(id,value);
 }
 function listLabelsForLead(l,id,arr){return (arr||[]).map(v=>valueLabelForLead(l,id,v)).join(", ")}
