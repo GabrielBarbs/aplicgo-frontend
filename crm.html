@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://srv.aplicgo.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline'">
+  <title>Aplic &amp; Go — CRM</title>
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+  <style>
+    :root{
+      --bg0:#010409; --bg1:#0d1117; --bg2:#161b22; --bg3:#21262d; --bg4:#1c2230;
+      --bd1:#30363d; --bd2:#444c56;
+      --tx1:#f0f6fc; --tx2:#c9d1d9; --tx3:#8b949e; --tx3b:#7d8590; --tx4:#6e7681;
+      --ac:#8B7BF0; --ac-d:#5B4BC4; --ac-rgb:123,104,238;
+      --ok:#1D9E75; --warn:#EF9F27; --err:#f85149;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",system-ui,sans-serif;
+      background:var(--bg1); color:var(--tx2); -webkit-font-smoothing:antialiased;
+      padding-top:48px; min-height:100vh;
+    }
+    a{color:inherit}
+    .hidden{display:none!important}
+
+    /* ---------- Sidebar ---------- */
+    .app-sidebar{
+      position:fixed; top:0; left:0; bottom:0; width:240px; z-index:20;
+      background:var(--bg2); border-right:1px solid var(--bd1);
+      display:flex; flex-direction:column; padding:14px 12px;
+    }
+    .sidebar-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px;border-bottom:1px solid var(--bd1);margin-bottom:10px}
+    .sidebar-brand .mark{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;font-size:19px;background:linear-gradient(135deg,var(--ac-d),var(--ac));box-shadow:0 0 20px rgba(var(--ac-rgb),.35)}
+    .sidebar-brand strong{display:block;font-size:14px;color:var(--tx1);font-weight:600;letter-spacing:.2px}
+    .sidebar-brand span{font-size:10px;color:var(--tx3b);text-transform:uppercase;letter-spacing:.8px}
+    .sidebar-nav{display:flex;flex-direction:column;gap:2px;flex:1}
+    .sidebar-item{
+      display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:8px;
+      background:transparent;border:0;color:var(--tx3);font:inherit;font-size:13px;text-align:left;cursor:pointer;width:100%;transition:.12s
+    }
+    .sidebar-item i{font-size:18px}
+    .sidebar-item:hover{background:var(--bg3);color:var(--tx2)}
+    .sidebar-item.active{background:rgba(var(--ac-rgb),.14);color:var(--ac)}
+    .sidebar-foot{border-top:1px solid var(--bd1);padding-top:10px;margin-top:10px}
+    .sidebar-user{display:flex;align-items:center;gap:10px;padding:6px 8px}
+    .sidebar-user .av{width:30px;height:30px;border-radius:50%;background:var(--bg4);display:grid;place-items:center;color:var(--ac);font-size:13px;font-weight:700}
+    .sidebar-user .nm{font-size:12px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+    .sidebar-user button{background:transparent;border:0;color:var(--tx4);cursor:pointer;font-size:16px}
+    .sidebar-user button:hover{color:var(--err)}
+
+    /* ---------- Topbar ---------- */
+    .app-topbar{
+      position:fixed; top:0; left:240px; right:0; height:48px; z-index:15;
+      background:rgba(13,17,23,.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--bd1);
+      display:flex; align-items:center; gap:14px; padding:0 20px;
+    }
+    .app-topbar .t-title{font-size:14px;color:var(--tx1);font-weight:600}
+    .app-topbar .t-search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--bd1);border-radius:8px;padding:6px 11px}
+    .app-topbar .t-search i{color:var(--tx4);font-size:15px}
+    .app-topbar .t-search input{flex:1;background:transparent;border:0;outline:none;color:var(--tx1);font:inherit;font-size:13px}
+    .app-topbar .t-back{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--tx3);text-decoration:none;padding:6px 11px;border:1px solid var(--bd1);border-radius:8px}
+    .app-topbar .t-back:hover{color:var(--tx1);border-color:var(--bd2)}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+
+    /* ---------- Main ---------- */
+    .app-main{max-width:1240px;margin:0 auto;padding:22px 24px 60px}
+    .page-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+    .page-head h1{font-size:22px;color:var(--tx1);font-weight:600;margin:0}
+    .page-head p{margin:0;color:var(--tx3);font-size:13px}
+
+    /* KPIs */
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+    .kpi{background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;padding:15px 16px}
+    .kpi .k-lab{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3b);font-weight:700}
+    .kpi .k-val{font-size:28px;color:var(--tx1);font-weight:600;margin-top:4px;line-height:1}
+    .kpi .k-sub{font-size:11px;color:var(--tx4);margin-top:5px}
+
+    /* Filtros */
+    .filters{display:grid;grid-template-columns:1.6fr repeat(3,1fr);gap:10px;background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;padding:12px;margin-bottom:14px}
+    .filters input,.filters select{background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:9px 11px;color:var(--tx1);font:inherit;font-size:13px;outline:none;width:100%}
+    .filters input:focus,.filters select:focus{border-color:var(--ac)}
+
+    /* Tabela */
+    .table-wrap{background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--bd1);text-align:left;font-size:13px;vertical-align:middle}
+    th{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3b);background:var(--bg3);position:sticky;top:0;font-weight:700}
+    tbody tr{cursor:pointer;transition:.1s}
+    tbody tr:hover td{background:var(--bg3)}
+    td .nm{color:var(--tx1);font-weight:600}
+    td .sub{color:var(--tx4);font-size:11px}
+    .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
+    .pill.A{background:rgba(29,158,117,.16);color:#3fd39c}
+    .pill.B{background:rgba(239,159,39,.15);color:#f0b24d}
+    .pill.C{background:rgba(248,81,73,.13);color:#ff7b73}
+    .src{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2)}
+    .src i{color:var(--ac)}
+    .st{font-size:11px;padding:3px 9px;border-radius:6px;background:var(--bg4);color:var(--tx2);border:1px solid var(--bd1)}
+    .empty,.loading{padding:56px 20px;text-align:center;color:var(--tx3)}
+    .empty i{font-size:34px;color:var(--tx4);display:block;margin-bottom:10px}
+
+    /* Modal */
+    .modal{position:fixed;inset:0;z-index:60;background:rgba(1,4,9,.66);display:none;align-items:center;justify-content:center;padding:18px}
+    .modal.open{display:flex}
+    .modal-card{width:min(720px,100%);max-height:92vh;overflow:auto;background:var(--bg2);border:1px solid var(--bd1);border-radius:14px}
+    .modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--bd1);position:sticky;top:0;background:var(--bg2)}
+    .modal-head h2{margin:0;font-size:19px;color:var(--tx1)}
+    .modal-head .sub{font-size:12px;color:var(--tx3);margin-top:3px}
+    .modal-head button{background:transparent;border:0;color:var(--tx3);font-size:22px;cursor:pointer}
+    .modal-body{padding:18px 20px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .fld{background:var(--bg1);border:1px solid var(--bd1);border-radius:9px;padding:10px 12px}
+    .fld .l{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3b);font-weight:700;margin-bottom:4px}
+    .fld .v{font-size:13px;color:var(--tx1);word-break:break-word}
+    .sec{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--ac);margin:20px 0 9px;font-weight:700}
+    .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .mgrid label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3b);font-weight:700;margin-bottom:5px}
+    .mgrid input,.mgrid select,.mgrid textarea{width:100%;background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:9px 11px;color:var(--tx1);font:inherit;font-size:13px;outline:none}
+    .mgrid input:focus,.mgrid select:focus,.mgrid textarea:focus{border-color:var(--ac)}
+    .mgrid .full{grid-column:1/-1}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+    .btn.primary{background:linear-gradient(135deg,var(--ac-d),var(--ac));color:#fff}
+    .btn.ghost{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd1)}
+    .btn.wa{background:#1f8a4c;color:#fff}
+    .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .ans{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--bd1);font-size:12px}
+    .ans .q{color:var(--tx3)} .ans .a{color:var(--tx1);text-align:right}
+
+    /* Auth overlay */
+    .auth{position:fixed;inset:0;z-index:100;background:var(--bg1);display:flex;align-items:center;justify-content:center;padding:20px}
+    .auth-card{width:min(380px,100%);background:var(--bg2);border:1px solid var(--bd1);border-radius:16px;padding:30px 26px}
+    .auth-card .mark{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;font-size:24px;background:linear-gradient(135deg,var(--ac-d),var(--ac));box-shadow:0 0 26px rgba(var(--ac-rgb),.4);margin-bottom:16px}
+    .auth-card h2{margin:0 0 4px;font-size:20px;color:var(--tx1)}
+    .auth-card p{margin:0 0 20px;font-size:13px;color:var(--tx3)}
+    .auth-card label{display:block;font-size:11px;color:var(--tx3b);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 5px}
+    .auth-card input{width:100%;background:var(--bg1);border:1px solid var(--bd1);border-radius:9px;padding:11px 13px;color:var(--tx1);font:inherit;font-size:14px;outline:none}
+    .auth-card input:focus{border-color:var(--ac)}
+    .auth-card .btn{width:100%;justify-content:center;margin-top:18px}
+    .auth-err{margin-top:12px;font-size:13px;color:var(--err);min-height:18px}
+    .toast{position:fixed;right:18px;bottom:18px;z-index:120;background:var(--bg3);border:1px solid var(--bd2);color:var(--tx1);padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none;font-size:13px}
+    .toast.show{opacity:1;transform:none}
+
+    @media(max-width:860px){
+      body{padding-top:0}
+      .app-sidebar{position:static;width:100%;flex-direction:row;flex-wrap:wrap;height:auto;border-right:0;border-bottom:1px solid var(--bd1)}
+      .sidebar-brand{border-bottom:0;margin:0;padding-right:16px}
+      .sidebar-nav{flex-direction:row;flex-wrap:wrap;flex:1 1 100%}
+      .sidebar-item{width:auto}
+      .sidebar-foot{flex-basis:100%}
+      .app-topbar{position:static;left:0}
+      .app-main{padding:16px 14px 50px}
+      .kpis{grid-template-columns:1fr 1fr}
+      .filters{grid-template-columns:1fr}
+      .grid2,.mgrid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <!-- ===================== APP ===================== -->
+  <aside class="app-sidebar">
+    <div class="sidebar-brand">
+      <div class="mark"><i class="ti ti-filter"></i></div>
+      <div><strong>CRM</strong><span>Aplic &amp; Go</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-item active"><i class="ti ti-user-plus"></i> Leads</button>
+      <a class="sidebar-item" href="/"><i class="ti ti-apps"></i> Sistemas</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="sidebar-user">
+        <div class="av" id="userAv">·</div>
+        <div class="nm" id="userNm">—</div>
+        <button id="logoutBtn" title="Sair"><i class="ti ti-logout"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <header class="app-topbar">
+    <span class="t-title">Leads</span>
+    <div class="t-search">
+      <i class="ti ti-search"></i>
+      <input id="search" type="text" placeholder="Buscar nome, WhatsApp, Instagram, cidade…">
+    </div>
+    <span class="dot" title="Conectado"></span>
+    <a class="t-back" href="/"><i class="ti ti-arrow-left"></i> Sistemas</a>
+  </header>
+
+  <main class="app-main">
+    <div class="page-head">
+      <h1>Leads dos funis</h1>
+      <p>Captados pela Avaliação Estratégica do Instagram — Dr. Matheus e Clínica.</p>
+    </div>
+
+    <section class="kpis">
+      <div class="kpi"><div class="k-lab">Total</div><div class="k-val" id="mTotal">—</div><div class="k-sub">no sistema</div></div>
+      <div class="kpi"><div class="k-lab">Novos</div><div class="k-val" id="mNovos">—</div><div class="k-sub">aguardando contato</div></div>
+      <div class="kpi"><div class="k-lab">Classe A</div><div class="k-val" id="mClasseA">—</div><div class="k-sub">maior prioridade</div></div>
+      <div class="kpi"><div class="k-lab">Início imediato</div><div class="k-val" id="mHot">—</div><div class="k-sub">querem começar já</div></div>
+    </section>
+
+    <section class="filters">
+      <input id="fSearch" type="text" placeholder="Buscar nome, WhatsApp, Instagram ou cidade">
+      <select id="fSource">
+        <option value="">Todas as origens</option>
+        <option value="instagram_aplic">Instagram · Clínica</option>
+        <option value="instagram_matheus">Instagram · Dr. Matheus</option>
+      </select>
+      <select id="fClass"><option value="">Todas as classes</option><option value="A">Classe A</option><option value="B">Classe B</option><option value="C">Classe C</option></select>
+      <select id="fStatus">
+        <option value="">Todos os status</option>
+        <option>Novo</option><option>Em contato</option><option>Qualificado</option><option>Agendado</option><option>Convertido</option><option>Sem resposta</option><option>Perdido</option>
+      </select>
+    </section>
+
+    <section class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Lead</th><th>Origem</th><th>Objetivo</th><th>Classe</th><th>Impacto</th><th>Prazo</th><th>Status</th><th>Responsável</th><th>Entrada</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="loading" id="loading">Carregando leads…</div>
+      <div class="empty hidden" id="empty"><i class="ti ti-inbox"></i>Nenhum lead ainda. Assim que o funil capturar (e o backend estiver no ar), eles aparecem aqui.</div>
+    </section>
+  </main>
+
+  <!-- ===================== MODAL LEAD ===================== -->
+  <div class="modal" id="leadModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div><h2 id="mdName">Lead</h2><div class="sub" id="mdSub"></div></div>
+        <button id="mdClose">×</button>
+      </div>
+      <div class="modal-body" id="mdBody"></div>
+    </div>
+  </div>
+
+  <!-- ===================== AUTH ===================== -->
+  <div class="auth" id="auth">
+    <div class="auth-card">
+      <div class="mark"><i class="ti ti-filter"></i></div>
+      <h2>CRM · Aplic &amp; Go</h2>
+      <p>Acesso da equipe. Use seu login do sistema.</p>
+      <form id="loginForm" autocomplete="on">
+        <label for="email">E-mail</label>
+        <input id="email" type="email" autocomplete="username" required>
+        <label for="senha">Senha</label>
+        <input id="senha" type="password" autocomplete="current-password" required>
+        <button class="btn primary" type="submit" id="loginBtn">Entrar</button>
+        <div class="auth-err" id="authErr"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = "https://srv.aplicgo.com";
+    const TOKEN_KEY = "aplic_auth_token";
+    const $ = id => document.getElementById(id);
+    const getToken = () => localStorage.getItem(TOKEN_KEY);
+    const setToken = t => t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+
+    let LEADS = [];
+
+    const LABELS = {
+      goal:{body:"Corpo e metabolismo",performance:"Energia e performance",longevity:"Longevidade e prevenção",integrated:"Transformação integrada"},
+      source:{instagram_aplic:"Instagram · Clínica",instagram_matheus:"Instagram · Dr. Matheus"},
+      start:{asap:"Imediato","15d":"Até 15 dias","30to60":"30–60 dias",exploring:"Conhecendo"}
+    };
+    const startLabel = v => LABELS.start[v] || v || "—";
+    const sourceLabel = v => LABELS.source[v] || v || "—";
+
+    function showToast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400);}
+
+    // ---------- API helper (padrão pacApi → {ok,data}) ----------
+    async function api(path, opts={}){
+      let resp;
+      try{
+        resp = await fetch(API_BASE+path, {...opts, headers:{'Authorization':'Bearer '+getToken(),'Content-Type':'application/json',...(opts.headers||{})}});
+      }catch(e){ return {ok:false, net:true, data:null}; }
+      let data=null; try{ data = await resp.json(); }catch{}
+      if(resp.status===401){ setToken(null); showAuth(); }
+      return {ok:resp.ok, status:resp.status, data};
+    }
+
+    // ---------- Auth ----------
+    function showAuth(){ $("auth").classList.remove("hidden"); }
+    function hideAuth(){ $("auth").classList.add("hidden"); }
+    $("loginForm").addEventListener("submit", async e=>{
+      e.preventDefault();
+      $("authErr").textContent=""; $("loginBtn").textContent="Entrando…";
+      try{
+        const r = await fetch(API_BASE+"/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("email").value.trim(),senha:$("senha").value})});
+        const d = await r.json().catch(()=>({}));
+        if(!r.ok || !d.token){ $("authErr").textContent = d.error || d.erro || "E-mail ou senha inválidos."; return; }
+        setToken(d.token);
+        if(d.user){ setUser(d.user); }
+        hideAuth(); boot();
+      }catch(err){ $("authErr").textContent="Falha de conexão. Tente de novo."; }
+      finally{ $("loginBtn").textContent="Entrar"; }
+    });
+    $("logoutBtn").addEventListener("click",()=>{ setToken(null); location.reload(); });
+    function setUser(u){
+      const nome = u.nome || u.name || u.email || "Equipe";
+      $("userNm").textContent = nome;
+      $("userAv").textContent = (nome.trim()[0]||"·").toUpperCase();
+    }
+
+    // ---------- Carregar + render ----------
+    async function boot(){
+      if(!getToken()){ showAuth(); return; }
+      $("loading").classList.remove("hidden"); $("empty").classList.add("hidden");
+      const r = await api("/api/leads");
+      if(r.status===401) return;
+      if(!r.ok){ $("loading").textContent = r.net ? "Sem conexão com o servidor." : "Não foi possível carregar os leads."; return; }
+      LEADS = (r.data && r.data.leads) || [];
+      $("loading").classList.add("hidden");
+      renderMetrics(); renderRows();
+    }
+
+    function filtered(){
+      const q=$("fSearch").value.toLowerCase().trim(), src=$("fSource").value, cl=$("fClass").value, st=$("fStatus").value;
+      return LEADS.filter(l=>{
+        const hay=[l.name,l.whatsapp,l.instagram,l.city].join(" ").toLowerCase();
+        return (!q||hay.includes(q))&&(!src||l.source===src)&&(!cl||l.class===cl)&&(!st||l.status===st);
+      });
+    }
+    function renderMetrics(){
+      $("mTotal").textContent = LEADS.length;
+      $("mNovos").textContent = LEADS.filter(l=>["Novo","Em contato"].includes(l.status)).length;
+      $("mClasseA").textContent = LEADS.filter(l=>l.class==="A").length;
+      $("mHot").textContent = LEADS.filter(l=>l.answers && l.answers.start==="asap").length;
+    }
+    function fmtDate(iso){ try{ return new Intl.DateTimeFormat("pt-BR",{dateStyle:"short",timeStyle:"short"}).format(new Date(iso)); }catch{ return "—"; } }
+    function renderRows(){
+      const list=filtered(), tb=$("rows"); tb.innerHTML="";
+      $("empty").classList.toggle("hidden", list.length>0 || LEADS.length===0 && false);
+      if(!list.length){ $("empty").classList.remove("hidden"); return; }
+      $("empty").classList.add("hidden");
+      for(const l of list){
+        const goal=(l.answers&&l.answers.goal)||l.goal;
+        const impact=(l.answers&&l.answers.impact);
+        const start=(l.answers&&l.answers.start);
+        const srcIcon = l.source==="instagram_matheus" ? "ti-user" : "ti-building-hospital";
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td><div class="nm">${esc(l.name)}</div><div class="sub">${esc(l.instagram||"—")} · ${esc(l.city||"—")}</div></td>
+          <td><span class="src"><i class="ti ${srcIcon}"></i>${esc(sourceLabel(l.source))}</span></td>
+          <td>${esc(LABELS.goal[goal]||"—")}</td>
+          <td>${l.class?`<span class="pill ${esc(l.class)}">${esc(l.class)}</span>`:"—"}</td>
+          <td>${impact!=null?esc(impact)+"/10":"—"}</td>
+          <td>${esc(startLabel(start))}</td>
+          <td><span class="st">${esc(l.status||"Novo")}</span></td>
+          <td>${esc(l.owner||"—")}</td>
+          <td style="color:var(--tx4);font-size:12px">${fmtDate(l.createdAt)}</td>`;
+        tr.addEventListener("click",()=>openLead(l.id));
+        tb.appendChild(tr);
+      }
+    }
+    ["fSearch","fSource","fClass","fStatus"].forEach(id=>$(id).addEventListener(id==="fSearch"?"input":"change",renderRows));
+    $("search").addEventListener("input",e=>{ $("fSearch").value=e.target.value; renderRows(); });
+
+    // ---------- Modal ----------
+    function openLead(id){
+      const l=LEADS.find(x=>x.id===id); if(!l) return;
+      $("mdName").textContent=l.name;
+      $("mdSub").textContent=`${sourceLabel(l.source)} · ${l.class?("Classe "+l.class+" · "):""}${fmtDate(l.createdAt)}`;
+      const a=l.answers||{};
+      const wa=String(l.whatsapp||"").replace(/\D/g,"");
+      const msg=`Olá, ${String(l.name||"").split(" ")[0]}! Vi sua Avaliação Estratégica da Aplic & Go.`;
+      const det=(lab,val)=>`<div class="fld"><div class="l">${lab}</div><div class="v">${esc(val||"—")}</div></div>`;
+      const ans=(q,v)=>`<div class="ans"><span class="q">${esc(q)}</span><span class="a">${esc(v)}</span></div>`;
+      $("mdBody").innerHTML=`
+        <div class="grid2">
+          ${det("WhatsApp", wa?("+"+wa):"—")}
+          ${det("Instagram", l.instagram)}
+          ${det("E-mail", l.email)}
+          ${det("Cidade", l.city)}
+          ${det("Idade", l.age)}
+          ${det("Melhor horário", l.contactTime)}
+        </div>
+        <div class="sec">Mapa do lead</div>
+        <div>
+          ${ans("Objetivo", LABELS.goal[a.goal]||a.goal||"—")}
+          ${ans("Impacto na vida", a.impact!=null?a.impact+"/10":"—")}
+          ${ans("Prioridade declarada", a.priority!=null?a.priority+"/5":"—")}
+          ${ans("Prazo p/ começar", startLabel(a.start))}
+          ${ans("Tentativas", Array.isArray(a.attempts)?a.attempts.join(", "):"—")}
+          ${ans("Score interno", (l.score!=null?l.score:"—")+(l.class?(" · Classe "+l.class):""))}
+        </div>
+        <div class="sec">Gestão</div>
+        <div class="mgrid">
+          <div><label>Status</label><select id="edStatus">${["Novo","Em contato","Qualificado","Agendado","Convertido","Sem resposta","Perdido"].map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("")}</select></div>
+          <div><label>Prioridade interna</label><select id="edPri">${["Alta","Média","Baixa"].map(s=>`<option ${s===l.internalPriority?"selected":""}>${s}</option>`).join("")}</select></div>
+          <div><label>Responsável</label><input id="edOwner" value="${esc(l.owner||"")}" placeholder="Nome"></div>
+          <div><label>Próxima ação</label><input id="edNext" type="date" value="${esc(l.nextAction||"")}"></div>
+          <div class="full"><label>Notas internas</label><textarea id="edNotes" rows="3" placeholder="Contexto, objeções, próximos passos…">${esc(l.notes||"")}</textarea></div>
+        </div>
+        <div class="row-actions">
+          <button class="btn primary" id="edSave"><i class="ti ti-device-floppy"></i> Salvar</button>
+          ${wa?`<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>`:""}
+          <button class="btn ghost" id="edClose">Fechar</button>
+        </div>`;
+      $("edSave").addEventListener("click",()=>saveLead(l.id));
+      $("edClose").addEventListener("click",closeModal);
+      $("leadModal").classList.add("open");
+    }
+    function closeModal(){ $("leadModal").classList.remove("open"); }
+    $("mdClose").addEventListener("click",closeModal);
+    $("leadModal").addEventListener("click",e=>{ if(e.target===$("leadModal")) closeModal(); });
+
+    async function saveLead(id){
+      const body={ status:$("edStatus").value, internalPriority:$("edPri").value, owner:$("edOwner").value.trim(), nextAction:$("edNext").value||null, notes:$("edNotes").value.trim() };
+      const r=await api("/api/leads/"+id,{method:"PATCH",body:JSON.stringify(body)});
+      if(!r.ok){ showToast("Não foi possível salvar."); return; }
+      const i=LEADS.findIndex(x=>x.id===id); if(i>=0 && r.data && r.data.lead) LEADS[i]=r.data.lead;
+      renderMetrics(); renderRows(); closeModal(); showToast("Lead atualizado.");
+    }
+
+    // ---------- Boot ----------
+    boot();
+  </script>
+</body>
+</html>

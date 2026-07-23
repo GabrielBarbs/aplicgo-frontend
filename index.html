@@ -196,6 +196,25 @@
       transform: translateX(2px);
       box-shadow: 0 6px 18px rgba(232,148,90,0.35);
     }
+    .sistema-card.crm::before {
+      background: linear-gradient(90deg, #5B4BC4 0%, #8B7BF0 100%);
+    }
+    .sistema-card.crm:hover:not(.disabled) {
+      box-shadow: 0 12px 32px rgba(123,104,238,0.15), 0 0 0 1px rgba(123,104,238,0.25);
+    }
+    .sistema-card.crm .sistema-icon {
+      background: linear-gradient(135deg, #5B4BC4 0%, #8B7BF0 100%);
+      box-shadow: 0 0 24px rgba(123,104,238,0.3);
+    }
+    .sistema-card.crm .sistema-cta {
+      background: linear-gradient(135deg, #5B4BC4 0%, #8B7BF0 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(123,104,238,0.25);
+    }
+    .sistema-card.crm:hover .sistema-cta {
+      transform: translateX(2px);
+      box-shadow: 0 6px 18px rgba(123,104,238,0.35);
+    }
 
     .footer {
       margin-top: 56px;
@@ -252,6 +271,28 @@
           <span class="sistema-feat"><i class="ti ti-calendar"></i> Agendamentos</span>
           <span class="sistema-feat"><i class="ti ti-vaccine"></i> Aplicações</span>
           <span class="sistema-feat"><i class="ti ti-package"></i> Estoque</span>
+        </div>
+        <span class="sistema-cta">
+          Entrar <i class="ti ti-arrow-right"></i>
+        </span>
+      </a>
+
+      <!-- SISTEMA CRM — leads dos funis de quiz (inLead próprio) -->
+      <a class="sistema-card crm" href="crm.html">
+        <div class="sistema-icon"><i class="ti ti-filter"></i></div>
+        <h2 class="sistema-nome">
+          Sistema CRM
+          <span class="sistema-tag ativo" style="background:rgba(123,104,238,0.18);color:#8B7BF0;border:1px solid rgba(123,104,238,0.3);">Novo</span>
+        </h2>
+        <p class="sistema-desc">
+          Leads capturados pelos funis de Avaliação Estratégica do Instagram (Dr. Matheus e Clínica). Triagem, priorização, status e abordagem -- cada lead direto no nosso sistema.
+        </p>
+        <div class="sistema-features">
+          <span class="sistema-feat"><i class="ti ti-brand-instagram"></i> Funis</span>
+          <span class="sistema-feat"><i class="ti ti-user-plus"></i> Leads</span>
+          <span class="sistema-feat"><i class="ti ti-flag"></i> Prioridade</span>
+          <span class="sistema-feat"><i class="ti ti-brand-whatsapp"></i> Abordagem</span>
+          <span class="sistema-feat"><i class="ti ti-chart-arcs"></i> Origem</span>
         </div>
         <span class="sistema-cta">
           Entrar <i class="ti ti-arrow-right"></i>
