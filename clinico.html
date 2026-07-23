@@ -3042,6 +3042,15 @@
     .pr-inj-comp .st { font-size: 10.5px; font-weight: 600; }
     .pr-inj-incl { font-size: 9.5px; color: var(--tx4); }
     .pr-inj-incl.avulso { color: #E68A47; }
+    /* Histórico compacto: linha por sessão, clica pra expandir; "ver mais" pras antigas */
+    .pr-inj-hrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: var(--bg2); border: 1px solid var(--bd1); border-radius: 8px; margin-bottom: 4px; cursor: pointer; font-size: 12px; color: var(--tx2); }
+    .pr-inj-hrow:hover { border-color: var(--ac); }
+    .pr-inj-hrow .sem { color: var(--tx1); font-weight: 600; }
+    .pr-inj-hrow .dose { color: var(--tx1); }
+    .pr-inj-hchev { color: var(--tx4); font-size: 14px; flex-shrink: 0; transition: transform .15s; }
+    .pr-inj-hdet { padding-left: 6px; margin: -2px 0 6px; }
+    .pr-inj-vermais { width: 100%; background: transparent; border: 1px dashed var(--bd1); color: var(--tx3); border-radius: 8px; padding: 6px; font: inherit; font-size: 11px; cursor: pointer; margin-top: 2px; }
+    .pr-inj-vermais:hover { color: var(--tx1); border-color: var(--ac); }
     /* Aba "Base": medicamento base + escada de dose */
     .pr-base-card { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 10px; padding: 12px 13px; margin-bottom: 10px; }
     .pr-base-head { font-size: 13.5px; color: var(--tx1); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
@@ -6124,7 +6133,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-L</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-M</b></span></div>
   </div>
 </div>
 
@@ -23252,11 +23261,37 @@ function prInjHtml(presc) {
   proxHtml += proximas.length ? proximas.map((s) => card(s, true)).join('') : `<div class="pr-inj-obs">Nenhuma sessão pendente.</div>`;
   proxHtml += `</div>`;
 
-  let histHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Histórico de aplicações</div>`;
-  histHtml += aplicadas.length ? aplicadas.map((s) => card(s, false)).join('') : `<div class="pr-inj-obs">Nenhuma aplicação registrada ainda.</div>`;
+  // Histórico COMPACTO: cada sessão aplicada é UMA linha (clica pra expandir os componentes). As mais
+  // antigas ficam atrás do "ver mais" pra não poluir quando o histórico cresce.
+  const hrow = (s) => {
+    const nomes = s.itens.map((i) => esc(i.nome_ativo || i.sku_ativo || 'item')).join(', ');
+    const dt = Math.max(0, ...s.itens.map((i) => new Date(i.data_aplicacao || 0).getTime()));
+    const quando = dt ? esc(prInjDataHora(new Date(dt).toISOString())) : '';
+    const quem = (s.itens.find((i) => i.enfermeiro) || {}).enfermeiro;
+    return `<div class="pr-inj-hrow" onclick="prInjHistToggle(this)"><div class="pr-inj-lin-info" style="min-width:0"><span class="sem">Semana ${s.semana}</span> · <span class="dose">${nomes}</span><div class="hist-meta">aplicada${quando ? ' ' + quando : ''}${quem ? ' · por ' + esc(quem) : ''}</div></div><i class="ti ti-chevron-down pr-inj-hchev"></i></div><div class="pr-inj-hdet" style="display:none">${s.itens.map((it) => comp(it, false)).join('')}</div>`;
+  };
+  const HIST_VIS = 6;
+  let histHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Histórico de aplicações${aplicadas.length ? ' (' + aplicadas.length + ')' : ''}</div>`;
+  if (!aplicadas.length) histHtml += `<div class="pr-inj-obs">Nenhuma aplicação registrada ainda.</div>`;
+  else {
+    histHtml += aplicadas.slice(0, HIST_VIS).map(hrow).join('');
+    if (aplicadas.length > HIST_VIS) {
+      histHtml += `<div class="pr-inj-hmore" style="display:none">${aplicadas.slice(HIST_VIS).map(hrow).join('')}</div>`;
+      histHtml += `<button class="pr-inj-vermais" onclick="this.previousElementSibling.style.display='block'; this.remove();">+ ver mais ${aplicadas.length - HIST_VIS} aplicações</button>`;
+    }
+  }
   histHtml += `</div>`;
 
   return `<div class="pr-inj-wrap">${proxHtml}${histHtml}</div>`;
+}
+// Expande/recolhe o detalhe (componentes) de uma linha do histórico compacto.
+function prInjHistToggle(el) {
+  const det = el.nextElementSibling;
+  if (!det || !det.classList.contains('pr-inj-hdet')) return;
+  const aberto = det.style.display !== 'none';
+  det.style.display = aberto ? 'none' : 'block';
+  const chev = el.querySelector('.pr-inj-hchev');
+  if (chev) chev.style.transform = aberto ? '' : 'rotate(180deg)';
 }
 async function prInjAplicar(itemId, btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i>'; }
