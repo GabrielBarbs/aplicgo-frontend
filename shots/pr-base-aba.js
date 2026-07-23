@@ -58,7 +58,7 @@ const PORT = process.argv[2] || '8195';
 
     // B) carregar o box
     const host = document.createElement('div');
-    host.innerHTML = '<div id="pr-base-box" class="pr-inj-box" style="max-width:470px;padding:14px;background:#0e1116;border-radius:12px"></div>';
+    host.innerHTML = '<div id="pr-base-box" class="pr-inj-box pr-base-box" style="max-width:470px;padding:14px;background:#0e1116;border-radius:12px"></div>';
     document.body.appendChild(host);
     prState.baseCache = null;
     await prBaseCarregar();

@@ -23258,6 +23258,13 @@ function prInjHtml(presc) {
     s.faltaAgendamento = !s.temAgendamento && s.itens.some((i) => i.status_item === 'liberado');
     s.vencido = s.temAgendamento && new Date(s.agendamento.data).getTime() < agora && !s.resolvida;
     if (s.aplicaveis.length) PRINJ_SESS[s.prescId + '|' + s.semana] = s.aplicaveis.map((it) => ({ id: it.id, nome: it.nome_ativo || it.sku_ativo || 'item', dose: prInjDose(it), via: it.via || '' }));
+    // Categorias pros filtros da Soroterapia: contrato / agenda / vencido / liberado (pronta, sem restrição).
+    s.cats = [];
+    if (s.faltaContrato) s.cats.push('contrato');
+    if (s.faltaAgendamento) s.cats.push('agenda');
+    if (s.vencido) s.cats.push('vencido');
+    if (s.aplicaveis.length && !s.faltaContrato && !s.faltaAgendamento && !s.vencido) s.cats.push('liberado');
+    if (!s.cats.length) s.cats.push('liberado');
   });
 
   const flags = (s) => {
@@ -23291,7 +23298,8 @@ function prInjHtml(presc) {
   };
   const card = (s, comBtn) => {
     const btnSess = (comBtn && podeAplicar && s.aplicaveis && s.aplicaveis.length) ? `<div style="margin-top:7px"><button class="pr-inj-btn aplicar" onclick="injChecklistDaSoro('${s.prescId}|${s.semana}')"><i class="ti ti-check"></i> Aplicar sessão (${s.aplicaveis.length})</button></div>` : '';
-    return `<div class="pr-inj-sess"><div class="pr-inj-sess-tit">${titulo(s)}${multi && s.prescData ? ` <span class="pr-inj-presc">presc. ${esc(s.prescData)}</span>` : ''}${flags(s)}</div>${s.itens.map((it) => comp(it)).join('')}${btnSess}</div>`;
+    const vis = !s.cats || s.cats.includes(PRINJ_FILTRO);   // filtro ativo da Soroterapia
+    return `<div class="pr-inj-sess" data-cats="${(s.cats || []).join(' ')}"${vis ? '' : ' style="display:none"'}><div class="pr-inj-sess-tit">${titulo(s)}${multi && s.prescData ? ` <span class="pr-inj-presc">presc. ${esc(s.prescData)}</span>` : ''}${flags(s)}</div>${s.itens.map((it) => comp(it)).join('')}${btnSess}</div>`;
   };
 
   const proximas = sessoes.filter((s) => !s.resolvida).sort((a, b) => (a.semana - b.semana) || (a.prescId < b.prescId ? -1 : 1));
@@ -23302,7 +23310,16 @@ function prInjHtml(presc) {
   });
 
   let proxHtml = `<div class="pr-inj-sec"><div class="pr-inj-sec-tit">Próximas aplicações</div>`;
-  proxHtml += proximas.length ? proximas.map((s) => card(s, true)).join('') : `<div class="pr-inj-obs">Nenhuma sessão pendente.</div>`;
+  if (!proximas.length) {
+    proxHtml += `<div class="pr-inj-obs">Nenhuma sessão pendente.</div>`;
+  } else {
+    const contCat = (c) => proximas.filter((s) => s.cats.includes(c)).length;
+    const fbtn = (c, lbl) => `<button class="pinj-fbtn${PRINJ_FILTRO === c ? ' on' : ''}" onclick="prInjFiltrar('${c}', this)">${lbl}${contCat(c) ? ` <span class="pinj-fn">${contCat(c)}</span>` : ''}</button>`;
+    proxHtml += `<div class="pr-inj-filtros">${fbtn('liberado', 'Prontas')}${fbtn('contrato', 'Falta contrato')}${fbtn('agenda', 'Falta agendamento')}${fbtn('vencido', 'Vencidas')}</div>`;
+    proxHtml += proximas.map((s) => card(s, true)).join('');
+    const visN = proximas.filter((s) => s.cats.includes(PRINJ_FILTRO)).length;
+    proxHtml += `<div class="pr-inj-obs" id="pr-inj-filtro-vazio"${visN ? ' style="display:none"' : ''}>Nenhuma sessão nesta categoria.</div>`;
+  }
   proxHtml += `</div>`;
 
   // Histórico COMPACTO: cada sessão aplicada é UMA linha (clica pra expandir os componentes). As mais
@@ -23505,7 +23522,10 @@ function prBaseHtml(prescs, cat) {
   if (!ativas.length) {
     return '<div class="pr-inj-wrap"><div class="pr-card-prof-vazio"><i class="ti ti-pill"></i> Sem medicamento base prescrito.<span style="display:block;font-style:normal;margin-top:4px;color:var(--tx4)">É prescrito no prontuário como "Medicamento base (GLP-1)".</span></div></div>';
   }
-  const podeAplicar = typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar');
+  // Aplica a dose do medicamento base: enfermagem/quem tem a permissão E o MÉDICO (ele prescreve o GLP-1,
+  // então aplica pelo card médico também — o backend libera o role 'medico' pra esse fluxo).
+  const podeAplicar = (typeof temPermissao === 'function' && temPermissao('prontuario.aplicacao.registrar'))
+    || (typeof authUser !== 'undefined' && authUser && authUser.role === 'medico');
   const doseTxt = (v) => v != null ? String(v).replace('.', ',') + ' mg' : '';
   const btnDesf = (pid, semana) => podeAplicar ? `<button class="pr-inj-btn desfazer" onclick="prBaseDesaplicar('${pid}', ${semana}, this)" title="Desfazer"><i class="ti ti-arrow-back-up"></i></button>` : '';
   const metaAplic = (a) => `<div class="hist-meta">${a.enfermeiro ? 'por ' + esc(a.enfermeiro) : ''}${a.data_aplicacao ? ' · ' + esc(prInjDataHora(a.data_aplicacao)) : ''}${a.baixa_estoque === false ? ' <span class="tx4">(sem baixa de estoque)</span>' : ''}</div>`;
