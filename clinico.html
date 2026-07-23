@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-W</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-X</b></span></div>
   </div>
 </div>
 
@@ -21422,7 +21422,9 @@ const _onbSalvarOriginal = typeof onbSalvar === 'function' ? onbSalvar : null;
 // ============================================================
 // ONBOARDING DO PACIENTE (Aula 05/29 Cap 3, Combo D)
 // ============================================================
-let onbState = { patientId: null, data: null, checks: {}, dirty: false };
+let onbState = { patientId: null, data: null, checks: {}, dirty: false, com: {}, catSup: [], catInj: [] };
+// Programas oferecidos no dropdown do bloco comercial (ajustável). "Outro…" libera texto livre.
+const ONB_PROGRAMAS = ['Performa', 'Burn&Build', 'Club', 'Lipedema Control'];
 
 const ONB_CHECKS = [
   { key: 'boas_vindas',       campo: 'boas_vindas_em',       label: 'Boas-vindas ao paciente',  desc: 'Recepção dá as boas-vindas presencialmente',          essencial: false },
@@ -21449,33 +21451,20 @@ async function onbAbrirModal(patientId) {
   // Resumo
   const p = r.data.paciente;
   const statusCor = p.status === 'ATIVO' ? '#1D9E75' : (p.status === 'INCOMPLETO' || p.status === 'PRE_PROGRAMA' ? '#EF9F27' : 'var(--tx3b)');
-  // Dados clínicos puxados do paciente (peso/altura/meta/saúde/anamnese). Antes o
-  // onboarding era uma ilha e não mostrava nada disso.
-  const c = r.data.clinico || {};
-  const naOnb = '<span style="color:var(--tx4);">—</span>';
-  const fkgOnb = (v) => v == null ? naOnb : String(v).replace('.', ',') + ' kg';
-  const ftxOnb = (v) => v ? esc(String(v)) : naOnb;
-  const origLblOnb = { cadastro: 'cadastro', bioimpedancia: 'bioimp.', evolucao: 'evolução' };
-  const origOnb = (o) => o ? ` <span style="font-size:9px; color:var(--tx4);">(${origLblOnb[o] || o})</span>` : '';
-  const comorOnb = (c.comorbidades && c.comorbidades.length) ? c.comorbidades.map(x => esc(x)).join(', ') : naOnb;
-  const campoOnb = (lbl, val, full) => `<div${full ? ' style="grid-column:1/-1;"' : ''}><div style="font-size:10px; color:var(--tx3b);">${lbl}</div><div style="color:var(--tx1);">${val}</div></div>`;
-  const clinicoHtml = `
-    <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--bg3);">
-      <div style="font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--tx3b); margin-bottom:8px; font-weight:600;">
-        <i class="ti ti-clipboard-heart" style="color:#1D9E75;"></i> Dados clínicos do paciente
-      </div>
-      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px 14px; font-size:12px;">
-        ${campoOnb('Peso inicial', fkgOnb(c.peso_inicial_kg) + origOnb(c.peso_inicial_origem))}
-        ${campoOnb('Peso atual', fkgOnb(c.peso_atual_kg) + origOnb(c.peso_atual_origem))}
-        ${campoOnb('Meta', fkgOnb(c.peso_objetivo_kg))}
-        ${campoOnb('Altura', c.altura_cm != null ? c.altura_cm + ' cm' : naOnb)}
-        ${campoOnb('IMC atual', c.imc_atual != null ? String(c.imc_atual).replace('.', ',') : naOnb)}
-        ${campoOnb('Motivação', ftxOnb(c.motivacao))}
-        ${campoOnb('Comorbidades', comorOnb, true)}
-        ${campoOnb('Alergias', ftxOnb(c.alergias), true)}
-        ${campoOnb('Medicações em uso', ftxOnb(c.medicacoes_em_uso), true)}
-      </div>
-    </div>`;
+  // Bloco COMERCIAL do programa (substituiu o resumo clínico — peso/comorbidades/alergias
+  // seguem no cabeçalho e no card clínico do prontuário). Estado + catálogos pros dropdowns.
+  const obc = r.data.onboarding || {};
+  onbState.catSup = r.data.catalogo_suplementos || [];
+  onbState.catInj = r.data.catalogo_injetaveis || [];
+  onbState.com = {
+    programa: nomePrograma(p.programa || '') || '',
+    duracao_semanas: (p.programa_duracao_semanas != null ? p.programa_duracao_semanas : ''),
+    tecnologias: (obc.tecnologias_inclusas || ''),
+    pago: (obc.programa_pago != null ? obc.programa_pago : null),
+    pagamento_desc: (obc.programa_pagamento_desc || ''),
+    suplementos: (obc.suplementos_inclusos || []).map((s) => ({ sku: s.sku, nome: s.nome, saldo: s.saldo })),
+    injetaveis: (obc.injetaveis_inclusos || []).map((s) => ({ sku: s.sku, nome: s.nome })),
+  };
   document.getElementById('onb-pat-info').innerHTML = `
     <div style="display:flex; align-items:center; gap:10px;">
       <i class="ti ti-user-circle" style="color:#4A90E2; font-size:18px;"></i>
@@ -21483,13 +21472,13 @@ async function onbAbrirModal(patientId) {
         <div style="color:var(--tx1); font-weight:500;">${p.nome} <span style="font-family:'SF Mono',Consolas,monospace; color:var(--ac); font-size:11px;">${p.codigo}</span></div>
         <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">
           <span style="color:${statusCor};">● ${p.status}</span>
-          ${p.programa ? ' · Programa: <strong style="color:var(--tx2);">' + esc(nomePrograma(p.programa)) + '</strong>' : ''}
           ${p.medico ? ' · Médico: <strong style="color:var(--tx2);">' + (p.medico.name || p.medico.email) + '</strong>' : ''}
           ${p.nutri ? ' · Nutri: <strong style="color:var(--tx2);">' + (p.nutri.name || p.nutri.email) + '</strong>' : ''}
         </div>
       </div>
     </div>
-  ${clinicoHtml}`;
+    <div id="onb-comercial"></div>`;
+  onbRenderComercial();
 
   // Datas opcionais
   const ob = onbState.data || {};
@@ -21602,6 +21591,14 @@ async function onbSalvar(finalizar) {
     consulta_nutri_agendada: document.getElementById('onb-consulta-nutri').value ? new Date(document.getElementById('onb-consulta-nutri').value).toISOString() : null,
     primeira_aplicacao_agendada: document.getElementById('onb-primeira-app').value ? new Date(document.getElementById('onb-primeira-app').value).toISOString() : null,
     finalizar: !!finalizar,
+    // Bloco comercial
+    programa: (onbState.com.programa || '').trim() || null,
+    programa_duracao_semanas: onbState.com.duracao_semanas !== '' && onbState.com.duracao_semanas != null ? (parseInt(onbState.com.duracao_semanas, 10) || null) : null,
+    tecnologias_inclusas: (onbState.com.tecnologias || '').trim() || null,
+    injetaveis_inclusos: (onbState.com.injetaveis || []).filter((x) => x.sku).map((x) => ({ sku: x.sku, nome: x.nome || x.sku })),
+    suplementos_inclusos: (onbState.com.suplementos || []).filter((x) => x.sku).map((x) => ({ sku: x.sku, nome: x.nome || x.sku, saldo: Math.max(0, parseInt(x.saldo, 10) || 0) })),
+    programa_pago: onbState.com.pago == null ? null : !!onbState.com.pago,
+    programa_pagamento_desc: (onbState.com.pagamento_desc || '').trim() || null,
   };
 
   const r = await pacApi('/api/clinico/patients/' + onbState.patientId + '/onboarding', {
@@ -21628,6 +21625,114 @@ async function onbSalvar(finalizar) {
     pendCarregar();
   }
 }
+
+// ===== Bloco COMERCIAL do onboarding (programa, duração, inclusos, pago) =====
+const ONB_FLD = 'font-size:12px;padding:6px 8px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px;width:100%;box-sizing:border-box';
+const ONB_LBL = 'font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--tx3b);margin-bottom:4px;font-weight:600';
+function onbRenderComercial() {
+  const box = document.getElementById('onb-comercial');
+  if (!box) return;
+  const com = onbState.com || {};
+  const isOutro = !!com.programa && !ONB_PROGRAMAS.includes(com.programa);
+  const progOpts = ['<option value="">— selecione —</option>']
+    .concat(ONB_PROGRAMAS.map((pr) => `<option value="${esc(pr)}"${com.programa === pr ? ' selected' : ''}>${esc(pr)}</option>`))
+    .concat([`<option value="__outro__"${isOutro ? ' selected' : ''}>Outro…</option>`]).join('');
+  box.innerHTML = `
+    <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--bg3);">
+      <div style="font-size:10px; text-transform:uppercase; letter-spacing:.4px; color:var(--tx3b); margin-bottom:10px; font-weight:600;">
+        <i class="ti ti-rocket" style="color:var(--ac);"></i> Programa contratado
+      </div>
+      <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px 12px;">
+        <div>
+          <div style="${ONB_LBL}">Programa</div>
+          <select style="${ONB_FLD}" onchange="onbComProgramaMudou(this.value)">${progOpts}</select>
+          <input id="onb-com-prog-outro" placeholder="Nome do programa" value="${isOutro ? esc(com.programa) : ''}" oninput="onbComSet('programa', this.value)" style="${ONB_FLD}; margin-top:6px; display:${isOutro ? 'block' : 'none'}">
+        </div>
+        <div>
+          <div style="${ONB_LBL}">Duração (semanas)</div>
+          <input type="number" min="1" step="1" value="${com.duracao_semanas !== '' && com.duracao_semanas != null ? com.duracao_semanas : ''}" oninput="onbComSet('duracao_semanas', this.value)" placeholder="ex: 12" style="${ONB_FLD}">
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+          <div style="${ONB_LBL}; margin:0;">Suplementos inclusos <span style="color:var(--tx4); text-transform:none; letter-spacing:0; font-weight:400;">— concede saldo real</span></div>
+          <button type="button" class="pac-btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="onbSupAdd()"><i class="ti ti-plus"></i> Suplemento</button>
+        </div>
+        <div id="onb-sup-lista"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+          <div style="${ONB_LBL}; margin:0;">Injetáveis inclusos</div>
+          <button type="button" class="pac-btn-secondary" style="padding:3px 8px; font-size:11px;" onclick="onbInjAdd()"><i class="ti ti-plus"></i> Injetável</button>
+        </div>
+        <div id="onb-inj-lista"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="${ONB_LBL}">Tecnologias inclusas</div>
+        <textarea rows="2" oninput="onbComSet('tecnologias', this.value)" placeholder="ex: Criolipólise, Enshape, Heccus…" style="${ONB_FLD}; resize:vertical;">${esc(com.tecnologias || '')}</textarea>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px 12px; margin-top:12px;">
+        <div>
+          <div style="${ONB_LBL}">Programa pago?</div>
+          <select style="${ONB_FLD}" onchange="onbComPagoMudou(this.value)">
+            <option value=""${com.pago == null ? ' selected' : ''}>—</option>
+            <option value="sim"${com.pago === true ? ' selected' : ''}>Sim</option>
+            <option value="nao"${com.pago === false ? ' selected' : ''}>Não</option>
+          </select>
+        </div>
+        <div>
+          <div style="${ONB_LBL}">${com.pago === false ? 'Por que não / como será' : 'Forma de pagamento'}</div>
+          <input value="${esc(com.pagamento_desc || '')}" oninput="onbComSet('pagamento_desc', this.value)" placeholder="${com.pago === false ? 'ex: cortesia, permuta, pendente…' : 'ex: Pix à vista, 3x cartão, boleto…'}" style="${ONB_FLD}">
+        </div>
+      </div>
+    </div>`;
+  onbRenderSup();
+  onbRenderInj();
+}
+function onbRenderSup() {
+  const box = document.getElementById('onb-sup-lista'); if (!box) return;
+  const cat = onbState.catSup || [];
+  const sups = (onbState.com && onbState.com.suplementos) || [];
+  const fS = 'font-size:12px;padding:5px 7px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px';
+  if (!sups.length) { box.innerHTML = '<div style="font-size:11px; color:var(--tx4); font-style:italic;">Nenhum suplemento incluso.</div>'; return; }
+  box.innerHTML = sups.map((s, i) => {
+    const opts = ['<option value="">— produto —</option>'].concat(cat.map((c) => `<option value="${esc(c.sku)}"${s.sku === c.sku ? ' selected' : ''}>${esc(c.nome)}</option>`)).join('');
+    return `<div style="display:flex; gap:6px; align-items:center; margin-bottom:5px;">
+      <select style="${fS}; flex:1; min-width:0;" onchange="onbSupSetSku(${i}, this.value)">${opts}</select>
+      <input type="number" min="0" step="1" value="${s.saldo != null ? s.saldo : ''}" onchange="onbSupSetSaldo(${i}, this.value)" placeholder="saldo" title="Unidades incluídas (saldo)" style="${fS}; width:78px;">
+      <button type="button" onclick="onbSupRemove(${i})" title="Remover" style="background:none;border:none;color:var(--tx4);cursor:pointer;font-size:17px;line-height:1;">&times;</button>
+    </div>`;
+  }).join('');
+}
+function onbRenderInj() {
+  const box = document.getElementById('onb-inj-lista'); if (!box) return;
+  const cat = onbState.catInj || [];
+  const injs = (onbState.com && onbState.com.injetaveis) || [];
+  const fS = 'font-size:12px;padding:5px 7px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px';
+  if (!injs.length) { box.innerHTML = '<div style="font-size:11px; color:var(--tx4); font-style:italic;">Nenhum injetável incluso.</div>'; return; }
+  box.innerHTML = injs.map((s, i) => {
+    const opts = ['<option value="">— injetável —</option>'].concat(cat.map((c) => `<option value="${esc(c.sku)}"${s.sku === c.sku ? ' selected' : ''}>${esc(c.nome)}</option>`)).join('');
+    return `<div style="display:flex; gap:6px; align-items:center; margin-bottom:5px;">
+      <select style="${fS}; flex:1; min-width:0;" onchange="onbInjSetSku(${i}, this.value)">${opts}</select>
+      <button type="button" onclick="onbInjRemove(${i})" title="Remover" style="background:none;border:none;color:var(--tx4);cursor:pointer;font-size:17px;line-height:1;">&times;</button>
+    </div>`;
+  }).join('');
+}
+function onbComSet(field, val) { onbState.com[field] = val; onbState.dirty = true; }
+function onbComProgramaMudou(val) {
+  const inp = document.getElementById('onb-com-prog-outro');
+  if (val === '__outro__') { onbState.com.programa = ''; if (inp) { inp.style.display = 'block'; inp.focus(); } }
+  else { onbState.com.programa = val; if (inp) inp.style.display = 'none'; }
+  onbState.dirty = true;
+}
+function onbComPagoMudou(val) { onbState.com.pago = val === '' ? null : (val === 'sim'); onbState.dirty = true; onbRenderComercial(); }
+function onbSupAdd() { (onbState.com.suplementos = onbState.com.suplementos || []).push({ sku: '', nome: '', saldo: 1 }); onbState.dirty = true; onbRenderSup(); }
+function onbSupRemove(i) { onbState.com.suplementos.splice(i, 1); onbState.dirty = true; onbRenderSup(); }
+function onbSupSetSku(i, sku) { const c = (onbState.catSup || []).find((x) => x.sku === sku); onbState.com.suplementos[i].sku = sku; onbState.com.suplementos[i].nome = c ? c.nome : ''; onbState.dirty = true; }
+function onbSupSetSaldo(i, val) { onbState.com.suplementos[i].saldo = Math.max(0, parseInt(val, 10) || 0); onbState.dirty = true; }
+function onbInjAdd() { (onbState.com.injetaveis = onbState.com.injetaveis || []).push({ sku: '', nome: '' }); onbState.dirty = true; onbRenderInj(); }
+function onbInjRemove(i) { onbState.com.injetaveis.splice(i, 1); onbState.dirty = true; onbRenderInj(); }
+function onbInjSetSku(i, sku) { const c = (onbState.catInj || []).find((x) => x.sku === sku); onbState.com.injetaveis[i].sku = sku; onbState.com.injetaveis[i].nome = c ? c.nome : ''; onbState.dirty = true; }
 
 // ============================================================
 // ADMINISTRAÇÃO -- white label de cargos e permissões (Combo B)
