@@ -6156,7 +6156,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-U</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-V</b></span></div>
   </div>
 </div>
 
@@ -22239,6 +22239,7 @@ function prRenderTimeline() {
   const headerHtml = prRenderHeaderRico();
 
   const _podePresc = temPermissao('prontuario.prescrever');
+  const _ehMedico = typeof authUser !== 'undefined' && authUser && authUser.role === 'medico';  // Onboarding aqui é só do médico
   // Botões "secundários". Nova evolução por setor fica nos cards.
   // Solicitar exames vive DENTRO do prescritor (Nova prescrição -> Solicitação de Exames).
   const nAnexos = (prState.documentos || []).length;
@@ -22256,6 +22257,9 @@ function prRenderTimeline() {
       <button class="pac-btn-secondary" onclick="prAbrirFisico()" title="Medidas do corpo: nova medida + evolução das circunferências">
         <i class="ti ti-ruler-measure"></i> Físico
       </button>
+      ${_ehMedico ? `<button class="pac-btn-secondary" onclick="onbAbrirModal('${prState.pacienteAtual.id}')" title="Checklist de onboarding do paciente (só médico)">
+        <i class="ti ti-rocket"></i> Onboarding
+      </button>` : ''}
     </div>
   `;
 
