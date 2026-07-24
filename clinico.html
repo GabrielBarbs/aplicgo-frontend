@@ -14471,6 +14471,19 @@ async function pacAbrirEditarModal(id) {
   _selProg.value = _progVal;
   document.getElementById('pac-fase-atual').value = p.fase_atual || '';
   document.getElementById('pac-programa-inicio').value = p.programa_inicio_em || '';
+  // A data de início do programa é DEFINITIVA depois de preenchida a 1ª vez — só o gestor pode
+  // trocá-la. Trava o campo pros demais (o valor segue no hidden, então salvar não altera a data;
+  // o backend também barra). Primeiro preenchimento é liberado pra todos.
+  (function () {
+    const _visInicio = document.querySelector('input.inp-data[data-alvo="pac-programa-inicio"]');
+    if (_visInicio) {
+      const _ehGestor = typeof authUser !== 'undefined' && authUser && (authUser.role === 'gestor' || authUser.role === 'desenvolvedor');
+      const _travar = !!p.programa_inicio_em && !_ehGestor;
+      _visInicio.disabled = _travar;
+      _visInicio.title = _travar ? 'A data de início do programa é definitiva. Só o gestor pode alterá-la.' : '';
+      _visInicio.style.opacity = _travar ? '0.55' : '';
+    }
+  })();
   document.getElementById('pac-programa-duracao').value = p.programa_duracao_semanas || '';
   document.getElementById('pac-status-clinico').value = p.status_clinico || 'ESTAVEL';
   document.getElementById('pac-obs-imutaveis').value = p.observacoes_imutaveis_medico || '';
