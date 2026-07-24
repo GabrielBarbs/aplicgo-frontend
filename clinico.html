@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AE</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AF</b></span></div>
   </div>
 </div>
 
@@ -13652,9 +13652,9 @@ function renderPacAppLista(){
     const nome=pacAppEsc(p.nome);
     return '<tr style="cursor:pointer;" onclick="pacAppAbrir(\''+p.id+'\')">'
       +'<td class="col-fix-l1">'+dot+(p.codigo||'')+'</td>'
-      +'<td class="col-fix-l2">'+(p.nome||'')+'</td>'
+      +'<td class="col-fix-l2">'+esc(p.nome||'')+'</td>'
       +'<td>'+pacAppTempo(p.ultima_sessao)+'</td>'
-      +'<td>'+(p.device||'—')+'</td>'
+      +'<td>'+esc(p.device||'—')+'</td>'
       +'<td>'+wear+'</td>'
       +'<td>'+(p.ultimo_sync?pacAppTempo(p.ultimo_sync):'—')+'</td>'
       +'<td onclick="event.stopPropagation();" style="white-space:nowrap;">'
@@ -13754,14 +13754,14 @@ function pacAppWellCard(titulo, ic, blk, tipo, extra){
 }
 function renderPacAppDetalhe(d){
   const p=d.paciente, s=d.sessao, w=d.wearables, sc=d.aplic_score;
-  const foto=p.foto_url?'<img src="'+p.foto_url+'" style="width:54px;height:54px;border-radius:12px;object-fit:cover;">':'<div style="width:54px;height:54px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:22px;"><i class="ti ti-user"></i></div>';
+  const foto=p.foto_url?'<img src="'+esc(p.foto_url)+'" style="width:54px;height:54px;border-radius:12px;object-fit:cover;">':'<div style="width:54px;height:54px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:22px;"><i class="ti ti-user"></i></div>';
   const statusApp=s.ativo_app?'<span class="pac-tag ATIVO" style="font-size:10px;">● Ativo no app</span>':'<span class="pac-tag INATIVO" style="font-size:10px;">○ Inativo no app</span>';
   const nomeEsc=pacAppEsc(p.nome);
 
   const header='<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;">'
     +'<button class="pac-btn-secondary" onclick="pacAppVoltar()"><i class="ti ti-arrow-left"></i> Voltar</button>'+foto
-    +'<div style="flex:1;min-width:200px;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:18px;font-weight:600;color:var(--tx1);">'+(p.nome||'')+'</span>'+statusApp+'</div>'
-    +'<div style="font-size:11px;color:var(--tx3);margin-top:2px;">'+(p.codigo||'')+(p.unidade?(' · '+p.unidade):'')+' · última sessão '+pacAppTempo(s.ultima_sessao)+(s.device?(' · '+s.device):'')+'</div></div>'
+    +'<div style="flex:1;min-width:200px;"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:18px;font-weight:600;color:var(--tx1);">'+esc(p.nome||'')+'</span>'+statusApp+'</div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-top:2px;">'+esc(p.codigo||'')+(p.unidade?(' · '+esc(p.unidade)):'')+' · última sessão '+pacAppTempo(s.ultima_sessao)+(s.device?(' · '+esc(s.device)):'')+'</div></div>'
     +'<button class="pac-btn-primary" onclick="pacAppProntuario(\''+p.id+'\',\''+nomeEsc+'\',\''+(p.codigo||'')+'\',\''+(p.telefone||'')+'\')"><i class="ti ti-file-text"></i> Abrir prontuário</button></div>';
 
   const conns=(w.conexoes||[]).filter(function(c){return c.status==='ativo';});
@@ -14526,7 +14526,7 @@ function pacRenderComorbidades() {
   if (!wrap || !sug) return;
   wrap.innerHTML = (pacState.comorbidades || []).map((c, i) => `
     <span class="pac-ctag">
-      ${c}
+      ${esc(c)}
       <span class="rm" onclick="pacComorbRemover(${i})"><i class="ti ti-x"></i></span>
     </span>
   `).join('');
@@ -14578,7 +14578,7 @@ async function pacLookupTelefone() {
     alertWrap.innerHTML = `<div class="pac-lead-alert" style="border-color:rgba(248,81,73,0.30); background:rgba(248,81,73,0.08);">
       <i class="ti ti-alert-triangle" style="color:#f85149;"></i>
       <div class="text">
-        <strong>Paciente já existe:</strong> ${r.data.paciente.nome} (${r.data.paciente.codigo}) em ${r.data.paciente.unidade}.
+        <strong>Paciente já existe:</strong> ${esc(r.data.paciente.nome)} (${esc(r.data.paciente.codigo)}) em ${esc(r.data.paciente.unidade)}.
         Não cria duplicado, edita o existente.
       </div>
       <button onclick="pacFecharModal(); pacAbrirDetalhe('${r.data.paciente.id}')">Abrir paciente</button>
@@ -14588,10 +14588,10 @@ async function pacLookupTelefone() {
     alertWrap.innerHTML = `<div class="pac-lead-alert">
       <i class="ti ti-link"></i>
       <div class="text">
-        <strong>Esse telefone já está no comercial</strong> como lead "${l.name || '(sem nome)'}"${l.ultimo_deal ? ' · etapa ' + l.ultimo_deal.etapa : ''}.
+        <strong>Esse telefone já está no comercial</strong> como lead "${esc(l.name || '(sem nome)')}"${l.ultimo_deal ? ' · etapa ' + esc(l.ultimo_deal.etapa) : ''}.
         Linkar pra preservar histórico?
       </div>
-      <button onclick="pacLinkarLead('${l.contact_id}', '${(l.name||'').replace(/'/g,'\\\'')}', '${l.email||''}')">Linkar</button>
+      <button onclick="pacLinkarLead('${esc(l.contact_id)}', '${cpEnc(l.name||'')}', '${cpEnc(l.email||'')}')">Linkar</button>
     </div>`;
   } else {
     alertWrap.innerHTML = '';
@@ -14599,6 +14599,7 @@ async function pacLookupTelefone() {
 }
 
 function pacLinkarLead(contactId, nome, email) {
+  nome = cpDec(nome); email = cpDec(email);   // vieram em base64 (cpEnc) pra não quebrar o onclick
   document.getElementById('pac-form-contact-id').value = contactId;
   if (!document.getElementById('pac-nome-completo').value) {
     document.getElementById('pac-nome-completo').value = nome;
@@ -14612,7 +14613,7 @@ function pacLinkarLead(contactId, nome, email) {
 function renderLeadLinked(lead) {
   return `<div class="pac-lead-alert linked">
     <i class="ti ti-circle-check"></i>
-    <div class="text">Linkado a lead do comercial${lead.name ? ' (' + lead.name + ')' : ''}. Histórico comercial fica disponível na visão do paciente.</div>
+    <div class="text">Linkado a lead do comercial${lead.name ? ' (' + esc(lead.name) + ')' : ''}. Histórico comercial fica disponível na visão do paciente.</div>
   </div>`;
 }
 
@@ -16091,10 +16092,10 @@ async function marcCarregar() {
           <span><span class="quem">${pessoa}</span> · ${dataFmt}</span>
           <span class="marc-status-pill ${m.status}">${m.status === 'NAO_LIDA' ? 'não lida' : m.status.toLowerCase()}</span>
         </div>
-        ${m.contexto ? `<div class="ctx"><i class="ti ti-link"></i> ${m.contexto}${m.paciente ? ' · ' + m.paciente.nome : ''}</div>` : ''}
+        ${m.contexto ? `<div class="ctx"><i class="ti ti-link"></i> ${esc(m.contexto)}${m.paciente ? ' · ' + esc(m.paciente.nome) : ''}</div>` : ''}
         <div class="trecho">${(m.trecho || '').replace(/</g,'&lt;')}</div>
         <div class="acoes">
-          ${m.paciente ? `<button class="ir" onclick="marcIrParaOrigem('${m.id}', '${m.paciente.id}', '${(m.paciente.nome||'').replace(/'/g,"&apos;")}', '${m.paciente.codigo}', '${m.origem_id || ''}')"><i class="ti ti-arrow-right"></i> Ir para a marcação</button>` : ''}
+          ${m.paciente ? `<button class="ir" onclick="marcIrParaOrigem('${m.id}', '${m.paciente.id}', '${cpEnc(m.paciente.nome||'')}', '${esc(m.paciente.codigo)}', '${m.origem_id || ''}')"><i class="ti ti-arrow-right"></i> Ir para a marcação</button>` : ''}
           ${ehRecebida && m.status === 'NAO_LIDA' ? `<button onclick="marcMarcarLida('${m.id}')"><i class="ti ti-eye"></i> Marcar lida</button>` : ''}
           ${m.status !== 'RESOLVIDA' ? `<button onclick="marcResolver('${m.id}')"><i class="ti ti-check"></i> Resolver</button>` : ''}
         </div>
@@ -16125,6 +16126,7 @@ async function marcComentar(id) {
   marcCarregar(); marcAtualizarBadge();
 }
 function marcIrParaOrigem(mentionId, patientId, nome, codigo, origemId) {
+  nome = cpDec(nome);   // veio em base64 (cpEnc) pra não quebrar o onclick
   // Marca como lida ao navegar
   pacApi('/api/clinico/mentions/' + mentionId + '/ler', { method: 'PUT' }).then(() => marcAtualizarBadge());
   marcFechar();
@@ -19414,8 +19416,8 @@ function prRenderHeaderRico() {
   if (meds.injetaveis && meds.injetaveis.length) {
     meds.injetaveis.forEach(m => {
       const dose = m.dose ? ` <strong class="med-dose">${fmtDoseUnidade(m.dose)}</strong>` : '';
-      const freq = m.frequencia ? ` · ${m.frequencia}` : '';
-      medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${m.nome}${dose}${freq}</span></div>`);
+      const freq = m.frequencia ? ` · ${esc(m.frequencia)}` : '';
+      medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
     });
   } else {
     medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-vaccine"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">--</span></div>`);
@@ -19423,7 +19425,7 @@ function prRenderHeaderRico() {
 
   // Orais
   if (meds.orais && meds.orais.length) {
-    const nomesOrais = meds.orais.map(m => m.dose ? `${m.nome} ${m.dose}` : m.nome).join(', ');
+    const nomesOrais = meds.orais.map(m => m.dose ? `${esc(m.nome)} ${esc(m.dose)}` : esc(m.nome)).join(', ');
     medLinhas.push(`<div class="med-linha"><i class="ti ti-pill" style="color:#4A90E2;"></i> <span class="med-tipo">Oral:</span> <span class="med-val">${nomesOrais}</span></div>`);
   } else {
     medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-pill"></i> <span class="med-tipo">Oral:</span> <span class="med-val">--</span></div>`);
@@ -19432,8 +19434,8 @@ function prRenderHeaderRico() {
   // Suplementos: TODOS numa linha só (um card de suplemento)
   if (meds.suplementos && meds.suplementos.length) {
     const nomesSup = meds.suplementos.map(m => {
-      const cat = m.categoria ? ` (${m.categoria === 'APLIC_PLUS' ? 'Aplic PLUS' : m.categoria})` : '';
-      return `${m.nome}${cat}`;
+      const cat = m.categoria ? ` (${m.categoria === 'APLIC_PLUS' ? 'Aplic PLUS' : esc(m.categoria)})` : '';
+      return `${esc(m.nome)}${cat}`;
     }).join(', ');
     medLinhas.push(`<div class="med-linha"><i class="ti ti-capsule" style="color:var(--ac);"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">${nomesSup}</span></div>`);
   } else {
@@ -19442,7 +19444,7 @@ function prRenderHeaderRico() {
 
   // Atividade física
   const ativ = h.atividade_modalidade
-    ? `${h.atividade_modalidade}${h.atividade_frequencia ? ' · ' + h.atividade_frequencia + 'x/sem' : ''}${h.atividade_duracao_min ? ' · ' + h.atividade_duracao_min + 'min' : ''}`
+    ? `${esc(h.atividade_modalidade)}${h.atividade_frequencia ? ' · ' + esc(String(h.atividade_frequencia)) + 'x/sem' : ''}${h.atividade_duracao_min ? ' · ' + esc(String(h.atividade_duracao_min)) + 'min' : ''}`
     : '--';
   medLinhas.push(`<div class="med-linha"><i class="ti ti-run" style="color:#7B68EE;"></i> <span class="med-tipo">Atividade:</span> <span class="med-val">${ativ}</span></div>`);
 
@@ -24343,8 +24345,8 @@ function prRenderItem(it) {
     }
     case 'exame_pedido': {
       const d = it.dados;
-      body = '<div class="pr-exames-chips">' + d.exames.map(e => `<span class="pr-exame-chip">${e}</span>`).join('') + '</div>';
-      if (d.motivo) body += `<div style="font-size:11px; color:var(--tx3b); margin-top:8px;">${d.motivo}</div>`;
+      body = '<div class="pr-exames-chips">' + d.exames.map(e => `<span class="pr-exame-chip">${esc(e)}</span>`).join('') + '</div>';
+      if (d.motivo) body += `<div style="font-size:11px; color:var(--tx3b); margin-top:8px;">${esc(d.motivo)}</div>`;
       break;
     }
     case 'exame_resultado': {
@@ -24371,14 +24373,14 @@ function prRenderItem(it) {
     case 'aplicacao': {
       const d = it.dados;
       body = `<div style="font-size:12px;">
-        <div style="color:var(--tx1); font-weight:500;">${d.produto}${d.principio_ativo ? ' (' + d.principio_ativo + ')' : ''}</div>
+        <div style="color:var(--tx1); font-weight:500;">${esc(d.produto)}${d.principio_ativo ? ' (' + esc(d.principio_ativo) + ')' : ''}</div>
         <div style="color:var(--tx3b); margin-top:4px;">
-          ${d.dose ? '<span>' + d.dose + '</span>' : ''}
-          ${d.via ? ' · <span>' + d.via.toLowerCase() + '</span>' : ''}
-          ${d.local ? ' · <span>' + d.local + '</span>' : ''}
+          ${d.dose ? '<span>' + esc(d.dose) + '</span>' : ''}
+          ${d.via ? ' · <span>' + esc(d.via.toLowerCase()) + '</span>' : ''}
+          ${d.local ? ' · <span>' + esc(d.local) + '</span>' : ''}
         </div>
-        ${d.lote ? `<div style="font-size:11px; color:var(--tx3b); margin-top:4px;">Lote: <strong style="color:var(--tx2);">${d.lote}</strong>${d.validade ? ' · validade ' + d.validade : ''}</div>` : ''}
-        ${d.reacao_adversa ? `<div style="font-size:11px; color:#f85149; margin-top:6px;">Reação adversa: ${d.reacao_adversa}</div>` : ''}
+        ${d.lote ? `<div style="font-size:11px; color:var(--tx3b); margin-top:4px;">Lote: <strong style="color:var(--tx2);">${esc(d.lote)}</strong>${d.validade ? ' · validade ' + esc(d.validade) : ''}</div>` : ''}
+        ${d.reacao_adversa ? `<div style="font-size:11px; color:#f85149; margin-top:6px;">Reação adversa: ${esc(d.reacao_adversa)}</div>` : ''}
       </div>`;
       break;
     }
@@ -24497,13 +24499,13 @@ async function prEditarEvol(id) {
     }
   } else {
     // Modo texto livre
-    let html = d.conteudo || '';
+    let html = d.conteudo ? safeHtml(d.conteudo) : '';
     if (!html) {
       const partes = [];
-      if (d.subjetivo) partes.push('<p><strong>S -- Subjetivo:</strong> ' + d.subjetivo + '</p>');
-      if (d.objetivo) partes.push('<p><strong>O -- Objetivo:</strong> ' + d.objetivo + '</p>');
-      if (d.avaliacao) partes.push('<p><strong>A -- Avaliação:</strong> ' + d.avaliacao + '</p>');
-      if (d.plano) partes.push('<p><strong>P -- Plano:</strong> ' + d.plano + '</p>');
+      if (d.subjetivo) partes.push('<p><strong>S -- Subjetivo:</strong> ' + esc(d.subjetivo) + '</p>');
+      if (d.objetivo) partes.push('<p><strong>O -- Objetivo:</strong> ' + esc(d.objetivo) + '</p>');
+      if (d.avaliacao) partes.push('<p><strong>A -- Avaliação:</strong> ' + esc(d.avaliacao) + '</p>');
+      if (d.plano) partes.push('<p><strong>P -- Plano:</strong> ' + esc(d.plano) + '</p>');
       html = partes.join('');
     }
     document.getElementById('pr-evol-conteudo').innerHTML = html;
@@ -26622,7 +26624,7 @@ function apRenderAplic() {
       <div class="ap-list-head">
         <div class="ap-list-titulo">
           <i class="ti ti-vaccine"></i>
-          ${a.produto.nome}${a.dose ? ' · ' + a.dose : ''}
+          ${esc(a.produto.nome)}${a.dose ? ' · ' + esc(a.dose) : ''}
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <span class="pr-item-prof"><i class="ti ti-user"></i> ${a.profissional.name || a.profissional.email}</span>
@@ -26631,13 +26633,13 @@ function apRenderAplic() {
         </div>
       </div>
       <div class="ap-list-body">
-        ${a.produto.principio_ativo ? '<div style="color:var(--tx3b); font-size:11px;">' + a.produto.principio_ativo + '</div>' : ''}
+        ${a.produto.principio_ativo ? '<div style="color:var(--tx3b); font-size:11px;">' + esc(a.produto.principio_ativo) + '</div>' : ''}
         <div style="margin-top:4px; font-size:11px; color:var(--tx2);">
           ${a.via ? '<span>' + a.via.toLowerCase() + '</span>' : ''}
           ${a.local ? ' · <span>' + esc(a.local) + '</span>' : ''}
-          · <span>${a.unidade}</span>
+          · <span>${esc(a.unidade)}</span>
         </div>
-        ${a.lote ? `<div style="font-size:11px; color:var(--tx3b); margin-top:4px;">Lote: <strong style="color:var(--tx2);">${a.lote.lote}</strong> · validade ${a.lote.validade}</div>` : '<div style="font-size:11px; color:var(--tx3b); margin-top:4px; font-style:italic;">sem lote registrado</div>'}
+        ${a.lote ? `<div style="font-size:11px; color:var(--tx3b); margin-top:4px;">Lote: <strong style="color:var(--tx2);">${esc(a.lote.lote)}</strong> · validade ${esc(a.lote.validade)}</div>` : '<div style="font-size:11px; color:var(--tx3b); margin-top:4px; font-style:italic;">sem lote registrado</div>'}
         ${a.reacao_adversa ? `<div style="font-size:11px; color:#f85149; margin-top:6px; padding:6px 10px; background:rgba(248,81,73,0.08); border-radius:6px;"><i class="ti ti-alert-triangle"></i> Reação: ${esc(a.reacao_adversa)}</div>` : ''}
         ${a.observacoes ? `<div style="font-size:11px; color:var(--tx3b); margin-top:6px;">${esc(a.observacoes)}</div>` : ''}
       </div>
