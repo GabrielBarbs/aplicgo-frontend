@@ -6477,7 +6477,14 @@ function setupAdminHandlers() {
       try {
         const r = await apiPost('criar_convite', { email: email, nome: nome, role: role });
         if (r.ok) {
-          toast('Convite enviado pra ' + email + (r.email_enviado ? '' : ' (mas email FALHOU — verifique limites do MailApp)'), r.email_enviado ? 'success' : 'warning', 6);
+          if (r.email_enviado) {
+            toast('Convite enviado por email pra ' + email, 'success', 5);
+          } else {
+            const motivo = r.email_configurado === false
+              ? 'o envio de email não está configurado no servidor'
+              : 'o email não saiu (confira o domínio verificado no Resend)';
+            toast('Usuário criado, mas ' + motivo + '. Configure o email e convide de novo.', 'warning', 9);
+          }
           form.reset();
           carregarAdminUsuarios();
         } else {
