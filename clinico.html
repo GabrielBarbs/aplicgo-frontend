@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AG</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AH</b></span></div>
   </div>
 </div>
 
@@ -13787,11 +13787,11 @@ function renderPacAppDetalhe(d){
   const pesoBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-weight"></i> Peso</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;">'+pacAppMini('Inicial',p.peso_inicial_kg,'kg')+pacAppMini('Atual',pAtual,'kg')+pacAppMini('Meta',p.meta_kg,'kg')+'</div></div>';
 
   const aplics=(d.aplicacoes||[]).slice(0,5);
-  const aplicHtml=aplics.length?aplics.map(function(a){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);font-size:12px;"><span style="color:var(--tx2)">'+(a.produto||'—')+(a.dose?(' · '+a.dose):'')+'</span><span style="color:var(--tx3)">'+pacAppData(a.data)+'</span></div>';}).join(''):'<div style="color:var(--tx4);font-size:12px;">Nenhuma.</div>';
+  const aplicHtml=aplics.length?aplics.map(function(a){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);font-size:12px;"><span style="color:var(--tx2)">'+esc(a.produto||'—')+(a.dose?(' · '+esc(a.dose)):'')+'</span><span style="color:var(--tx3)">'+pacAppData(a.data)+'</span></div>';}).join(''):'<div style="color:var(--tx4);font-size:12px;">Nenhuma.</div>';
   const aplicBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-vaccine"></i> Aplicações recentes</div></div>'+aplicHtml+'</div>';
 
   const meds=(d.medicacoes||[]);
-  const medHtml=meds.length?meds.map(function(m){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);font-size:12px;"><span style="color:var(--tx2)">'+(m.nome||'—')+(m.dose?(' · '+m.dose):'')+' <span style="color:var(--tx4);font-size:10px;">'+(m.tipo||'')+'</span></span><span style="color:var(--tx3)">'+(m.proxima_dose?('próx '+pacAppData(m.proxima_dose)):'')+'</span></div>';}).join(''):'<div style="color:var(--tx4);font-size:12px;">Nenhuma.</div>';
+  const medHtml=meds.length?meds.map(function(m){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(var(--bg3-rgb),.5);font-size:12px;"><span style="color:var(--tx2)">'+esc(m.nome||'—')+(m.dose?(' · '+esc(m.dose)):'')+' <span style="color:var(--tx4);font-size:10px;">'+esc(m.tipo||'')+'</span></span><span style="color:var(--tx3)">'+(m.proxima_dose?('próx '+pacAppData(m.proxima_dose)):'')+'</span></div>';}).join(''):'<div style="color:var(--tx4);font-size:12px;">Nenhuma.</div>';
   const medBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-pill"></i> Medicações ativas</div></div>'+medHtml+'</div>';
 
   const fotosArr=((d.fotos_evolucao||{}).fotos)||[];
@@ -15641,8 +15641,8 @@ function agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex) {
   });
   ev.innerHTML = `
     <div class="ev-icons"><span class="ev-ico" title="Bloqueio"><i class="ti ti-lock"></i></span></div>
-    <div class="ev-paciente">${b.titulo}</div>
-    <div class="ev-meta">${agFmtHora(start)} - ${agFmtHora(end)}${b.motivo ? ' · ' + b.motivo : ''}</div>
+    <div class="ev-paciente">${esc(b.titulo)}</div>
+    <div class="ev-meta">${agFmtHora(start)} - ${agFmtHora(end)}${b.motivo ? ' · ' + esc(b.motivo) : ''}</div>
   `;
   slot.appendChild(ev);
 }
@@ -16096,7 +16096,7 @@ async function marcCarregar() {
   body.innerHTML = mencoes.map(m => {
     const dt = new Date(m.criado_em);
     const dataFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-    const pessoa = ehRecebida ? ('de ' + m.autor) : ('para ' + m.mencionado);
+    const pessoa = ehRecebida ? ('de ' + esc(m.autor)) : ('para ' + esc(m.mencionado));
     const comentariosHtml = (m.comentarios || []).map(c =>
       `<div class="coment"><span class="aut">${c.autor}:</span> ${c.texto.replace(/</g,'&lt;')}</div>`
     ).join('');
@@ -23490,7 +23490,7 @@ function prRenderCardProfissional(prof, atual, anterior, podeCriar, recolhido) {
           <span class="prof"><i class="ti ti-user"></i> ${d.profissional || '--'}</span>
           <span class="data"><i class="ti ti-clock"></i> ${dataFmt}</span>
         </div>
-        ${d.template_slug ? `<div class="tpl-badge"><i class="ti ti-template"></i> ${d.template_slug}</div>` : ''}
+        ${d.template_slug ? `<div class="tpl-badge"><i class="ti ti-template"></i> ${esc(d.template_slug)}</div>` : ''}
         ${vitais.length ? `<div class="vitais">${vitais.join('')}</div>` : ''}
         ${chaveHtml}
         ${resumoHtml}
@@ -23566,7 +23566,7 @@ function prVerTodasSetor(tipo) {
             <span class="data"><i class="ti ti-clock"></i> ${dataFmt}</span>
             <span class="prof">${d.profissional || '--'}</span>
           </div>
-          ${d.template_slug ? `<div class="tpl"><i class="ti ti-template"></i> ${d.template_slug}</div>` : ''}
+          ${d.template_slug ? `<div class="tpl"><i class="ti ti-template"></i> ${esc(d.template_slug)}</div>` : ''}
           ${resumo ? `<div class="resumo">${resumo.replace(/</g,'&lt;')}${resumo.length === 160 ? '...' : ''}</div>` : ''}
         </div>
       `;
@@ -24314,7 +24314,7 @@ function prRenderItem(it) {
       if (d.conteudo) {
         body = `<div class="pr-evol-conteudo-render">${safeHtml(d.conteudo)}</div>`;
         if (d.template_slug) {
-          body = `<div style="font-size:10px; color:var(--ac); margin-bottom:6px;"><i class="ti ti-template"></i> ${d.template_slug}</div>` + body;
+          body = `<div style="font-size:10px; color:var(--ac); margin-bottom:6px;"><i class="ti ti-template"></i> ${esc(d.template_slug)}</div>` + body;
         }
       } else {
         // Legado SOAP
@@ -24434,12 +24434,12 @@ function prRenderItem(it) {
       break;
     }
     case 'atendimento': {
-      body = `<div style="font-size:11px; color:var(--tx3b);">Atendimento finalizado por ${it.dados.profissional}</div>`;
+      body = `<div style="font-size:11px; color:var(--tx3b);">Atendimento finalizado por ${esc(it.dados.profissional)}</div>`;
       break;
     }
   }
 
-  const prof = it.dados.profissional ? `<span class="pr-item-prof"><i class="ti ti-user"></i> ${it.dados.profissional}</span>` : '';
+  const prof = it.dados.profissional ? `<span class="pr-item-prof"><i class="ti ti-user"></i> ${esc(it.dados.profissional)}</span>` : '';
   const acoes = it.tipo === 'evolucao' ? `
     <button class="pac-btn-secondary" style="font-size:10px; padding:3px 8px;" onclick="prEditarEvol('${it.dados.id}')">
       <i class="ti ti-edit"></i>
@@ -24518,7 +24518,7 @@ async function prEditarEvol(id) {
       document.getElementById('pr-evol-form').style.display = 'block';
       document.getElementById('pr-evol-conteudo').innerHTML = '';
       document.getElementById('pr-evol-tpl-info').innerHTML =
-        `<i class="ti ti-template"></i> Editando formulário "${d.template_slug}"`;
+        `<i class="ti ti-template"></i> Editando formulário "${esc(d.template_slug)}"`;
     } else {
       // Fallback: editor de texto
       document.getElementById('pr-evol-conteudo').innerHTML = safeHtml(d.conteudo || '');
@@ -24541,7 +24541,7 @@ async function prEditarEvol(id) {
     document.getElementById('pr-evol-editor-wrap').style.display = '';
     prEvolFormState = { campos: [], respostas: {}, origens: {} };
     document.getElementById('pr-evol-tpl-info').innerHTML = d.template_slug
-      ? `<i class="ti ti-template"></i> Editando evolução criada pelo template "${d.template_slug}"`
+      ? `<i class="ti ti-template"></i> Editando evolução criada pelo template "${esc(d.template_slug)}"`
       : '';
   }
   document.getElementById('pr-evol-salvar-tpl').checked = false;
@@ -24581,9 +24581,9 @@ async function prToggleTemplateMenu(ev) {
     return;
   }
   menu.innerHTML = r.data.templates.map(t => `
-    <div class="opt" onclick="prAplicarTemplate('${t.slug}', '${t.nome.replace(/'/g, "\\'")}')">
+    <div class="opt" onclick="prAplicarTemplate('${esc(t.slug)}', '${(t.nome||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">
       <i class="ti ti-template"></i>
-      <span>${t.nome}</span>
+      <span>${esc(t.nome)}</span>
     </div>
   `).join('');
 }
@@ -26655,7 +26655,7 @@ function apRenderAplic() {
           ${esc(a.produto.nome)}${a.dose ? ' · ' + esc(a.dose) : ''}
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <span class="pr-item-prof"><i class="ti ti-user"></i> ${a.profissional.name || a.profissional.email}</span>
+          <span class="pr-item-prof"><i class="ti ti-user"></i> ${esc(a.profissional.name || a.profissional.email)}</span>
           <span class="ap-list-data"><i class="ti ti-clock"></i> ${dataFmt}</span>
           <button class="pac-btn-secondary" style="font-size:10px; padding:3px 8px; color:#f85149;" onclick="apDeletarAplic('${a.id}')"><i class="ti ti-trash"></i></button>
         </div>
@@ -26663,7 +26663,7 @@ function apRenderAplic() {
       <div class="ap-list-body">
         ${a.produto.principio_ativo ? '<div style="color:var(--tx3b); font-size:11px;">' + esc(a.produto.principio_ativo) + '</div>' : ''}
         <div style="margin-top:4px; font-size:11px; color:var(--tx2);">
-          ${a.via ? '<span>' + a.via.toLowerCase() + '</span>' : ''}
+          ${a.via ? '<span>' + esc(a.via.toLowerCase()) + '</span>' : ''}
           ${a.local ? ' · <span>' + esc(a.local) + '</span>' : ''}
           · <span>${esc(a.unidade)}</span>
         </div>
@@ -26774,7 +26774,7 @@ async function apCarregarProdutos() {
     r.data.produtos.map(p => {
       const totalDisp = p.lotes.reduce((s, l) => s + l.qtd_atual, 0);
       const semEstoque = totalDisp === 0 ? ' (sem estoque)' : '';
-      return `<option value="${p.id}">${p.nome}${p.principio_ativo ? ' — ' + p.principio_ativo : ''}${semEstoque}</option>`;
+      return `<option value="${p.id}">${esc(p.nome)}${p.principio_ativo ? ' — ' + esc(p.principio_ativo) : ''}${semEstoque}</option>`;
     }).join('');
   apAtualizarLotes();
 }
@@ -26787,7 +26787,7 @@ function apAtualizarLotes() {
   const p = apState.produtos.find(x => x.id === productId);
   if (!p) return;
   sel.innerHTML += p.lotes.map(l =>
-    `<option value="${l.id}">Lote ${l.lote} · validade ${l.validade} · ${l.qtd_atual} unid.</option>`
+    `<option value="${l.id}">Lote ${esc(l.lote)} · validade ${esc(l.validade)} · ${l.qtd_atual} unid.</option>`
   ).join('');
 }
 
@@ -26981,7 +26981,7 @@ function esRenderProdutos() {
     <tbody>
       ${esState.produtos.map(p => `
         <tr>
-          <td style="color:var(--tx1); font-weight:500;">${p.nome}${p.apresentacao ? '<div style=\"font-size:10px; color:var(--tx3b);\">' + p.apresentacao + '</div>' : ''}</td>
+          <td style="color:var(--tx1); font-weight:500;">${esc(p.nome)}${p.apresentacao ? '<div style=\"font-size:10px; color:var(--tx3b);\">' + esc(p.apresentacao) + '</div>' : ''}</td>
           <td>${p.principio_ativo || '—'}</td>
           <td>${p.fabricante || '—'}</td>
           <td>${p.controle_anvisa ? '<span class="es-status-tag warn">' + p.controle_anvisa + '</span>' : '<span style="color:var(--tx3b);">livre</span>'}</td>
@@ -27022,7 +27022,7 @@ function esRenderLotes() {
         else if (!l.valido) tag = '<span class="es-status-tag danger">vencido</span>';
         else if (l.vencendo_em_30d) tag = '<span class="es-status-tag warn">vence ≤ 30d</span>';
         return `<tr>
-          <td style="color:var(--tx1);">${l.produto.nome}${l.produto.requer_refrigeracao ? ' <i class="ti ti-snowflake" style="color:#4A90E2; font-size:11px;"></i>' : ''}</td>
+          <td style="color:var(--tx1);">${esc(l.produto.nome)}${l.produto.requer_refrigeracao ? ' <i class="ti ti-snowflake" style="color:#4A90E2; font-size:11px;"></i>' : ''}</td>
           <td><strong style="color:var(--ac); font-family:monospace; font-size:11px;">${l.lote}</strong></td>
           <td>${l.validade}</td>
           <td>${l.unidade.nome}</td>
@@ -27061,8 +27061,8 @@ function esRenderMovimentos() {
         return `<tr>
           <td style="white-space:nowrap;">${dataFmt}</td>
           <td><span class="es-mov-tipo ${m.tipo}">${m.tipo.toLowerCase().replace(/_/g, ' ')}</span></td>
-          <td>${m.produto}</td>
-          <td><strong style="color:var(--ac); font-family:monospace; font-size:11px;">${m.lote}</strong></td>
+          <td>${esc(m.produto)}</td>
+          <td><strong style="color:var(--ac); font-family:monospace; font-size:11px;">${esc(m.lote)}</strong></td>
           <td>${m.unidade}</td>
           <td style="text-align:right; color:${cor}; font-weight:600;">${sinal}${m.quantidade}</td>
           <td>${m.por || '—'}</td>
@@ -27127,7 +27127,7 @@ async function esAbrirNovoLote() {
   }
   const selProd = document.getElementById('es-lote-produto');
   selProd.innerHTML = '<option value="">—</option>' +
-    ativos.map(p => `<option value="${p.id}">${p.nome}${p.principio_ativo ? ' — ' + p.principio_ativo : ''}</option>`).join('');
+    ativos.map(p => `<option value="${p.id}">${esc(p.nome)}${p.principio_ativo ? ' — ' + esc(p.principio_ativo) : ''}</option>`).join('');
   const selUnit = document.getElementById('es-lote-unit');
   selUnit.innerHTML = '<option value="">—</option>' +
     pacState.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
@@ -27347,7 +27347,7 @@ async function auCarregar() {
         const temDetalhe = !!(e.before || e.after);
         return `<tr style="cursor:${temDetalhe ? 'pointer' : 'default'};" onclick="${temDetalhe ? `auToggleDetalhe('${e.id}')` : ''}">
           <td style="white-space:nowrap; font-size:11px;">${dataFmt}</td>
-          <td>${e.ator ? (e.ator.nome || e.ator.email) + (e.ator.role ? ' <span style=\"font-size:9px; color:var(--tx3b);\">(' + e.ator.role + ')</span>' : '') : '<span style="color:var(--tx3b); font-style:italic;">sistema</span>'}</td>
+          <td>${e.ator ? esc(e.ator.nome || e.ator.email) + (e.ator.role ? ' <span style=\"font-size:9px; color:var(--tx3b);\">(' + esc(e.ator.role) + ')</span>' : '') : '<span style="color:var(--tx3b); font-style:italic;">sistema</span>'}</td>
           <td><span class="au-categoria" style="background:${cat.cor}22; color:${cat.cor};"><i class="ti ti-${cat.icon}"></i> ${cat.label}</span></td>
           <td><span class="au-action-tag">${e.action}</span></td>
           <td style="font-size:11px; color:var(--tx3b);">${e.entity_id ? e.entity_id.slice(0, 8) : '—'}</td>
