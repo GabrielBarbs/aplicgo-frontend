@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AC</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AD</b></span></div>
   </div>
 </div>
 
@@ -24796,7 +24796,7 @@ function prImprimirPrescricao(d, verifToken) {
   if (!win) { alert('Permita pop-ups para imprimir a receita.'); return; }
   win.document.write(`
     <!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
-    <title>Receita -- ${h.nome_completo || 'Paciente'}</title>
+    <title>Receita -- ${esc(h.nome_completo || 'Paciente')}</title>
     <style>
       * { box-sizing: border-box; }
       body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; max-width: 720px; margin: 0 auto; padding: 40px 48px; }
@@ -24827,12 +24827,12 @@ function prImprimirPrescricao(d, verifToken) {
       <div class="rx-cab">
         <div>
           <div class="clinica">Aplic &amp; Go</div>
-          <div class="unidade">${unidade}</div>
+          <div class="unidade">${esc(unidade)}</div>
         </div>
         <div class="tipo">${tipoMap[d.tipo_receita] || 'Receituário'}<br>${dataFmt}</div>
       </div>
       <div class="rx-pac">
-        <strong>Paciente:</strong> ${h.nome_completo || '--'}${h.codigo ? ' (' + h.codigo + ')' : ''}
+        <strong>Paciente:</strong> ${esc(h.nome_completo || '--')}${h.codigo ? ' (' + esc(h.codigo) + ')' : ''}
         ${h.idade != null ? ' · ' + h.idade + ' anos' : ''}
       </div>
       <div class="rx-titulo">${d.tipo_receita === 'ATESTADO' ? 'Atestado' : 'Prescrição'}</div>
@@ -24840,7 +24840,7 @@ function prImprimirPrescricao(d, verifToken) {
       ${d.observacoes ? `<div class="rx-extra"><strong>Observações:</strong> ${esc(d.observacoes)}</div>` : ''}
       <div class="rx-assina">
         <div class="linha"></div>
-        <div class="nome">${medico}</div>
+        <div class="nome">${esc(medico)}</div>
         <div class="crm">CRM / responsável técnico</div>
       </div>
       ${verifUrl ? `<div class="rx-verif">
