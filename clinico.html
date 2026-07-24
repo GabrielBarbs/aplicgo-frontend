@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AF</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AG</b></span></div>
   </div>
 </div>
 
@@ -13932,7 +13932,7 @@ async function topSearchBuscar() {
     wrap.innerHTML = '<div class="vazio">Nenhum paciente encontrado pra "' + q.replace(/</g, '&lt;') + '"</div>';
   } else {
     wrap.innerHTML = topSearchResultados.map((p, i) => `
-      <div class="res" data-idx="${i}" onclick="topSearchAbrir('${p.id}', '${(p.nome_completo || '').replace(/'/g, "&apos;").replace(/"/g, '&quot;')}', '${p.codigo}', '${p.telefone1 || ''}')">
+      <div class="res" data-idx="${i}" onclick="topSearchAbrir('${p.id}', '${cpEnc(p.nome_completo || '')}', '${esc(p.codigo)}', '${p.telefone1 || ''}')">
         <div class="info">
           <div class="nome">${esc(p.nome_completo)}${p.status === 'INCOMPLETO' ? ' <span style=\"font-size:9px; color:#EF9F27; border:1px solid rgba(239,159,39,0.3); border-radius:8px; padding:1px 6px; margin-left:4px;\">incompleto</span>' : ''}</div>
           <div class="meta">${fmtTel(p.telefone1)}${p.unidade ? ' · ' + p.unidade.nome : ''}</div>
@@ -13972,6 +13972,7 @@ function topSearchKey(e) {
 }
 
 function topSearchAbrir(id, nome, codigo, telefone) {
+  nome = cpDec(nome);   // veio em base64 (cpEnc) pra não quebrar o onclick
   // Limpa o campo e fecha resultados
   document.getElementById('topbar-search').value = '';
   document.getElementById('topbar-search-results').classList.remove('aberto');
@@ -14255,7 +14256,7 @@ function renderListaPacientes() {
       </tr></thead>
       <tbody>
         ${pacState.pacientes.map(p => {
-          const nomeEsc = (p.nome_completo || '').replace(/'/g, "&apos;").replace(/"/g, '&quot;');
+          const nomeEsc = cpEnc(p.nome_completo || '');
           const telLimpo = String(p.telefone1 || '').replace(/\D/g, '');
           const tempo = p.semana_atual ? `Sem ${p.semana_atual}${p.total_semanas ? '/' + p.total_semanas : ''}` : na;
           const dot = (c) => `<span class="pac-dot" style="background:${c};"></span>`;
@@ -16209,6 +16210,7 @@ function chatAbrir(contato) {
 }
 // Helpers para serem chamados de qualquer lista
 function abrirChatPorTelefone(nome, telefone) {
+  nome = cpDec(nome);   // veio em base64 (cpEnc) pra não quebrar o onclick
   cpMostrarConversaWa(nome, telefone);
 }
 function ligarParaPaciente(telefone) {
@@ -16480,6 +16482,10 @@ function cpContatoKey(c) { return c.contato_key || (c.numero ? cpTelCore(c.numer
 // nem `&`, então é seguro no atributo E na string JS. Decodifica no clique.
 function cpEnc(s) { return btoa(unescape(encodeURIComponent(String(s == null ? '' : s)))); }
 function cpDec(s) { try { return decodeURIComponent(escape(atob(s))); } catch (e) { return ''; } }
+// Serializa um objeto pra caber num onclick='fn(${jsAttr(o)})' com atributo de aspas SIMPLES.
+// & PRIMEIRO: o parser HTML decodifica entidades no atributo ANTES do JS — sem isso um "&quot;"
+// no texto viraria aspa e quebraria o JSON (attribute/JSON breakout).
+function jsAttr(o) { return JSON.stringify(o).replace(/&/g, '&amp;').replace(/'/g, '&apos;'); }
 function cpTagsLivres(c) { return cpState.waTags[cpContatoKey(c)] || []; }
 
 // Cor determinística da tag livre a partir do texto — a mesma tag tem sempre a mesma cor.
@@ -18740,7 +18746,7 @@ async function agBuscarPacientes() {
       novoItem;
   } else {
     wrap.innerHTML = list.map(p => `
-      <div class="ag-pat-item" onclick='agSelecionarPaciente(${JSON.stringify({ id: p.id, codigo: p.codigo, nome: p.nome_completo, telefone: p.telefone1, status: p.status }).replace(/'/g, "&apos;")})'>
+      <div class="ag-pat-item" onclick='agSelecionarPaciente(${jsAttr({ id: p.id, codigo: p.codigo, nome: p.nome_completo, telefone: p.telefone1, status: p.status })})'>
         <div>
           <div style="color: var(--tx1);">${esc(p.nome_completo)} ${p.status === 'INCOMPLETO' ? '<span style="font-size:9px; color:#EF9F27; border:1px solid rgba(239,159,39,0.3); border-radius:8px; padding:1px 6px; margin-left:4px;">incompleto</span>' : ''}</div>
           <div style="color: var(--tx3b); font-size: 10px;">${fmtTel(p.telefone1)}</div>
@@ -18809,7 +18815,7 @@ async function agSalvarQuickPat() {
     // Se for duplicado, sugere usar o existente
     if (r.data.paciente_existente) {
       erroEl.innerHTML = (r.data.erro || 'Já existe') +
-        ` <a href="javascript:agUsarExistente('${r.data.paciente_existente.id}', '${(r.data.paciente_existente.nome || '').replace(/'/g, "\\'")}', '${r.data.paciente_existente.codigo}', '${body.telefone1}')" style="color:var(--ac); text-decoration:underline;">Usar este paciente</a>`;
+        ` <a href="javascript:agUsarExistente('${r.data.paciente_existente.id}', '${cpEnc(r.data.paciente_existente.nome || '')}', '${esc(r.data.paciente_existente.codigo)}', '${body.telefone1}')" style="color:var(--ac); text-decoration:underline;">Usar este paciente</a>`;
     } else {
       erroEl.textContent = r.data.erro || 'Erro ao criar';
     }
@@ -18821,6 +18827,7 @@ async function agSalvarQuickPat() {
   agSelecionarPaciente({ id: p.id, codigo: p.codigo, nome: p.nome_completo, telefone: p.telefone1, status: p.status });
 }
 function agUsarExistente(id, nome, codigo, telefone) {
+  nome = cpDec(nome);   // veio em base64 (cpEnc) pra não quebrar o href
   agFecharQuickPat();
   agSelecionarPaciente({ id, codigo, nome, telefone, status: 'ATIVO' });
 }
@@ -19111,7 +19118,7 @@ async function prBuscarPaciente() {
     wrap.innerHTML = '<div class="pr-pat-suggest-item" style="color:var(--tx3b); cursor:default;">Nenhum paciente</div>';
   } else {
     wrap.innerHTML = list.map(p => `
-      <div class="pr-pat-suggest-item" onclick='prSelecionarPaciente(${JSON.stringify({id:p.id, codigo:p.codigo, nome:p.nome_completo, telefone:p.telefone1}).replace(/'/g,"&apos;")})'>
+      <div class="pr-pat-suggest-item" onclick='prSelecionarPaciente(${jsAttr({id:p.id, codigo:p.codigo, nome:p.nome_completo, telefone:p.telefone1})})'>
         <div>
           <div style="color:var(--tx1);">${esc(p.nome_completo)}</div>
           <div style="color:var(--tx3b); font-size:10px;">${fmtTel(p.telefone1)}</div>
@@ -25303,7 +25310,7 @@ function prMostrarQRModal(d) {
   ov.id = 'pr-qr-modal';
   ov.className = 'ag-modal-overlay aberto';
   ov.onclick = (e) => { if (e.target.id === 'pr-qr-modal') ov.remove(); };
-  const dj = JSON.stringify(d).replace(/'/g, '&apos;');
+  const dj = jsAttr(d);
   ov.innerHTML = `
     <div class="pac-modal" style="max-width:430px;">
       <div class="pac-modal-head">
@@ -26540,7 +26547,7 @@ async function apBuscarPaciente() {
     wrap.innerHTML = '<div class="pr-pat-suggest-item" style="color:var(--tx3b); cursor:default;">Nenhum paciente</div>';
   } else {
     wrap.innerHTML = list.map(p => `
-      <div class="pr-pat-suggest-item" onclick='apSelecionarPaciente(${JSON.stringify({id:p.id, codigo:p.codigo, nome:p.nome_completo, telefone:p.telefone1, unit:p.unidade?.id}).replace(/'/g,"&apos;")})'>
+      <div class="pr-pat-suggest-item" onclick='apSelecionarPaciente(${jsAttr({id:p.id, codigo:p.codigo, nome:p.nome_completo, telefone:p.telefone1, unit:p.unidade?.id})})'>
         <div>
           <div style="color:var(--tx1);">${esc(p.nome_completo)}</div>
           <div style="color:var(--tx3b); font-size:10px;">${fmtTel(p.telefone1)}</div>
