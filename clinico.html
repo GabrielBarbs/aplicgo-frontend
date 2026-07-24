@@ -6213,7 +6213,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AJ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AK</b></span></div>
   </div>
 </div>
 
@@ -7717,7 +7717,7 @@
           <div class="pac-form-grid col-3">
             <div class="pac-field">
               <label>Unidade <span class="req">*</span></label>
-              <select id="pac-unit" required>
+              <select id="pac-unit" required onchange="pacPopularResponsaveis(this.value)">
                 <option value="">—</option>
               </select>
             </div>
@@ -14169,12 +14169,9 @@ async function pacCarregarApoio() {
   // Selects de médico/nutri
   const medicos = pacState.profissionais.filter(p => p.role === 'medico' || p.role === 'gestor');
   const nutris = pacState.profissionais.filter(p => p.role === 'nutricionista' || p.role === 'gestor');
-  const selMed = document.getElementById('pac-medico');
-  const selNut = document.getElementById('pac-nutri');
-  if (selMed) selMed.innerHTML = '<option value="">—</option>' +
-    medicos.map(p => `<option value="${p.id || p.email}">${p.nome || p.email} (${p.role})</option>`).join('');
-  if (selNut) selNut.innerHTML = '<option value="">—</option>' +
-    nutris.map(p => `<option value="${p.id || p.email}">${p.nome || p.email} (${p.role})</option>`).join('');
+  // Modal (pac-medico/pac-nutri): preenchido POR UNIDADE via pacPopularResponsaveis, que
+  // reage ao onchange do #pac-unit. Aqui só o disparo inicial (unidade primária já pré-selecionada).
+  pacPopularResponsaveis(selModalUnit ? selModalUnit.value : '');
   // Filtros de médico/nutri responsável (valor = id do profissional)
   const selFMed = document.getElementById('pac-filter-medico');
   const selFNut = document.getElementById('pac-filter-nutri');
@@ -14182,6 +14179,31 @@ async function pacCarregarApoio() {
     medicos.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join('');
   if (selFNut) selFNut.innerHTML = '<option value="">Todos nutris</option>' +
     nutris.map(p => `<option value="${p.id}">${esc(p.nome || p.email)}</option>`).join('');
+}
+
+// Preenche os selects de Médico/Nutri responsável do MODAL filtrando pela unidade escolhida.
+// Médico = papel 'medico' vinculado À unidade + gestores (o gestor costuma ser o médico da casa,
+// então entra como opção em qualquer unidade). Nutri = só 'nutricionista' vinculado à unidade.
+// forceMedId/forceNutId: na edição, garante que o responsável já salvo apareça mesmo que hoje
+// ele não esteja mais vinculado àquela unidade (não perde o valor gravado).
+function pacPopularResponsaveis(unitId, forceMedId, forceNutId) {
+  const selMed = document.getElementById('pac-medico');
+  const selNut = document.getElementById('pac-nutri');
+  if (!selMed || !selNut) return;
+  const alvoMed = forceMedId || selMed.value;
+  const alvoNut = forceNutId || selNut.value;
+  const todos = pacState.profissionais || [];
+  // Retrocompat: enquanto o backend novo (que devolve p.unidades) não subir, não filtra por unidade.
+  const naUnidade = (p) => !unitId || !Array.isArray(p.unidades) || p.unidades.includes(unitId);
+  const ehAlvo = (p, alvo) => alvo && (p.id === alvo || p.email === alvo);
+  const medicos = todos.filter(p => (p.role === 'medico' && naUnidade(p)) || p.role === 'gestor' || ehAlvo(p, alvoMed));
+  const nutris  = todos.filter(p => (p.role === 'nutricionista' && naUnidade(p)) || ehAlvo(p, alvoNut));
+  const opt = (p) => `<option value="${esc(p.id || p.email)}">${esc(p.nome || p.email)} (${esc(p.role)})</option>`;
+  selMed.innerHTML = '<option value="">—</option>' + medicos.map(opt).join('');
+  selNut.innerHTML = '<option value="">—</option>' + nutris.map(opt).join('');
+  // Preserva a seleção (ou aplica a forçada da edição) se ainda for uma opção válida.
+  if ([...selMed.options].some(o => o.value === alvoMed)) selMed.value = alvoMed;
+  if ([...selNut.options].some(o => o.value === alvoNut)) selNut.value = alvoNut;
 }
 
 async function pacCarregarLista() {
@@ -14486,8 +14508,8 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-cidade').value = p.cidade || '';
   document.getElementById('pac-uf').value = p.uf || '';
   document.getElementById('pac-unit').value = p.unit_id || '';
-  document.getElementById('pac-medico').value = p.medico_id || '';
-  document.getElementById('pac-nutri').value = p.nutri_id || '';
+  // Responsáveis filtrados pela unidade do paciente; força o já-salvo a aparecer mesmo fora dela.
+  pacPopularResponsaveis(p.unit_id || '', p.medico_id || '', p.nutri_id || '');
   document.getElementById('pac-observacoes').value = p.observacoes || '';
   // Saúde
   // Programa e jornada (dropdown -- preserva valor antigo que não esteja na lista)
