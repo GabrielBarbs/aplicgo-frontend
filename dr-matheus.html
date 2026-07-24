@@ -1852,16 +1852,29 @@ const painOptions = {
   ]
 };
 
+/* Mapeia a situação escolhida na Etapa 1 (texto exibido) para a categoria interna
+   que alimenta a Etapa 2 (dores), insights, resultado e CRM. Invisível ao paciente. */
+const GOAL_CAT = {
+  s_corpo_disp:"body",
+  s_sono_stress:"performance",
+  s_saude_comp:"body",
+  s_perf_futuro:"integrated",
+  s_varias:"integrated",
+  s_comecar:"integrated"
+};
+
 const questions = [
   {
-    id:"goal", type:"single",
-    title:"O que faria mais diferença na sua vida hoje?",
-    subtitle:"Escolha a prioridade que melhor representa seu momento.",
+    id:"situation", type:"single",
+    title:"Qual dessas situações mais se aproxima do que você vive hoje?",
+    subtitle:"Escolha a que melhor representa seu principal desafio neste momento.",
     options:[
-      ["body","Corpo e metabolismo","Peso, composição corporal, massa muscular e manutenção."],
-      ["performance","Energia e performance","Disposição, foco, sono, recuperação e capacidade física."],
-      ["longevity","Longevidade e prevenção","Biomarcadores, autonomia, prevenção e vitalidade."],
-      ["integrated","Mais de uma prioridade","Quando corpo, energia e saúde parecem fazer parte do mesmo cenário."]
+      ["s_corpo_disp","Percebi piora no corpo e na disposição"],
+      ["s_sono_stress","Meu sono, estresse e rendimento estão se afetando"],
+      ["s_saude_comp","Quero melhorar minha saúde e minha composição corporal"],
+      ["s_perf_futuro","Quero ter mais performance hoje sem comprometer minha saúde no futuro"],
+      ["s_varias","Sinto que várias áreas da minha saúde precisam de atenção"],
+      ["s_comecar","Não consigo identificar por onde devo começar"]
     ]
   },
   {
@@ -2053,7 +2066,11 @@ function optionButton(id,value,title,subtitle,icon,multi=false,max=99){
       }
       state.answers[id]=arr; renderQuestion();
     }else{
-      if(id==="goal" && state.answers.goal!==value) delete state.answers.pain;
+      if(id==="situation"){
+        const newGoal=GOAL_CAT[value]||"integrated";
+        if(state.answers.goal!==newGoal) delete state.answers.pain;
+        state.answers.goal=newGoal;
+      }
       state.answers[id]=value;
       document.querySelectorAll(".option").forEach(x=>{x.classList.remove("selected");x.setAttribute("aria-pressed","false");});
       b.classList.add("selected"); b.setAttribute("aria-pressed","true");
