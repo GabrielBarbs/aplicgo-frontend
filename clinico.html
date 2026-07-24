@@ -23252,7 +23252,7 @@ async function examLerIA(docId, nome) {
   document.getElementById('exam-rev-form').style.display = 'none';
   document.getElementById('exam-rev-salvar').style.display = 'none';
   const st = document.getElementById('exam-rev-status');
-  const tentarDeNovo = '<button class="pac-btn-secondary" style="margin-left:8px;" onclick="examLerIA(\'' + docId + '\',\'' + (examState.nome) + '\')">Tentar de novo</button>';
+  const tentarDeNovo = '<button class="pac-btn-secondary" style="margin-left:8px;" onclick="examLerIA(\'' + docId + '\',\'' + (examState.nome||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'") + '\')">Tentar de novo</button>';
   st.innerHTML = '<i class="ti ti-loader"></i> Lendo o exame com IA… pode levar alguns segundos.';
   try {
     const r = await pacApi('/api/clinico/documentos/' + docId + '/ler-exame', { method: 'POST' });
