@@ -692,7 +692,8 @@
     }
     .pac-select:focus { outline: none; border-color: var(--ac); }
     .pac-btn-primary {
-      background: linear-gradient(135deg, var(--ac-d), var(--ac));
+      background-color: var(--ac);
+      background-image: linear-gradient(135deg, var(--ac-d), var(--ac));
       color: #fff; border: 0; padding: 8px 14px;
       border-radius: 8px; font-size: 12px; font-weight: 500;
       cursor: pointer; font-family: inherit;
@@ -5993,6 +5994,29 @@
   /* ---- Tema claro: mantém tudo funcional (vars redefinem; sem luz ambiente) ---- */
   body.tema-claro { --hair: rgba(16,24,40,.07); --hair-2: rgba(16,24,40,.11); --card-bd: rgba(16,24,40,.10); --sage:#5F8F6B; --sage-rgb:95,143,107; }
   body.tema-claro .sidebar-item.active { color: #fff; box-shadow: 0 6px 18px rgba(var(--ac-rgb),.30); }
+
+  /* ---- Tema claro — botões: conserta os que sumiam ("branco no branco") + acabamento ----
+     No claro a borda era var(--bg3) (#eaeff4, quase branca) e sumia no card: o botão virava
+     só um texto flutuando. Aqui trocamos por --bd1 (borda real). Aditivo; :not() preserva os
+     modificadores coloridos (primary/warn/danger/ativa). ---- */
+  body.tema-claro .adm-unid-prim-btn:not(.ativa),
+  body.tema-claro .ag-acao-btn:not(.ag-acao-primary):not(.ag-acao-warn):not(.ag-acao-danger),
+  body.tema-claro .rx-doc-btn:not(.ativo),
+  body.tema-claro .wv-nova-btn,
+  body.tema-claro .wv-tab:not(.ativo),
+  body.tema-claro .ag-icon-btn { border-color: var(--bd1); }
+  /* Textos-cor de baixo contraste no branco -> tom mais escuro (continuam coloridos) */
+  body.tema-claro .setor-btn.onboarding { color: #157a52; border-color: rgba(21,128,90,.42); }
+  body.tema-claro .adm-unid-prim-btn.ativa { color: #8a5e0f; background-color: rgba(245,180,60,.14); border-color: rgba(138,94,15,.5); }
+  /* Hover com um verde suave nos botões neutros do claro (feedback + deixa mais bonito) */
+  body.tema-claro .ag-acao-btn:not(.ag-acao-primary):not(.ag-acao-warn):not(.ag-acao-danger):hover,
+  body.tema-claro .adm-unid-prim-btn:not(.ativa):hover,
+  body.tema-claro .ag-icon-btn:hover,
+  body.tema-claro .dash-cfg-btn:hover,
+  body.tema-claro .pac-btn-contato:hover,
+  body.tema-claro .rx-doc-btn:not(.ativo):hover {
+    border-color: rgba(var(--ac-rgb),.45); background-color: rgba(var(--ac-rgb),.07);
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .view.active { animation: none; }
