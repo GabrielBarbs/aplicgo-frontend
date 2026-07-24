@@ -6186,7 +6186,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AB</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AC</b></span></div>
   </div>
 </div>
 
@@ -13795,17 +13795,15 @@ function renderPacAppDetalhe(d){
   const medBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-pill"></i> Medicações ativas</div></div>'+medHtml+'</div>';
 
   const fotosArr=((d.fotos_evolucao||{}).fotos)||[];
-  const fotoTok=encodeURIComponent(getToken());
-  const fotoSrc=function(id){ return API_BASE+'/api/clinico/documentos/'+id+'/download?token='+fotoTok; };
   const fotosThumbs=fotosArr.map(function(f){
-    var src=fotoSrc(f.id);
     var lbl=(f.semana!=null)?('Semana '+f.semana):pacAppData(f.data);
-    return '<div style="flex:0 0 auto;width:96px;cursor:pointer;" onclick="window.open(\''+src+'\',\'_blank\')" title="'+lbl+'">'
+    return '<div style="flex:0 0 auto;width:96px;cursor:pointer;" onclick="docAbrir(\''+f.id+'\')" title="'+lbl+'">'
       +'<div style="width:96px;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--bg1);border:1px solid var(--bd1);">'
-      +'<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx4);&quot;><i class=&quot;ti ti-photo-off&quot;></i></div>\'">'
+      +'<img data-doc-seg="'+f.id+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx4);&quot;><i class=&quot;ti ti-photo-off&quot;></i></div>\'">'
       +'</div>'
       +'<div style="font-size:10px;color:var(--tx3);text-align:center;margin-top:4px;">'+lbl+'</div></div>';
   }).join('');
+  setTimeout(carregarImagensSeguras, 50);
   const fotosBlock='<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div>'
     +(fotosArr.length?'<div class="dash-count">'+fotosArr.length+' foto'+(fotosArr.length>1?'s':'')+'</div>':'')+'</div>'
     +(fotosArr.length
@@ -23045,17 +23043,15 @@ function prRenderAppMonitor() {
   // Fotos de evolução — enviadas pelo paciente no app (ClinPatientDocument tipo=foto_evolucao)
   (function(){
     var fotosArr = ((d.fotos_evolucao || {}).fotos) || [];
-    var tok = encodeURIComponent(getToken());
-    var srcOf = function(id){ return API_BASE + '/api/clinico/documentos/' + id + '/download?token=' + tok; };
     var thumbs = fotosArr.map(function(f){
-      var src = srcOf(f.id);
       var lbl = (f.semana != null) ? ('Semana ' + f.semana) : pacAppData(f.data);
-      return '<div style="flex:0 0 auto;width:88px;cursor:pointer;" onclick="window.open(\'' + src + '\',\'_blank\')" title="' + lbl + '">'
+      return '<div style="flex:0 0 auto;width:88px;cursor:pointer;" onclick="docAbrir(\'' + f.id + '\')" title="' + lbl + '">'
         + '<div style="width:88px;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--bg1);border:1px solid var(--bd1);">'
-        + '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx4);&quot;><i class=&quot;ti ti-photo-off&quot;></i></div>\'">'
+        + '<img data-doc-seg="' + f.id + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx4);&quot;><i class=&quot;ti ti-photo-off&quot;></i></div>\'">'
         + '</div>'
         + '<div style="font-size:10px;color:var(--tx3);text-align:center;margin-top:4px;">' + lbl + '</div></div>';
     }).join('');
+    setTimeout(carregarImagensSeguras, 50);
     cards.push('<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div>'
       + (fotosArr.length ? '<div class="dash-count">' + fotosArr.length + ' foto' + (fotosArr.length > 1 ? 's' : '') + '</div>' : '') + '</div>'
       + (fotosArr.length
@@ -23315,9 +23311,27 @@ async function prAnexoUpload(files) {
   await prCarregarDocumentos();
 }
 
-function prDocVer(id) {
-  window.open(API_BASE + '/api/clinico/documentos/' + id + '/download?token=' + encodeURIComponent(getToken()), '_blank');
+// Segurança #12: baixa documento/foto pelo CABEÇALHO Authorization (não com a chave no
+// endereço, que vaza em log/histórico/Referer). Devolve uma URL temporária (blob) só desta aba.
+async function docBlobUrl(id) {
+  const resp = await fetch(API_BASE + '/api/clinico/documentos/' + id + '/download', { headers: { Authorization: 'Bearer ' + getToken() } });
+  if (!resp.ok) throw new Error('doc ' + resp.status);
+  return URL.createObjectURL(await resp.blob());
 }
+async function docAbrir(id) {
+  try { const u = await docBlobUrl(id); window.open(u, '_blank'); setTimeout(function () { URL.revokeObjectURL(u); }, 60000); }
+  catch (e) { if (typeof homeToast === 'function') homeToast('Não consegui abrir o documento.'); }
+}
+// Carrega com o cabeçalho todas as <img data-doc-seg> ainda não resolvidas (thumbnails de foto).
+async function carregarImagensSeguras() {
+  const imgs = document.querySelectorAll('img[data-doc-seg]:not([data-seg-done])');
+  for (const img of imgs) {
+    img.setAttribute('data-seg-done', '1');
+    try { img.src = await docBlobUrl(img.getAttribute('data-doc-seg')); }
+    catch (e) { img.dispatchEvent(new Event('error')); }
+  }
+}
+function prDocVer(id) { docAbrir(id); }
 
 async function prDocRemover(id) {
   if (!confirm('Remover este anexo?')) return;
