@@ -6213,7 +6213,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AI</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AJ</b></span></div>
   </div>
 </div>
 
@@ -13646,7 +13646,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 const pacAppState = { lista: [], detalhe: null };
 const PACAPP_PROV = { APPLE:'Apple Watch', OURA:'Oura', GARMIN:'Garmin', FITBIT:'Fitbit', WHOOP:'Whoop', WITHINGS:'Withings', POLAR:'Polar', SUUNTO:'Suunto', SAMSUNG:'Samsung', GOOGLE:'Google Fit', FREESTYLELIBRE:'FreeStyle Libre' };
-function pacAppProv(p){ return PACAPP_PROV[(p||'').toUpperCase()] || p || '—'; }
+function pacAppProv(p){ return PACAPP_PROV[(p||'').toUpperCase()] || esc(p) || '—'; }
 function pacAppTempo(iso){ if(!iso) return '—'; const min=Math.floor((Date.now()-new Date(iso).getTime())/60000); if(min<1) return 'agora'; if(min<60) return 'há '+min+' min'; const h=Math.floor(min/60); if(h<24) return 'há '+h+'h'; return 'há '+Math.floor(h/24)+'d'; }
 function pacAppData(iso){ if(!iso) return '—'; try { return new Date(iso).toLocaleDateString('pt-BR'); } catch(e){ return '—'; } }
 // Data-only (calendário) ancorada em meia-noite UTC pelo backend -> formata SEM converter fuso
@@ -13854,7 +13854,7 @@ function renderPacAppDetalhe(d){
 
   const sonoBlock=pacAppWellCard('Sono','ti-moon',d.sono,'sono');
   const recBlock=pacAppWellCard('Recuperação','ti-bolt',d.recovery,'recovery');
-  const movBlock=pacAppWellCard('Movimento','ti-run',d.movimento,'movimento',(d.movimento&&d.movimento.meta)?('Meta: '+d.movimento.meta.nome):'');
+  const movBlock=pacAppWellCard('Movimento','ti-run',d.movimento,'movimento',(d.movimento&&d.movimento.meta)?('Meta: '+esc(d.movimento.meta.nome)):'');
   const grid='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;">'+scoreBlock+sonoBlock+recBlock+movBlock+rodaBlock+bioBlock+pesoBlock+aplicBlock+medBlock+fotosBlock+coachCard('Nutricional','ti-apple',d.coach_ia&&d.coach_ia.nutricional)+coachCard('Físico','ti-barbell',d.coach_ia&&d.coach_ia.fisico)+'</div>';
 
   document.getElementById('pacapp-detalhe-wrap').innerHTML=header+wearSection+grid;
@@ -15612,7 +15612,7 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
   ev.innerHTML = `
     ${iconsHtml}
     <div class="ev-paciente">${esc(a.patient.nomeCompleto)}</div>
-    <div class="ev-meta">${agFmtHora(start)} · ${a.type.nome}</div>
+    <div class="ev-meta">${agFmtHora(start)} · ${esc(a.type.nome)}</div>
   `;
   slot.appendChild(ev);
 }
@@ -15885,7 +15885,7 @@ function agAnexoRenderLista() {
     <div class="pr-anexo-item">
       <i class="ti ti-${a.icone}"></i>
       <div class="info">
-        <div class="nome">${a.nome}</div>
+        <div class="nome">${esc(a.nome)}</div>
         <div class="meta">${a.tipo} · ${a.tamanho}</div>
       </div>
       <button class="rm" onclick="agAnexoRemover(${i})" title="Remover"><i class="ti ti-x"></i></button>
@@ -21527,7 +21527,7 @@ function pendRender() {
     const pillsHtml = checkLabels.map(c => {
       const feito = p.checks[c.key];
       const classe = feito ? 'feito' : (c.essencial ? 'essencial-faltando' : 'faltando');
-      return `<span class="check-pill ${classe}">${feito ? '✓' : '○'} ${c.label}</span>`;
+      return `<span class="check-pill ${classe}">${feito ? '✓' : '○'} ${esc(c.label)}</span>`;
     }).join('');
     return `
       <div class="pend-card ${cardClasse}" onclick="pendAbrirOnboarding('${p.id}')">
@@ -21623,8 +21623,8 @@ async function onbAbrirModal(patientId) {
         <div style="color:var(--tx1); font-weight:500;">${esc(p.nome)} <span style="font-family:'SF Mono',Consolas,monospace; color:var(--ac); font-size:11px;">${esc(p.codigo)}</span></div>
         <div style="font-size:11px; color:var(--tx3b); margin-top:2px;">
           <span style="color:${statusCor};">● ${p.status}</span>
-          ${p.medico ? ' · Médico: <strong style="color:var(--tx2);">' + (p.medico.name || p.medico.email) + '</strong>' : ''}
-          ${p.nutri ? ' · Nutri: <strong style="color:var(--tx2);">' + (p.nutri.name || p.nutri.email) + '</strong>' : ''}
+          ${p.medico ? ' · Médico: <strong style="color:var(--tx2);">' + esc(p.medico.name || p.medico.email) + '</strong>' : ''}
+          ${p.nutri ? ' · Nutri: <strong style="color:var(--tx2);">' + esc(p.nutri.name || p.nutri.email) + '</strong>' : ''}
         </div>
       </div>
     </div>
@@ -21667,7 +21667,7 @@ function onbRenderChecklist() {
         </div>
         <div class="info">
           <div class="nome">
-            ${c.label}
+            ${esc(c.label)}
             ${c.essencial ? '<span class="badge-essencial">essencial</span>' : ''}
           </div>
           <div class="meta">
@@ -24695,7 +24695,7 @@ function prEvolRenderForm() {
   let secaoAtual = null;
   campos.forEach((c, i) => {
     if (c.secao && c.secao !== secaoAtual) {
-      html += `<div class="secao">${c.secao}</div>`;
+      html += `<div class="secao">${esc(c.secao)}</div>`;
       secaoAtual = c.secao;
     }
     const valor = (respostas[c.slug] || '').replace(/"/g, '&quot;');
@@ -24726,7 +24726,7 @@ function prEvolRenderForm() {
     }
     html += `
       <div class="campo">
-        <div class="label">${c.label}${origemHtml}</div>
+        <div class="label">${esc(c.label)}${origemHtml}</div>
         <div>${inputHtml}</div>
       </div>
     `;
