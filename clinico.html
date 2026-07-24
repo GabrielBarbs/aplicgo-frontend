@@ -7742,13 +7742,10 @@
           <div class="pac-form-grid col-3">
             <div class="pac-field">
               <label>Programa</label>
-              <select id="pac-programa">
+              <select id="pac-programa" onchange="pacPlanoMudou()">
                 <option value="">Selecione o plano…</option>
                 <option value="Consulta avulsa">Consulta avulsa</option>
-                <option value="Burn&amp;Build">Burn&amp;Build</option>
-                <option value="Lipedema">Lipedema</option>
-                <option value="P&amp;L">P&amp;L</option>
-                <option value="Club Aplic">Club Aplic</option>
+                <!-- os planos são populados por pacPopularPlanos() a partir de PLANOS -->
               </select>
             </div>
             <div class="pac-field">
@@ -14513,6 +14510,7 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-observacoes').value = p.observacoes || '';
   // Saúde
   // Programa e jornada (dropdown -- preserva valor antigo que não esteja na lista)
+  pacPopularPlanos();
   const _selProg = document.getElementById('pac-programa');
   const _progVal = nomePrograma(p.programa) || '';
   if (_progVal && ![..._selProg.options].some(o => o.value === _progVal)) {
@@ -21595,8 +21593,51 @@ const _onbSalvarOriginal = typeof onbSalvar === 'function' ? onbSalvar : null;
 // ONBOARDING DO PACIENTE (Aula 05/29 Cap 3, Combo D)
 // ============================================================
 let onbState = { patientId: null, data: null, checks: {}, dirty: false, com: {}, catSup: [], catInj: [], comEdit: false };
-// Programas oferecidos no dropdown do bloco comercial (ajustável). "Outro…" libera texto livre.
-const ONB_PROGRAMAS = ['Performa', 'Burn&Build', 'Club', 'Lipedema Control'];
+// Catálogo de PLANOS (fonte única): nome + semanas pré-definidas. semanas:null = tempo indeterminado.
+// Usado no cadastro do paciente (#pac-programa) E no bloco comercial do onboarding. Ajustável aqui.
+const PLANOS = [
+  { nome: 'Longevity+ Essential', semanas: 24 },
+  { nome: 'Longevity+ Executive', semanas: 24 },
+  { nome: 'Hair&Glow Intensive', semanas: 8 },
+  { nome: 'Hair&Glow Evolution', semanas: 16 },
+  { nome: 'Hair&Glow Preserve', semanas: 26 },
+  { nome: 'Glow Skin Intensive', semanas: 8 },
+  { nome: 'Glow Skin Booster', semanas: 16 },
+  { nome: 'Hair&Glow Full', semanas: 16 },
+  { nome: 'Hair&Glow Signature', semanas: 26 },
+  { nome: 'Perfoma+ Essential', semanas: 24 },
+  { nome: 'Perfoma+ Executive', semanas: 24 },
+  { nome: 'Lipedema Care', semanas: 24 },
+  { nome: 'Lipedema Precision', semanas: 24 },
+  { nome: 'Neuro Recovery Intensive', semanas: 10 },
+  { nome: 'Neuro Recovery Evolution', semanas: 20 },
+  { nome: 'Neuro Recovery Preserve', semanas: 26 },
+  { nome: 'Burn&Build', semanas: null },
+  { nome: 'Club Aplic', semanas: null },
+];
+const PLANO_SEMANAS = Object.fromEntries(PLANOS.map((p) => [p.nome, p.semanas]));
+// Rótulo do dropdown: "Nome · 24s" (ou "· tempo indeterminado"). O VALUE salvo é só o nome (vai pro card do prontuário).
+function planoLabel(p) { return p.semanas != null ? `${p.nome} · ${p.semanas}s` : `${p.nome} · tempo indeterminado`; }
+// Preenche a duração (semanas) ao escolher um plano: fixa -> preenche; indeterminado -> limpa (pra digitar).
+function planoAplicarDuracao(nome, inputDur) {
+  if (!inputDur || !(nome in PLANO_SEMANAS)) return;
+  inputDur.value = PLANO_SEMANAS[nome] != null ? PLANO_SEMANAS[nome] : '';
+}
+// Popula o <select id="pac-programa"> do cadastro do paciente com os planos (idempotente).
+function pacPopularPlanos() {
+  const sel = document.getElementById('pac-programa');
+  if (!sel || sel._planosOk) return;
+  sel._planosOk = true;
+  PLANOS.forEach((p) => { const o = document.createElement('option'); o.value = p.nome; o.textContent = planoLabel(p); sel.appendChild(o); });
+}
+// onchange do #pac-programa: auto-preenche a duração conforme o plano escolhido.
+function pacPlanoMudou() {
+  planoAplicarDuracao(document.getElementById('pac-programa').value, document.getElementById('pac-programa-duracao'));
+}
+document.addEventListener('DOMContentLoaded', pacPopularPlanos);
+
+// Programas do onboarding = os MESMOS planos. "Outro…" libera texto livre.
+const ONB_PROGRAMAS = PLANOS.map((p) => p.nome);
 
 const ONB_CHECKS = [
   { key: 'boas_vindas',       campo: 'boas_vindas_em',       label: 'Boas-vindas ao paciente',  desc: 'Recepção dá as boas-vindas presencialmente',          essencial: false },
@@ -21864,7 +21905,7 @@ function onbRenderComercialEdit(box) {
         </div>
         <div>
           <div style="${ONB_LBL}">Duração (semanas)</div>
-          <input type="number" min="1" step="1" value="${com.duracao_semanas !== '' && com.duracao_semanas != null ? com.duracao_semanas : ''}" oninput="onbComSet('duracao_semanas', this.value)" placeholder="ex: 12" style="${ONB_FLD}">
+          <input type="number" id="onb-com-duracao" min="1" step="1" value="${com.duracao_semanas !== '' && com.duracao_semanas != null ? com.duracao_semanas : ''}" oninput="onbComSet('duracao_semanas', this.value)" placeholder="ex: 12" style="${ONB_FLD}">
         </div>
       </div>
       <div style="margin-top:12px;">
@@ -21936,7 +21977,16 @@ function onbComSet(field, val) { onbState.com[field] = val; onbState.dirty = tru
 function onbComProgramaMudou(val) {
   const inp = document.getElementById('onb-com-prog-outro');
   if (val === '__outro__') { onbState.com.programa = ''; if (inp) { inp.style.display = 'block'; inp.focus(); } }
-  else { onbState.com.programa = val; if (inp) inp.style.display = 'none'; }
+  else {
+    onbState.com.programa = val; if (inp) inp.style.display = 'none';
+    // Plano do catálogo: auto-preenche a duração (fixa -> semanas; indeterminado -> limpa).
+    if (val in PLANO_SEMANAS) {
+      const s = PLANO_SEMANAS[val];
+      onbState.com.duracao_semanas = s != null ? s : '';
+      const d = document.getElementById('onb-com-duracao');
+      if (d) d.value = s != null ? s : '';
+    }
+  }
   onbState.dirty = true;
 }
 function onbComPagoMudou(val) { onbState.com.pago = val === '' ? null : (val === 'sim'); onbState.dirty = true; onbRenderComercial(); }
