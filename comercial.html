@@ -6480,10 +6480,8 @@ function setupAdminHandlers() {
           if (r.email_enviado) {
             toast('Convite enviado por email pra ' + email, 'success', 5);
           } else {
-            const motivo = r.email_configurado === false
-              ? 'o envio de email não está configurado no servidor'
-              : 'o email não saiu (confira o domínio verificado no Resend)';
-            toast('Usuário criado, mas ' + motivo + '. Configure o email e convide de novo.', 'warning', 9);
+            const motivo = r.email_erro || (r.email_configurado === false ? 'envio de email não configurado no servidor' : 'o email não saiu');
+            toast('Usuário criado, mas o email FALHOU: ' + motivo + '. Ajuste o Resend e convide de novo.', 'warning', 12);
           }
           form.reset();
           carregarAdminUsuarios();
