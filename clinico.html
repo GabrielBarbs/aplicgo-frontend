@@ -6017,6 +6017,9 @@
   body.tema-claro .rx-doc-btn:not(.ativo):hover {
     border-color: rgba(var(--ac-rgb),.45); background-color: rgba(var(--ac-rgb),.07);
   }
+  /* Chat da equipe — balão ENVIADO: o texto era #eafff5 (quase branco) sobre verde pálido -> some
+     no claro. Texto verde-escuro + borda mais firme = legível e ainda "verde de enviado". */
+  body.tema-claro .ci-msg.mine .bolha { background: rgba(29,158,117,0.14); border-color: rgba(29,158,117,0.5); color: #0e5a3c; }
 
   @media (prefers-reduced-motion: reduce) {
     .view.active { animation: none; }
