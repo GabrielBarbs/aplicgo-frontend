@@ -6213,7 +6213,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AH</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AI</b></span></div>
   </div>
 </div>
 
@@ -13959,7 +13959,7 @@ async function topSearchBuscar() {
     wrap.innerHTML = '<div class="vazio">Nenhum paciente encontrado pra "' + q.replace(/</g, '&lt;') + '"</div>';
   } else {
     wrap.innerHTML = topSearchResultados.map((p, i) => `
-      <div class="res" data-idx="${i}" onclick="topSearchAbrir('${p.id}', '${cpEnc(p.nome_completo || '')}', '${esc(p.codigo)}', '${p.telefone1 || ''}')">
+      <div class="res" data-idx="${i}" onclick="topSearchAbrir('${p.id}', '${cpEnc(p.nome_completo || '')}', '${esc(p.codigo)}', '${(p.telefone1 || '').replace(/[^0-9+]/g,'')}')">
         <div class="info">
           <div class="nome">${esc(p.nome_completo)}${p.status === 'INCOMPLETO' ? ' <span style=\"font-size:9px; color:#EF9F27; border:1px solid rgba(239,159,39,0.3); border-radius:8px; padding:1px 6px; margin-left:4px;\">incompleto</span>' : ''}</div>
           <div class="meta">${fmtTel(p.telefone1)}${p.unidade ? ' · ' + p.unidade.nome : ''}</div>
@@ -14330,8 +14330,8 @@ function renderListaPacientes() {
             <td data-label="Telefone">${fmtTel(p.telefone1)}</td>
             <td class="col-fix-r" data-label="Contato" onclick="event.stopPropagation();">
               ${telLimpo ? `
-                <button class="pac-btn-contato ligar" title="Ligar" onclick="event.stopPropagation(); ligarParaPaciente('${p.telefone1}')"><i class="ti ti-phone"></i></button>
-                <button class="pac-btn-contato wa" title="Abrir chat / WhatsApp" onclick="event.stopPropagation(); abrirChatPorTelefone('${nomeEsc}', '${p.telefone1}')"><i class="ti ti-brand-whatsapp"></i></button>
+                <button class="pac-btn-contato ligar" title="Ligar" onclick="event.stopPropagation(); ligarParaPaciente('${(p.telefone1||'').replace(/[^0-9+]/g,'')}')"><i class="ti ti-phone"></i></button>
+                <button class="pac-btn-contato wa" title="Abrir chat / WhatsApp" onclick="event.stopPropagation(); abrirChatPorTelefone('${nomeEsc}', '${(p.telefone1||'').replace(/[^0-9+]/g,'')}')"><i class="ti ti-brand-whatsapp"></i></button>
               ` : na}
             </td>
           </tr>
@@ -15060,7 +15060,7 @@ function agPreencherSelects() {
 function agPreencherSelectsCustom() {
   const popUnit = document.getElementById('ag-sel-unit-popup');
   popUnit.innerHTML = `<div class="ag-select-popup-item ${!agState.unidade ? 'selecionado' : ''}" onclick="agSelectUnit('', 'Todas Unidades')">Todas Unidades</div>` +
-    pacState.unidades.map(u => `<div class="ag-select-popup-item ${agState.unidade === u.id ? 'selecionado' : ''}" onclick="agSelectUnit('${u.id}', '${u.nome.replace(/'/g, "\\'")}')">${u.nome}</div>`).join('');
+    pacState.unidades.map(u => `<div class="ag-select-popup-item ${agState.unidade === u.id ? 'selecionado' : ''}" onclick="agSelectUnit('${u.id}', '${(u.nome||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">${esc(u.nome)}</div>`).join('');
 
   const profs = pacState.profissionais.filter(p => ['medico','nutricionista','enfermagem','gestor'].includes(p.role));
   const popProf = document.getElementById('ag-sel-prof-popup');
@@ -16125,7 +16125,7 @@ async function marcCarregar() {
     const dataFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
     const pessoa = ehRecebida ? ('de ' + esc(m.autor)) : ('para ' + esc(m.mencionado));
     const comentariosHtml = (m.comentarios || []).map(c =>
-      `<div class="coment"><span class="aut">${c.autor}:</span> ${c.texto.replace(/</g,'&lt;')}</div>`
+      `<div class="coment"><span class="aut">${esc(c.autor)}:</span> ${esc(c.texto)}</div>`
     ).join('');
     return `
       <div class="marc-item ${ehRecebida && m.status === 'NAO_LIDA' ? 'nao-lida' : ''}">
@@ -17561,7 +17561,7 @@ function wdRender() {
       : { c: 'off', t: 'Desconectado' };
     const conectado = d.status === 'CONECTADO';
     const nomeEsc = (d.nome || '').replace(/</g, '&lt;');
-    const nomeAttr = (d.nome || '').replace(/'/g, '');
+    const nomeAttr = (d.nome || '').replace(/['"<>&]/g, '');
     return `<div class="wd-row">
       <div class="wd-ico"><i class="ti ti-device-mobile"></i></div>
       <div class="wd-info">
@@ -18759,7 +18759,7 @@ async function agBuscarPacientes() {
   const sugerido = q.length >= 2 ? q : '';
   // Item "Cadastrar paciente rápido" sempre visível no rodapé
   const novoItem = `
-    <div class="ag-pat-item ag-pat-novo" onclick="agAbrirQuickPat('${sugerido.replace(/'/g, "\\'")}')">
+    <div class="ag-pat-item ag-pat-novo" onclick="agAbrirQuickPat('${(sugerido||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">
       <div>
         <div style="color: #6FD89A;"><i class="ti ti-user-plus"></i> Cadastrar novo (rápido)</div>
         <div style="color: var(--tx3b); font-size: 10px;">Só nome, telefone e nascimento -- completa depois</div>
@@ -18842,7 +18842,7 @@ async function agSalvarQuickPat() {
     // Se for duplicado, sugere usar o existente
     if (r.data.paciente_existente) {
       erroEl.innerHTML = (r.data.erro || 'Já existe') +
-        ` <a href="javascript:agUsarExistente('${r.data.paciente_existente.id}', '${cpEnc(r.data.paciente_existente.nome || '')}', '${esc(r.data.paciente_existente.codigo)}', '${body.telefone1}')" style="color:var(--ac); text-decoration:underline;">Usar este paciente</a>`;
+        ` <a href="javascript:agUsarExistente('${r.data.paciente_existente.id}', '${cpEnc(r.data.paciente_existente.nome || '')}', '${esc(r.data.paciente_existente.codigo)}', '${(body.telefone1||'').replace(/[^0-9+]/g,'')}')" style="color:var(--ac); text-decoration:underline;">Usar este paciente</a>`;
     } else {
       erroEl.textContent = r.data.erro || 'Erro ao criar';
     }
@@ -19435,13 +19435,13 @@ function prRenderHeaderRico() {
   // Linha de CONTEXTO (próximo retorno + última visita + médico/nutri)
   const ctxLinhas = [];
   if (h.proximo_agendamento) {
-    ctxLinhas.push(`<span><i class="ti ti-calendar-event"></i> Próx. retorno: <strong>${fmtDataHora(h.proximo_agendamento.start_at)}</strong> · ${h.proximo_agendamento.tipo}</span>`);
+    ctxLinhas.push(`<span><i class="ti ti-calendar-event"></i> Próx. retorno: <strong>${fmtDataHora(h.proximo_agendamento.start_at)}</strong> · ${esc(h.proximo_agendamento.tipo)}</span>`);
   }
   if (h.ultima_evolucao) {
-    ctxLinhas.push(`<span><i class="ti ti-history"></i> Última evolução: <strong>${fmtDataHora(h.ultima_evolucao.data)}</strong> (${h.ultima_evolucao.profissional})</span>`);
+    ctxLinhas.push(`<span><i class="ti ti-history"></i> Última evolução: <strong>${fmtDataHora(h.ultima_evolucao.data)}</strong> (${esc(h.ultima_evolucao.profissional)})</span>`);
   }
-  if (h.medico) ctxLinhas.push(`<span><i class="ti ti-stethoscope"></i> Médico: <strong>${h.medico.name || h.medico.email}</strong></span>`);
-  if (h.nutri) ctxLinhas.push(`<span><i class="ti ti-apple"></i> Nutri: <strong>${h.nutri.name || h.nutri.email}</strong></span>`);
+  if (h.medico) ctxLinhas.push(`<span><i class="ti ti-stethoscope"></i> Médico: <strong>${esc(h.medico.name || h.medico.email)}</strong></span>`);
+  if (h.nutri) ctxLinhas.push(`<span><i class="ti ti-apple"></i> Nutri: <strong>${esc(h.nutri.name || h.nutri.email)}</strong></span>`);
   const ctxHtml = ctxLinhas.length ? `<div class="pr-h2-contexto">${ctxLinhas.join('')}</div>` : '';
 
   // Taxa de variação por semana (% / semana)
@@ -19462,7 +19462,7 @@ function prRenderHeaderRico() {
   // Injetável: nome + DOSE logo após (em destaque) + frequência
   if (meds.injetaveis && meds.injetaveis.length) {
     meds.injetaveis.forEach(m => {
-      const dose = m.dose ? ` <strong class="med-dose">${fmtDoseUnidade(m.dose)}</strong>` : '';
+      const dose = m.dose ? ` <strong class="med-dose">${esc(fmtDoseUnidade(m.dose))}</strong>` : '';
       const freq = m.frequencia ? ` · ${esc(m.frequencia)}` : '';
       medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
     });
@@ -21997,7 +21997,7 @@ function admRenderMatriz() {
         <div class="perm-grupo">
           <div class="grupo-head">
             <span>${g.grupo}</span>
-            <button class="toggle-all" onclick="admToggleGrupo('${c.slug}', '${g.grupo.replace(/'/g, "\\'")}', ${todosMarcados ? 'false' : 'true'})">
+            <button class="toggle-all" onclick="admToggleGrupo('${c.slug}', '${(g.grupo||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'")}', ${todosMarcados ? 'false' : 'true'})">
               ${todosMarcados ? 'desmarcar todos' : (algumMarcado ? 'marcar todos' : 'marcar todos')}
             </button>
           </div>
@@ -26732,7 +26732,7 @@ function apRenderBio() {
       <div class="ap-list-head">
         <div class="ap-list-titulo"><i class="ti ti-scale"></i> Bioimpedância</div>
         <div style="display:flex; align-items:center; gap:8px;">
-          ${b.profissional ? `<span class="pr-item-prof"><i class="ti ti-user"></i> ${b.profissional.name || b.profissional.email}</span>` : ''}
+          ${b.profissional ? `<span class="pr-item-prof"><i class="ti ti-user"></i> ${esc(b.profissional.name || b.profissional.email)}</span>` : ''}
           <span class="ap-list-data"><i class="ti ti-clock"></i> ${dataFmt}</span>
           <button class="pac-btn-secondary" style="font-size:10px; padding:3px 8px; color:#f85149;" onclick="apDeletarBio('${b.id}')"><i class="ti ti-trash"></i></button>
         </div>
