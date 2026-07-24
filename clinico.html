@@ -22422,16 +22422,24 @@ async function admNovoUserSalvar() {
   const btn = document.getElementById('adm-novo-user-salvar');
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Cadastrando…';
 
-  const body = { nome, email, role, cargos: Array.from(admState.novoUserCargos) };
+  // base_url = a página atual, pro backend montar o link do email apontando pra cá.
+  const body = { nome, email, role, cargos: Array.from(admState.novoUserCargos), base_url: window.location.origin + window.location.pathname };
   const r = await pacApi('/api/clinico/admin/usuarios', { method: 'POST', body: JSON.stringify(body) });
 
   btn.disabled = false; btn.innerHTML = '<i class="ti ti-user-check"></i> Cadastrar e gerar convite';
 
   if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro ao cadastrar'; erroEl.style.display = 'block'; return; }
 
-  // Monta o link absoluto de convite
+  // Email AUTOMÁTICO: se saiu, fecha e avisa — sem precisar clicar em "enviar por email".
+  if (r.data.email_enviado) {
+    admNovoUserFechar();
+    homeToast('Convite enviado por email pra ' + r.data.usuario.email + '.');
+    admCarregarUsuarios();
+    return;
+  }
+  // Fallback: o email não saiu -> mostra o link + botões manuais, com o motivo.
   const link = window.location.origin + window.location.pathname + '?aceitar=' + r.data.convite.aceitar_param;
-  admState.novoUserConvite = { link, email: r.data.usuario.email, nome: r.data.usuario.nome };
+  admState.novoUserConvite = { link, email: r.data.usuario.email, nome: r.data.usuario.nome, emailErro: r.data.email_erro };
   admNovoUserMostrarConvite();
 }
 
@@ -22442,7 +22450,7 @@ function admNovoUserMostrarConvite() {
   document.getElementById('adm-novo-user-salvar').style.display = 'none';
   document.getElementById('adm-novo-user-cancelar').style.display = 'none';
   document.getElementById('adm-novo-user-concluir').style.display = '';
-  document.getElementById('adm-novo-user-sucesso-sub').textContent = c.nome + ' aparece na lista assim que aceitar o convite.';
+  document.getElementById('adm-novo-user-sucesso-sub').textContent = 'O email automático não saiu' + (c.emailErro ? ' (' + c.emailErro + ')' : '') + '. Envie o link manualmente:';
   document.getElementById('adm-novo-user-link').value = c.link;
 
   const primeiroNome = (c.nome || '').split(' ')[0];

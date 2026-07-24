@@ -6475,7 +6475,7 @@ function setupAdminHandlers() {
       const original = btn.innerHTML;
       btn.innerHTML = '<i class="ti ti-loader"></i> Enviando…';
       try {
-        const r = await apiPost('criar_convite', { email: email, nome: nome, role: role });
+        const r = await apiPost('criar_convite', { email: email, nome: nome, role: role, base_url: window.location.origin + window.location.pathname });
         if (r.ok) {
           if (r.email_enviado) {
             toast('Convite enviado por email pra ' + email, 'success', 5);
