@@ -7239,6 +7239,17 @@
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando metas de movimento…</div>
     </div>
 
+    <!-- WhatsApp: prefixo (whitelabel) por usuário nas mensagens da equipe -->
+    <div class="dev-toolbar" style="margin-bottom:12px;">
+      <div class="dev-info"><strong><i class="ti ti-brand-whatsapp"></i> WhatsApp · prefixo por usuário:</strong> o rótulo em negrito que sai antes do nome nas mensagens da equipe (ex.: <b>*Dr Matheus*</b>). Deixe igual ao padrão do cargo pra usar o automático; digite pra fixar um título; apague pra sair só o nome.</div>
+      <div class="dev-acoes">
+        <button class="pac-btn-secondary" onclick="devPrefixosCarregar()" title="Atualizar"><i class="ti ti-refresh"></i></button>
+      </div>
+    </div>
+    <div id="dev-prefixos" style="margin-bottom:20px;">
+      <div class="pac-empty"><i class="ti ti-loader"></i>Carregando usuários…</div>
+    </div>
+
     <!-- Manutenção de dados -->
     <div class="dev-toolbar" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div class="dev-info"><strong><i class="ti ti-tool"></i> Manutenção:</strong> conserta exames antigos com o bug de deslocamento de coluna (unidade/referência trocadas na leitura por IA).</div>
@@ -21161,6 +21172,7 @@ async function devCarregar() {
   devIACarregar(devIARange);
   devAgentesCarregar();
   movmCarregar();
+  devPrefixosCarregar();
   const wrap = document.getElementById('dev-conteudo');
   wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando snapshot técnico...</div>';
   const r = await pacApi('/api/clinico/dev/overview');
@@ -21170,6 +21182,50 @@ async function devCarregar() {
   }
   devRender(r.data);
   document.getElementById('dev-ts').textContent = 'Atualizado em ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+// ---- WhatsApp: prefixo (whitelabel) por usuário ----
+function devPrefTexto(prefixo, nome) { const px = (prefixo || '').trim(); return '*' + (px ? px + ' ' : '') + (nome || '') + '*'; }
+async function devPrefixosCarregar() {
+  const wrap = document.getElementById('dev-prefixos');
+  if (!wrap) return;
+  const r = await pacApi('/api/clinico/whatsapp/prefixos');
+  if (!r.ok) { wrap.innerHTML = '<div class="pac-empty" style="color:#f85149;">Erro: ' + (r.data.erro || '—') + '</div>'; return; }
+  window._devPrefUsers = r.data.usuarios || [];
+  devPrefixosRender();
+}
+function devPrefixosRender() {
+  const wrap = document.getElementById('dev-prefixos');
+  const us = window._devPrefUsers || [];
+  if (!us.length) { wrap.innerHTML = '<div class="pac-empty">Nenhum usuário.</div>'; return; }
+  wrap.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;">' + us.map(function (u) {
+    const efetivo = (u.prefixo != null ? u.prefixo : (u.prefixo_derivado || ''));
+    const padrao = u.prefixo_derivado ? ('padrão do cargo: ' + esc(u.prefixo_derivado)) : 'sem título por padrão (só o nome)';
+    return '<div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:10px 12px;flex-wrap:wrap;">'
+      + '<div style="flex:1;min-width:170px;"><div style="font-weight:600;color:var(--tx1b);">' + esc(u.nome || '—') + '</div>'
+      + '<div style="font-size:11px;color:var(--tx3b);">' + esc(u.email || '') + (u.role ? ' · ' + esc(u.role) : '') + ' · ' + padrao + '</div></div>'
+      + '<input type="text" value="' + esc(efetivo) + '" placeholder="' + esc(u.prefixo_derivado || 'só o nome') + '" maxlength="40" data-deriv="' + esc(u.prefixo_derivado || '') + '"'
+      + ' oninput="devPrefPrev(this, \'' + u.id + '\')" onblur="devPrefixoSalvar(\'' + u.id + '\', this)" onkeydown="if(event.key===\'Enter\')this.blur()"'
+      + ' style="width:120px;background:rgba(var(--bg3-rgb),0.4);border:1px solid var(--bd1);border-radius:8px;color:var(--tx1);font:inherit;font-size:12.5px;padding:7px 10px;">'
+      + '<div style="font-size:11px;color:var(--tx4);min-width:150px;">Prévia: <b id="prefprev-' + u.id + '" style="color:var(--tx2);">' + esc(devPrefTexto(efetivo, u.nome)) + '</b></div>'
+      + '</div>';
+  }).join('') + '</div>';
+}
+function devPrefPrev(inp, id) {
+  const u = (window._devPrefUsers || []).find(function (x) { return x.id === id; });
+  const el = document.getElementById('prefprev-' + id);
+  if (el) el.textContent = devPrefTexto(inp.value, u ? u.nome : '');
+}
+async function devPrefixoSalvar(id, inp) {
+  const deriv = inp.getAttribute('data-deriv') || '';
+  const val = (inp.value || '').trim();
+  // Igual ao padrão do cargo -> remove o override (usa o automático). Diferente -> grava o override.
+  const body = { prefixo: (val === deriv) ? null : val };
+  const r = await pacApi('/api/clinico/whatsapp/prefixos/' + id, { method: 'PUT', body: JSON.stringify(body) });
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não salvou: ' + (r.data.erro || 'erro')); return; }
+  const u = (window._devPrefUsers || []).find(function (x) { return x.id === id; });
+  if (u) u.prefixo = r.data.prefixo;
+  if (typeof homeToast === 'function') homeToast('Prefixo salvo.');
 }
 
 function devFmtUptime(seg) {
