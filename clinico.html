@@ -7363,10 +7363,10 @@
         <div class="wv-busca">
           <i class="ti ti-search"></i>
           <input type="text" id="wv-busca-input" placeholder="Buscar por nome ou telefone…" oninput="wvBusca(this.value)">
-          <button class="wv-nova-btn" onclick="wvNovaToggle()" title="Nova conversa com paciente"><i class="ti ti-plus"></i></button>
+          <button class="wv-nova-btn" onclick="wvNovaToggle()" title="Nova conversa (paciente ou número)"><i class="ti ti-plus"></i></button>
         </div>
         <div class="wv-nova" id="wv-nova" style="display:none;">
-          <input type="text" id="wv-nova-input" placeholder="Paciente: nome, código ou telefone…" oninput="wvNovaBusca(this.value)">
+          <input type="text" id="wv-nova-input" placeholder="Nome, código ou número de telefone…" oninput="wvNovaBusca(this.value)">
           <div id="wv-nova-res"></div>
         </div>
         <div class="wv-banner" id="wv-banner" style="display:none;"></div>
@@ -17123,7 +17123,19 @@ function wvRenderLista() {
   const f = (wvState.filtro || '').trim().toLowerCase();
   wvState.vis = (wvState.chats || []).filter(c =>
     !f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(f.replace(/\D/g, '') || f));
-  if (!wvState.vis.length) { wrap.innerHTML = '<div class="wv-vazio">Nenhuma conversa' + (f ? ' pra essa busca' : ' ainda') + '.</div>'; return; }
+  if (!wvState.vis.length) {
+    // Buscou um NÚMERO que ainda não tem conversa -> oferece abrir um chat com ele.
+    const _dig = f.replace(/\D/g, '');
+    if (_dig.length >= 8) {
+      const _numWa = telWa(f);
+      wrap.innerHTML = '<div class="wv-conv" onclick="wvNovaAbrirNumero(\'' + _numWa + '\')">'
+        + '<div class="wv-av" style="background:rgba(var(--ac-rgb),.18);color:var(--ac);"><i class="ti ti-brand-whatsapp"></i></div>'
+        + '<div class="wv-conv-info"><div class="wv-conv-top"><span class="nm">Conversar com este número</span></div>'
+        + '<div class="wv-conv-bot"><span class="prev">' + esc(wdFmtTel(_numWa)) + '</span></div></div></div>';
+      return;
+    }
+    wrap.innerHTML = '<div class="wv-vazio">Nenhuma conversa' + (f ? ' pra essa busca' : ' ainda') + '.</div>'; return;
+  }
   wrap.innerHTML = wvState.vis.map((c, i) => {
     const nome = c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato');
     const tick = (c.ultima && c.ultima_de_mim) ? '<i class="ti ti-checks" style="font-size:13px;vertical-align:-2px;color:var(--tx3b);"></i> ' : '';
@@ -17392,7 +17404,7 @@ function wvNovaToggle() {
   if (!box) return;
   const aberto = box.style.display !== 'none';
   box.style.display = aberto ? 'none' : 'block';
-  if (!aberto) { const i = document.getElementById('wv-nova-input'); if (i) { i.value = ''; i.focus(); } document.getElementById('wv-nova-res').innerHTML = '<div class="wv-vazio" style="padding:10px;">Digite o nome, código ou telefone do paciente.</div>'; }
+  if (!aberto) { const i = document.getElementById('wv-nova-input'); if (i) { i.value = ''; i.focus(); } document.getElementById('wv-nova-res').innerHTML = '<div class="wv-vazio" style="padding:10px;">Digite um nome, código ou número de telefone (mesmo sem cadastro).</div>'; }
 }
 let _wvNovaTimer = null;
 function wvNovaBusca(q) {
@@ -17405,13 +17417,24 @@ function wvNovaBusca(q) {
     try { r = await pacApi('/api/clinico/patients?limit=8&q=' + encodeURIComponent(q.trim())); } catch (e) { r = null; }
     const pacientes = (r && r.ok && r.data.pacientes) || [];
     window._wvNovaPacs = pacientes;
-    if (!pacientes.length) { wrap.innerHTML = '<div class="wv-vazio" style="padding:10px;">Nenhum paciente encontrado.</div>'; return; }
-    wrap.innerHTML = pacientes.map(function (p, i) {
+    const _dig = (q || '').replace(/\D/g, '');
+    let _html = '';
+    // Se o que digitou parece um telefone, oferece "conversar com este número" mesmo sem cadastro.
+    if (_dig.length >= 8) {
+      const _numWa = telWa(q.trim());
+      _html += '<div class="wv-conv" onclick="wvNovaAbrirNumero(\'' + _numWa + '\')">'
+        + '<div class="wv-av" style="background:rgba(var(--ac-rgb),.18);color:var(--ac);"><i class="ti ti-brand-whatsapp"></i></div>'
+        + '<div class="wv-conv-info"><div class="wv-conv-top"><span class="nm">Conversar com este número</span></div>'
+        + '<div class="wv-conv-bot"><span class="prev">' + esc(wdFmtTel(_numWa)) + '</span></div></div></div>';
+    }
+    _html += pacientes.map(function (p, i) {
       const tel = p.telefone1 ? wdFmtTel(p.telefone1) : 'sem telefone';
       return '<div class="wv-conv" onclick="wvNovaAbrir(' + i + ')"><div class="wv-av">' + esc(waIni(p.nome_completo)) + '</div>'
         + '<div class="wv-conv-info"><div class="wv-conv-top"><span class="nm">' + esc(waTrunc(p.nome_completo || '', 26)) + '</span></div>'
         + '<div class="wv-conv-bot"><span class="prev">' + esc(p.codigo || '') + ' · ' + esc(tel) + '</span></div></div></div>';
     }).join('');
+    if (!_html) { wrap.innerHTML = '<div class="wv-vazio" style="padding:10px;">Nenhum paciente encontrado.</div>'; return; }
+    wrap.innerHTML = _html;
   }, 300);
 }
 function wvNovaAbrir(i) {
@@ -17422,6 +17445,16 @@ function wvNovaAbrir(i) {
   const num = telWa(raw);   // não pré-limpar: telWa respeita o '+' (internacional)
   wvNovaToggle();
   wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: p.nome_completo, paciente_id: p.id });
+}
+// Abre um chat direto com um NÚMERO (não precisa ser paciente). numWa = dígitos já com DDI (via telWa).
+function wvNovaAbrirNumero(numWa) {
+  const num = String(numWa || '').replace(/\D/g, '');
+  if (num.length < 8) { if (typeof homeToast === 'function') homeToast('Número inválido.'); return; }
+  const nova = document.getElementById('wv-nova'); if (nova && nova.style.display !== 'none') wvNovaToggle();
+  const bi = document.getElementById('wv-busca-input'); if (bi) bi.value = '';   // limpa a busca (senão fica filtrando)
+  wvState.filtro = '';
+  wvRenderLista();
+  wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: wdFmtTel(num), paciente_id: null });
 }
 function wvIniciarPollThread() {
   if (wvState.poll) clearInterval(wvState.poll);
