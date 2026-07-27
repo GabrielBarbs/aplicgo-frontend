@@ -187,6 +187,7 @@ function render(r) {
         </div>
 
         ${c.observacoes ? `<div class="obs-box"><div class="k">Observações</div>${esc(c.observacoes)}</div>` : ''}
+        ${ehExame && c.motivo ? `<div class="obs-box"><div class="k">Indicação clínica</div>${esc(c.motivo)}</div>` : ''}
 
         <div class="farm">
           <div class="fh"><i class="ti ${ehExame ? 'ti-shield-check' : 'ti-building-store'}"></i> ${ehExame ? 'Autenticidade' : 'Área da farmácia'}</div>
