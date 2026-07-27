@@ -6213,7 +6213,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AM</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AN</b></span></div>
   </div>
 </div>
 
@@ -26711,84 +26711,28 @@ async function prSalvarExam(acao, btn) {
   if (acao === 'whatsapp') {
     if (sol.id) await prEnviarWhatsappExame(sol.id);
   } else {
-    prAbrirPdfExame(exames, motivo, sol.verif_url || null);
+    prAbrirPdfExame(sol.id);
   }
 }
 
-// Janela de impressão da solicitação de exames — mesmo layout da receita, com QR verificável.
-function prAbrirPdfExame(exames, motivo, verifUrl) {
-  const h = prState.headerData || {};
-  const dataFmt = new Date().toLocaleDateString('pt-BR');
-  const unidade = h.unidade?.nome || 'Aplic & Go';
-  const solicitante = (typeof authUser !== 'undefined' && authUser && (authUser.name || authUser.email))
-    || (h.medico && (h.medico.name || h.medico.email)) || '________________';
-  const itensHtml = (exames || []).map((e, n) => `<div class="rx-item"><div class="rx-med">${n + 1}. ${esc(e)}</div></div>`).join('');
-  const win = window.open('', '_blank', 'width=800,height=900');
-  if (!win) { alert('Permita pop-ups para imprimir a solicitação.'); return; }
-  win.document.write(`
-    <!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
-    <title>Solicitação de exames -- ${esc(h.nome_completo || 'Paciente')}</title>
-    <style>
-      * { box-sizing: border-box; }
-      body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; max-width: 720px; margin: 0 auto; padding: 40px 48px; }
-      .rx-cab { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #1D9E75; padding-bottom: 14px; margin-bottom: 8px; }
-      .rx-cab .clinica { font-size: 20px; font-weight: 700; color: #0F6E56; }
-      .rx-cab .unidade { font-size: 12px; color: #555; margin-top: 2px; }
-      .rx-cab .tipo { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; text-align: right; }
-      .rx-pac { font-size: 13px; color: #333; margin: 16px 0; padding: 10px 14px; background: #f5f7f6; border-radius: 6px; }
-      .rx-pac strong { color: #0F6E56; }
-      .rx-titulo { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #0F6E56; font-weight: 700; margin: 26px 0 14px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
-      .rx-item { margin-bottom: 10px; }
-      .rx-med { font-size: 15px; font-weight: 600; }
-      .rx-extra { margin-top: 24px; font-size: 12px; color: #555; white-space: pre-wrap; }
-      .rx-assina { margin-top: 70px; text-align: center; }
-      .rx-assina .linha { border-top: 1px solid #333; width: 280px; margin: 0 auto 4px; }
-      .rx-assina .nome { font-size: 13px; font-weight: 600; }
-      .rx-assina .crm { font-size: 11px; color: #777; }
-      .rx-verif { display:flex; gap:14px; align-items:center; margin-top:30px; padding:14px 16px; border:1px solid #cfe3dd; border-radius:8px; background:#f6fbf9; }
-      .rx-verif .rx-qr svg { width:96px; height:96px; display:block; }
-      .rx-verif-txt { font-size:11px; color:#445; text-align:left; line-height:1.5; }
-      .rx-verif-txt strong { color:#0F6E56; }
-      .rx-verif-url { font-family: ui-monospace, monospace; font-size:10px; color:#0F6E56; word-break:break-all; }
-      .rx-rodape { margin-top: 40px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
-      @media print { body { padding: 24px; } button { display: none; } }
-    </style></head><body>
-      <div class="rx-cab">
-        <div>
-          <div class="clinica">Aplic &amp; Go</div>
-          <div class="unidade">${esc(unidade)}</div>
-        </div>
-        <div class="tipo">Solicitação de exames<br>${dataFmt}</div>
-      </div>
-      <div class="rx-pac">
-        <strong>Paciente:</strong> ${esc(h.nome_completo || '--')}${h.codigo ? ' (' + esc(h.codigo) + ')' : ''}
-        ${h.idade != null ? ' · ' + esc(String(h.idade)) + ' anos' : ''}
-      </div>
-      <div class="rx-titulo">Exames solicitados</div>
-      ${itensHtml || '<div style="color:#999;">Sem exames.</div>'}
-      ${motivo ? `<div class="rx-extra"><strong>Indicação clínica:</strong> ${esc(motivo)}</div>` : ''}
-      <div class="rx-assina">
-        <div class="linha"></div>
-        <div class="nome">${esc(solicitante)}</div>
-        <div class="crm">Profissional solicitante</div>
-      </div>
-      ${verifUrl ? `<div class="rx-verif">
-        <div class="rx-qr">${prQrSvg(verifUrl, 3)}</div>
-        <div class="rx-verif-txt"><strong>Solicitação com assinatura digital Aplic.</strong><br>Escaneie o QR ou acesse o link para conferir a autenticidade:<br><span class="rx-verif-url">${esc(verifUrl)}</span></div>
-      </div>` : ''}
-      <div class="rx-rodape">Documento gerado pelo Sistema Clínico Aplic &amp; Go em ${new Date().toLocaleString('pt-BR')}</div>
-      <div style="text-align:center; margin-top:20px;">
-        <button onclick="window.print()" style="padding:10px 24px; background:#1D9E75; color:#fff; border:0; border-radius:6px; font-size:14px; cursor:pointer;">Imprimir / Salvar PDF</button>
-      </div>
-    </body></html>
-  `);
-  win.document.close();
+// Abre o PDF OFICIAL da solicitação de exames — layout Prontuário Verde gerado no BACKEND
+// (mesma moldura da receita: emitente/paciente/QR/assinatura). Busca com auth e abre o blob.
+async function prAbrirPdfExame(examId) {
+  if (!examId) { alert('Solicitação sem identificador — recarregue e tente de novo.'); return; }
+  try {
+    const resp = await fetch(API_BASE + '/api/clinico/prontuario/exam-requests/' + examId + '/pdf?web=' + encodeURIComponent(location.origin), { headers: { Authorization: 'Bearer ' + getToken() } });
+    if (!resp.ok) { alert('Não foi possível gerar o PDF da solicitação.'); return; }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) { alert('Erro ao abrir o PDF da solicitação.'); }
 }
 
-// Reimprime uma solicitação de exames a partir da timeline (usa o token já assinado).
+// Reimprime uma solicitação de exames a partir da timeline (PDF oficial do backend).
 function prReimprimirExame(d) {
   if (typeof d === 'string') { try { d = JSON.parse(d.replace(/&apos;/g, "'")); } catch { return; } }
-  prAbrirPdfExame(d.exames || [], d.motivo || null, d.verif_url || null);
+  prAbrirPdfExame(d.id);
 }
 
 // Envia a solicitação de exames no WhatsApp do paciente (espelha rxEnviarWhatsappPresc).
