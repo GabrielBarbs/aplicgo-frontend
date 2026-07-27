@@ -6213,7 +6213,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AO</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AP</b></span></div>
   </div>
 </div>
 
@@ -26817,45 +26817,48 @@ async function prSalvarExam(acao, btn) {
 
   const original = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando...'; }
+  // Pro imprimir: abre a ABA AGORA (no gesto do clique). Abrir só depois do POST + assinatura A1
+  // faz o navegador perder o gesto e abrir como JANELA/popup em vez de aba.
+  const abaPdf = acao === 'imprimir' ? window.open('', '_blank') : null;
   const r = await pacApi('/api/clinico/prontuario/exam-requests', {
     method: 'POST',
     body: JSON.stringify({ patient_id: prState.pacienteAtual.id, exames, motivo }),
   });
   if (btn) { btn.disabled = false; btn.innerHTML = original; }
-  if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
+  if (!r.ok) { if (abaPdf) abaPdf.close(); erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
 
   const sol = (r.data && r.data.solicitacao) || {};
   prFecharExam();
   prCarregarTimeline();
 
-  // Já salvo e assinado (Aplic) na criação. Agora imprime OU envia no WhatsApp.
+  // Já salvo e assinado na criação. Agora carrega o PDF na aba já aberta OU envia no WhatsApp.
   if (acao === 'whatsapp') {
     if (sol.id) await prEnviarWhatsappExame(sol.id);
   } else {
-    prAbrirPdfExame(sol.id);
+    prAbrirPdfExame(sol.id, abaPdf);
   }
 }
 
 // Abre o PDF OFICIAL da solicitação de exames — layout Prontuário Verde gerado no BACKEND
 // (mesma moldura da receita: emitente/paciente/QR/assinatura). Busca com auth e abre o blob.
-async function prAbrirPdfExame(examId) {
-  if (!examId) { alert('Solicitação sem identificador — recarregue e tente de novo.'); return; }
+async function prAbrirPdfExame(examId, abaPdf) {
+  if (!examId) { if (abaPdf) abaPdf.close(); alert('Solicitação sem identificador — recarregue e tente de novo.'); return; }
+  // Usa a aba já aberta no clique (preserva o gesto -> aba, não janela); se não veio, abre agora.
+  const w = abaPdf || window.open('', '_blank');
   try {
     const resp = await fetch(API_BASE + '/api/clinico/prontuario/exam-requests/' + examId + '/pdf?web=' + encodeURIComponent(location.origin), { headers: { Authorization: 'Bearer ' + getToken() } });
-    if (!resp.ok) { alert('Não foi possível gerar o PDF da solicitação.'); return; }
+    if (!resp.ok) { if (w) w.close(); alert('Não foi possível gerar o PDF da solicitação.'); return; }
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
-    // Abre numa ABA (sem features string -> aba, não janela), igual ao "Imprimir" da receita.
-    const w = window.open(url, '_blank');
-    if (!w) alert('O navegador bloqueou a aba do PDF. Permita pop-ups pro aplicgo.com e tente de novo.');
+    if (w) { w.location.href = url; } else { alert('O navegador bloqueou a aba do PDF. Permita pop-ups pro aplicgo.com e tente de novo.'); }
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } catch (e) { alert('Erro ao abrir o PDF da solicitação.'); }
+  } catch (e) { if (w) w.close(); alert('Erro ao abrir o PDF da solicitação.'); }
 }
 
 // Reimprime uma solicitação de exames a partir da timeline (PDF oficial do backend).
 function prReimprimirExame(d) {
   if (typeof d === 'string') { try { d = JSON.parse(d.replace(/&apos;/g, "'")); } catch { return; } }
-  prAbrirPdfExame(d.id);
+  prAbrirPdfExame(d.id, window.open('', '_blank')); // abre a aba já no gesto do clique
 }
 
 // Envia a solicitação de exames no WhatsApp do paciente (espelha rxEnviarWhatsappPresc).
