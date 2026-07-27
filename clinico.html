@@ -6213,7 +6213,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AL</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AM</b></span></div>
   </div>
 </div>
 
@@ -9102,8 +9102,11 @@
       <div></div>
       <div class="ag-modal-actions-right">
         <button class="pac-btn-secondary" onclick="prFecharExam()">Cancelar</button>
-        <button class="pac-btn-primary" onclick="prSalvarExam()">
-          <i class="ti ti-device-floppy"></i> Salvar solicitação
+        <button class="pac-btn-secondary" onclick="prSalvarExam('whatsapp', this)">
+          <i class="ti ti-brand-whatsapp"></i> Enviar e salvar
+        </button>
+        <button class="pac-btn-primary" onclick="prSalvarExam('imprimir', this)">
+          <i class="ti ti-printer"></i> Imprimir e salvar
         </button>
       </div>
     </div>
@@ -24501,6 +24504,11 @@ function prRenderItem(it) {
       const d = it.dados;
       body = '<div class="pr-exames-chips">' + d.exames.map(e => `<span class="pr-exame-chip">${esc(e)}</span>`).join('') + '</div>';
       if (d.motivo) body += `<div style="font-size:11px; color:var(--tx3b); margin-top:8px;">${esc(d.motivo)}</div>`;
+      const _dje = JSON.stringify(d).replace(/&/g, '&amp;').replace(/'/g, '&apos;');
+      body += `<div style="display:flex; gap:6px; margin-top:10px;">
+        <button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick='prReimprimirExame(${_dje})'><i class="ti ti-printer"></i> Imprimir</button>
+        <button class="pac-btn-secondary" style="font-size:11px; padding:4px 9px;" onclick="prEnviarWhatsappExame('${d.id}', this)"><i class="ti ti-brand-whatsapp"></i> Enviar</button>
+      </div>`;
       break;
     }
     case 'exame_resultado': {
@@ -26620,7 +26628,7 @@ function prFecharExam() {
   document.getElementById('pr-exam-modal').classList.remove('aberto');
 }
 
-async function prSalvarExam() {
+async function prSalvarExam(acao, btn) {
   const erroEl = document.getElementById('pr-exam-erro');
   erroEl.style.display = 'none';
   const selecionados = Array.from(document.querySelectorAll('.pr-exam-cb:checked')).map(cb => cb.value);
@@ -26628,17 +26636,132 @@ async function prSalvarExam() {
     .split(',').map(s => s.trim()).filter(Boolean);
   const exames = [...selecionados, ...outros];
   if (exames.length === 0) { erroEl.textContent = 'Marque pelo menos 1 exame'; erroEl.style.display = 'block'; return; }
+  const motivo = document.getElementById('pr-exam-motivo').value.trim() || null;
 
-  const body = {
-    patient_id: prState.pacienteAtual.id,
-    exames,
-    motivo: document.getElementById('pr-exam-motivo').value.trim() || null,
-  };
-
-  const r = await pacApi('/api/clinico/prontuario/exam-requests', { method: 'POST', body: JSON.stringify(body) });
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando...'; }
+  const r = await pacApi('/api/clinico/prontuario/exam-requests', {
+    method: 'POST',
+    body: JSON.stringify({ patient_id: prState.pacienteAtual.id, exames, motivo }),
+  });
+  if (btn) { btn.disabled = false; btn.innerHTML = original; }
   if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
+
+  const sol = (r.data && r.data.solicitacao) || {};
   prFecharExam();
   prCarregarTimeline();
+
+  // Já salvo e assinado (Aplic) na criação. Agora imprime OU envia no WhatsApp.
+  if (acao === 'whatsapp') {
+    if (sol.id) await prEnviarWhatsappExame(sol.id);
+  } else {
+    prAbrirPdfExame(exames, motivo, sol.verif_url || null);
+  }
+}
+
+// Janela de impressão da solicitação de exames — mesmo layout da receita, com QR verificável.
+function prAbrirPdfExame(exames, motivo, verifUrl) {
+  const h = prState.headerData || {};
+  const dataFmt = new Date().toLocaleDateString('pt-BR');
+  const unidade = h.unidade?.nome || 'Aplic & Go';
+  const solicitante = (typeof authUser !== 'undefined' && authUser && (authUser.name || authUser.email))
+    || (h.medico && (h.medico.name || h.medico.email)) || '________________';
+  const itensHtml = (exames || []).map((e, n) => `<div class="rx-item"><div class="rx-med">${n + 1}. ${esc(e)}</div></div>`).join('');
+  const win = window.open('', '_blank', 'width=800,height=900');
+  if (!win) { alert('Permita pop-ups para imprimir a solicitação.'); return; }
+  win.document.write(`
+    <!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">
+    <title>Solicitação de exames -- ${esc(h.nome_completo || 'Paciente')}</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; max-width: 720px; margin: 0 auto; padding: 40px 48px; }
+      .rx-cab { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid #1D9E75; padding-bottom: 14px; margin-bottom: 8px; }
+      .rx-cab .clinica { font-size: 20px; font-weight: 700; color: #0F6E56; }
+      .rx-cab .unidade { font-size: 12px; color: #555; margin-top: 2px; }
+      .rx-cab .tipo { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; text-align: right; }
+      .rx-pac { font-size: 13px; color: #333; margin: 16px 0; padding: 10px 14px; background: #f5f7f6; border-radius: 6px; }
+      .rx-pac strong { color: #0F6E56; }
+      .rx-titulo { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #0F6E56; font-weight: 700; margin: 26px 0 14px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+      .rx-item { margin-bottom: 10px; }
+      .rx-med { font-size: 15px; font-weight: 600; }
+      .rx-extra { margin-top: 24px; font-size: 12px; color: #555; white-space: pre-wrap; }
+      .rx-assina { margin-top: 70px; text-align: center; }
+      .rx-assina .linha { border-top: 1px solid #333; width: 280px; margin: 0 auto 4px; }
+      .rx-assina .nome { font-size: 13px; font-weight: 600; }
+      .rx-assina .crm { font-size: 11px; color: #777; }
+      .rx-verif { display:flex; gap:14px; align-items:center; margin-top:30px; padding:14px 16px; border:1px solid #cfe3dd; border-radius:8px; background:#f6fbf9; }
+      .rx-verif .rx-qr svg { width:96px; height:96px; display:block; }
+      .rx-verif-txt { font-size:11px; color:#445; text-align:left; line-height:1.5; }
+      .rx-verif-txt strong { color:#0F6E56; }
+      .rx-verif-url { font-family: ui-monospace, monospace; font-size:10px; color:#0F6E56; word-break:break-all; }
+      .rx-rodape { margin-top: 40px; font-size: 10px; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
+      @media print { body { padding: 24px; } button { display: none; } }
+    </style></head><body>
+      <div class="rx-cab">
+        <div>
+          <div class="clinica">Aplic &amp; Go</div>
+          <div class="unidade">${esc(unidade)}</div>
+        </div>
+        <div class="tipo">Solicitação de exames<br>${dataFmt}</div>
+      </div>
+      <div class="rx-pac">
+        <strong>Paciente:</strong> ${esc(h.nome_completo || '--')}${h.codigo ? ' (' + esc(h.codigo) + ')' : ''}
+        ${h.idade != null ? ' · ' + esc(String(h.idade)) + ' anos' : ''}
+      </div>
+      <div class="rx-titulo">Exames solicitados</div>
+      ${itensHtml || '<div style="color:#999;">Sem exames.</div>'}
+      ${motivo ? `<div class="rx-extra"><strong>Indicação clínica:</strong> ${esc(motivo)}</div>` : ''}
+      <div class="rx-assina">
+        <div class="linha"></div>
+        <div class="nome">${esc(solicitante)}</div>
+        <div class="crm">Profissional solicitante</div>
+      </div>
+      ${verifUrl ? `<div class="rx-verif">
+        <div class="rx-qr">${prQrSvg(verifUrl, 3)}</div>
+        <div class="rx-verif-txt"><strong>Solicitação com assinatura digital Aplic.</strong><br>Escaneie o QR ou acesse o link para conferir a autenticidade:<br><span class="rx-verif-url">${esc(verifUrl)}</span></div>
+      </div>` : ''}
+      <div class="rx-rodape">Documento gerado pelo Sistema Clínico Aplic &amp; Go em ${new Date().toLocaleString('pt-BR')}</div>
+      <div style="text-align:center; margin-top:20px;">
+        <button onclick="window.print()" style="padding:10px 24px; background:#1D9E75; color:#fff; border:0; border-radius:6px; font-size:14px; cursor:pointer;">Imprimir / Salvar PDF</button>
+      </div>
+    </body></html>
+  `);
+  win.document.close();
+}
+
+// Reimprime uma solicitação de exames a partir da timeline (usa o token já assinado).
+function prReimprimirExame(d) {
+  if (typeof d === 'string') { try { d = JSON.parse(d.replace(/&apos;/g, "'")); } catch { return; } }
+  prAbrirPdfExame(d.exames || [], d.motivo || null, d.verif_url || null);
+}
+
+// Envia a solicitação de exames no WhatsApp do paciente (espelha rxEnviarWhatsappPresc).
+async function prEnviarWhatsappExame(id, btn) {
+  const pac = prState.pacienteAtual; if (!pac) return;
+  const numero = await confirmarEnvioWhatsapp(pac.telefone || '', pac.nome || '');
+  if (!numero) return;
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Enviando...'; }
+  try {
+    const r = await pacApi('/api/clinico/prontuario/exam-requests/' + id + '/whatsapp', { method: 'POST', body: JSON.stringify({ numero }) });
+    if (r.ok && r.data && r.data.ok) {
+      if (typeof homeToast === 'function') homeToast('Solicitação enviada no WhatsApp ✓');
+      if (btn) { btn.innerHTML = '<i class="ti ti-check"></i> Enviado!'; setTimeout(function () { btn.disabled = false; btn.innerHTML = original; }, 2500); }
+      return;
+    }
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    const erro = (r.data && r.data.erro) || 'falha';
+    const msg = (r.data && r.data.mensagem) || '';
+    const full = telWa(numero);
+    if (msg && confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
+      window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
+    } else if (!msg) {
+      alert('Não foi possível enviar: ' + erro);
+    }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    alert('Erro ao enviar no WhatsApp.');
+  }
 }
 
 // ============================================================

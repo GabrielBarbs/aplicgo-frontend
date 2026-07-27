@@ -69,6 +69,7 @@ function render(r) {
   const integro = r.hash_confere;
   const val = r.validade || {};
   const ehAtestado = c.tipo === 'ATESTADO';
+  const ehExame = c.tipo === 'exame';
 
   // Chip de autenticidade (canto do título)
   let chip;
@@ -114,7 +115,10 @@ function render(r) {
   const itensHtml = grupos.map((g) => `
     ${g.via ? `<div class="via-h">${esc(g.via)}</div>` : ''}
     ${g.itens.map(medHtml).join('')}`).join('');
-  const itens = (textoLivre + itensHtml) || `<div class="med"><div class="c"><div class="pos">Sem itens.</div></div></div>`;
+  const itensExame = (c.exames || []).map((e, n) => `<div class="med"><div class="n">${n + 1}</div><div class="c"><div class="nome">${esc(e)}</div></div></div>`).join('');
+  const itens = ehExame
+    ? (itensExame || `<div class="med"><div class="c"><div class="pos">Sem exames.</div></div></div>`)
+    : ((textoLivre + itensHtml) || `<div class="med"><div class="c"><div class="pos">Sem itens.</div></div></div>`);
 
   // Área da farmácia — validade
   let validEl;
@@ -144,10 +148,10 @@ function render(r) {
     <div class="card">
       ${headerHtml()}
       <div class="body">
-        <div class="titrow"><h1>${ehAtestado ? 'Atestado Digital' : 'Receita Digital'}</h1>${chip}</div>
+        <div class="titrow"><h1>${ehExame ? 'Solicitação de Exames' : (ehAtestado ? 'Atestado Digital' : 'Receita Digital')}</h1>${chip}</div>
 
         <div class="grid2">
-          <div class="fld"><div class="k">Código ${ehAtestado ? 'do documento' : 'da receita'}</div><div class="v mono">${esc(r.chave || '—')}</div></div>
+          <div class="fld"><div class="k">Código do documento</div><div class="v mono">${esc(r.chave || r.token || '—')}</div></div>
           <div class="fld"><div class="k">Data</div><div class="v">${fmtDataHora(c.data || r.criado_em)}</div></div>
         </div>
 
@@ -178,18 +182,18 @@ function render(r) {
         </div>
 
         <div class="rx">
-          <div class="cab"><span class="t">${esc(TIPO[c.tipo] || 'Receituário')}</span>${uso}</div>
+          <div class="cab"><span class="t">${ehExame ? 'Exames solicitados' : esc(TIPO[c.tipo] || 'Receituário')}</span>${ehExame ? '' : uso}</div>
           ${itens}
         </div>
 
         ${c.observacoes ? `<div class="obs-box"><div class="k">Observações</div>${esc(c.observacoes)}</div>` : ''}
 
         <div class="farm">
-          <div class="fh"><i class="ti ti-building-store"></i> Área da farmácia</div>
+          <div class="fh"><i class="ti ${ehExame ? 'ti-shield-check' : 'ti-building-store'}"></i> ${ehExame ? 'Autenticidade' : 'Área da farmácia'}</div>
           <div class="fb">
-            ${validEl}
+            ${ehExame ? '' : validEl}
             ${sigEl}
-            <a class="btn-dl" href="${dlUrl}" target="_blank" rel="noopener"><i class="ti ti-download"></i> Baixar ${ehAtestado ? 'atestado' : 'receita'}</a>
+            ${ehExame ? '' : `<a class="btn-dl" href="${dlUrl}" target="_blank" rel="noopener"><i class="ti ti-download"></i> Baixar ${ehAtestado ? 'atestado' : 'receita'}</a>`}
           </div>
         </div>
 
