@@ -21744,6 +21744,7 @@ async function onbAbrirModal(patientId) {
     : '';
 
   document.getElementById('onb-modal').classList.add('aberto');
+  onbDraftAoAbrir();
 }
 
 function onbRenderChecklist() {
@@ -21855,6 +21856,7 @@ async function onbSalvar(finalizar) {
     return;
   }
   onbState.dirty = false;
+  onbDraftLimpar();
   if (finalizar && r.data.novo_status === 'ATIVO') {
     alert('Onboarding finalizado! Paciente promovido para ATIVO.');
   }
@@ -24628,6 +24630,7 @@ function prAbrirNovaEvol() {
     `${agora.getFullYear()}-${pad(agora.getMonth()+1)}-${pad(agora.getDate())}T${pad(agora.getHours())}:${pad(agora.getMinutes())}`;
   document.getElementById('pr-evol-erro').style.display = 'none';
   document.getElementById('pr-evol-modal').classList.add('aberto');
+  evolDraftAoAbrir();
 }
 
 async function prEditarEvol(id) {
@@ -24843,7 +24846,180 @@ function prEvolRenderForm() {
 
 function prEvolSetResposta(slug, valor) {
   prEvolFormState.respostas[slug] = valor;
+  evolDraftAgendarSalvar();
 }
+
+// ==========================================================================
+// RASCUNHO AUTOMÁTICO (autosave) de templates — evolução + onboarding.
+// Se a pessoa sai sem querer de um template a meio preencher, o que foi
+// escrito fica guardado no localStorage (por paciente) e ela pode continuar
+// de onde parou ao reabrir. Some ao salvar de verdade. Zero backend.
+// ==========================================================================
+const AP_DRAFT_TTL = 7 * 24 * 3600 * 1000; // rascunho vive 7 dias
+function apDraftKey(tipo, pid) { return 'apdraft:' + tipo + ':' + pid; }
+function apDraftLer(key) { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function apDraftGravar(key, obj) { try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) {} }
+function apDraftApagar(key) { try { localStorage.removeItem(key); } catch (e) {} }
+function apDraftHa(ts) {
+  const s = Math.max(0, Math.floor((Date.now() - (ts || 0)) / 1000));
+  if (s < 60) return 'há instantes';
+  const m = Math.floor(s / 60); if (m < 60) return 'há ' + m + ' min';
+  const h = Math.floor(m / 60); if (h < 24) return 'há ' + h + 'h';
+  return 'há ' + Math.floor(h / 24) + 'd';
+}
+function apDraftBannerHide(id) { const b = document.getElementById(id); if (b) b.style.display = 'none'; }
+function apDraftBanner(id, anchorEl, texto, onContinuar, onDescartar) {
+  if (!anchorEl || !anchorEl.parentNode) return;
+  let b = document.getElementById(id);
+  if (!b) { b = document.createElement('div'); b.id = id; anchorEl.parentNode.insertBefore(b, anchorEl); }
+  b.style.cssText = 'display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:rgba(239,159,39,0.10); border:1px solid rgba(239,159,39,0.35); border-radius:8px; padding:9px 12px; margin-bottom:12px; font-size:12px; color:var(--tx2);';
+  b.innerHTML = '<span style="flex:1; min-width:180px;"><i class="ti ti-history" style="color:#EF9F27; margin-right:5px;"></i>' + texto + '</span>';
+  const bc = document.createElement('button');
+  bc.type = 'button'; bc.innerHTML = '<i class="ti ti-arrow-back-up"></i> Continuar de onde parei';
+  bc.style.cssText = 'background:var(--ac); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;';
+  const bd = document.createElement('button');
+  bd.type = 'button'; bd.textContent = 'Descartar';
+  bd.style.cssText = 'background:transparent; color:var(--tx3); border:1px solid var(--bg3); border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer;';
+  bc.onclick = function () { apDraftBannerHide(id); onContinuar(); };
+  bd.onclick = function () { apDraftBannerHide(id); onDescartar(); };
+  b.appendChild(bc); b.appendChild(bd);
+  b.style.display = 'flex';
+}
+
+// ---- Evolução ----
+let prEvolDirty = false;
+let _evolDraftTimer = null;
+function evolDraftPid() { return prState && prState.pacienteAtual && prState.pacienteAtual.id; }
+function evolDraftColeta() {
+  const pid = evolDraftPid(); if (!pid) return null;
+  if ((document.getElementById('pr-evol-id').value || '')) return null; // editando existente: sem draft
+  const formVisivel = document.getElementById('pr-evol-form').style.display !== 'none' && prEvolFormState.campos.length > 0;
+  const snap = {
+    ts: Date.now(),
+    tipo: document.getElementById('pr-evol-tipo').value || '',
+    template_slug: document.getElementById('pr-evol-template-slug').value || '',
+    modo: formVisivel ? 'form' : 'texto',
+  };
+  if (formVisivel) {
+    const resp = {};
+    prEvolFormState.campos.forEach(c => { const el = document.getElementById('pr-evol-campo-' + c.slug); if (el) resp[c.slug] = el.value; });
+    if (!Object.values(resp).some(v => v && String(v).trim())) return null;
+    snap.respostas = resp;
+  } else {
+    const el = document.getElementById('pr-evol-conteudo');
+    if (!el || !el.textContent.trim()) return null;
+    snap.conteudo = el.innerHTML;
+  }
+  return snap;
+}
+function evolDraftSalvar() {
+  if (!prEvolDirty) return;
+  const modal = document.getElementById('pr-evol-modal');
+  if (!modal || !modal.classList.contains('aberto')) return; // não recria draft depois de fechar/salvar
+  const pid = evolDraftPid(); if (!pid) return;
+  const snap = evolDraftColeta();
+  if (snap) apDraftGravar(apDraftKey('evol', pid), snap);
+}
+function evolDraftAgendarSalvar() { prEvolDirty = true; clearTimeout(_evolDraftTimer); _evolDraftTimer = setTimeout(evolDraftSalvar, 700); }
+function evolDraftLimpar() { clearTimeout(_evolDraftTimer); prEvolDirty = false; const pid = evolDraftPid(); if (pid) apDraftApagar(apDraftKey('evol', pid)); }
+function evolDraftAoAbrir() {
+  prEvolDirty = false; clearTimeout(_evolDraftTimer);
+  apDraftBannerHide('pr-evol-draft-banner');
+  const pid = evolDraftPid(); if (!pid) return;
+  if ((document.getElementById('pr-evol-id').value || '')) return; // só em NOVA evolução
+  const key = apDraftKey('evol', pid); const d = apDraftLer(key);
+  if (!d) return;
+  if (Date.now() - (d.ts || 0) > AP_DRAFT_TTL) { apDraftApagar(key); return; }
+  apDraftBanner('pr-evol-draft-banner', document.getElementById('pr-evol-erro'),
+    'Você tem um rascunho não salvo desta evolução (' + apDraftHa(d.ts) + ').',
+    function () { evolDraftRestaurar(d); },
+    function () { apDraftApagar(key); });
+}
+async function evolDraftRestaurar(d) {
+  document.getElementById('pr-evol-tipo').value = d.tipo || 'MEDICA';
+  if (d.modo === 'form' && d.template_slug) {
+    await prAplicarTemplate(d.template_slug, d.template_slug);
+    Object.keys(d.respostas || {}).forEach(k => { prEvolFormState.respostas[k] = d.respostas[k]; });
+    prEvolRenderForm();
+  } else if (d.modo === 'texto') {
+    const el = document.getElementById('pr-evol-conteudo');
+    if (el) el.innerHTML = d.conteudo || '';
+    document.getElementById('pr-evol-editor-wrap').style.display = '';
+    document.getElementById('pr-evol-form').style.display = 'none';
+  }
+  prEvolDirty = true; // mantém o rascunho vivo até salvar de verdade
+}
+
+// ---- Onboarding ----
+let _onbDraftTimer = null;
+function onbDraftColeta() {
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+  return {
+    ts: Date.now(),
+    checks: onbState.checks || {},
+    data: onbState.data || {},
+    com: onbState.com || {},
+    contrato_num: val('onb-contrato-num'),
+    programa_fechado: val('onb-programa-fechado'),
+    obs: val('onb-obs'),
+    consulta_med: val('onb-consulta-med'),
+    consulta_nutri: val('onb-consulta-nutri'),
+    primeira_app: val('onb-primeira-app'),
+  };
+}
+function onbDraftSalvar() {
+  if (!onbState.dirty) return;
+  const modal = document.getElementById('onb-modal');
+  if (!modal || !modal.classList.contains('aberto')) return;
+  const pid = onbState.patientId; if (!pid) return;
+  apDraftGravar(apDraftKey('onb', pid), onbDraftColeta());
+}
+function onbDraftAgendarSalvar() { clearTimeout(_onbDraftTimer); _onbDraftTimer = setTimeout(onbDraftSalvar, 700); }
+function onbDraftLimpar() { clearTimeout(_onbDraftTimer); const pid = onbState.patientId; if (pid) apDraftApagar(apDraftKey('onb', pid)); }
+function onbDraftAoAbrir() {
+  clearTimeout(_onbDraftTimer);
+  apDraftBannerHide('onb-draft-banner');
+  const pid = onbState.patientId; if (!pid) return;
+  const key = apDraftKey('onb', pid); const d = apDraftLer(key);
+  if (!d) return;
+  if (Date.now() - (d.ts || 0) > AP_DRAFT_TTL) { apDraftApagar(key); return; }
+  apDraftBanner('onb-draft-banner', document.getElementById('onb-erro'),
+    'Você tem alterações não salvas deste onboarding (' + apDraftHa(d.ts) + ').',
+    function () { onbDraftRestaurar(d); },
+    function () { apDraftApagar(key); });
+}
+function onbDraftRestaurar(d) {
+  if (d.checks) onbState.checks = d.checks;
+  if (d.data) onbState.data = d.data;
+  if (d.com) onbState.com = d.com;
+  const setv = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+  setv('onb-contrato-num', d.contrato_num);
+  setv('onb-programa-fechado', d.programa_fechado);
+  setv('onb-obs', d.obs);
+  setv('onb-consulta-med', d.consulta_med);
+  setv('onb-consulta-nutri', d.consulta_nutri);
+  setv('onb-primeira-app', d.primeira_app);
+  onbState.dirty = true;
+  if (typeof onbRenderComercial === 'function') onbRenderComercial();
+  onbRenderChecklist();
+  onbRenderProgresso();
+}
+
+// Liga os ouvintes dos dois modais uma única vez.
+document.addEventListener('DOMContentLoaded', () => {
+  const evForm = document.getElementById('pr-evol-form');
+  if (evForm) { evForm.addEventListener('input', evolDraftAgendarSalvar); evForm.addEventListener('change', evolDraftAgendarSalvar); }
+  const evEditor = document.getElementById('pr-evol-conteudo');
+  if (evEditor) evEditor.addEventListener('input', evolDraftAgendarSalvar);
+  const evTipo = document.getElementById('pr-evol-tipo');
+  if (evTipo) evTipo.addEventListener('change', evolDraftAgendarSalvar);
+  const onbModal = document.getElementById('onb-modal');
+  if (onbModal) {
+    onbModal.addEventListener('input', onbDraftAgendarSalvar);
+    onbModal.addEventListener('change', onbDraftAgendarSalvar);
+    onbModal.addEventListener('click', onbDraftAgendarSalvar);
+  }
+});
 
 // Checkbox "salvar este texto" mostra input de nome
 document.addEventListener('DOMContentLoaded', () => {
@@ -24920,6 +25096,7 @@ async function prSalvarEvol() {
     erroEl.style.display = 'block';
     return;
   }
+  evolDraftLimpar();
   prFecharEvol();
   prCarregarTimeline();
 }
