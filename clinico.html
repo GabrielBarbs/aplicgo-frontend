@@ -17105,7 +17105,9 @@ async function cpPollWa() {
   // mantem mensagens otimistas locais (sem id) que ainda nao apareceram no servidor
   const pendentes = (cpState.waMsgs || []).filter(m => !m.id && m.de_mim && !serv.some(s => s.de_mim && s.texto === m.texto));
   const merged = serv.concat(pendentes).sort((a, b) => new Date(a.data) - new Date(b.data));
-  const sig = arr => (arr || []).length + '|' + ((arr && arr.length) ? (arr[arr.length - 1].id || arr[arr.length - 1].data) : '');
+  // Assinatura inclui o STATUS de cada mensagem (id:status): senão uma leitura (entregue->lido) não
+  // muda a contagem nem o id da última, o poll achava que "nada mudou" e o azul nunca atualizava.
+  const sig = arr => (arr || []).map(m => (m.id || m.data || '') + ':' + (m.status || '')).join('|');
   if (sig(merged) !== sig(cpState.waMsgs)) { cpState.waMsgs = merged; cpRenderMsgsWa(true); }
   // mantem o item da lista atualizado e a conversa aberta como lida
   const last = merged[merged.length - 1];
