@@ -736,6 +736,13 @@
     .pac-table-scroll::-webkit-scrollbar-thumb { background: var(--bd1); border-radius: 8px; border: 2px solid var(--bg2); }
     .pac-table-scroll::-webkit-scrollbar-thumb:hover { background: var(--bd2); }
     .pac-table-scroll .pac-table { min-width: 1750px; }
+    /* Barra de rolagem NO TOPO (espelha a de baixo): só a barra, conteúdo de 1px de altura. */
+    .pac-scroll-top { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--bd1) transparent; }
+    .pac-scroll-top > div { height: 1px; }
+    .pac-scroll-top::-webkit-scrollbar { height: 9px; }
+    .pac-scroll-top::-webkit-scrollbar-track { background: transparent; }
+    .pac-scroll-top::-webkit-scrollbar-thumb { background: var(--bd1); border-radius: 8px; border: 2px solid var(--bg2); }
+    .pac-scroll-top::-webkit-scrollbar-thumb:hover { background: var(--bd2); }
     .pac-table th, .pac-table td { white-space: nowrap; }
     .pac-table .col-fix-l1, .pac-table .col-fix-l2, .pac-table .col-fix-r { position: sticky; z-index: 2; background: var(--bg2); }
     .pac-table .col-fix-l1 { left: 0; width: 96px; min-width: 96px; }
@@ -14348,6 +14355,25 @@ async function pacCarregarAppAtivos() {
   renderListaPacientes();
 }
 
+// Barra de rolagem horizontal NO TOPO da tabela de pacientes, espelhando a de baixo (a tabela é
+// larga; assim dá pra puxar de cima sem descer até o rodapé). Sincroniza os dois lados.
+let _pacScrollResizeWired = false;
+function pacScrollTopSync() {
+  const top = document.getElementById('pac-scroll-top');
+  const bot = document.getElementById('pac-table-scroll');
+  if (!top || !bot) return;
+  const table = bot.querySelector('.pac-table');
+  const larguraReal = table ? table.scrollWidth : bot.scrollWidth;
+  const inner = top.firstElementChild;
+  if (inner) inner.style.width = larguraReal + 'px';
+  // só mostra a barra de cima quando há o que rolar (some no mobile / quando a tabela cabe)
+  top.style.display = (window.innerWidth > 580 && bot.scrollWidth > bot.clientWidth + 2) ? 'block' : 'none';
+  let lock = false;
+  top.onscroll = () => { if (lock) return; lock = true; bot.scrollLeft = top.scrollLeft; lock = false; };
+  bot.onscroll = () => { if (lock) return; lock = true; top.scrollLeft = bot.scrollLeft; lock = false; };
+  if (!_pacScrollResizeWired) { _pacScrollResizeWired = true; window.addEventListener('resize', () => pacScrollTopSync()); }
+}
+
 function renderListaPacientes() {
   const wrap = document.getElementById('pac-table-wrap');
   if (pacState.appAtivos == null && !pacState._appAtivosLoading) pacCarregarAppAtivos();
@@ -14363,7 +14389,8 @@ function renderListaPacientes() {
   const fData = (iso) => { if (!iso) return na; const d = new Date(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(2)}`; };
   const fKg = (v) => (v == null ? na : String(v).replace('.', ',') + ' kg');
   wrap.innerHTML = `
-    <div class="pac-table-scroll">
+    <div class="pac-scroll-top" id="pac-scroll-top"><div></div></div>
+    <div class="pac-table-scroll" id="pac-table-scroll">
     <table class="pac-table">
       <thead><tr>
         <th class="col-fix-l1">Código</th>
@@ -14447,6 +14474,7 @@ function renderListaPacientes() {
     </table>
     </div>
   `;
+  pacScrollTopSync(); requestAnimationFrame(pacScrollTopSync); // barra de rolagem de cima (espelha a de baixo)
   // Paginação
   const totalPages = Math.max(1, Math.ceil(pacState.total / pacState.limit));
   const pag = document.getElementById('pac-pagination');
