@@ -906,6 +906,10 @@
     .pac-form-grid.col-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .pac-form-grid .full { grid-column: 1 / -1; }
     .pac-form-grid .pr-sp2 { grid-column: span 2; }
+    /* Valor só-leitura da jornada (última médica/nutri/aplicação): parece campo, mas não edita. */
+    .pac-jornada-val { padding: 8px 10px; border: 1px dashed var(--bg3); border-radius: 6px; background: rgba(var(--bg3-rgb), 0.18); color: var(--tx2); font-size: 12.5px; min-height: 17px; display: flex; align-items: center; gap: 6px; }
+    .pac-jornada-val i { color: var(--ac); font-size: 12px; }
+    .pac-jornada-val.vazio { color: var(--tx3b); font-style: italic; }
     @media (max-width: 580px) {
       .pac-form-grid, .pac-form-grid.col-3 { grid-template-columns: minmax(0, 1fr); }
       .pac-form-grid .pr-sp2 { grid-column: auto; } /* span 2 numa grade de 1 coluna desalinha */
@@ -7795,6 +7799,20 @@
               </select>
             </div>
           </div>
+          <div class="pac-form-grid col-3" id="pac-jornada-row" style="margin-top:10px; display:none;">
+            <div class="pac-field">
+              <label>Última consulta médica</label>
+              <div id="pac-ult-medica" class="pac-jornada-val vazio">—</div>
+            </div>
+            <div class="pac-field">
+              <label>Última consulta nutricional</label>
+              <div id="pac-ult-nutri" class="pac-jornada-val vazio">—</div>
+            </div>
+            <div class="pac-field">
+              <label>Última aplicação</label>
+              <div id="pac-ult-aplic" class="pac-jornada-val vazio">—</div>
+            </div>
+          </div>
           <div class="pac-field" style="margin-top:10px;">
             <label><i class="ti ti-lock" style="color:var(--ac); font-size:11px;"></i> Observações imutáveis do médico</label>
             <textarea id="pac-obs-imutaveis" placeholder="Apenas o médico edita. Notas que não devem ser alteradas no acompanhamento."></textarea>
@@ -14504,6 +14522,18 @@ function pacAbrirNovoModal() {
   document.getElementById('pac-modal').classList.add('aberto');
 }
 
+// Preenche um campo só-leitura da jornada (última médica/nutri/aplicação) com data + tempo relativo.
+function pacFmtJornada(elId, iso, icone) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!iso) { el.innerHTML = '<i class="ti ti-minus"></i> Sem registro'; el.classList.add('vazio'); return; }
+  const d = new Date(iso);
+  const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
+  const rel = dias <= 0 ? 'hoje' : dias === 1 ? 'ontem' : 'há ' + dias + ' dias';
+  el.innerHTML = '<i class="ti ' + icone + '"></i> ' + d.toLocaleDateString('pt-BR') + ' · ' + rel;
+  el.classList.remove('vazio');
+}
+
 async function pacAbrirEditarModal(id) {
   const r = await pacApi('/api/clinico/patients/' + id);
   if (!r.ok) return alert('Erro: ' + r.data.erro);
@@ -14550,6 +14580,11 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-programa-duracao').value = p.programa_duracao_semanas || '';
   document.getElementById('pac-status-clinico').value = p.status_clinico || 'ESTAVEL';
   document.getElementById('pac-obs-imutaveis').value = p.observacoes_imutaveis_medico || '';
+  // Jornada (só leitura): último atendimento de cada tipo. Só aparece no editar (paciente novo não tem histórico).
+  document.getElementById('pac-jornada-row').style.display = '';
+  pacFmtJornada('pac-ult-medica', p.ultima_evolucao_medica, 'ti-stethoscope');
+  pacFmtJornada('pac-ult-nutri', p.ultima_evolucao_nutricional, 'ti-apple');
+  pacFmtJornada('pac-ult-aplic', p.ultima_aplicacao, 'ti-vaccine');
   // Saúde estruturada
   document.getElementById('pac-bariatrica').value = p.anamnesis?.cirurgia_bariatrica ? 'true' : 'false';
   document.getElementById('pac-ativ-modalidade').value = p.health?.atividade_modalidade || '';
@@ -14567,6 +14602,8 @@ async function pacAbrirEditarModal(id) {
 
 function pacResetForm() {
   document.getElementById('pac-form').reset();
+  // Jornada é só do editar (paciente novo não tem histórico) — esconde ao abrir "novo".
+  { const _jr = document.getElementById('pac-jornada-row'); if (_jr) _jr.style.display = 'none'; }
   document.getElementById('pac-form-id').value = '';
   document.getElementById('pac-form-contact-id').value = '';
   document.getElementById('pac-modal-erro').style.display = 'none';
