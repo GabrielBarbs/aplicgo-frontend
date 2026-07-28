@@ -6230,7 +6230,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AQ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AR</b></span></div>
   </div>
 </div>
 
@@ -23281,7 +23281,7 @@ function prRenderAnexos() {
         let badge = '';
         if (es) {
           if (es.status === 'pendente') badge = '<span class="exam-st pend"><i class="ti ti-loader"></i> Aguardando leitura</span>';
-          else if (es.status === 'lido') badge = '<span class="exam-st ok"><i class="ti ti-circle-check"></i> Salvo' + (es.qtd ? ' · ' + es.qtd + ' marcador' + (es.qtd > 1 ? 'es' : '') : '') + '</span>';
+          else if (es.status === 'lido') badge = '<span class="exam-st ok"><i class="ti ti-circle-check"></i> Salvo' + (es.qtd ? ' · ' + es.qtd + ' marcador' + (es.qtd > 1 ? 'es' : '') : '') + '</span> <button title="Reler com a IA (atualiza os marcadores)" style="margin-left:6px;font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid var(--bd1);background:transparent;color:var(--tx3);cursor:pointer;" onclick="examReprocessar(event,\'' + a.id + '\')"><i class="ti ti-refresh"></i> Reler</button>';
           else if (es.status === 'sem_marcadores') badge = '<span class="exam-st neutro"><i class="ti ti-file-off"></i> Sem marcadores</span>';
           else if (es.status === 'erro') badge = '<span class="exam-st err" title="' + String(es.erro || '').replace(/[<>"]/g, '') + '" onclick="examReprocessar(event,\'' + a.id + '\')"><i class="ti ti-alert-triangle"></i> Falha — tentar de novo</span>';
         }
