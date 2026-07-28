@@ -6290,7 +6290,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AV</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AW</b></span></div>
   </div>
 </div>
 
@@ -16959,11 +16959,23 @@ function chatPopVoltar() {
 
 // ---- WhatsApp (conversas reais via Evolution) ----
 // Aberto a partir da lista de pacientes (telefone cru) -> normaliza com DDI 55
-function cpMostrarConversaWa(nome, telefone) {
+async function cpMostrarConversaWa(nome, telefone) {
   const raw = String(telefone || '').trim();
   if (!raw.replace(/\D/g, '')) { alert('Paciente sem telefone.'); return; }
   const num = telWa(raw);   // telWa respeita o '+' (internacional); não pré-limpar antes (perderia o marcador)
-  cpAbrirConversaWa(num, nome, num); // chave = numero (backend monta o jid), numero real = num
+  // Puxar o histórico: ele costuma ficar guardado sob um @lid OPACO, que NÃO sai do telefone. Abrir só
+  // pelo número cru (sem o jid_alt) não acha essas mensagens -> conversa vazia. A lista (/chats) já
+  // pareia @lid<->telefone e traz o jid_alt, então resolvemos a conversa REAL pelo número e abrimos com
+  // jid + jid_alt + foto de verdade (une o histórico). Sem conversa na lista = contato novo, nada a puxar.
+  const core = cpTelCore(num);
+  const achar = () => (cpState.waChats || []).find((x) => cpTelCore(x.numero || x.id) === core);
+  let c = achar();
+  if (!c) {
+    try { const r = await pacApi('/api/clinico/whatsapp/chats'); if (r.ok && r.data.chats) cpState.waChats = r.data.chats; } catch (e) {}
+    c = achar();
+  }
+  if (c) cpAbrirConversaWa(c.id, c.nome || nome, c.numero || num, c.jid_alt, c.foto);
+  else cpAbrirConversaWa(num, nome, num); // contato ainda sem conversa: novo chat, sem histórico a puxar
 }
 // chave: jid completo (da lista) OU numero (paciente). numero: telefone real p/ exibir/ligar (pode ser '')
 async function cpAbrirConversaWa(chave, nome, numero, alt, foto) {
