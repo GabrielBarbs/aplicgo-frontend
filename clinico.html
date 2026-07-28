@@ -6234,7 +6234,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AR</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AS</b></span></div>
   </div>
 </div>
 
@@ -23550,10 +23550,14 @@ async function carregarImagensSeguras() {
 function prDocVer(id) { docAbrir(id); }
 
 async function prDocRemover(id) {
-  if (!confirm('Remover este anexo?')) return;
+  if (!confirm('Remover este anexo?\n\nSe for um exame lido por IA, os marcadores e a leitura dele também saem (do banco e das telas).')) return;
   const r = await pacApi('/api/clinico/documentos/' + id, { method: 'DELETE' });
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
   await prCarregarDocumentos();
+  const pid = prState.pacienteAtual && prState.pacienteAtual.id;
+  if (typeof prExamesRefresh === 'function') prExamesRefresh(pid);
+  if (typeof prCarregarTimeline === 'function') prCarregarTimeline();
+  if (typeof prCarregarScores === 'function') prCarregarScores();
 }
 
 function prToggleHistorico() {
@@ -25532,13 +25536,28 @@ function prExamesTabelaHtml(d) {
 function prExamesListaHtml(d) {
   const cards = d.exames.slice().reverse().map(function (c) {
     const baixar = c.documento_id ? '<button class="pac-btn-secondary ex-mini" onclick="prDocVer(\'' + c.documento_id + '\')"><i class="ti ti-download"></i> Baixar</button>' : '';
+    const excluir = '<button class="pac-btn-secondary ex-mini" style="color:#f85149;border-color:rgba(248,81,73,.35);" onclick="prExcluirExameResultado(\'' + c.id + '\')"><i class="ti ti-trash"></i> Excluir</button>';
     const warn = c.nome_conflito ? '<div class="ex-card-warn"><i class="ti ti-alert-triangle"></i> Nome no laudo: ' + prExEsc(c.nome_laudo || '—') + ' — confira o paciente</div>' : '';
     return '<div class="ex-card' + (c.nome_conflito ? ' conflito' : '') + '"><div class="ex-card-ic"><i class="ti ti-file-text"></i></div>'
       + '<div class="ex-card-info"><div class="ex-card-nome">' + prExEsc(c.nome) + '</div>'
       + '<div class="ex-card-sub">Exame' + (c.laboratorio ? (' · ' + prExEsc(c.laboratorio)) : '') + ' · ' + prScoreData(c.data) + '</div>'
-      + '<div class="ex-card-mk">' + c.n_marcadores + ' marcador(es) lido(s)</div>' + warn + '</div>' + baixar + '</div>';
+      + '<div class="ex-card-mk">' + c.n_marcadores + ' marcador(es) lido(s)</div>' + warn + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0;">' + baixar + excluir + '</div></div>';
   }).join('');
   return '<div class="ex-lista-tit">Exames anexados</div><div class="ex-lista">' + cards + '</div>';
+}
+
+// Apaga o exame POR COMPLETO (resultado + anexo + status) e atualiza tudo na tela.
+async function prExcluirExameResultado(id) {
+  if (!confirm('Apagar este exame por completo?\n\nRemove os marcadores, o anexo original e a leitura — do banco e de todas as telas (tabela, timeline, scores). Não dá pra desfazer.')) return;
+  const r = await pacApi('/api/clinico/prontuario/exam-results/' + id, { method: 'DELETE' });
+  if (!r.ok) return alert('Erro: ' + ((r.data && r.data.erro) || '--'));
+  const pid = prState.pacienteAtual && prState.pacienteAtual.id;
+  if (typeof prExamesRefresh === 'function') prExamesRefresh(pid);
+  if (typeof prCarregarDocumentos === 'function') prCarregarDocumentos();
+  if (typeof prCarregarTimeline === 'function') prCarregarTimeline();
+  if (typeof prCarregarScores === 'function') prCarregarScores();
+  if (typeof homeToast === 'function') homeToast('Exame excluído.');
 }
 
 async function prBaixarDoc(docId) {
