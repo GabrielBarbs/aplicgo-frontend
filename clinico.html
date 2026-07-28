@@ -10162,7 +10162,7 @@ async function homeImpactoCarregar() {
   const metrics = [];
   if (d.pacientes_ativos != null) metrics.push({ num: fmt(d.pacientes_ativos), lbl: 'pacientes ativos em acompanhamento' });
   if (d.kg_eliminados != null && d.kg_eliminados > 0) metrics.push({ num: fmt(Math.round(d.kg_eliminados)), unit: ' kg', hl: true, lbl: 'totais eliminados (placar da missão)' });
-  if (d.perda_media_pct != null) metrics.push({ num: '-' + Math.abs(d.perda_media_pct).toFixed(1), unit: '%', lbl: 'perda média por protocolo' });
+  if (d.perda_media_pct != null) { const v = d.perda_media_pct; metrics.push({ num: (v >= 0 ? '-' : '+') + Math.abs(v).toFixed(1), unit: '%', lbl: v >= 0 ? 'perda média por protocolo' : 'ganho médio por protocolo' }); }
   if (d.massa_preservada_pct != null) metrics.push({ num: Math.round(d.massa_preservada_pct), unit: '%', lbl: 'massa muscular preservada' });
   if (d.adesao_aplicacoes_pct != null) metrics.push({ num: Math.round(d.adesao_aplicacoes_pct), unit: '%', lbl: 'adesão média às aplicações (protocolos vigentes, pela cadência)' });
   if (d.marcos_mes != null) metrics.push({ num: fmt(d.marcos_mes), lbl: 'pacientes atingiram marco no mês' });
