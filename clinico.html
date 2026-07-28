@@ -3865,6 +3865,23 @@
     .cp-conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; min-width: 38px; }
     .cp-conv-hora { font-size: 10px; color: var(--tx3b); white-space: nowrap; }
     .ci-conv-prev .ti-checks { vertical-align: -2px; }
+
+    /* ===== Visual "Clint" da página de Conversas (WhatsApp) — arejado, adapta ao tema ===== */
+    .wv-atend-head { display:flex; align-items:center; justify-content:center; gap:8px; padding:15px 14px; font-size:15px; font-weight:600; color:var(--tx1); background:rgba(var(--ac-rgb),0.06); border-bottom:1px solid var(--bd1); letter-spacing:.2px; }
+    .wv-atend-head i { color:var(--ac); font-size:19px; }
+    .wv-lista-pane .wv-busca { padding:12px 14px; }
+    .wv-lista-pane .wv-busca input { background:rgba(var(--bg3-rgb),0.35); border:1px solid var(--bd1); border-radius:10px; font-size:13.5px; padding:9px 12px; }
+    .wv-convs .ci-conv { padding:12px 16px; gap:13px; border-bottom:1px solid var(--bd1); }
+    .wv-convs .cp-av { width:46px; height:46px; }
+    .wv-convs .cp-av-img, .wv-convs .cp-av .cp-av-ini { width:46px; height:46px; font-size:17px; }
+    .wv-convs .cp-av-wa { width:20px; height:20px; right:-1px; bottom:-1px; border:2.5px solid var(--bg1); font-size:11px; }
+    .wv-convs .ci-conv-nome { font-size:15px; font-weight:600; }
+    .wv-convs .ci-conv-prev { font-size:13px; margin-top:2px; }
+    .wv-convs .ci-conv-prev .ti-checks { font-size:15px; }
+    .wv-convs .cp-conv-meta { gap:6px; }
+    .wv-convs .cp-conv-hora { font-size:12px; }
+    .wv-convs .ci-conv-badge { font-size:11px; min-width:19px; height:19px; border-radius:10px; }
+
     @media (max-width: 600px) {
       .chat-pop { width: calc(100vw - 20px); right: 10px; bottom: 74px; height: 72vh; }
     }
@@ -6213,7 +6230,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AP</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AQ</b></span></div>
   </div>
 </div>
 
@@ -7360,9 +7377,10 @@
     <!-- ===== CHAT (2 painéis) ===== -->
     <div class="wv-chat" id="wv-chat">
       <aside class="wv-lista-pane">
+        <div class="wv-atend-head"><i class="ti ti-messages"></i> Atendimento</div>
         <div class="wv-busca">
           <i class="ti ti-search"></i>
-          <input type="text" id="wv-busca-input" placeholder="Buscar por nome ou telefone…" oninput="wvBusca(this.value)">
+          <input type="text" id="wv-busca-input" placeholder="Pesquisar" oninput="wvBusca(this.value)">
           <button class="wv-nova-btn" onclick="wvNovaToggle()" title="Nova conversa (paciente ou número)"><i class="ti ti-plus"></i></button>
         </div>
         <div class="wv-nova" id="wv-nova" style="display:none;">
