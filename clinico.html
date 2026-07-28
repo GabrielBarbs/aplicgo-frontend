@@ -6290,7 +6290,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AU</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AV</b></span></div>
   </div>
 </div>
 
@@ -19594,13 +19594,12 @@ async function prNovoAgendamento(btn) {
   agSelecionarPaciente({ id: h.id, codigo: h.codigo, nome: h.nome_completo, telefone: h.telefone1, status: h.status });
 }
 
-// WhatsApp direto do cabeçalho do prontuário: confirma/edita o número (regra) e abre a conversa.
-async function prWhatsappDoHeader() {
+// WhatsApp do cabeçalho do prontuário: abre a conversa do paciente no pop-up de chat interno
+// (mesmo comportamento de "entrar no contato" da agenda), não o fluxo de enviar/wa.me.
+function prWhatsappDoHeader() {
   const h = prState.headerData;
   if (!h) return;
-  const escolhido = await confirmarEnvioWhatsapp(h.telefone1 || '', h.nome_completo || '');
-  if (!escolhido) return;
-  window.open('https://wa.me/' + telWa(escolhido), '_blank');
+  chatAbrir({ nome: h.nome_completo, telefone: h.telefone1 });
 }
 
 async function prEditarPacienteDoHeader() {
@@ -19802,7 +19801,7 @@ function prRenderHeaderRico() {
           ${temPermissao('agenda.criar') ? `<button class="pr-h2-editar" onclick="prNovoAgendamento(this)" title="Novo agendamento para ${esc(h.nome_completo || 'este paciente')}">
             <i class="ti ti-calendar-plus"></i>
           </button>` : ''}
-          ${h.telefone1 ? `<button class="pr-h2-editar" onclick="prWhatsappDoHeader()" title="Enviar WhatsApp para ${esc(h.nome_completo || 'este paciente')}">
+          ${h.telefone1 ? `<button class="pr-h2-editar" onclick="prWhatsappDoHeader()" title="Abrir WhatsApp de ${esc(h.nome_completo || 'este paciente')}">
             <i class="ti ti-brand-whatsapp" style="color:#25D366"></i>
           </button>` : ''}
           <button class="pr-h2-editar" onclick="prEditarPacienteDoHeader()" title="Editar cadastro">
