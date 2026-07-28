@@ -6234,7 +6234,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AS</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AT</b></span></div>
   </div>
 </div>
 
@@ -23552,7 +23552,7 @@ function prDocVer(id) { docAbrir(id); }
 async function prDocRemover(id) {
   if (!confirm('Remover este anexo?\n\nSe for um exame lido por IA, os marcadores e a leitura dele também saem (do banco e das telas).')) return;
   const r = await pacApi('/api/clinico/documentos/' + id, { method: 'DELETE' });
-  if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
+  if (!r.ok) return alert('Erro: ' + ((r.data && r.data.erro) || '--'));
   await prCarregarDocumentos();
   const pid = prState.pacienteAtual && prState.pacienteAtual.id;
   if (typeof prExamesRefresh === 'function') prExamesRefresh(pid);
