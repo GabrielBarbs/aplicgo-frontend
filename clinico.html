@@ -7858,15 +7858,15 @@
           <div class="pac-form-grid col-3" id="pac-jornada-row" style="margin-top:10px; display:none;">
             <div class="pac-field">
               <label>Última consulta médica</label>
-              <div id="pac-ult-medica" class="pac-jornada-val vazio">—</div>
+              <input type="date" id="pac-ult-medica" title="Puxa automático do último registro; edite pra sobrepor.">
             </div>
             <div class="pac-field">
               <label>Última consulta nutricional</label>
-              <div id="pac-ult-nutri" class="pac-jornada-val vazio">—</div>
+              <input type="date" id="pac-ult-nutri" title="Puxa automático do último registro; edite pra sobrepor.">
             </div>
             <div class="pac-field">
               <label>Última aplicação</label>
-              <div id="pac-ult-aplic" class="pac-jornada-val vazio">—</div>
+              <input type="date" id="pac-ult-aplic" title="Puxa automático do último registro; edite pra sobrepor.">
             </div>
           </div>
           <div class="pac-field" style="margin-top:10px;">
@@ -14599,16 +14599,24 @@ function pacAbrirNovoModal() {
   document.getElementById('pac-modal').classList.add('aberto');
 }
 
-// Preenche um campo só-leitura da jornada (última médica/nutri/aplicação) com data + tempo relativo.
-function pacFmtJornada(elId, iso, icone) {
+// Preenche um input de data da jornada (última médica/nutri/aplicação). Mostra o override MANUAL
+// se houver, senão a data AUTOMÁTICA do último registro; guarda a automática em data-auto pra o save
+// decidir se o valor é override (difere) ou só o automático (não persiste, continua puxando sozinho).
+function pacSetJornadaInp(elId, manualIso, autoIso) {
   const el = document.getElementById(elId);
   if (!el) return;
-  if (!iso) { el.innerHTML = '<i class="ti ti-minus"></i> Sem registro'; el.classList.add('vazio'); return; }
-  const d = new Date(iso);
-  const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
-  const rel = dias <= 0 ? 'hoje' : dias === 1 ? 'ontem' : 'há ' + dias + ' dias';
-  el.innerHTML = '<i class="ti ' + icone + '"></i> ' + d.toLocaleDateString('pt-BR') + ' · ' + rel;
-  el.classList.remove('vazio');
+  const auto = autoIso ? String(autoIso).slice(0, 10) : '';
+  const manual = manualIso ? String(manualIso).slice(0, 10) : '';
+  el.dataset.auto = auto;
+  el.value = manual || auto;
+}
+// No save: manda o override só quando o valor difere do automático; igual/vazio-igual = null (limpa).
+function pacJornadaManual(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return undefined;
+  const v = el.value || '';
+  const auto = el.dataset.auto || '';
+  return v === auto ? null : (v || null);
 }
 
 async function pacAbrirEditarModal(id) {
@@ -14659,9 +14667,9 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-obs-imutaveis').value = p.observacoes_imutaveis_medico || '';
   // Jornada (só leitura): último atendimento de cada tipo. Só aparece no editar (paciente novo não tem histórico).
   document.getElementById('pac-jornada-row').style.display = '';
-  pacFmtJornada('pac-ult-medica', p.ultima_evolucao_medica, 'ti-stethoscope');
-  pacFmtJornada('pac-ult-nutri', p.ultima_evolucao_nutricional, 'ti-apple');
-  pacFmtJornada('pac-ult-aplic', p.ultima_aplicacao, 'ti-vaccine');
+  pacSetJornadaInp('pac-ult-medica', p.ultima_medica_manual, p.ultima_evolucao_medica);
+  pacSetJornadaInp('pac-ult-nutri', p.ultima_nutri_manual, p.ultima_evolucao_nutricional);
+  pacSetJornadaInp('pac-ult-aplic', p.ultima_aplicacao_manual, p.ultima_aplicacao);
   // Saúde estruturada
   document.getElementById('pac-bariatrica').value = p.anamnesis?.cirurgia_bariatrica ? 'true' : 'false';
   document.getElementById('pac-ativ-modalidade').value = p.health?.atividade_modalidade || '';
@@ -14841,6 +14849,10 @@ async function pacSalvar() {
     programa_duracao_semanas: parseInt(document.getElementById('pac-programa-duracao').value) || null,
     status_clinico: document.getElementById('pac-status-clinico').value || 'ESTAVEL',
     observacoes_imutaveis_medico: document.getElementById('pac-obs-imutaveis').value.trim() || null,
+    // Jornada manual (última médica/nutri/aplicação): só sobrepõe se você mudou o valor.
+    ultima_medica_manual: pacJornadaManual('pac-ult-medica'),
+    ultima_nutri_manual: pacJornadaManual('pac-ult-nutri'),
+    ultima_aplicacao_manual: pacJornadaManual('pac-ult-aplic'),
     health: {
       alergias: document.getElementById('pac-alergias').value.trim() || null,
       medicacoes_em_uso: document.getElementById('pac-medicacoes').value.trim() || null,
