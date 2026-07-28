@@ -2920,12 +2920,15 @@
     .ci-conversa-head .nm { font-size:13px; color:var(--tx1); font-weight:500; }
     .ci-conversa-head .sub { font-size:11px; color:var(--tx3b); }
     .ci-msgs { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:8px; }
-    .ci-msg { max-width:72%; align-self:flex-start; }
+    .ci-msg { max-width:78%; align-self:flex-start; }
     .ci-msg.mine { align-self:flex-end; }
-    .ci-msg .bolha { background:var(--bg2); border:1px solid var(--bd1); border-radius:12px; padding:8px 12px; font-size:13px; color:var(--tx1b); line-height:1.4; word-wrap:break-word; }
+    .ci-msg .bolha { background:var(--bg2); border:1px solid var(--bd1); border-radius:14px; padding:9px 13px; font-size:14px; color:var(--tx1b); line-height:1.5; word-wrap:break-word; }
     .ci-msg.mine .bolha { background:rgba(29,158,117,0.18); border-color:rgba(29,158,117,0.4); color:#eafff5; }
-    .ci-msg .hora { font-size:9px; color:var(--tx4); margin-top:2px; padding:0 4px; }
-    .ci-msg.mine .hora { text-align:right; }
+    .ci-msg .hora { font-size:10.5px; color:var(--tx4); margin-top:3px; padding:0 5px; display:flex; align-items:center; gap:3px; }
+    .ci-msg.mine .hora { justify-content:flex-end; }
+    .ci-msg .hora .wa-ck { font-size:12.5px; vertical-align:-1px; }
+    .wa-ck-lido { color:#53bdeb; }   /* lido = azul REAL: só quando o WhatsApp confirma leitura */
+    .wa-ck-erro { color:#f85149; }   /* erro = não enviada */
 
     /* ===== Mídia nas bolhas (áudio/imagem/vídeo/documento) ===== */
     .wa-audio { display:flex; align-items:center; gap:9px; min-width:170px; }
@@ -3906,7 +3909,15 @@
     .chat-pop .cp-conv-hora { font-size: 11px; color: var(--tx3b); }
     /* Cabeçalho da conversa aberta + input, no mesmo tom */
     .chat-pop .ci-conversa-head { padding: 11px 14px; background: linear-gradient(180deg, rgba(124,92,252,0.10), rgba(124,92,252,0.02)); }
+    .chat-pop .ci-input-bar { gap: 4px; align-items: center; }
     .chat-pop .ci-input-bar textarea { border-radius: 12px; }
+    /* Botões de anexo/emoji do input */
+    .cp-io { width: 32px; height: 32px; flex-shrink: 0; border: 0; background: transparent; color: var(--tx3); font-size: 17px; cursor: pointer; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+    .cp-io:hover { color: #7c5cfc; background: rgba(124,92,252,0.10); }
+    /* Palheta de emoji (popover acima do input) */
+    .cp-emoji-pop { position: absolute; left: 8px; right: 8px; bottom: 56px; max-height: 190px; overflow-y: auto; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 12px; padding: 8px; box-shadow: 0 12px 34px rgba(60,40,140,0.28); z-index: 6; display: flex; flex-wrap: wrap; gap: 2px; }
+    .cp-emo { border: 0; background: transparent; font-size: 20px; width: 34px; height: 34px; cursor: pointer; border-radius: 8px; line-height: 1; }
+    .cp-emo:hover { background: rgba(124,92,252,0.12); }
 
     /* ===== Visual "Clint" da página de Conversas (WhatsApp) — arejado, adapta ao tema ===== */
     .wv-atend-head { display:flex; align-items:center; justify-content:center; gap:8px; padding:15px 14px; font-size:15px; font-weight:600; color:var(--tx1); background:rgba(var(--ac-rgb),0.06); border-bottom:1px solid var(--bd1); letter-spacing:.2px; }
@@ -16535,14 +16546,26 @@ function waDiaLabel(iso) {
   if (d.toDateString() === ontem.toDateString()) return 'Ontem';
   return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }) + (d.getFullYear() !== hoje.getFullYear() ? ' de ' + d.getFullYear() : '');
 }
+// Check de status REAL da mensagem enviada (vem do ack do WhatsApp via backend). Só de_mim tem
+// check. Azul (lido) SÓ quando o ack confirma leitura — desconhecido cai em "enviada" (1 check),
+// nunca inventa entregue/lido. Recebida não tem check.
+function waCheckHtml(m) {
+  if (!m || !m.de_mim) return '';
+  switch (m.status) {
+    case 'lido':     return '<i class="ti ti-checks wa-ck wa-ck-lido" title="Lido"></i> ';
+    case 'entregue': return '<i class="ti ti-checks wa-ck" title="Entregue"></i> ';
+    case 'pendente': return '<i class="ti ti-clock wa-ck" title="Enviando…"></i> ';
+    case 'erro':     return '<i class="ti ti-alert-circle wa-ck wa-ck-erro" title="Não enviada"></i> ';
+    default:         return '<i class="ti ti-check wa-ck" title="Enviada"></i> '; // enviada / status ainda desconhecido
+  }
+}
 // Thread completa (bolhas + separadores) — usada pelo popup e pela página
 function waThreadHtml(msgs, jid) {
   let html = '', diaAtual = '';
   for (const m of msgs) {
     const dia = new Date(m.data).toDateString();
     if (dia !== diaAtual) { diaAtual = dia; html += '<div class="wa-dia"><span>' + waDiaLabel(m.data) + '</span></div>'; }
-    // ✓ simples = "enviada" (não afirmamos entrega/leitura — o Evolution não nos dá o ack aqui)
-    html += '<div class="ci-msg ' + (m.de_mim ? 'mine' : '') + '"><div class="bolha">' + waBolhaCorpo(m, jid) + '</div><div class="hora">' + (m.de_mim ? '<i class="ti ti-check" style="font-size:12px;vertical-align:-2px;"></i> ' : '') + ciFmtHora(m.data) + '</div></div>';
+    html += '<div class="ci-msg ' + (m.de_mim ? 'mine' : '') + '"><div class="bolha">' + waBolhaCorpo(m, jid) + '</div><div class="hora">' + waCheckHtml(m) + ciFmtHora(m.data) + '</div></div>';
   }
   return html;
 }
@@ -16844,7 +16867,7 @@ function chatPopRenderLista() {
       const keyTag = cpContatoKey(c);
       // nome vem do pushName do WhatsApp (controlado por quem escreve pra clínica): codificado, nunca
       // cru dentro do onclick — uma aspa no pushName fecharia o handler e injetaria HTML (XSS).
-      return `<div class="ci-conv" onclick="cpAbrirConversaWa('${keyEsc}',cpDec('${cpEnc(c.nome || '')}'),'${numAttr}','${altAttr}')">
+      return `<div class="ci-conv" onclick="cpAbrirConversaWa('${keyEsc}',cpDec('${cpEnc(c.nome || '')}'),'${numAttr}','${altAttr}',cpDec('${cpEnc(c.foto || '')}'))">
         <div class="cp-av">${av}<span class="cp-av-wa"><i class="ti ti-brand-whatsapp"></i></span></div>
         <div class="ci-conv-info">
           <div class="ci-conv-nome">${String(nome).replace(/</g, '&lt;')}</div>
@@ -16915,7 +16938,7 @@ function cpMostrarConversaWa(nome, telefone) {
   cpAbrirConversaWa(num, nome, num); // chave = numero (backend monta o jid), numero real = num
 }
 // chave: jid completo (da lista) OU numero (paciente). numero: telefone real p/ exibir/ligar (pode ser '')
-async function cpAbrirConversaWa(chave, nome, numero, alt) {
+async function cpAbrirConversaWa(chave, nome, numero, alt, foto) {
   cpMicAbortar();   // descarta gravação em curso ao trocar de conversa (o destino já foi fixado no start)
   if (!cpState.aberto) { cpState.aberto = true; document.getElementById('chat-pop').style.display = 'flex'; }
   cpState.modo = 'whatsapp';
@@ -16935,9 +16958,13 @@ async function cpAbrirConversaWa(chave, nome, numero, alt) {
     ? `<button class="cp-acao" title="Ligar" onclick="cpLigar()"><i class="ti ti-phone"></i></button>
        <button class="cp-acao" title="Abrir no WhatsApp Web" onclick="cpWaWeb()"><i class="ti ti-brand-whatsapp"></i></button>`
     : '';
+  const ini0 = String(nm || '?').charAt(0).toUpperCase();
+  const avHead = foto
+    ? `<img src="${esc(foto)}" class="cp-av-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="ci-av cp-av-ini" style="display:none; background:#25D36622; color:#25D366; border-color:#25D36655;">${esc(ini0)}</div>`
+    : `<div class="ci-av cp-av-ini" style="background:#25D36622; color:#25D366; border-color:#25D36655;">${esc(ini0)}</div>`;
   document.getElementById('cp-conv-head').innerHTML = `
     <button class="cp-conv-back" onclick="chatPopVoltar()"><i class="ti ti-chevron-left"></i></button>
-    <div class="cp-av"><div class="ci-av cp-av-ini" style="background:#25D36622; color:#25D366; border-color:#25D36655;">${String(nm || '?').charAt(0).toUpperCase()}</div><span class="cp-av-wa"><i class="ti ti-brand-whatsapp"></i></span></div>
+    <div class="cp-av">${avHead}<span class="cp-av-wa"><i class="ti ti-brand-whatsapp"></i></span></div>
     <div style="flex:1; min-width:0;"><div class="nm">${String(nm).replace(/</g, '&lt;')}</div><div class="sub">${sub}</div></div>
     ${acoes}`;
   const inp = document.getElementById('cp-input');
@@ -16983,8 +17010,61 @@ function cpRenderMsgsWa(scroll) {
   waRenderPreservandoMidia(wrap, waThreadHtml(msgs, cpState.waJid));
   if (scroll) wrap.scrollTop = wrap.scrollHeight;
 }
+// ---- Anexos (documento/foto) + emoji do popup de WhatsApp ----
+const CP_EMOJIS = ['😀','😁','😂','🤣','😊','😍','😘','😉','😎','🤗','🤔','😅','🙂','🙃','😴','😌','😔','😢','😭','😤','😡','👍','👎','👏','🙏','💪','🙌','👋','🤝','❤️','🔥','✨','🎉','✅','❌','⚠️','💊','🩺','📅','⏰','😷','🥰','😇','💜'];
+function cpEmojiToggle() {
+  const pop = document.getElementById('cp-emoji-pop');
+  if (!pop) return;
+  if (pop.style.display === 'flex') { pop.style.display = 'none'; return; }
+  if (!pop.dataset.built) { pop.innerHTML = CP_EMOJIS.map(function (e) { return '<button type="button" class="cp-emo" onclick="cpEmojiInserir(\'' + e + '\')">' + e + '</button>'; }).join(''); pop.dataset.built = '1'; }
+  pop.style.display = 'flex';
+}
+function cpEmojiFechar() { const p = document.getElementById('cp-emoji-pop'); if (p) p.style.display = 'none'; }
+function cpEmojiInserir(e) {
+  const inp = document.getElementById('cp-input');
+  if (!inp) return;
+  const s = inp.selectionStart == null ? inp.value.length : inp.selectionStart;
+  const en = inp.selectionEnd == null ? inp.value.length : inp.selectionEnd;
+  inp.value = inp.value.slice(0, s) + e + inp.value.slice(en);
+  const pos = s + e.length;
+  inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (x) {}
+  if (typeof chatPopInput === 'function') chatPopInput(inp);
+}
+function cpArquivoSelecionar(input) {
+  const file = input && input.files && input.files[0];
+  if (input) input.value = ''; // permite reenviar o mesmo arquivo
+  if (file) cpEnviarMidia(file);
+}
+async function cpEnviarMidia(file) {
+  if (!file || !cpState.waJid) return;
+  if (file.size > 10 * 1024 * 1024) { alert('Arquivo grande demais (máx 10MB).'); return; }
+  if (cpState.waEnviando) return;
+  cpState.waEnviando = true;
+  cpEmojiFechar();
+  const btn = document.getElementById('cp-send'); if (btn) btn.disabled = true;
+  try {
+    const dataUrl = await new Promise(function (res, rej) { const fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(file); });
+    const base64 = String(dataUrl).split(',')[1] || '';
+    const numeroReal = (cpState.waContato && cpState.waContato.telefone) || '';
+    const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/media', {
+      method: 'POST',
+      body: JSON.stringify({ base64: base64, mimetype: file.type || 'application/octet-stream', fileName: file.name, numero: numeroReal }),
+    });
+    if (!r.ok) { alert('Falha ao enviar o arquivo: ' + ((r.data && r.data.erro) || 'verifique a conexão do WhatsApp.')); return; }
+    if (r.data && r.data.mensagem) { cpState.waMsgs.push(r.data.mensagem); cpRenderMsgsWa(true); }
+    const ch = (cpState.waChats || []).find(function (c) { return c.id === cpState.waJid; });
+    if (ch) { ch.ultima = (r.data.mensagem && r.data.mensagem.texto) || file.name; ch.ultima_em = (r.data.mensagem && r.data.mensagem.data) || new Date().toISOString(); ch.ultima_de_mim = true; }
+  } catch (e) {
+    alert('Sem conexão — o arquivo NÃO foi enviado.');
+  } finally {
+    cpState.waEnviando = false;
+    const b2 = document.getElementById('cp-send'); if (b2) b2.disabled = false;
+  }
+}
+
 async function cpEnviarWa() {
   if (cpState.waEnviando) return; // guarda anti-duplo-envio (Enter repetido / clique + Enter)
+  cpEmojiFechar();
   const inp = document.getElementById('cp-input');
   const texto = inp.value.trim();
   if (!texto || !cpState.waJid) return;
@@ -28263,9 +28343,15 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="ci-conversa-head" id="cp-conv-head"></div>
     <div class="ci-msgs cp-scroll" id="cp-msgs"></div>
     <div class="ci-input-bar" id="cp-input-bar">
+      <div class="cp-emoji-pop" id="cp-emoji-pop" style="display:none;"></div>
+      <button class="cp-io" onclick="cpEmojiToggle()" title="Emoji"><i class="ti ti-mood-smile"></i></button>
+      <button class="cp-io" onclick="document.getElementById('cp-file-doc').click()" title="Enviar documento"><i class="ti ti-paperclip"></i></button>
+      <button class="cp-io" onclick="document.getElementById('cp-file-img').click()" title="Enviar foto"><i class="ti ti-photo"></i></button>
       <button class="cp-mic" id="cp-mic" onclick="cpMicToggle()" title="Gravar áudio" style="display:none;"><i class="ti ti-microphone"></i></button>
-      <textarea id="cp-input" placeholder="Escreva uma mensagem... (Enter envia)" rows="1" oninput="chatPopInput(this)" onkeydown="chatPopInputKey(event)"></textarea>
+      <textarea id="cp-input" placeholder="Mensagem" rows="1" oninput="chatPopInput(this)" onkeydown="chatPopInputKey(event)"></textarea>
       <button class="ci-send" id="cp-send" onclick="chatPopEnviarAtual()" title="Enviar"><i class="ti ti-send"></i></button>
+      <input type="file" id="cp-file-doc" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx" style="display:none;" onchange="cpArquivoSelecionar(this)">
+      <input type="file" id="cp-file-img" accept="image/*" style="display:none;" onchange="cpArquivoSelecionar(this)">
     </div>
     <div class="wv-rec" id="cp-rec" style="display:none;">
       <button class="wv-rec-cancel" onclick="cpMicCancelar()" title="Descartar"><i class="ti ti-trash"></i></button>
