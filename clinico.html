@@ -4879,6 +4879,10 @@
     .pr-evol-form .campo textarea {
       min-height: 50px; resize: vertical;
     }
+    /* Nota 0-10 + descrição breve lado a lado (Roda da Vida etc.) */
+    .pr-evol-form .campo .rv-nota-linha { display: flex; gap: 8px; align-items: center; }
+    .pr-evol-form .campo .rv-nota-linha select { flex: 0 0 auto; max-width: 68px; }
+    .pr-evol-form .campo .rv-nota-linha .rv-desc-input { flex: 1 1 auto; min-width: 0; }
 
     /* Caixa de insight da IA das "Observações gerais" (fim do formulário) */
     .pr-obs-insight {
@@ -6401,7 +6405,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BA</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BB</b></span></div>
   </div>
 </div>
 
@@ -25232,6 +25236,7 @@ async function prAplicarTemplate(slug, nome) {
 let prEvolFormState = { campos: [], respostas: {}, origens: {} };
 
 function prEvolRenderForm() {
+  prEvolGarantirDescRV(); // garante o campo de descrição ao lado de cada nota 0-10 (idempotente)
   const wrap = document.getElementById('pr-evol-form');
   const campos = prEvolFormState.campos;
   const respostas = prEvolFormState.respostas;
@@ -25244,6 +25249,7 @@ function prEvolRenderForm() {
   `;
   let secaoAtual = null;
   campos.forEach((c, i) => {
+    if (c.tipo === 'rv_desc') return; // descrição da nota: desenhada INLINE junto da escala, não numa linha própria
     if (c.secao && c.secao !== secaoAtual) {
       html += `<div class="secao">${esc(c.secao)}</div>`;
       secaoAtual = c.secao;
@@ -25268,7 +25274,10 @@ function prEvolRenderForm() {
     } else if (c.tipo === 'escala') {
       let _op = '<option value="">--</option>';
       for (let _n = 0; _n <= 10; _n++) _op += `<option value="${_n}" ${String(valor) === String(_n) ? 'selected' : ''}>${_n}</option>`;
-      inputHtml = `<select id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:90px;">${_op}</select>`;
+      // Ao lado da nota, uma descrição breve da característica (companheiro <slug>_desc, salvo junto).
+      const _dv = (respostas[c.slug + '_desc'] || '').replace(/"/g, '&quot;');
+      inputHtml = `<div class="rv-nota-linha"><select id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)">${_op}</select>`
+        + `<input type="text" class="rv-desc-input" id="${inputId}_desc" value="${_dv}" placeholder="descrição breve (opcional)…" onchange="prEvolSetResposta('${c.slug}_desc', this.value)"></div>`;
     } else if (c.tipo === 'data') {
       inputHtml = `<input type="date" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:180px;">`;
     } else {
@@ -25311,6 +25320,22 @@ function prEvolGarantirCampoObs() {
   const c = prEvolFormState.campos;
   if (Array.isArray(c) && !c.some(x => x && x.slug === 'observacoes_gerais')) {
     c.push({ slug: 'observacoes_gerais', label: 'Escreva qualquer coisa sobre o paciente (atendimento, humor, adesão, intercorrências…)', tipo: 'texto_longo', secao: 'Observações gerais' });
+  }
+}
+
+// Pra cada nota 0-10 (tipo 'escala', ex.: Roda da Vida) injeta um campo companheiro <slug>_desc logo
+// depois dela, pra uma descrição breve da característica. O save/draft/edição genéricos (que iteram
+// campos) já persistem isso em respostas SEM tocar no banco; o render desenha o campo INLINE ao lado
+// da nota e pula a linha própria (tipo 'rv_desc').
+function prEvolGarantirDescRV() {
+  const c = prEvolFormState.campos;
+  if (!Array.isArray(c)) return;
+  for (let i = 0; i < c.length; i++) {
+    const campo = c[i];
+    if (campo && campo.tipo === 'escala' && !c.some(x => x && x.slug === campo.slug + '_desc')) {
+      c.splice(i + 1, 0, { slug: campo.slug + '_desc', tipo: 'rv_desc', label: campo.label });
+      i++; // pula o companheiro que acabei de inserir
+    }
   }
 }
 
