@@ -5834,6 +5834,10 @@
     .ex-table .ex-an { text-align: left; }
     .ex-table .ex-sticky { position: sticky; left: 0; z-index: 1; background: var(--bg2); box-shadow: 1px 0 0 var(--hair); }
     .ex-table thead th.ex-sticky { z-index: 3; }
+    .ex-table .ex-v.ex-edit { cursor: pointer; }
+    .ex-table .ex-v.ex-edit:hover { background: rgba(29,158,117,0.12); box-shadow: inset 0 0 0 1px rgba(29,158,117,0.45); }
+    .ex-table .ex-v.editando { padding: 2px 4px; }
+    .ex-cell-input { width: 78px; max-width: 92px; box-sizing: border-box; text-align: center; background: var(--bg1); color: var(--tx1); border: 1px solid #1D9E75; border-radius: 6px; padding: 3px 4px; font-size: 12px; outline: none; }
     .ex-cnome { font-weight: 600; color: var(--tx1); font-size: 11.5px; }
     .ex-cdata { font-size: 10px; color: var(--tx3); font-weight: 400; margin-top: 1px; }
     .ex-rot { color: var(--tx1); }
@@ -6297,7 +6301,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AX</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AY</b></span></div>
   </div>
 </div>
 
@@ -25772,14 +25776,70 @@ function prExamesTabelaHtml(d) {
     let tds = '<td class="ex-an ex-sticky"><span class="ex-rot">' + prExEsc(a.rotulo) + '</span>' + (a.unidade ? ' <span class="ex-un">' + prExEsc(a.unidade) + '</span>' : '') + '</td>';
     cols.forEach(function (c) {
       const cell = c.valores && c.valores[a.codigo];
-      if (cell) { const st = prExStatus(cell); tds += '<td class="ex-v' + (st.cls ? ' ' + st.cls : '') + '">' + prExEsc(String(cell.valor)) + st.arw + '</td>'; }
-      else tds += '<td class="ex-v vazio">–</td>';
+      const ci = prExCellInner(cell);
+      tds += '<td class="ex-v ex-edit' + (ci.cls ? ' ' + ci.cls : '') + '" data-rid="' + prExEsc(c.id) + '" data-key="' + prExEsc(a.codigo) + '" onclick="prExCellEdit(this)" title="Clique para editar">' + ci.html + '</td>';
     });
     rows += '<tr>' + tds + '</tr>';
   });
   return '<div class="ex-nomebar"><div class="ex-nome"><span class="ex-nomlbl">Nome:</span> <b>' + prExEsc(d.paciente.nome || '—') + '</b>' + (d.paciente.codigo ? ' <span class="ex-id">' + prExEsc(d.paciente.codigo) + '</span>' : '') + '</div>'
     + '<button class="pac-btn-primary" onclick="prExportExamesPdf()"><i class="ti ti-file-type-pdf"></i> Exportar PDF</button></div>'
     + '<div class="ex-tablewrap"><table class="ex-table"><thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// Célula editável: valor de UM marcador (idMarcador.key) de UM exame (ClinExamResult id). Clicar
+// edita inline → PATCH → atualiza SÓ a célula (sem perder o scroll). O insight fica imutável.
+function prExCellInner(cell) {
+  if (!cell) return { html: '–', cls: 'vazio' };
+  const st = prExStatus(cell);
+  return { html: prExEsc(String(cell.valor)) + st.arw, cls: (st.cls || '') };
+}
+function prExCellEdit(td) {
+  if (!td || td.querySelector('input')) return;
+  const rid = td.getAttribute('data-rid'), key = td.getAttribute('data-key');
+  const d = prState.examesTabela; if (!d) return;
+  const ex = (d.exames || []).find(function (e) { return e.id === rid; }); if (!ex) return;
+  const cell = ex.valores && ex.valores[key];
+  const atual = cell ? String(cell.valor) : '';
+  td.classList.add('editando');
+  td.innerHTML = '<input class="ex-cell-input" value="' + prExEsc(atual) + '" onkeydown="prExCellKey(event,this)" onblur="prExCellSalvar(this)">';
+  const inp = td.querySelector('input');
+  inp._td = td; inp._rid = rid; inp._key = key; inp._orig = atual;
+  inp.focus(); inp.select();
+}
+function prExCellKey(e, inp) {
+  if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+  else if (e.key === 'Escape') { inp._cancel = true; inp.blur(); }
+}
+function prExCellRestaura(td, cell) {
+  const ci = prExCellInner(cell);
+  td.className = 'ex-v ex-edit' + (ci.cls ? ' ' + ci.cls : '');
+  td.innerHTML = ci.html;
+}
+async function prExCellSalvar(inp) {
+  if (inp._saving) return;
+  const td = inp._td, rid = inp._rid, key = inp._key, orig = String(inp._orig || '').trim();
+  const novo = inp.value.trim();
+  const d = prState.examesTabela;
+  const ex = d && (d.exames || []).find(function (e) { return e.id === rid; });
+  if (inp._cancel || novo === orig) { prExCellRestaura(td, ex && ex.valores ? ex.valores[key] : null); return; }
+  inp._saving = true;
+  const pac = prState.pacienteAtual; if (!pac) { prExCellRestaura(td, ex && ex.valores ? ex.valores[key] : null); return; }
+  const an = (d.analitos || []).find(function (a) { return a.codigo === key; });
+  const rotulo = an ? an.rotulo : '';
+  const r = await pacApi('/api/clinico/prontuario/patient/' + pac.id + '/exames/' + rid + '/marcador', { method: 'PATCH', body: JSON.stringify({ key: key, rotulo: rotulo, valor: novo }) });
+  if (!r.ok || !r.data || !r.data.ok) {
+    if (typeof homeToast === 'function') homeToast((r.data && r.data.erro) || 'Não consegui salvar.');
+    prExCellRestaura(td, ex && ex.valores ? ex.valores[key] : null);
+    return;
+  }
+  if (ex) {
+    ex.valores = ex.valores || {};
+    if (r.data.removido) { delete ex.valores[key]; }
+    else { ex.valores[key] = { valor: r.data.valor, unidade: r.data.unidade, alterado: !!r.data.alterado, ref_min: r.data.ref_min != null ? r.data.ref_min : null, ref_max: r.data.ref_max != null ? r.data.ref_max : null, ref_texto: (ex.valores[key] && ex.valores[key].ref_texto) || null }; }
+  }
+  prExCellRestaura(td, ex && ex.valores ? ex.valores[key] : null);
+  if (typeof homeToast === 'function') homeToast('Valor salvo. ✓');
+  if (typeof prCarregarScores === 'function') prCarregarScores(); // exames alimentam os scores
 }
 
 function prExamesListaHtml(d) {
