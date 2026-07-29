@@ -3759,22 +3759,39 @@
       transition: transform 0.15s, background 0.15s;
     }
     .chat-fab:hover { transform: scale(1.08); background: #22b384; }
-    /* Notificações de mensagem (WhatsApp + interno) — pilha no canto direito */
-    #notif-stack { position: fixed; top: 68px; right: 18px; z-index: 9350; display: flex; flex-direction: column; gap: 10px; width: 330px; max-width: calc(100vw - 36px); pointer-events: none; }
-    .notif-card { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; background: var(--bg2); border: 1px solid var(--bd1); border-left: 3px solid #1D9E75; border-radius: 12px; padding: 11px 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.4); cursor: pointer; animation: notifIn 0.28s ease; }
-    .notif-card:hover { border-color: var(--tx4); }
-    .notif-card.notif-int { border-left-color: #4A90E2; }
-    .notif-card.saindo { opacity: 0; transform: translateX(24px); transition: opacity 0.3s, transform 0.3s; }
-    .notif-av { position: relative; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; background: rgba(29,158,117,0.18); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
-    .notif-int .notif-av { background: rgba(74,144,226,0.18); color: #4A90E2; }
-    .notif-canal { position: absolute; right: -3px; bottom: -3px; width: 17px; height: 17px; border-radius: 50%; background: var(--bg2); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 10px; }
-    .notif-int .notif-canal { color: #4A90E2; }
-    .notif-body { flex: 1; min-width: 0; }
-    .notif-nome { font-size: 13px; font-weight: 700; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .notif-msg { font-size: 12px; color: var(--tx3); margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
-    .notif-x { flex: 0 0 auto; background: none; border: 0; color: var(--tx4); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+    /* Notificações de mensagem (WhatsApp + interno) — pilha no canto direito.
+       --nc / --nc-soft vêm do JS: verde do WhatsApp ou a COR DO CARGO do colega. */
+    #notif-stack { position: fixed; top: 68px; right: 18px; z-index: 9350; display: flex; flex-direction: column; gap: 10px; width: 348px; max-width: calc(100vw - 36px); pointer-events: none; }
+    .notif-card {
+      --nc: #1D9E75; --nc-soft: rgba(29,158,117,0.18);
+      pointer-events: auto; position: relative; display: flex; align-items: flex-start; gap: 11px;
+      background: var(--bg2); border: 1px solid var(--bd1); border-radius: 14px; padding: 12px 12px 12px 14px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.34), 0 2px 6px rgba(0,0,0,0.18);
+      cursor: pointer; overflow: hidden; animation: notifIn 0.3s cubic-bezier(.16,1,.3,1);
+      transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
+    }
+    .notif-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--nc); }
+    .notif-card:hover { transform: translateX(-3px); border-color: var(--nc); box-shadow: 0 16px 40px rgba(0,0,0,0.42); }
+    .notif-card.saindo { opacity: 0; transform: translateX(26px); transition: opacity 0.3s, transform 0.3s; }
+    .notif-av { position: relative; flex: 0 0 auto; width: 44px; height: 44px; }
+    .notif-foto { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; display: block; background: var(--bg3); }
+    .notif-ini { width: 44px; height: 44px; border-radius: 50%; background: var(--nc-soft); color: var(--nc); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px; }
+    .notif-canal {
+      position: absolute; right: -2px; bottom: -2px; width: 19px; height: 19px; border-radius: 50%;
+      background: var(--nc); color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; border: 2px solid var(--bg2);
+    }
+    .notif-body { flex: 1; min-width: 0; padding-top: 1px; }
+    .notif-top { display: flex; align-items: baseline; gap: 8px; }
+    .notif-nome { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notif-hora { flex: 0 0 auto; font-size: 10.5px; color: var(--tx4); white-space: nowrap; }
+    .notif-tag { display: inline-block; margin-top: 3px; font-size: 9.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--nc); background: var(--nc-soft); border-radius: 5px; padding: 1px 6px; }
+    .notif-msg { font-size: 12.5px; line-height: 1.45; color: var(--tx2); margin-top: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+    .notif-x { flex: 0 0 auto; background: none; border: 0; color: var(--tx4); font-size: 17px; line-height: 1; cursor: pointer; padding: 0 2px; opacity: .6; transition: opacity .15s, color .15s; }
+    .notif-card:hover .notif-x { opacity: 1; }
     .notif-x:hover { color: var(--tx1); }
-    @keyframes notifIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+    @keyframes notifIn { from { opacity: 0; transform: translateX(30px) scale(.97); } to { opacity: 1; transform: none; } }
+    @media (max-width: 640px) { #notif-stack { top: 60px; right: 10px; left: 10px; width: auto; } }
     .chat-fab-badge {
       position: absolute; top: -4px; right: -4px;
       min-width: 20px; height: 20px; padding: 0 5px;
@@ -6421,7 +6438,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BD</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BE</b></span></div>
   </div>
 </div>
 
@@ -10073,6 +10090,10 @@ function setToken(t) {
 
 function mostrarLogin(msg) {
   document.getElementById('auth-overlay').classList.add('aberto');
+  // Some com qualquer card de notificação na tela: sem isto, uma mensagem de paciente ficaria
+  // visível por cima do login depois de sair/expirar a sessão. Zera o baseline (a próxima sessão
+  // não deve ser notificada do que a anterior já viu). O poll segue vivo, mas sem token não faz nada.
+  if (typeof notifLimpar === 'function') notifLimpar();
   const err = document.getElementById('auth-error');
   if (msg) { err.textContent = msg; err.style.display = 'block'; }
   else err.style.display = 'none';
@@ -28719,24 +28740,46 @@ async function ciAtualizarBadge() {
 // timestamp da última msg de cada conversa contra o que já vimos; a 1ª leitura vira baseline
 // (não notifica o backlog). Clicar abre a conversa. Não apita a conversa que já está aberta.
 // ============================================================
-const notifState = { seen: {}, baseline: false, poll: null, audioCtx: null };
+const notifState = { seen: {}, baseline: false, poll: null, audioCtx: null, usuarios: null, ultimoBeep: 0 };
 function notifIniciar() { if (notifState.poll) return; notifState.poll = setInterval(notifTick, 12000); notifTick(); }
-function notifParar() { if (notifState.poll) { clearInterval(notifState.poll); notifState.poll = null; } notifState.baseline = false; notifState.seen = {}; }
+function notifParar() { if (notifState.poll) { clearInterval(notifState.poll); notifState.poll = null; } notifLimpar(); }
+// Troca de sessão (logout/expirou): tira os cards da tela e zera o baseline. NÃO para o poll —
+// ele já é inofensivo sem token, e pará-lo deixaria as notificações mortas no próximo login.
+function notifLimpar() {
+  const st = document.getElementById('notif-stack'); if (st) st.remove();
+  notifState.seen = {}; notifState.baseline = false; notifState.usuarios = null;
+}
 async function notifTick() {
-  if (!getToken() || !meData) return;
+  if (!getToken() || !meData) return;       // sem sessão: nada de buscar/mostrar (tela de login)
+  if (document.hidden) return;              // aba em segundo plano não gasta chamada (volta ao focar)
   let wa = [], intc = [], eq = null;
   try {
-    const [rw, ri] = await Promise.all([
+    const [rw, ri, ru] = await Promise.all([
       pacApi('/api/clinico/whatsapp/chats').catch(() => null),
       pacApi('/api/clinico/chat/conversas').catch(() => null),
+      // Colegas só pra ter COR do cargo + cargo no card do interno (lista pequena; cacheia).
+      (notifState.usuarios ? Promise.resolve(null) : pacApi('/api/clinico/chat/usuarios').catch(() => null)),
     ]);
     if (rw && rw.ok && rw.data && rw.data.chats) wa = rw.data.chats;
     if (ri && ri.ok && ri.data) { intc = ri.data.conversas || []; eq = ri.data.equipe || null; }
+    if (ru && ru.ok && ru.data && ru.data.usuarios) notifState.usuarios = ru.data.usuarios;
   } catch (e) { return; }
+  const uPorId = {};
+  (notifState.usuarios || cpState.intUsuarios || []).forEach(u => { if (u && u.id) uPorId[u.id] = u; });
   const itens = [];
-  wa.forEach(c => itens.push({ canal: 'wa', id: c.id, nome: c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato'), numero: c.numero || null, foto: c.foto || null, alt: c.jid_alt || null, ultima: c.ultima, ultima_em: c.ultima_em, de_mim: !!c.ultima_de_mim }));
-  intc.forEach(c => itens.push({ canal: 'int', id: c.id, nome: c.nome || 'Colega', ultima: c.ultima, ultima_em: c.ultima_em, de_mim: !!c.de_mim }));
-  if (eq) itens.push({ canal: 'int', id: 'equipe', nome: 'Equipe', ultima: eq.ultima, ultima_em: eq.ultima_em, de_mim: !!eq.de_mim });
+  // nome: o que o backend já resolveu (paciente > agenda do WhatsApp > pushName > aprendido).
+  // Sem nome em lugar nenhum, mostra o telefone formatado — nunca "Contato" quando há número.
+  wa.forEach(c => itens.push({
+    canal: 'wa', id: c.id, nome: c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato'),
+    numero: c.numero || null, foto: c.foto || null, alt: c.jid_alt || null,
+    tag: c.paciente_id ? 'paciente' : null, cor: '#25D366',
+    ultima: c.ultima, ultima_em: c.ultima_em, de_mim: !!c.ultima_de_mim,
+  }));
+  intc.forEach(c => {
+    const u = uPorId[c.id] || {};
+    itens.push({ canal: 'int', id: c.id, nome: c.nome || u.nome || 'Colega', tag: u.cargo || null, cor: u.cor || '#4A90E2', ultima: c.ultima, ultima_em: c.ultima_em, de_mim: !!c.de_mim });
+  });
+  if (eq) itens.push({ canal: 'int', id: 'equipe', nome: 'Equipe', tag: 'canal da equipe', cor: '#1D9E75', equipe: true, ultima: eq.ultima, ultima_em: eq.ultima_em, de_mim: !!eq.de_mim });
   const primeiraVez = !notifState.baseline;
   itens.forEach(it => {
     if (!it.ultima_em || !it.ultima) return;
@@ -28764,13 +28807,27 @@ function notifMostrar(it) {
   if (!stack) { stack = document.createElement('div'); stack.id = 'notif-stack'; document.body.appendChild(stack); }
   const card = document.createElement('div');
   card.className = 'notif-card notif-' + it.canal;
-  const ini = String(it.nome || '?').trim().charAt(0).toUpperCase() || '?';
-  const ico = it.canal === 'wa' ? 'ti-brand-whatsapp' : 'ti-users-group';
-  const msg = waTrunc(String(it.ultima || '').replace(/\s+/g, ' ').trim(), 90);
+  const cor = it.cor || '#1D9E75';
+  card.style.setProperty('--nc', cor);
+  card.style.setProperty('--nc-soft', notifRgba(cor, 0.18));
+  const ini = waIni(it.nome);                       // inicial emoji-safe
+  const ico = it.canal === 'wa' ? 'ti-brand-whatsapp' : (it.equipe ? 'ti-users-group' : 'ti-message-circle');
+  const msg = waTrunc(String(it.ultima || '').replace(/\s+/g, ' ').trim(), 120);
+  // FOTO real do WhatsApp quando existe. A URL do pps.whatsapp.net EXPIRA -> onerror cai na inicial.
+  const av = it.foto
+    ? '<img class="notif-foto" alt="" src="' + esc(it.foto) + '"><span class="notif-ini" style="display:none;">' + esc(ini) + '</span>'
+    : '<span class="notif-ini">' + esc(ini) + '</span>';
   card.innerHTML =
-    '<div class="notif-av">' + esc(ini) + '<span class="notif-canal"><i class="ti ' + ico + '"></i></span></div>' +
-    '<div class="notif-body"><div class="notif-nome">' + esc(waTrunc(it.nome, 26)) + '</div><div class="notif-msg">' + esc(msg) + '</div></div>' +
-    '<button class="notif-x" title="Fechar">&times;</button>';
+    '<div class="notif-av">' + av + '<span class="notif-canal"><i class="ti ' + ico + '"></i></span></div>' +
+    '<div class="notif-body">'
+      + '<div class="notif-top"><span class="notif-nome">' + esc(waTrunc(it.nome, 24)) + '</span>'
+      + '<span class="notif-hora">' + esc(notifQuando(it.ultima_em)) + '</span></div>'
+      + (it.tag ? '<div class="notif-tag">' + esc(waTrunc(it.tag, 26)) + '</div>' : '')
+      + '<div class="notif-msg">' + esc(msg) + '</div>'
+    + '</div>'
+    + '<button class="notif-x" title="Fechar">&times;</button>';
+  const img = card.querySelector('.notif-foto');
+  if (img) img.onerror = function () { this.style.display = 'none'; const s = card.querySelector('.notif-ini'); if (s) s.style.display = 'flex'; };
   card.querySelector('.notif-x').onclick = (e) => { e.stopPropagation(); card.remove(); };
   card.onclick = () => { card.remove(); notifAbrir(it); };
   stack.appendChild(card);
@@ -28783,7 +28840,28 @@ async function notifAbrir(it) {
   if (!cpState.intUsuarios || !cpState.intUsuarios.length) { try { await chatPopCarregarLista(true); } catch (e) {} }
   chatPopAbrirInt(it.id);
 }
+// "agora" / "há X min" / hora — a mensagem acabou de chegar, então o relativo diz mais que o relógio.
+function notifQuando(iso) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return 'agora';
+  if (s < 3600) return 'há ' + Math.floor(s / 60) + ' min';
+  return cpHora(iso);
+}
+// hex -> rgba (a cor do cargo vem em hex; sem color-mix pra não depender de suporte do navegador)
+function notifRgba(hex, a) {
+  const h = String(hex || '').replace('#', '').trim();
+  if (!/^[0-9a-f]{6}$/i.test(h)) return 'rgba(29,158,117,' + a + ')';
+  const n = parseInt(h, 16);
+  return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
 function notifBeep() {
+  // Varias mensagens no mesmo ciclo = 1 apito so (senao vira metralhadora ao voltar pra aba).
+  const agoraMs = Date.now();
+  if (agoraMs - (notifState.ultimoBeep || 0) < 2500) return;
+  notifState.ultimoBeep = agoraMs;
   try {
     if (!notifState.audioCtx) notifState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const ctx = notifState.audioCtx; if (ctx.state === 'suspended') ctx.resume();
