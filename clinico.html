@@ -7328,6 +7328,10 @@
       <div class="dev-info"><strong><i class="ti ti-tool"></i> Manutenção:</strong> conserta exames antigos com o bug de deslocamento de coluna (unidade/referência trocadas na leitura por IA).</div>
       <button class="pac-btn-secondary" style="white-space:nowrap" onclick="devCorrigirExames(this)"><i class="ti ti-wand"></i> Corrigir exames deslocados</button>
     </div>
+    <div class="dev-toolbar" style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div class="dev-info"><strong><i class="ti ti-sparkles"></i> Padronização automática:</strong> a IA aprende os marcadores fora do catálogo (sinônimos e analitos novos) e a tabela de exames se padroniza sozinha, valendo retroativo. Roda automático a cada 3h — este é o gatilho manual.</div>
+      <button class="pac-btn-secondary" style="white-space:nowrap" onclick="devPadronizarExames(this)"><i class="ti ti-sparkles"></i> Padronizar exames agora</button>
+    </div>
 
     <div id="dev-conteudo">
       <div class="pac-empty"><i class="ti ti-loader"></i>Carregando...</div>
@@ -20796,6 +20800,18 @@ async function devCorrigirExames(btn) {
     if (!r.ok) { homeToast('Não consegui corrigir: ' + (r.data.erro || '--')); return; }
     homeToast(`Corrigido: ${r.data.registros_afetados} exame(s), ${r.data.marcadores_corrigidos} marcador(es). ✓`);
   } finally { if (btn) btn.disabled = false; }
+}
+// Roda o padronizador de exames: a IA aprende os marcadores fora do catálogo (sinônimos + analitos novos).
+async function devPadronizarExames(btn) {
+  let t = '';
+  if (btn) { t = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Padronizando…'; }
+  try {
+    const r = await pacApi('/api/clinico/dev/exames/padronizar', { method: 'POST' });
+    if (!r.ok || !r.data.ok) { homeToast('Não consegui padronizar: ' + ((r.data && (r.data.erro || (r.data.sem_ia && 'IA não configurada'))) || '--')); return; }
+    if (!r.data.desconhecidos) { homeToast('Nada novo pra padronizar — tudo já mapeado. ✓'); return; }
+    homeToast(`Padronizados ${r.data.desconhecidos} rótulo(s): ${r.data.aliasNovos} sinônimo(s), ${r.data.extrasNovos} analito(s) novo(s). ✓`);
+    if (typeof prExamesRefresh === 'function' && prState.pacienteAtual) prExamesRefresh(prState.pacienteAtual.id);
+  } finally { if (btn) { btn.disabled = false; if (t) btn.innerHTML = t; } }
 }
 let devAgState = { agentes: [], aberto: null, chat: [], propostas: [], enviando: false, edits: {}, chatDraft: '' };
 
