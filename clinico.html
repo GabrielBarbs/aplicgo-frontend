@@ -11876,7 +11876,8 @@ function pontAnexoHtml() {
 }
 async function pontAnexoUpload(input) {
   const f = input.files && input.files[0]; if (!f) return;
-  if (f.size > 25 * 1024 * 1024) { homeToast('Arquivo maior que 25 MB.'); input.value = ''; return; }
+  const grande = upErroTamanho(f);   // mesmo teto do backend, num só lugar (não desencontra)
+  if (grande) { homeToast(grande); input.value = ''; return; }
   const fd = new FormData(); fd.append('file', f);
   try {
     const resp = await fetch(API_BASE + '/api/clinico/pontuacao/anexo', { method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }, body: fd });
@@ -20446,6 +20447,8 @@ async function bioImportarSelecionar(files) {
   arq.innerHTML = `<i class="ti ti-loader"></i> Enviando ${nome} (${prFmtTamanho(f.size)})...`;
   const pid = (prState.pacienteAtual && prState.pacienteAtual.id) || (typeof bioState !== 'undefined' && bioState.patientId);
   if (!pid) { arq.innerHTML = 'Abra um paciente primeiro.'; return; }
+  const grande = upErroTamanho(f);
+  if (grande) { arq.innerHTML = '<i class="ti ti-alert-triangle" style="color:#EF9F27;"></i> ' + esc(grande); return; }
   // Salva o PDF nos anexos do paciente (tipo bioimpedancia)
   const fd = new FormData();
   fd.append('file', f);
@@ -23916,6 +23919,16 @@ function prFmtTamanho(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
+// Teto de upload — tem que bater com o UPLOAD_MAX_MB do backend (src/upload.ts). Conferir ANTES de
+// enviar: subir 30 MB no 4G pra receber erro no fim é o pior dos mundos (e o erro do multer vinha
+// como 500 "Erro interno", então a pessoa nem sabia o motivo e tentava de novo).
+const UPLOAD_MAX_MB = 25;
+function upErroTamanho(f) {
+  // >= e não >: o multer recusa o arquivo que ATINGE o teto (testado: 25 MB exatos dão 413). Com "<="
+  // aqui, um arquivo de 25 MB cravados passaria na tela e só falharia depois de subir tudo.
+  if (!f || f.size < UPLOAD_MAX_MB * 1024 * 1024) return null;
+  return `"${f.name}" tem ${prFmtTamanho(f.size)} e o limite é ${UPLOAD_MAX_MB} MB. Comprima o PDF ou reduza a foto e tente de novo.`;
+}
 function prIconePorTipo(mime) {
   if (!mime) return 'file';
   if (mime.startsWith('image/')) return 'photo';
@@ -24073,6 +24086,8 @@ async function prAnexoUpload(files) {
   prState.anexoEnviando = true; prRenderTimeline();
   const t = getToken();
   for (const f of Array.from(files)) {
+    const grande = upErroTamanho(f);
+    if (grande) { alert(grande); continue; }   // não gasta o upload: avisa e vai pro próximo
     const fd = new FormData();
     fd.append('file', f);
     fd.append('tipo', 'anexo');
