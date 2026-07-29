@@ -6341,6 +6341,9 @@
       <button class="sidebar-item" data-view="admin">
         <i class="ti ti-settings-cog"></i> Cargos &amp; Permissões
       </button>
+      <button class="sidebar-item" data-view="editaveis">
+        <i class="ti ti-forms"></i> Editáveis
+      </button>
       <button class="sidebar-item" data-view="dev" data-perm="dev.acesso">
         <i class="ti ti-code"></i> Desenvolvedor
       </button>
@@ -6446,7 +6449,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BF</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BG</b></span></div>
   </div>
 </div>
 
@@ -7843,6 +7846,45 @@
       </div>
       <div id="pt-body"><div class="pt-empty">Carregando…</div></div>
     </div>
+  </div>
+
+  <!-- ============== VIEW: EDITÁVEIS (campos que o usuário cria nos templates) ============== -->
+  <style>
+    #view-editaveis .ed-hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+    #view-editaveis .ed-card {
+      background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; padding: 26px 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px; cursor: pointer;
+      transition: border-color .15s, transform .15s; text-align: center;
+    }
+    #view-editaveis .ed-card:hover { border-color: var(--ac); transform: translateY(-2px); }
+    #view-editaveis .ed-card i { font-size: 34px; color: var(--ac); }
+    #view-editaveis .ed-card .lbl { font-size: 14px; color: var(--tx1); font-weight: 500; }
+    #view-editaveis .ed-card.soon { cursor: default; opacity: .45; }
+    #view-editaveis .ed-card.soon:hover { border-color: var(--bd1); transform: none; }
+    #view-editaveis .ed-card .soon-tag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--tx4); }
+    #view-editaveis .ed-voltar { background: none; border: 0; color: var(--tx3); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0; margin-bottom: 14px; }
+    #view-editaveis .ed-voltar:hover { color: var(--tx1); }
+    #view-editaveis .ed-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    #view-editaveis .ed-lista { display: flex; flex-direction: column; gap: 10px; }
+    #view-editaveis .ed-item { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 10px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 12px; }
+    #view-editaveis .ed-item.off { opacity: .5; }
+    #view-editaveis .ed-item .info { flex: 1; min-width: 0; }
+    #view-editaveis .ed-item .nm { font-size: 14px; color: var(--tx1); font-weight: 600; }
+    #view-editaveis .ed-item .meta { font-size: 11.5px; color: var(--tx3); margin-top: 3px; }
+    #view-editaveis .ed-item .tpls { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+    #view-editaveis .ed-chip { font-size: 10px; background: var(--bg3); color: var(--tx2); border-radius: 5px; padding: 2px 7px; }
+    #view-editaveis .ed-chip.ia { background: rgba(29,158,117,.16); color: #1D9E75; }
+    #view-editaveis .ed-acts { display: flex; gap: 6px; flex-shrink: 0; }
+    #view-editaveis .ed-vazio { color: var(--tx3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--bd1); border-radius: 10px; padding: 22px; text-align: center; }
+    /* Modal: lista de templates com checkbox */
+    .ed-tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; max-height: 210px; overflow-y: auto; padding: 4px 2px; }
+    .ed-tpl-item { display: flex; align-items: flex-start; gap: 7px; font-size: 12.5px; color: var(--tx2); cursor: pointer; }
+    .ed-tpl-item input { margin-top: 2px; flex-shrink: 0; }
+    .ed-tpl-item.off { opacity: .45; cursor: not-allowed; }
+    .ed-tpl-grupo { grid-column: 1 / -1; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--tx4); margin-top: 6px; }
+  </style>
+  <div class="view" id="view-editaveis">
+    <div id="ed-conteudo"><div class="pt-empty">Carregando…</div></div>
   </div>
 </main>
 
@@ -14196,7 +14238,8 @@ const VIEW_TITLES = {
   gtarefas: { titulo: 'Gestão de Tarefas', sub: 'Rotinas, atribuição e acompanhamento da equipe' },
   admin: { titulo: 'Administração', sub: 'Cargos, permissões e usuários (white label)' },
   pendencias: { titulo: 'Pendências', sub: 'Onboarding administrativo em aberto' },
-  dev: { titulo: 'Desenvolvedor', sub: 'Painel técnico: DB, audit, env, métricas' }
+  dev: { titulo: 'Desenvolvedor', sub: 'Painel técnico: DB, audit, env, métricas' },
+  editaveis: { titulo: 'Editáveis', sub: 'Campos que você cria nos templates' }
 };
 
 document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
@@ -25363,6 +25406,17 @@ function prEvolRenderForm() {
         + `<input type="text" class="rv-desc-input" id="${inputId}_desc" value="${_dv}" placeholder="descrição breve (opcional)…" onchange="prEvolSetResposta('${c.slug}_desc', this.value)"></div>`;
     } else if (c.tipo === 'data') {
       inputHtml = `<input type="date" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:180px;">`;
+    } else if (c.tipo === 'booleano') {
+      // Sim/Não como SELECT (não checkbox): "não respondido" tem que ser diferente de "Não" —
+      // em dado clínico isso importa. O valor salvo é o texto (sai legível na timeline e pra IA).
+      const _b = ['Sim', 'Não'].map(function (o) { return `<option value="${o}" ${valor === o ? 'selected' : ''}>${o}</option>`; }).join('');
+      inputHtml = `<select id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:140px;"><option value="">--</option>${_b}</select>`;
+    } else if (c.tipo === 'opcoes') {
+      const _op = (Array.isArray(c.opcoes) ? c.opcoes : []).map(function (o) {
+        const _o = String(o).replace(/"/g, '&quot;');
+        return `<option value="${_o}" ${valor === String(o) ? 'selected' : ''}>${esc(o)}</option>`;
+      }).join('');
+      inputHtml = `<select id="${inputId}" onchange="prEvolSetResposta('${c.slug}', this.value)" style="max-width:260px;"><option value="">--</option>${_op}</select>`;
     } else {
       inputHtml = `<input type="text" id="${inputId}" value="${valor}" onchange="prEvolSetResposta('${c.slug}', this.value)">`;
     }
@@ -29019,6 +29073,183 @@ function notifBeep() {
   } catch (e) { /* som é best-effort (autoplay pode bloquear até um clique) */ }
 }
 
+// ============================================================
+// EDITÁVEIS — campos que o usuário cria e escolhe em quais templates aparecem.
+// Hub de cards (por enquanto só Anamneses) -> lista de campos -> modal criar/editar.
+// O back guarda as definições no clin_config e mescla nos templates no render; o mesmo campo em
+// vários templates herda o último valor preenchido (carry-forward por slug, que já existia).
+// ============================================================
+let edState = { campos: [], templates: [], tela: 'hub', carregado: false, erro: null };
+
+const ED_TIPO_LABEL = {
+  texto: 'Texto curto', texto_longo: 'Texto longo', numero: 'Número',
+  escala: 'Nota 0–10', data: 'Data', booleano: 'Sim/Não', opcoes: 'Lista de opções',
+};
+
+function edInit() { edState.tela = 'hub'; edRender(); if (!edState.carregado) edCarregar(); }
+function edAbrir(id) { if (id !== 'anamneses') return; edState.tela = 'anamneses'; edRender(); }
+function edVoltar() { edState.tela = 'hub'; edRender(); }
+
+async function edCarregar() {
+  let r = null;
+  try { r = await pacApi('/api/clinico/campos-custom'); } catch (e) { r = null; }
+  edState.carregado = true;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    // Falha não pode virar "nenhum campo": isso faria parecer que os campos sumiram.
+    edState.erro = (r && r.data && r.data.erro) || 'Não consegui carregar os campos agora.';
+  } else {
+    edState.erro = null;
+    edState.campos = r.data.campos || [];
+    edState.templates = r.data.templates || [];
+  }
+  edRender();
+}
+
+function edRender() {
+  const box = document.getElementById('ed-conteudo');
+  if (!box) return;
+  box.innerHTML = edState.tela === 'anamneses' ? edHtmlAnamneses() : edHtmlHub();
+}
+
+function edHtmlHub() {
+  // Os outros cards ficam visíveis mas marcados "em construção" — mostra pra onde a página vai
+  // sem prometer o que ainda não existe.
+  const cards = [
+    { id: 'anamneses', ico: 'ti-clipboard-text', lbl: 'Anamneses', ativo: true },
+    { id: 'geral', ico: 'ti-adjustments-horizontal', lbl: 'Geral' },
+    { id: 'financeiro', ico: 'ti-coin', lbl: 'Financeiro' },
+    { id: 'agenda', ico: 'ti-calendar-check', lbl: 'Agenda' },
+    { id: 'estoque', ico: 'ti-box', lbl: 'Estoque' },
+    { id: 'relacionamento', ico: 'ti-heart-handshake', lbl: 'Relacionamento com o Paciente' },
+  ];
+  return '<div class="ed-hub">' + cards.map(function (c) {
+    if (c.ativo) return '<div class="ed-card" onclick="edAbrir(\'' + c.id + '\')"><i class="ti ' + c.ico + '"></i><div class="lbl">' + esc(c.lbl) + '</div></div>';
+    return '<div class="ed-card soon"><i class="ti ' + c.ico + '"></i><div class="lbl">' + esc(c.lbl) + '</div><div class="soon-tag">em construção</div></div>';
+  }).join('') + '</div>';
+}
+
+function edHtmlAnamneses() {
+  const voltar = '<button class="ed-voltar" onclick="edVoltar()"><i class="ti ti-chevron-left"></i> Editáveis</button>';
+  if (!edState.carregado) return voltar + '<div class="pt-empty">Carregando…</div>';
+  if (edState.erro) return voltar + '<div class="ed-vazio"><i class="ti ti-alert-triangle"></i> ' + esc(edState.erro) + '</div>';
+  const nomeTpl = {};
+  (edState.templates || []).forEach(function (t) { nomeTpl[t.slug] = t.nome; });
+  const itens = (edState.campos || []).map(function (c) {
+    const chips = (c.templates || []).map(function (s) { return '<span class="ed-chip">' + esc(nomeTpl[s] || s) + '</span>'; }).join('');
+    const ia = c.salvar_paciente ? '<span class="ed-chip ia"><i class="ti ti-robot" style="font-size:9px"></i> salvo no paciente · IA lê</span>' : '';
+    const off = c.ativo === false;
+    return '<div class="ed-item' + (off ? ' off' : '') + '">'
+      + '<div class="info"><div class="nm">' + esc(c.label) + (off ? ' <span class="ed-chip">desativado</span>' : '') + '</div>'
+      + '<div class="meta">' + esc(ED_TIPO_LABEL[c.tipo] || c.tipo) + (c.secao ? ' · seção: ' + esc(c.secao) : '') + '</div>'
+      + '<div class="tpls">' + chips + ia + '</div></div>'
+      + '<div class="ed-acts">'
+      + '<button class="pac-btn-secondary ex-mini" onclick="edEditar(\'' + c.slug + '\')"><i class="ti ti-edit"></i> Editar</button>'
+      + '<button class="pac-btn-secondary ex-mini" onclick="edToggle(\'' + c.slug + '\', ' + (off ? 'true' : 'false') + ')">'
+      + (off ? '<i class="ti ti-eye"></i> Ativar' : '<i class="ti ti-eye-off"></i> Desativar') + '</button>'
+      + '</div></div>';
+  }).join('');
+  return voltar
+    + '<div class="ed-bar"><div><div style="font-size:15px;color:var(--tx1);font-weight:600;">Campos das anamneses</div>'
+    + '<div style="font-size:12px;color:var(--tx3);margin-top:2px;max-width:640px;">Você cria o campo e escolhe em quais templates ele aparece. O mesmo campo em vários templates conversa entre si: o último valor preenchido já vem preenchido no próximo.</div></div>'
+    + '<button class="pac-btn-primary" onclick="edNovo()"><i class="ti ti-plus"></i> Criar novo campo</button></div>'
+    + (itens ? '<div class="ed-lista">' + itens + '</div>'
+             : '<div class="ed-vazio">Nenhum campo criado ainda. Clique em <b>Criar novo campo</b> pra começar.</div>');
+}
+
+function edNovo() { edModal(null); }
+function edEditar(slug) {
+  const c = (edState.campos || []).find(function (x) { return x.slug === slug; });
+  if (c) edModal(c);
+}
+function edFecharModal() { const ov = document.getElementById('ed-modal'); if (ov) ov.remove(); }
+
+function edModal(campo) {
+  const ed = !!campo;
+  edFecharModal();
+  const ov = document.createElement('div');
+  ov.id = 'ed-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'ed-modal') edFecharModal(); };
+  const tipos = Object.keys(ED_TIPO_LABEL).map(function (t) {
+    return '<option value="' + t + '"' + (campo && campo.tipo === t ? ' selected' : '') + '>' + ED_TIPO_LABEL[t] + '</option>';
+  }).join('');
+  // Templates agrupados por categoria (ONBOARDING / ACOMPANHAMENTO / …). Template de TEXTO livre
+  // não aceita campo novo — aparece desabilitado, em vez de aceitar e o campo nunca surgir.
+  const porCat = {};
+  (edState.templates || []).forEach(function (t) { const k = t.categoria || 'OUTROS'; (porCat[k] = porCat[k] || []).push(t); });
+  let tplHtml = '';
+  Object.keys(porCat).forEach(function (cat) {
+    tplHtml += '<div class="ed-tpl-grupo">' + esc(cat) + '</div>';
+    porCat[cat].forEach(function (t) {
+      const marcado = ed && (campo.templates || []).indexOf(t.slug) > -1;
+      const off = !t.formulario;
+      tplHtml += '<label class="ed-tpl-item' + (off ? ' off' : '') + '"' + (off ? ' title="Template de texto livre — não aceita campo novo"' : '') + '>'
+        + '<input type="checkbox" value="' + esc(t.slug) + '"' + (marcado ? ' checked' : '') + (off ? ' disabled' : '') + '>'
+        + '<span>' + esc(t.nome) + (off ? ' <span style="color:var(--tx4)">(texto livre)</span>' : '') + '</span></label>';
+    });
+  });
+  ov.innerHTML = '<div class="pac-modal" style="max-width:640px;">'
+    + '<div class="pac-modal-header"><div class="ttl"><i class="ti ti-forms"></i> ' + (ed ? 'Editar campo' : 'Criar novo campo') + '</div>'
+    + '<button class="pac-modal-close" onclick="edFecharModal()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body">'
+    + '<div class="pac-field"><label>Nome do campo *</label><input type="text" id="ed-f-label" maxlength="120" value="' + esc((campo && campo.label) || '') + '" placeholder="Ex.: Qualidade da digestão"></div>'
+    + '<div class="pac-form-grid col-2" style="margin-top:10px;">'
+    + '<div class="pac-field"><label>Tipo</label><select id="ed-f-tipo" onchange="edTipoMudou()">' + tipos + '</select></div>'
+    + '<div class="pac-field"><label>Seção no formulário</label><input type="text" id="ed-f-secao" maxlength="80" value="' + esc((campo && campo.secao) || '') + '" placeholder="Campos personalizados"></div>'
+    + '</div>'
+    + '<div class="pac-field" id="ed-f-opcoes-wrap" style="margin-top:10px;display:none;"><label>Opções (uma por linha)</label>'
+    + '<textarea id="ed-f-opcoes" rows="4" placeholder="Ótima&#10;Boa&#10;Ruim">' + esc((((campo && campo.opcoes) || []).join('\n'))) + '</textarea></div>'
+    + '<div class="pac-field" style="margin-top:12px;"><label>Aparece em quais templates? *</label>'
+    + '<div class="ed-tpl-grid">' + (tplHtml || '<span style="font-size:12px;color:var(--tx3)">Nenhum template disponível.</span>') + '</div></div>'
+    + '<label class="ed-tpl-item" style="margin-top:14px;font-size:13px;color:var(--tx1);">'
+    + '<input type="checkbox" id="ed-f-salvar"' + (campo && campo.salvar_paciente ? ' checked' : '') + '>'
+    + '<span>Salvar no registro do paciente <span style="color:var(--tx3)">— o valor fica guardado no paciente e os agentes de IA passam a ler</span></span></label>'
+    + '<div id="ed-f-erro" style="display:none;color:#f85149;font-size:12px;margin-top:12px;"></div>'
+    + '</div>'
+    + '<div class="pac-modal-footer"><button class="pac-btn-secondary" onclick="edFecharModal()">Cancelar</button>'
+    + '<button class="pac-btn-primary" id="ed-f-btn" onclick="edSalvar(' + (ed ? '\'' + campo.slug + '\'' : 'null') + ')"><i class="ti ti-check"></i> ' + (ed ? 'Salvar' : 'Criar campo') + '</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  edTipoMudou();
+  setTimeout(function () { const el = document.getElementById('ed-f-label'); if (el) el.focus(); }, 30);
+}
+
+function edTipoMudou() {
+  const sel = document.getElementById('ed-f-tipo');
+  const w = document.getElementById('ed-f-opcoes-wrap');
+  if (sel && w) w.style.display = sel.value === 'opcoes' ? '' : 'none';
+}
+
+async function edSalvar(slug) {
+  const erroEl = document.getElementById('ed-f-erro');
+  const falha = function (m) { if (erroEl) { erroEl.textContent = m; erroEl.style.display = 'block'; } };
+  const label = (document.getElementById('ed-f-label').value || '').trim();
+  const tipo = document.getElementById('ed-f-tipo').value;
+  const secao = (document.getElementById('ed-f-secao').value || '').trim();
+  const opcoes = (document.getElementById('ed-f-opcoes').value || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+  const templates = Array.prototype.slice.call(document.querySelectorAll('#ed-modal .ed-tpl-grid input:checked')).map(function (i) { return i.value; });
+  const salvar_paciente = !!document.getElementById('ed-f-salvar').checked;
+  if (label.length < 2) return falha('Escreva o nome do campo.');
+  if (!templates.length) return falha('Escolha ao menos um template onde o campo aparece.');
+  if (tipo === 'opcoes' && !opcoes.length) return falha('Escreva as opções da lista (uma por linha).');
+  const btn = document.getElementById('ed-f-btn'); if (btn) btn.disabled = true;
+  const r = await pacApi('/api/clinico/campos-custom' + (slug ? '/' + encodeURIComponent(slug) : ''), {
+    method: slug ? 'PUT' : 'POST',
+    body: JSON.stringify({ label: label, tipo: tipo, secao: secao, opcoes: opcoes, templates: templates, salvar_paciente: salvar_paciente }),
+  });
+  if (btn) btn.disabled = false;
+  if (!r.ok || !r.data || !r.data.ok) return falha((r.data && r.data.erro) || 'Não consegui salvar o campo.');
+  edFecharModal();
+  if (typeof homeToast === 'function') homeToast(slug ? 'Campo atualizado.' : 'Campo criado — já aparece nos templates escolhidos.');
+  edCarregar();
+}
+
+async function edToggle(slug, ativar) {
+  const r = await pacApi('/api/clinico/campos-custom/' + encodeURIComponent(slug) + '/ativo', { method: 'PATCH', body: JSON.stringify({ ativo: !!ativar }) });
+  if (!r.ok || !r.data || !r.data.ok) { if (typeof homeToast === 'function') homeToast((r.data && r.data.erro) || 'Não consegui mudar o campo.'); return; }
+  if (typeof homeToast === 'function') homeToast(ativar ? 'Campo ativado.' : 'Campo desativado — o que já foi preenchido continua salvo.');
+  edCarregar();
+}
+
 const _origTrocarView = trocarView;
 trocarView = function(v) {
   _origTrocarView(v);
@@ -29038,6 +29269,7 @@ trocarView = function(v) {
     if (!auJaInicializou) { auJaInicializou = true; auInit(); }
     else auCarregar();
   }
+  if (v === 'editaveis') edInit();
 };
 
 // ============================================================
