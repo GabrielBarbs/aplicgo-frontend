@@ -25440,7 +25440,7 @@ function prImprimirPrescricao(d, verifToken) {
 }
 
 // ===== ABA EXAMES: tabela longitudinal (analito x exame) + lista + export PDF =====
-const EX_GRUPOS = { glicidico: 'Glicídico', lipidico: 'Lipídico', inflamacao: 'Inflamação', hepatico: 'Hepático', renal: 'Renal', tireoide: 'Tireoide', vitaminas: 'Vitaminas / minerais', hormonal: 'Hormonal', hemograma: 'Hemograma' };
+const EX_GRUPOS = { glicidico: 'Glicídico', lipidico: 'Lipídico', inflamacao: 'Inflamação', hepatico: 'Hepático', renal: 'Renal', tireoide: 'Tireoide', vitaminas: 'Vitaminas / minerais', hormonal: 'Hormonal', hemograma: 'Hemograma', outros: 'Outros marcadores' };
 function prExEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 // Status do valor vs referência do laudo: alto (↑), baixo (↓), alterado sem direção (!), normal.
 function prExStatus(cell) {
