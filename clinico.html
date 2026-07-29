@@ -5880,6 +5880,13 @@
     .pl-ins-tit { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #C58AF0; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
     .pl-plano.ex-ins-body { font-size: 13px; }
     .pl-plano .ex-ins-h { color: #1D9E75; }
+    .pl-plano-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .pl-plano-lbl { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #1D9E75; text-transform: uppercase; letter-spacing: .4px; }
+    .pl-editado { color: var(--tx3); font-weight: 600; text-transform: none; letter-spacing: 0; }
+    .pl-edit-btn { padding: 4px 10px; font-size: 12px; }
+    .pl-edit-ta { width: 100%; min-height: 240px; max-height: 640px; box-sizing: border-box; resize: vertical; background: var(--bg1); color: var(--tx1); border: 1px solid var(--bd1); border-radius: 10px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.55; }
+    .pl-edit-ta:focus { outline: none; border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
+    .pl-edit-acoes { display: flex; gap: 8px; margin-top: 10px; }
     .wa-num-wrap { display: inline-flex; align-items: center; gap: 8px; background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.3); border-radius: 10px; padding: 8px 14px; margin-top: 4px; }
     .wa-num-wrap:focus-within { border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
     .wa-num-wrap i { color: #1D9E75; font-size: 16px; }
@@ -6290,7 +6297,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AW</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AX</b></span></div>
   </div>
 </div>
 
@@ -25567,13 +25574,55 @@ function prRenderPlanoConteudo(data) {
     + (data.wa_link ? '<button class="pac-btn-secondary" onclick="prPlanoAbrirWa()"><i class="ti ti-external-link"></i> Abrir no WhatsApp</button>' : '')
     + '</div>';
   const insight = data.insight ? ('<div class="pl-insight"><div class="pl-ins-tit"><i class="ti ti-sparkles"></i> Insight</div><div class="ex-ins-body">' + prMd(data.insight) + '</div></div>') : '';
+  // O PLANO é editável (botão Editar → textarea com o markdown cru → Salvar). O INSIGHT fica imutável.
+  const edMode = !!prState.planoEditando;
+  const editadoTag = data.editado ? ' <span class="pl-editado" title="Plano editado à mão">· editado</span>' : '';
+  const planoHead = '<div class="pl-plano-head"><span class="pl-plano-lbl"><i class="ti ti-salad"></i> Plano alimentar' + editadoTag + '</span>'
+    + (edMode ? '' : '<button class="pac-btn-secondary pl-edit-btn" onclick="prPlanoEditar()"><i class="ti ti-pencil"></i> Editar</button>')
+    + '</div>';
+  const planoBody = edMode
+    ? '<textarea id="pl-edit-ta" class="pl-edit-ta" spellcheck="false">' + prExEsc(data.plano) + '</textarea>'
+      + '<div class="pl-edit-acoes"><button class="pac-btn-primary" onclick="prPlanoSalvarEdicao(this)"><i class="ti ti-device-floppy"></i> Salvar</button>'
+      + '<button class="pac-btn-secondary" onclick="prPlanoCancelarEdicao()"><i class="ti ti-x"></i> Cancelar</button></div>'
+    : '<div class="pl-plano ex-ins-body">' + prMd(data.plano) + '</div>';
   return '<div class="pl-topo"><div class="pl-nome">' + prExEsc(nome) + (cod ? ' <span class="ex-id">' + prExEsc(cod) + '</span>' : '') + '</div><div class="pl-data">Plano gerado em ' + quando + '</div></div>'
-    + waBtns + insight
-    + '<div class="pl-plano ex-ins-body">' + prMd(data.plano) + '</div>';
+    + waBtns + insight + planoHead + planoBody;
+}
+function prPlanoEditar() {
+  prState.planoEditando = true;
+  prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
+  prRerenderPlano();
+  setTimeout(function () { const ta = document.getElementById('pl-edit-ta'); if (ta) { ta.style.height = Math.min(ta.scrollHeight, 640) + 'px'; ta.focus(); } }, 30);
+}
+function prPlanoCancelarEdicao() {
+  prState.planoEditando = false;
+  prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
+  prRerenderPlano();
+}
+async function prPlanoSalvarEdicao(btn) {
+  const ta = document.getElementById('pl-edit-ta'); if (!ta) return;
+  const texto = ta.value.trim();
+  if (!texto) { if (typeof homeToast === 'function') homeToast('O plano não pode ficar vazio.'); return; }
+  const pac = prState.pacienteAtual; if (!pac) return;
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando...'; }
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pac.id + '/plano-alimentar', { method: 'PUT', body: JSON.stringify({ plano: texto }) });
+    if (!r.ok || !r.data || !r.data.ok) { if (btn) { btn.disabled = false; btn.innerHTML = original; } if (typeof homeToast === 'function') homeToast((r.data && r.data.erro) || 'Não consegui salvar.'); return; }
+    // Atualiza o estado com o que o servidor devolveu (plano + whatsapp reconstruído do texto novo).
+    prState.planoData = Object.assign({}, prState.planoData, { plano: r.data.plano, whatsapp: r.data.whatsapp, wa_link: r.data.wa_link, editado: true });
+    prState.planoEditando = false;
+    prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
+    prRerenderPlano();
+    if (typeof homeToast === 'function') homeToast('Plano salvo. ✓');
+  } catch (e) { if (btn) { btn.disabled = false; btn.innerHTML = original; } if (typeof homeToast === 'function') homeToast('Não consegui salvar.'); }
 }
 function prRerenderPlano() { const el = document.getElementById('pr-plano-section'); if (el) el.innerHTML = prRenderPlanoSection(); }
 function prFecharPlano() { prState.planoAberto = false; prRerenderPlano(); }
-function prPlanoRegenerar() { prCarregarPlano(prState.pacienteAtual && prState.pacienteAtual.id, true); }
+function prPlanoRegenerar() {
+  if (prState.planoData && prState.planoData.editado && !confirm('Isso gera um plano NOVO pela IA e descarta sua edição manual. Continuar?')) return;
+  prCarregarPlano(prState.pacienteAtual && prState.pacienteAtual.id, true);
+}
 async function prAbrirPlano() {
   const pac = prState.pacienteAtual; if (!pac) return;
   if (prState.planoAberto) { prFecharPlano(); return; }
@@ -25585,6 +25634,7 @@ async function prAbrirPlano() {
 async function prCarregarPlano(pid, force) {
   pid = pid || (prState.pacienteAtual && prState.pacienteAtual.id);
   if (!pid || !prState.planoAberto) return;
+  prState.planoEditando = false; // (re)carregar/regenerar sempre volta pro modo leitura
   prState.planoLoading = true; prState.planoHtml = null; prRerenderPlano();
   try {
     const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/plano-alimentar' + (force ? '?force=1' : ''));
