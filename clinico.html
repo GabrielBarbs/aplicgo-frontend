@@ -5516,6 +5516,77 @@
     }
 
     /* ===== MODAL NOVIDADES (idêntico ao comercial) ===== */
+    /* Pop de NOVIDADE única (aparece 1x ao entrar/recarregar, com "print" do recurso) */
+    .nvsplash-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(5px);
+      z-index: 9100;
+      display: none; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: nvsplashFade .22s ease;
+    }
+    @keyframes nvsplashFade { from { opacity: 0; } to { opacity: 1; } }
+    .nvsplash-overlay.aberto { display: flex; }
+    .nvsplash-modal {
+      position: relative;
+      background: var(--bg1); border: 1px solid var(--bg3);
+      border-radius: 16px;
+      width: 100%; max-width: 540px;
+      max-height: 92vh; overflow-y: auto;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.65);
+      padding: 26px 26px 22px;
+      animation: nvsplashPop .28s cubic-bezier(.2,.8,.25,1);
+    }
+    @keyframes nvsplashPop { from { transform: translateY(12px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
+    .nvsplash-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      color: var(--ac); background: rgba(var(--ac-rgb),0.12);
+      border: 1px solid rgba(var(--ac-rgb),0.30);
+      padding: 5px 11px; border-radius: 999px; margin-bottom: 14px;
+    }
+    .nvsplash-x {
+      position: absolute; top: 15px; right: 15px;
+      background: transparent; border: none; color: var(--tx3);
+      cursor: pointer; font-size: 18px; padding: 4px; border-radius: 8px; line-height: 1;
+    }
+    .nvsplash-x:hover { color: var(--tx1); background: var(--bg3); }
+    .nvsplash-titulo { font-size: 22px; font-weight: 700; color: var(--tx1); margin: 0 0 8px; line-height: 1.25; }
+    .nvsplash-sub { font-size: 13.5px; color: var(--tx2); line-height: 1.55; margin: 0 0 18px; }
+    /* PRINT — preview fiel do recurso */
+    .nvsplash-print {
+      background: var(--bg1); border: 1px solid var(--bg3);
+      border-radius: 12px; padding: 14px 15px; margin-bottom: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .nvsplash-print-sec {
+      font-size: 10.5px; color: var(--ac); text-transform: uppercase; letter-spacing: .6px; font-weight: 700;
+      padding-bottom: 5px; margin-bottom: 8px; border-bottom: 1px solid rgba(var(--ac-rgb),0.20);
+    }
+    .nvsplash-print-ta {
+      background: var(--bg2); border: 1px solid var(--bg3); border-radius: 7px;
+      padding: 9px 11px; font-size: 12px; color: var(--tx1); line-height: 1.5; margin-bottom: 12px;
+    }
+    .nvsplash-print-ins {
+      background: linear-gradient(180deg, rgba(var(--ac-rgb),0.09), rgba(var(--ac-rgb),0.02));
+      border: 1px solid rgba(var(--ac-rgb),0.25); border-radius: 8px; padding: 10px 12px;
+    }
+    .nvsplash-print-ins .h {
+      font-size: 10.5px; font-weight: 700; color: var(--ac); text-transform: uppercase; letter-spacing: .4px;
+      margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
+    }
+    .nvsplash-print-ins .b { font-size: 12px; color: var(--tx1); line-height: 1.55; }
+    .nvsplash-print-ins .m { font-size: 10px; color: var(--tx4); margin-top: 6px; }
+    .nvsplash-bullets { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 9px; }
+    .nvsplash-bullets li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--tx2); line-height: 1.45; }
+    .nvsplash-bullets li i { color: var(--ac); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+    .nvsplash-ok {
+      width: 100%; background: var(--ac); color: #fff; border: none; border-radius: 9px;
+      padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s;
+    }
+    .nvsplash-ok:hover { background: var(--ac-d, #d97e42); }
+
     .novidades-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.65);
@@ -9714,6 +9785,34 @@
       </button>
     </div>
     <div class="novidades-body" id="novidades-body"></div>
+  </div>
+</div>
+
+<!-- Pop de NOVIDADE única (auto, 1x por pessoa ao entrar/recarregar) -->
+<div class="nvsplash-overlay" id="nvsplash-overlay" onclick="if(event.target.id==='nvsplash-overlay') nvSplashFechar()">
+  <div class="nvsplash-modal">
+    <button class="nvsplash-x" onclick="nvSplashFechar()" title="Fechar"><i class="ti ti-x"></i></button>
+    <div class="nvsplash-badge"><i class="ti ti-sparkles"></i> Novidade no sistema</div>
+    <h2 class="nvsplash-titulo">Observações gerais + Insight da IA</h2>
+    <p class="nvsplash-sub">Agora todo acompanhamento e onboarding (médico, nutri e enfermagem) tem no final um campo pra escrever qualquer coisa do paciente — e uma IA que lê tudo e resume, em 2-3 frases, como ele está.</p>
+
+    <div class="nvsplash-print">
+      <div class="nvsplash-print-sec">Observações gerais</div>
+      <div class="nvsplash-print-ta">Paciente animado, relatou melhora na disposição. Aderente à dieta e aos injetáveis.</div>
+      <div class="nvsplash-print-ins">
+        <div class="h"><i class="ti ti-sparkles"></i> Insight da IA — como o paciente está</div>
+        <div class="b">Evoluindo bem: perdeu 8,4 kg desde o início e o Metabolic subiu para 82 (Bom). Adesão consistente e humor estável — manter a conduta atual.</div>
+        <div class="m">Baseado em 4 observações registradas</div>
+      </div>
+    </div>
+
+    <ul class="nvsplash-bullets">
+      <li><i class="ti ti-circle-check"></i> Campo livre no fim de todo acompanhamento e onboarding — médico, nutri e enfermagem.</li>
+      <li><i class="ti ti-circle-check"></i> A IA lê todas as observações (as de hoje e as passadas) e resume como o paciente está.</li>
+      <li><i class="ti ti-circle-check"></i> Fica no prontuário e no histórico; não aparece para o paciente.</li>
+    </ul>
+
+    <button class="nvsplash-ok" onclick="nvSplashFechar()">Entendi!</button>
   </div>
 </div>
 
@@ -14205,24 +14304,38 @@ function abrirNovidades() {
 function fecharNovidades() {
   document.getElementById('novidades-overlay').classList.remove('aberto');
 }
-// Abre as Novidades UMA vez pra quem ainda não viu a versão atual (ao entrar OU
-// recarregar o sistema). abrirNovidades() já marca como lida, então não reabre depois.
+// Pop de NOVIDADE única — mostra SÓ o aviso desta atualização (com "print" do
+// recurso), NÃO a changelog toda. Aparece 1x por pessoa ao entrar OU recarregar.
+// Pra anunciar a próxima novidade: troque o texto do #nvsplash-modal e bump o ID.
+const NOVIDADE_SPLASH_ID = 'obs-gerais-insight-2026-07-29';
+const NOVIDADE_SPLASH_KEY = 'aplic_novidade_splash';
+function nvSplashVista() { try { return localStorage.getItem(NOVIDADE_SPLASH_KEY) === NOVIDADE_SPLASH_ID; } catch (e) { return true; } }
+function nvSplashAbrir() { document.getElementById('nvsplash-overlay').classList.add('aberto'); }
+function nvSplashFechar() {
+  document.getElementById('nvsplash-overlay').classList.remove('aberto');
+  try { localStorage.setItem(NOVIDADE_SPLASH_KEY, NOVIDADE_SPLASH_ID); } catch (e) {}
+  // a pessoa já viu a novidade → zera também o badge do sino
+  try { setUltimaLida(getVersaoAtual()); atualizarBadgeNovidades(); } catch (e) {}
+}
 let _novidadesAutoFeito = false;
 function novidadesAutoAbrir() {
   if (_novidadesAutoFeito) return;
   _novidadesAutoFeito = true;
   try {
-    if (!temNovidadeNaoLida()) return;
+    if (nvSplashVista()) return;
     setTimeout(function () {
-      // não atropela login/convite/reset abertos, nem se já abriu outra coisa
-      const overlaysBloqueio = ['auth-overlay', 'reset-overlay', 'convite-overlay', 'novidades-overlay'];
-      if (overlaysBloqueio.some(id => { const el = document.getElementById(id); return el && el.classList.contains('aberto'); })) return;
-      abrirNovidades();
-    }, 800);
+      // não atropela login/convite/reset abertos
+      const bloq = ['auth-overlay', 'reset-overlay', 'convite-overlay'];
+      if (bloq.some(id => { const el = document.getElementById(id); return el && el.classList.contains('aberto'); })) return;
+      nvSplashAbrir();
+    }, 700);
   } catch (e) {}
 }
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') fecharNovidades();
+  if (ev.key !== 'Escape') return;
+  const sp = document.getElementById('nvsplash-overlay');
+  if (sp && sp.classList.contains('aberto')) { nvSplashFechar(); return; }
+  fecharNovidades();
 });
 
 // ============================================================
