@@ -9595,6 +9595,21 @@
             Requer refrigeração (2-8°C)
           </label>
         </div>
+        <!-- Contagem em mg (tirzepatida e afins): entra em ampola, o estoque anda em mg. -->
+        <div class="pac-field" style="grid-column:1/-1">
+          <label style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="es-prod-conta-mg" style="margin:0;" onchange="esProdContaMgChange()">
+            Contar o estoque em <strong>mg</strong> (a entrada é em ampolas e a baixa é pela dose — ex.: tirzepatida)
+          </label>
+        </div>
+        <div class="pac-field" id="es-prod-mgamp-wrap" style="display:none; grid-column:1/-1">
+          <label>Mg por ampola <span class="req">*</span></label>
+          <input type="number" id="es-prod-mgamp" min="1" step="1" placeholder="ex: 90">
+          <div style="font-size:11px;color:var(--tx3b);margin-top:4px">
+            Quanto tem em UMA ampola. Ex.: 90 mg em 3,6 ml → 10 ampolas entram como 900 mg de saldo.
+            Só dá pra mudar isso com o estoque do produto zerado.
+          </div>
+        </div>
       </div>
     </div>
     <div class="ag-modal-footer">
@@ -9621,7 +9636,7 @@
       <div class="pac-form-grid">
         <div class="pac-field">
           <label>Produto <span class="req">*</span></label>
-          <select id="es-lote-produto" required></select>
+          <select id="es-lote-produto" required onchange="esLoteProdChange()"></select>
         </div>
         <div class="pac-field">
           <label>Unidade <span class="req">*</span></label>
@@ -9636,8 +9651,9 @@
           <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="es-lote-validade" oninput="mascararData(this, event)"><input type="hidden" id="es-lote-validade">
         </div>
         <div class="pac-field">
-          <label>Quantidade inicial <span class="req">*</span></label>
-          <input type="number" id="es-lote-qtd" min="1" placeholder="ex: 30" required>
+          <label id="es-lote-qtd-label">Quantidade inicial <span class="req">*</span></label>
+          <input type="number" id="es-lote-qtd" min="1" step="1" placeholder="ex: 30" required oninput="esLoteQtdPreview()">
+          <div id="es-lote-qtd-dica" style="font-size:11px;color:var(--tx3b);margin-top:4px"></div>
         </div>
         <div class="pac-field">
           <label>Preço de compra (R$, total)</label>
@@ -9685,8 +9701,12 @@
           <select id="es-transf-destino" required></select>
         </div>
         <div class="pac-field">
-          <label>Quantidade <span class="req">*</span></label>
-          <input type="number" id="es-transf-qtd" min="1" step="1" placeholder="ex: 5">
+          <label id="es-transf-qtd-label">Quantidade <span class="req">*</span></label>
+          <!-- type=text + inputmode: em produto contado em mg a quantidade é em AMPOLAS e pode ser
+               fracionada (0,5). Input type=number recusa vírgula em vários navegadores e devolveria
+               vazio pra quem digita "0,5" — aqui o parse é nosso (esParseNum). -->
+          <input type="text" inputmode="decimal" id="es-transf-qtd" placeholder="ex: 5">
+          <div id="es-transf-qtd-dica" style="font-size:11px;color:var(--tx3b);margin-top:4px"></div>
         </div>
         <div class="pac-field">
           <label>Data da transferência <span class="req">*</span></label>
@@ -12854,7 +12874,7 @@ function injTrocarPaciente() { injState.patient = null; injState.builder = null;
 async function injBuilderInit() {
   injState.catErr = false;
   const jobs = [];
-  if (!injState.catalogo) jobs.push(pacApi('/api/clinico/insumos?ativo=true').then((r) => { if (r.ok) injState.catalogo = (r.data.itens || []).map((x) => ({ sku: x.sku, produto: x.produto, categoria: x.categoria })); else injState.catErr = true; }).catch(() => { injState.catErr = true; }));
+  if (!injState.catalogo) jobs.push(pacApi('/api/clinico/insumos?ativo=true').then((r) => { if (r.ok) injState.catalogo = (r.data.itens || []).map((x) => ({ sku: x.sku, produto: x.produto, categoria: x.categoria, conta_em_mg: x.conta_em_mg, mg_por_ampola: x.mg_por_ampola })); else injState.catErr = true; }).catch(() => { injState.catErr = true; }));
   if (!injState.profs) jobs.push(pacApi('/api/clinico/prescricoes-inj/profissionais').then((r) => { if (r.ok) injState.profs = r.data.usuarios || []; }).catch(() => {}));
   if (!injState.protocolos) jobs.push(pacApi('/api/clinico/prescricoes-inj/protocolos-modelo').then((r) => { if (r.ok) injState.protocolos = r.data.modelos || []; }).catch(() => {}));
   if (!injState.combos) jobs.push(pacApi('/api/clinico/prescricoes-inj/combos').then((r) => { if (r.ok) injState.combos = r.data.combos || []; }).catch(() => {}));
@@ -28054,6 +28074,40 @@ function esFmtQtd(qtd, prod) {
   if (prod && prod.conta_em_mg) return (qtd / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' mg';
   return String(qtd);
 }
+// Produto escolhido na ENTRADA de lote (da lista de produtos do estoque).
+function esProdSelecionado() {
+  const id = (document.getElementById('es-lote-produto') || {}).value;
+  return (esState.produtos || []).find(p => p.id === id) || null;
+}
+// Entrada de produto contado em mg: a recepção conta AMPOLAS (o sistema guarda mg).
+function esLoteProdChange() {
+  const p = esProdSelecionado();
+  const lab = document.getElementById('es-lote-qtd-label');
+  const inp = document.getElementById('es-lote-qtd');
+  const emMg = !!(p && p.conta_em_mg && p.mg_por_ampola);
+  if (lab) lab.innerHTML = (emMg ? 'Quantidade inicial em ampolas' : 'Quantidade inicial') + ' <span class="req">*</span>';
+  if (inp) inp.placeholder = emMg ? 'ex: 10 ampolas' : 'ex: 30';
+  esLoteQtdPreview();
+}
+// Mostra o equivalente em mg enquanto digita (10 ampolas = 900 mg), pra conferir na hora.
+function esLoteQtdPreview() {
+  const dica = document.getElementById('es-lote-qtd-dica');
+  if (!dica) return;
+  const p = esProdSelecionado();
+  const n = parseInt((document.getElementById('es-lote-qtd') || {}).value, 10);
+  if (!p || !p.conta_em_mg || !p.mg_por_ampola || !isFinite(n) || n < 1) { dica.textContent = ''; return; }
+  dica.textContent = `${esFmtNum(n)} ampola(s) × ${esFmtNum(p.mg_por_ampola)} mg = ${esFmtNum(n * p.mg_por_ampola)} mg em estoque.`;
+}
+// Número no padrão BR sem casa sobrando (0,5 · 897,5 · 10).
+function esFmtNum(x, casas) { return Number(x).toLocaleString('pt-BR', { maximumFractionDigits: casas == null ? 3 : casas }); }
+// "0,5" / "0.5" -> 0.5. A vírgula é o decimal de quem digita; parseInt truncaria 0,5 pra 0 (transferir nada).
+function esParseNum(v) { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : NaN; }
+// Lote de produto contado em mg? (saldo guardado em MICROGRAMAS)
+function esLoteEmMg(l) { return !!(l && l.produto && l.produto.conta_em_mg && l.produto.mg_por_ampola); }
+// Saldo do lote em AMPOLAS — pode ser fração: 45.000 mcg de uma ampola de 90mg = 0,5 ampola.
+function esAmpolasDoLote(l) { return esLoteEmMg(l) ? l.qtd_atual / (l.produto.mg_por_ampola * 1000) : null; }
+// Ampolas (com fração) -> microgramas. Round fecha o float: 0,1*90*1000 dá 9000.000000000002.
+function esAmpolasParaMcg(ampolas, mgPorAmpola) { return Math.round(ampolas * mgPorAmpola * 1000); }
 function esRenderLotes() {
   const wrap = document.getElementById('es-conteudo');
   if (esState.lotes.length === 0) {
@@ -28138,8 +28192,16 @@ function esAbrirNovoProd() {
   document.getElementById('es-prod-apresentacao').value = '';
   document.getElementById('es-prod-controle').value = '';
   document.getElementById('es-prod-refrig').checked = true;
+  document.getElementById('es-prod-conta-mg').checked = false;
+  document.getElementById('es-prod-mgamp').value = '';
+  esProdContaMgChange();
   document.getElementById('es-prod-erro').style.display = 'none';
   document.getElementById('es-prod-modal').classList.add('aberto');
+}
+// Mostra o "mg por ampola" só quando o produto for contado em mg (o backend exige o valor).
+function esProdContaMgChange() {
+  const on = document.getElementById('es-prod-conta-mg').checked;
+  document.getElementById('es-prod-mgamp-wrap').style.display = on ? '' : 'none';
 }
 
 function esFecharProd() {
@@ -28157,8 +28219,13 @@ async function esSalvarProd() {
     apresentacao: document.getElementById('es-prod-apresentacao').value.trim() || null,
     controle_anvisa: document.getElementById('es-prod-controle').value || null,
     requer_refrigeracao: document.getElementById('es-prod-refrig').checked,
+    conta_em_mg: document.getElementById('es-prod-conta-mg').checked,
+    mg_por_ampola: parseInt(document.getElementById('es-prod-mgamp').value, 10) || null,
   };
   if (!body.nome) { erroEl.textContent = 'Nome obrigatório'; erroEl.style.display = 'block'; return; }
+  if (body.conta_em_mg && !(body.mg_por_ampola > 0)) {
+    erroEl.textContent = 'Informe quantos mg tem em uma ampola (ex.: 90).'; erroEl.style.display = 'block'; return;
+  }
   const r = await pacApi(
     id ? '/api/clinico/estoque/products/' + id : '/api/clinico/estoque/products',
     { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }
@@ -28196,6 +28263,7 @@ async function esAbrirNovoLote() {
   document.getElementById('es-lote-fornecedor').value = '';
   document.getElementById('es-lote-nf').value = '';
   document.getElementById('es-lote-erro').style.display = 'none';
+  esLoteProdChange();   // rótulo (ampolas) + prévia em mg conforme o produto escolhido
   document.getElementById('es-lote-modal').classList.add('aberto');
 }
 
@@ -28269,7 +28337,7 @@ async function esAbrirTransf() {
   esTransfLotes = (r.data.lotes || []).filter(l => l.qtd_atual > 0);
   if (!esTransfLotes.length) { sel.innerHTML = '<option value="">Nenhum lote com saldo disponível</option>'; return; }
   sel.innerHTML = '<option value="">—</option>' + esTransfLotes.map(l =>
-    `<option value="${esc(l.id)}">${esc(l.produto.nome)} · lote ${esc(l.lote)} · ${esc(l.unidade.nome)} (saldo ${l.qtd_atual})</option>`).join('');
+    `<option value="${esc(l.id)}">${esc(l.produto.nome)} · lote ${esc(l.lote)} · ${esc(l.unidade.nome)} (saldo ${esLoteEmMg(l) ? esFmtNum(esAmpolasDoLote(l)) + ' ampola(s) / ' + esFmtQtd(l.qtd_atual, l.produto) : l.qtd_atual})</option>`).join('');
 }
 function esFecharTransf() { document.getElementById('es-transf-modal').classList.remove('aberto'); }
 function esTransfLoteChange() {
@@ -28277,10 +28345,28 @@ function esTransfLoteChange() {
   const info = document.getElementById('es-transf-origem');
   const destSel = document.getElementById('es-transf-destino');
   const qtd = document.getElementById('es-transf-qtd');
-  if (!l) { info.textContent = ''; destSel.innerHTML = '<option value="">Escolha o lote primeiro</option>'; qtd.value = ''; qtd.removeAttribute('max'); return; }
-  info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${l.qtd_atual}</strong> · validade ${esc(l.validade)}`;
-  qtd.max = l.qtd_atual;
-  qtd.value = l.qtd_atual;   // padrão = mover o lote inteiro (editável)
+  const lab = document.getElementById('es-transf-qtd-label');
+  const dica = document.getElementById('es-transf-qtd-dica');
+  if (!l) {
+    info.textContent = ''; destSel.innerHTML = '<option value="">Escolha o lote primeiro</option>';
+    qtd.value = ''; if (dica) dica.textContent = '';
+    if (lab) lab.innerHTML = 'Quantidade <span class="req">*</span>';
+    return;
+  }
+  // Produto em mg: a pessoa move AMPOLAS (podendo ser fração — sobrou meia ampola, transfere 0,5).
+  // O saldo é guardado em microgramas, então mostra os dois: ampolas e mg.
+  if (esLoteEmMg(l)) {
+    const amp = esAmpolasDoLote(l);
+    info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${esFmtNum(amp)} ampola(s)</strong> (${esFmtQtd(l.qtd_atual, l.produto)}) · validade ${esc(l.validade)}`;
+    if (lab) lab.innerHTML = 'Quantidade em ampolas <span class="req">*</span>';
+    if (dica) dica.textContent = `1 ampola = ${esFmtNum(l.produto.mg_por_ampola)} mg. Pode ser fração: 0,5 = ${esFmtNum(l.produto.mg_por_ampola / 2)} mg.`;
+    qtd.value = esFmtNum(amp);   // padrão = mover tudo (editável)
+  } else {
+    info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${l.qtd_atual}</strong> · validade ${esc(l.validade)}`;
+    if (lab) lab.innerHTML = 'Quantidade <span class="req">*</span>';
+    if (dica) dica.textContent = '';
+    qtd.value = l.qtd_atual;
+  }
   // Destino = qualquer unidade ativa MENOS a de origem (o lote escolhido pode estar numa
   // unidade que o usuário não tem vinculada — a lista de lotes é da clínica toda).
   destSel.innerHTML = '<option value="">—</option>' +
@@ -28292,13 +28378,22 @@ async function esSalvarTransf() {
   const batchId = document.getElementById('es-transf-lote').value;
   const l = esTransfLotes.find(x => x.id === batchId);
   const destino = document.getElementById('es-transf-destino').value;
-  const qtd = parseInt(document.getElementById('es-transf-qtd').value) || 0;
+  const qtd = esParseNum(document.getElementById('es-transf-qtd').value);
   const data = document.getElementById('es-transf-data').value;
   if (!batchId || !l) return show('Escolha o lote/produto a mover.');
   if (!destino) return show('Escolha a unidade de destino.');
   if (destino === l.unidade.id) return show('A unidade de destino tem que ser diferente da origem.');
-  if (qtd < 1) return show('A quantidade tem que ser ≥ 1.');
-  if (qtd > l.qtd_atual) return show(`Máximo disponível nesse lote: ${l.qtd_atual}.`);
+  if (!isFinite(qtd) || qtd <= 0) return show('Informe a quantidade a transferir.');
+  if (esLoteEmMg(l)) {
+    // Compara em MICROGRAMAS, não no número exibido: o saldo pode ser 44.999 mcg e aparecer como
+    // "0,5 ampola" — arredondar pra comparar deixaria passar uma transferência maior que o saldo.
+    const mcg = esAmpolasParaMcg(qtd, l.produto.mg_por_ampola);
+    if (mcg < 1) return show('Quantidade pequena demais pra transferir.');
+    if (mcg > l.qtd_atual) return show(`Máximo disponível nesse lote: ${esFmtNum(esAmpolasDoLote(l))} ampola(s) (${esFmtQtd(l.qtd_atual, l.produto)}).`);
+  } else {
+    if (!Number.isInteger(qtd)) return show('Esse produto é contado por unidade — use um número inteiro (sem vírgula).');
+    if (qtd > l.qtd_atual) return show(`Máximo disponível nesse lote: ${l.qtd_atual}.`);
+  }
   if (!data) return show('Informe a data da transferência.');
   if (data > gtHojeStr()) return show('A data não pode ser futura.');
   if (esTransfEnviando) return;                       // trava duplo-clique (senão transfere em dobro)
