@@ -4880,6 +4880,35 @@
       min-height: 50px; resize: vertical;
     }
 
+    /* Caixa de insight da IA das "Observações gerais" (fim do formulário) */
+    .pr-obs-insight {
+      margin-top: 14px;
+      background: linear-gradient(180deg, rgba(var(--ac-rgb),0.06), rgba(var(--ac-rgb),0.02));
+      border: 1px solid rgba(var(--ac-rgb),0.22);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .pr-obs-insight-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      font-size: 11px; font-weight: 700; color: var(--ac);
+      text-transform: uppercase; letter-spacing: 0.4px;
+      margin-bottom: 6px;
+    }
+    .pr-obs-insight-head i { margin-right: 3px; }
+    .pr-obs-insight-refresh {
+      background: transparent; border: none; color: var(--tx3);
+      cursor: pointer; padding: 2px 4px; border-radius: 5px; font-size: 13px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .pr-obs-insight-refresh:hover { color: var(--ac); background: rgba(var(--ac-rgb),0.10); }
+    .pr-obs-insight-body {
+      font-size: 12.5px; color: var(--tx1); line-height: 1.55;
+    }
+    .pr-obs-insight-body p { margin: 0 0 6px; }
+    .pr-obs-insight-body p:last-child { margin-bottom: 0; }
+    .pr-obs-insight-vazio { color: var(--tx3); font-size: 12px; font-style: italic; }
+    .pr-obs-insight-meta { margin-top: 6px; font-size: 10px; color: var(--tx4); }
+
     /* Barra de progresso do objetivo */
     .pr-h-progress {
       height: 6px; background: var(--bg3); border-radius: 4px;
@@ -6301,7 +6330,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AY</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-AZ</b></span></div>
   </div>
 </div>
 
@@ -24919,6 +24948,7 @@ async function prEditarEvol(id) {
       prEvolFormState.campos = r.data.campos || [];
       prEvolFormState.respostas = { ...d.respostas };  // usa as respostas salvas
       prEvolFormState.origens = {};
+      prEvolGarantirCampoObs();
       prEvolRenderForm();
       document.getElementById('pr-evol-editor-wrap').style.display = 'none';
       document.getElementById('pr-evol-form').style.display = 'block';
@@ -25027,6 +25057,7 @@ async function prAplicarTemplate(slug, nome) {
         if (!prEvolFormState.respostas[cc.slug]) prEvolFormState.origens[cc.slug] = '';
       }
     });
+    prEvolGarantirCampoObs();
     prEvolRenderForm();
     document.getElementById('pr-evol-editor-wrap').style.display = 'none';
     document.getElementById('pr-evol-form').style.display = 'block';
@@ -25110,12 +25141,59 @@ function prEvolRenderForm() {
       </div>
     `;
   });
+  // Logo abaixo das "Observações gerais": caixa de insight da IA que lê TODAS as
+  // observações já registradas (atuais + passadas) e resume como o paciente está.
+  const temObs = campos.some(c => c && c.slug === 'observacoes_gerais');
+  if (temObs) {
+    html += `
+      <div class="pr-obs-insight" id="pr-evol-obs-insight">
+        <div class="pr-obs-insight-head">
+          <span><i class="ti ti-sparkles"></i> Insight da IA — como o paciente está</span>
+          <button type="button" class="pr-obs-insight-refresh" onclick="prObsInsightCarregar(true)" title="Atualizar insight"><i class="ti ti-refresh"></i></button>
+        </div>
+        <div class="pr-obs-insight-body" id="pr-evol-obs-insight-body"><i class="ti ti-loader"></i> Lendo as observações…</div>
+      </div>`;
+  }
   wrap.innerHTML = html;
+  if (temObs) prObsInsightCarregar(false);
 }
 
 function prEvolSetResposta(slug, valor) {
   prEvolFormState.respostas[slug] = valor;
   evolDraftAgendarSalvar();
+}
+
+// Campo UNIVERSAL "Observações gerais" no FIM de todo template de evolução
+// (onboarding/acompanhamento, médico/nutri/enfermagem). Injetado no cliente pra
+// valer em TODOS os templates sem tocar no banco; salvo em respostas.observacoes_gerais
+// (sem migração) e renderizado no conteúdo/timeline pelo backend.
+function prEvolGarantirCampoObs() {
+  const c = prEvolFormState.campos;
+  if (Array.isArray(c) && !c.some(x => x && x.slug === 'observacoes_gerais')) {
+    c.push({ slug: 'observacoes_gerais', label: 'Escreva qualquer coisa sobre o paciente (atendimento, humor, adesão, intercorrências…)', tipo: 'texto_longo', secao: 'Observações gerais' });
+  }
+}
+
+// Carrega o insight das observações do paciente (endpoint cacheado no servidor).
+async function prObsInsightCarregar(force) {
+  const body = document.getElementById('pr-evol-obs-insight-body');
+  if (!body || !prState.pacienteAtual) return;
+  const pid = prState.pacienteAtual.id;
+  if (force) body.innerHTML = '<i class="ti ti-loader"></i> Atualizando…';
+  let r;
+  try { r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/observacoes-insight'); }
+  catch (e) { body.innerHTML = '<span class="pr-obs-insight-vazio">Não consegui carregar o insight agora.</span>'; return; }
+  // O paciente pode ter mudado enquanto a chamada voltava.
+  if (!prState.pacienteAtual || prState.pacienteAtual.id !== pid) return;
+  const box = document.getElementById('pr-evol-obs-insight-body');
+  if (!box) return;
+  if (!r.ok || !r.data) { box.innerHTML = '<span class="pr-obs-insight-vazio">Não consegui carregar o insight agora.</span>'; return; }
+  const d = r.data;
+  if (d.motivo === 'sem_observacoes') { box.innerHTML = '<span class="pr-obs-insight-vazio">Ainda não há observações registradas. Escreva a primeira acima — o insight aparece a partir do próximo acompanhamento.</span>'; return; }
+  if (d.sem_ia) { box.innerHTML = '<span class="pr-obs-insight-vazio"><i class="ti ti-robot-off"></i> Insight por IA ainda não está ligado no servidor.</span>'; return; }
+  if (!d.insight) { box.innerHTML = '<span class="pr-obs-insight-vazio">' + esc(d.erro || 'Sem insight disponível ainda.') + '</span>'; return; }
+  const meta = d.qtd ? ('<div class="pr-obs-insight-meta">Baseado em ' + d.qtd + ' observação(ões) registrada(s)' + (d.gerado_em ? ' · ' + new Date(d.gerado_em).toLocaleDateString('pt-BR') : '') + '</div>') : '';
+  box.innerHTML = prMd(d.insight) + meta;
 }
 
 // ==========================================================================
@@ -25467,7 +25545,7 @@ function prImprimirPrescricao(d, verifToken) {
 }
 
 // ===== ABA EXAMES: tabela longitudinal (analito x exame) + lista + export PDF =====
-const EX_GRUPOS = { glicidico: 'Glicídico', lipidico: 'Lipídico', inflamacao: 'Inflamação', hepatico: 'Hepático', renal: 'Renal', tireoide: 'Tireoide', vitaminas: 'Vitaminas / minerais', hormonal: 'Hormonal', hemograma: 'Hemograma', outros: 'Outros marcadores' };
+const EX_GRUPOS = { glicidico: 'Glicídico', lipidico: 'Lipídico', inflamacao: 'Inflamação', hepatico: 'Hepático', renal: 'Renal', minerais: 'Minerais e eletrólitos', vitaminas: 'Vitaminas', tireoide: 'Tireoide', hormonal: 'Hormonal', hemograma: 'Hemograma', coagulacao: 'Coagulação', cardiaco: 'Cardíaco', urina: 'Urina', sorologia: 'Sorologia e imunologia', outros: 'Outros marcadores' };
 function prExEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 // Status do valor vs referência do laudo: alto (↑), baixo (↓), alterado sem direção (!), normal.
 function prExStatus(cell) {
