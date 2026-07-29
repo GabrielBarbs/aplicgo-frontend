@@ -22502,7 +22502,7 @@ function onbRenderComercialView(box) {
       </div>
       <div style="display:grid; grid-template-columns:2fr 1fr; gap:9px 14px;">
         ${linha('Programa', val(com.programa))}
-        ${linha('Duração', com.duracao_semanas ? esc(String(com.duracao_semanas)) + ' semanas' : na)}
+        ${linha('Duração', com.duracao_semanas ? esc(String(com.duracao_semanas)) + ' semanas' + onbDuracaoForaDoPadrao(com) : na)}
         ${linha('Suplementos inclusos', supHtml, true)}
         ${linha('Injetáveis inclusos', injHtml, true)}
         ${linha('Tecnologias inclusas', val(com.tecnologias), true)}
@@ -22532,7 +22532,8 @@ function onbRenderComercialEdit(box) {
         </div>
         <div>
           <div style="${ONB_LBL}">Duração (semanas)</div>
-          <input type="number" id="onb-com-duracao" min="1" step="1" value="${com.duracao_semanas !== '' && com.duracao_semanas != null ? com.duracao_semanas : ''}" oninput="onbComSet('duracao_semanas', this.value)" placeholder="ex: 12" style="${ONB_FLD}">
+          <input type="number" id="onb-com-duracao" min="1" step="1" value="${com.duracao_semanas !== '' && com.duracao_semanas != null ? com.duracao_semanas : ''}" oninput="onbComSet('duracao_semanas', this.value); onbDuracaoDica()" placeholder="ex: 12" style="${ONB_FLD}">
+          <div id="onb-com-duracao-dica" style="font-size:11px; margin-top:4px;">${onbDuracaoDicaHtml()}</div>
         </div>
       </div>
       <div style="margin-top:12px;">
@@ -22604,6 +22605,30 @@ function onbComProgramaMudou(val) {
     }
   }
   onbState.dirty = true;
+  onbDuracaoDica();
+}
+// A duração do plano é só o PADRÃO — dá pra alterar e o valor digitado é o que vale (alguns casos
+// variam). A dica deixa isso explícito e mostra quando o número está fora do padrão do plano.
+function onbDuracaoDicaHtml() {
+  const com = onbState.com || {};
+  const padrao = (com.programa && (com.programa in PLANO_SEMANAS)) ? PLANO_SEMANAS[com.programa] : undefined;
+  if (padrao == null) return '<span style="color:var(--tx4);">Este plano não tem duração fixa — defina as semanas.</span>';
+  const atual = parseInt(com.duracao_semanas, 10);
+  if (!isFinite(atual)) return `<span style="color:var(--tx4);">Padrão do plano: ${padrao} semanas.</span>`;
+  if (atual === padrao) return `<span style="color:var(--tx4);">Padrão do plano: ${padrao} semanas — dá pra alterar.</span>`;
+  return `<span style="color:#EF9F27;"><i class="ti ti-info-circle"></i> Fora do padrão do plano (${padrao} semanas). Vai salvar ${atual}.</span>`;
+}
+function onbDuracaoDica() {
+  const el = document.getElementById('onb-com-duracao-dica');
+  if (el) el.innerHTML = onbDuracaoDicaHtml();
+}
+// Marcador discreto na tela só-leitura quando a duração foi ajustada pra fora do padrão do plano
+// (é permitido — só não pode parecer erro de digitação pra quem só está olhando).
+function onbDuracaoForaDoPadrao(com) {
+  const padrao = (com.programa && (com.programa in PLANO_SEMANAS)) ? PLANO_SEMANAS[com.programa] : undefined;
+  const atual = parseInt(com.duracao_semanas, 10);
+  if (padrao == null || !isFinite(atual) || atual === padrao) return '';
+  return ` <span style="color:#EF9F27; font-size:11px;" title="O padrão deste plano é ${padrao} semanas">· ajustado (padrão ${padrao})</span>`;
 }
 function onbComPagoMudou(val) { onbState.com.pago = val === '' ? null : (val === 'sim'); onbState.dirty = true; onbRenderComercial(); }
 function onbSupAdd() { (onbState.com.suplementos = onbState.com.suplementos || []).push({ sku: '', nome: '', saldo: 1 }); onbState.dirty = true; onbRenderSup(); }
