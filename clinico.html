@@ -3759,6 +3759,22 @@
       transition: transform 0.15s, background 0.15s;
     }
     .chat-fab:hover { transform: scale(1.08); background: #22b384; }
+    /* Notificações de mensagem (WhatsApp + interno) — pilha no canto direito */
+    #notif-stack { position: fixed; top: 68px; right: 18px; z-index: 9350; display: flex; flex-direction: column; gap: 10px; width: 330px; max-width: calc(100vw - 36px); pointer-events: none; }
+    .notif-card { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; background: var(--bg2); border: 1px solid var(--bd1); border-left: 3px solid #1D9E75; border-radius: 12px; padding: 11px 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.4); cursor: pointer; animation: notifIn 0.28s ease; }
+    .notif-card:hover { border-color: var(--tx4); }
+    .notif-card.notif-int { border-left-color: #4A90E2; }
+    .notif-card.saindo { opacity: 0; transform: translateX(24px); transition: opacity 0.3s, transform 0.3s; }
+    .notif-av { position: relative; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; background: rgba(29,158,117,0.18); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+    .notif-int .notif-av { background: rgba(74,144,226,0.18); color: #4A90E2; }
+    .notif-canal { position: absolute; right: -3px; bottom: -3px; width: 17px; height: 17px; border-radius: 50%; background: var(--bg2); color: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    .notif-int .notif-canal { color: #4A90E2; }
+    .notif-body { flex: 1; min-width: 0; }
+    .notif-nome { font-size: 13px; font-weight: 700; color: var(--tx1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .notif-msg { font-size: 12px; color: var(--tx3); margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+    .notif-x { flex: 0 0 auto; background: none; border: 0; color: var(--tx4); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+    .notif-x:hover { color: var(--tx1); }
+    @keyframes notifIn { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
     .chat-fab-badge {
       position: absolute; top: -4px; right: -4px;
       min-width: 20px; height: 20px; padding: 0 5px;
@@ -6405,7 +6421,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BC</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BD</b></span></div>
   </div>
 </div>
 
@@ -28697,6 +28713,91 @@ async function ciAtualizarBadge() {
   if (tb) { tb.textContent = txt; tb.style.display = n > 0 ? 'flex' : 'none'; }
 }
 
+// ============================================================
+// NOTIFICAÇÕES DE MENSAGEM (WhatsApp + chat interno) — card lateral + som
+// Poll global (roda em qualquer tela). Detecta mensagem NOVA de OUTRA pessoa comparando o
+// timestamp da última msg de cada conversa contra o que já vimos; a 1ª leitura vira baseline
+// (não notifica o backlog). Clicar abre a conversa. Não apita a conversa que já está aberta.
+// ============================================================
+const notifState = { seen: {}, baseline: false, poll: null, audioCtx: null };
+function notifIniciar() { if (notifState.poll) return; notifState.poll = setInterval(notifTick, 12000); notifTick(); }
+function notifParar() { if (notifState.poll) { clearInterval(notifState.poll); notifState.poll = null; } notifState.baseline = false; notifState.seen = {}; }
+async function notifTick() {
+  if (!getToken() || !meData) return;
+  let wa = [], intc = [], eq = null;
+  try {
+    const [rw, ri] = await Promise.all([
+      pacApi('/api/clinico/whatsapp/chats').catch(() => null),
+      pacApi('/api/clinico/chat/conversas').catch(() => null),
+    ]);
+    if (rw && rw.ok && rw.data && rw.data.chats) wa = rw.data.chats;
+    if (ri && ri.ok && ri.data) { intc = ri.data.conversas || []; eq = ri.data.equipe || null; }
+  } catch (e) { return; }
+  const itens = [];
+  wa.forEach(c => itens.push({ canal: 'wa', id: c.id, nome: c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato'), numero: c.numero || null, foto: c.foto || null, alt: c.jid_alt || null, ultima: c.ultima, ultima_em: c.ultima_em, de_mim: !!c.ultima_de_mim }));
+  intc.forEach(c => itens.push({ canal: 'int', id: c.id, nome: c.nome || 'Colega', ultima: c.ultima, ultima_em: c.ultima_em, de_mim: !!c.de_mim }));
+  if (eq) itens.push({ canal: 'int', id: 'equipe', nome: 'Equipe', ultima: eq.ultima, ultima_em: eq.ultima_em, de_mim: !!eq.de_mim });
+  const primeiraVez = !notifState.baseline;
+  itens.forEach(it => {
+    if (!it.ultima_em || !it.ultima) return;
+    const key = it.canal + ':' + it.id;
+    const t = new Date(it.ultima_em).getTime();
+    if (!Number.isFinite(t) || t <= (notifState.seen[key] || 0)) return; // nada mais novo
+    notifState.seen[key] = t;
+    if (primeiraVez || it.de_mim) return;           // baseline OU a última é minha -> não apita
+    if (notifConversaAberta(it)) return;            // já estou olhando essa conversa
+    notifMostrar(it);
+  });
+  notifState.baseline = true;
+}
+function notifConversaAberta(it) {
+  if (it.canal === 'wa') {
+    return (cpState.aberto && cpState.modo === 'whatsapp' && (cpState.waJid === it.id || cpState.waAlt === it.id))
+      || (typeof wvState !== 'undefined' && wvState && wvState.jid === it.id);
+  }
+  return (cpState.aberto && cpState.modo === 'interno' && cpState.intPeer === it.id)
+    || (typeof ciState !== 'undefined' && ciState && ciState.peer === it.id);
+}
+function notifMostrar(it) {
+  notifBeep();
+  let stack = document.getElementById('notif-stack');
+  if (!stack) { stack = document.createElement('div'); stack.id = 'notif-stack'; document.body.appendChild(stack); }
+  const card = document.createElement('div');
+  card.className = 'notif-card notif-' + it.canal;
+  const ini = String(it.nome || '?').trim().charAt(0).toUpperCase() || '?';
+  const ico = it.canal === 'wa' ? 'ti-brand-whatsapp' : 'ti-users-group';
+  const msg = waTrunc(String(it.ultima || '').replace(/\s+/g, ' ').trim(), 90);
+  card.innerHTML =
+    '<div class="notif-av">' + esc(ini) + '<span class="notif-canal"><i class="ti ' + ico + '"></i></span></div>' +
+    '<div class="notif-body"><div class="notif-nome">' + esc(waTrunc(it.nome, 26)) + '</div><div class="notif-msg">' + esc(msg) + '</div></div>' +
+    '<button class="notif-x" title="Fechar">&times;</button>';
+  card.querySelector('.notif-x').onclick = (e) => { e.stopPropagation(); card.remove(); };
+  card.onclick = () => { card.remove(); notifAbrir(it); };
+  stack.appendChild(card);
+  setTimeout(() => { card.classList.add('saindo'); setTimeout(() => card.remove(), 320); }, 9000);
+  while (stack.children.length > 4) stack.removeChild(stack.firstChild);
+}
+async function notifAbrir(it) {
+  if (it.canal === 'wa') { cpAbrirConversaWa(it.id, it.nome, it.numero || it.id, it.alt, it.foto); return; }
+  chatPopAbrir('interno');
+  if (!cpState.intUsuarios || !cpState.intUsuarios.length) { try { await chatPopCarregarLista(true); } catch (e) {} }
+  chatPopAbrirInt(it.id);
+}
+function notifBeep() {
+  try {
+    if (!notifState.audioCtx) notifState.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = notifState.audioCtx; if (ctx.state === 'suspended') ctx.resume();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination); o.type = 'sine';
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(1180, ctx.currentTime + 0.09);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.32);
+    o.start(); o.stop(ctx.currentTime + 0.34);
+  } catch (e) { /* som é best-effort (autoplay pode bloquear até um clique) */ }
+}
+
 const _origTrocarView = trocarView;
 trocarView = function(v) {
   _origTrocarView(v);
@@ -28738,6 +28839,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Badge de mensagens não lidas do chat interno (kick inicial + atualização periódica)
   setTimeout(ciAtualizarBadge, 4000);
   setInterval(ciAtualizarBadge, 20000);
+  notifIniciar(); // notificações de mensagem nova (WhatsApp + interno) — card lateral + som
 });
 </script>
 
