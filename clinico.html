@@ -3793,6 +3793,8 @@
     .notif-hora { flex: 0 0 auto; font-size: 10.5px; color: var(--tx4); white-space: nowrap; }
     .notif-tag { display: inline-block; margin-top: 3px; font-size: 9.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--nc); background: var(--nc-soft); border-radius: 5px; padding: 1px 6px; }
     .notif-msg { font-size: 12.5px; line-height: 1.45; color: var(--tx2); margin-top: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+    .notif-resumo { --nc: var(--tx4); padding: 9px 12px; }
+    .notif-resumo .notif-msg { color: var(--tx3); font-size: 12px; }
     .notif-x { flex: 0 0 auto; background: none; border: 0; color: var(--tx4); font-size: 17px; line-height: 1; cursor: pointer; padding: 0 2px; opacity: .6; transition: opacity .15s, color .15s; }
     .notif-card:hover .notif-x { opacity: 1; }
     .notif-x:hover { color: var(--tx1); }
@@ -6444,7 +6446,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BE</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BF</b></span></div>
   </div>
 </div>
 
@@ -28839,28 +28841,38 @@ async function ciAtualizarBadge() {
 // timestamp da última msg de cada conversa contra o que já vimos; a 1ª leitura vira baseline
 // (não notifica o backlog). Clicar abre a conversa. Não apita a conversa que já está aberta.
 // ============================================================
-const notifState = { seen: {}, baseline: false, poll: null, audioCtx: null, usuarios: null, ultimoBeep: 0 };
-function notifIniciar() { if (notifState.poll) return; notifState.poll = setInterval(notifTick, 12000); notifTick(); }
+const notifState = { seen: {}, baseWa: false, baseInt: false, poll: null, audioCtx: null, usuarios: null, ultimoBeep: 0 };
+function notifIniciar() { if (notifState.poll) return; notifState.poll = setInterval(notifTick, 20000); notifTick(); }
 function notifParar() { if (notifState.poll) { clearInterval(notifState.poll); notifState.poll = null; } notifLimpar(); }
 // Troca de sessão (logout/expirou): tira os cards da tela e zera o baseline. NÃO para o poll —
 // ele já é inofensivo sem token, e pará-lo deixaria as notificações mortas no próximo login.
 function notifLimpar() {
   const st = document.getElementById('notif-stack'); if (st) st.remove();
-  notifState.seen = {}; notifState.baseline = false; notifState.usuarios = null;
+  notifState.seen = {}; notifState.baseWa = false; notifState.baseInt = false; notifState.usuarios = null;
 }
+function notifViewAtual() { const v = document.querySelector('.view.active'); return v ? v.id.replace('view-', '') : ''; }
 async function notifTick() {
-  if (!getToken() || !meData) return;       // sem sessão: nada de buscar/mostrar (tela de login)
+  const tk = getToken();
+  if (!tk || !meData) return;               // sem sessão: nada de buscar/mostrar (tela de login)
   if (document.hidden) return;              // aba em segundo plano não gasta chamada (volta ao focar)
-  let wa = [], intc = [], eq = null;
+  // A página Conversas já pesquisa essa MESMA lista a cada 6s — reusar o que ela tem em memória
+  // evita dobrar a carga no Evolution (o /chats é o endpoint caro) justamente na tela mais usada.
+  const waMem = (notifViewAtual() === 'whatsapp' && typeof wvState !== 'undefined' && wvState && Array.isArray(wvState.chats) && wvState.chats.length) ? wvState.chats : null;
+  let wa = [], intc = [], eq = null, okWa = false, okInt = false;
   try {
     const [rw, ri, ru] = await Promise.all([
-      pacApi('/api/clinico/whatsapp/chats').catch(() => null),
+      waMem ? Promise.resolve(null) : pacApi('/api/clinico/whatsapp/chats').catch(() => null),
       pacApi('/api/clinico/chat/conversas').catch(() => null),
       // Colegas só pra ter COR do cargo + cargo no card do interno (lista pequena; cacheia).
       (notifState.usuarios ? Promise.resolve(null) : pacApi('/api/clinico/chat/usuarios').catch(() => null)),
     ]);
-    if (rw && rw.ok && rw.data && rw.data.chats) wa = rw.data.chats;
-    if (ri && ri.ok && ri.data) { intc = ri.data.conversas || []; eq = ri.data.equipe || null; }
+    // Sessão pode ter caído DURANTE o fetch (o Evolution é lento). Sem revalidar, o card com dado
+    // do paciente seria montado já na tela de login — e o notifLimpar do logout não pega o que vem
+    // depois. Token diferente = outro usuário: descarta este ciclo inteiro.
+    if (!getToken() || getToken() !== tk || !meData) return;
+    if (waMem) { wa = waMem; okWa = true; }
+    else if (rw && rw.ok && rw.data && rw.data.chats) { wa = rw.data.chats; okWa = true; }
+    if (ri && ri.ok && ri.data) { intc = ri.data.conversas || []; eq = ri.data.equipe || null; okInt = true; }
     if (ru && ru.ok && ru.data && ru.data.usuarios) notifState.usuarios = ru.data.usuarios;
   } catch (e) { return; }
   const uPorId = {};
@@ -28879,26 +28891,53 @@ async function notifTick() {
     itens.push({ canal: 'int', id: c.id, nome: c.nome || u.nome || 'Colega', tag: u.cargo || null, cor: u.cor || '#4A90E2', ultima: c.ultima, ultima_em: c.ultima_em, de_mim: !!c.de_mim });
   });
   if (eq) itens.push({ canal: 'int', id: 'equipe', nome: 'Equipe', tag: 'canal da equipe', cor: '#1D9E75', equipe: true, ultima: eq.ultima, ultima_em: eq.ultima_em, de_mim: !!eq.de_mim });
-  const primeiraVez = !notifState.baseline;
+  const novos = [];
   itens.forEach(it => {
     if (!it.ultima_em || !it.ultima) return;
     const key = it.canal + ':' + it.id;
     const t = new Date(it.ultima_em).getTime();
     if (!Number.isFinite(t) || t <= (notifState.seen[key] || 0)) return; // nada mais novo
     notifState.seen[key] = t;
-    if (primeiraVez || it.de_mim) return;           // baseline OU a última é minha -> não apita
-    if (notifConversaAberta(it)) return;            // já estou olhando essa conversa
-    notifMostrar(it);
+    const temBase = it.canal === 'wa' ? notifState.baseWa : notifState.baseInt;
+    if (!temBase || it.de_mim) return;    // 1ª leitura DO CANAL (baseline) ou a última é minha
+    if (notifConversaAberta(it)) return;  // já estou olhando essa conversa
+    novos.push(it);
   });
-  notifState.baseline = true;
+  // Baseline POR CANAL e só com dado que REALMENTE chegou. Se o /chats falhou (Evolution fora) ou a
+  // sessão expirou no meio do ciclo, armar o baseline aqui faria o ciclo seguinte tratar TODA
+  // conversa antiga como "mensagem nova" — enxurrada de cards mostrando recado velho como se fosse
+  // de agora (dado falso). Canal que não respondeu continua sem baseline e não notifica nada.
+  if (okWa) notifState.baseWa = true;
+  if (okInt) notifState.baseInt = true;
+  if (!novos.length) return;
+  // Teto por ciclo: voltando de uma aba parada podem cair dezenas de conversas de uma vez.
+  novos.sort((a, b) => new Date(b.ultima_em) - new Date(a.ultima_em));
+  novos.slice(0, 3).forEach(it => notifMostrar(it));
+  if (novos.length > 3) notifResumo(novos.length - 3);
 }
+// "+N outras conversas": honesto sobre o que ficou de fora do teto, em vez de sumir calado.
+function notifResumo(n) {
+  const stack = document.getElementById('notif-stack');
+  if (!stack) return;
+  const card = document.createElement('div');
+  card.className = 'notif-card notif-resumo';
+  card.innerHTML = '<div class="notif-body"><div class="notif-msg" style="margin:0;">'
+    + '<b>+' + n + '</b> outra' + (n > 1 ? 's' : '') + ' conversa' + (n > 1 ? 's' : '') + ' com mensagem nova</div></div>';
+  card.onclick = () => { card.remove(); chatPopAbrir('whatsapp'); };
+  stack.appendChild(card);
+  setTimeout(() => { card.classList.add('saindo'); setTimeout(() => card.remove(), 320); }, 9000);
+}
+// "Estou olhando essa conversa agora?" — o wvState.jid/ciState.peer NÃO são limpos ao sair da tela,
+// então sem checar a view atual a última conversa aberta ficaria SILENCIADA pra sempre (justamente a
+// que a pessoa mais usa). Por isso o ramo da página só vale com a view dela ativa.
 function notifConversaAberta(it) {
+  const view = notifViewAtual();
   if (it.canal === 'wa') {
     return (cpState.aberto && cpState.modo === 'whatsapp' && (cpState.waJid === it.id || cpState.waAlt === it.id))
-      || (typeof wvState !== 'undefined' && wvState && wvState.jid === it.id);
+      || (view === 'whatsapp' && typeof wvState !== 'undefined' && wvState && wvState.jid === it.id);
   }
   return (cpState.aberto && cpState.modo === 'interno' && cpState.intPeer === it.id)
-    || (typeof ciState !== 'undefined' && ciState && ciState.peer === it.id);
+    || (view === 'comunicacao' && typeof ciState !== 'undefined' && ciState && ciState.peer === it.id);
 }
 function notifMostrar(it) {
   notifBeep();
@@ -28906,7 +28945,9 @@ function notifMostrar(it) {
   if (!stack) { stack = document.createElement('div'); stack.id = 'notif-stack'; document.body.appendChild(stack); }
   const card = document.createElement('div');
   card.className = 'notif-card notif-' + it.canal;
-  const cor = it.cor || '#1D9E75';
+  // A cor do cargo vem do banco: valida como hex antes de entrar no CSS (valor cru numa custom
+  // property vira `background: var(--nc)` — lixo ali quebra o selo do canal, e é dado de terceiro).
+  const cor = /^#[0-9a-f]{6}$/i.test(String(it.cor || '')) ? it.cor : (it.canal === 'wa' ? '#25D366' : '#4A90E2');
   card.style.setProperty('--nc', cor);
   card.style.setProperty('--nc-soft', notifRgba(cor, 0.18));
   const ini = waIni(it.nome);                       // inicial emoji-safe
