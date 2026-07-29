@@ -28193,11 +28193,26 @@ async function esSalvarLote() {
 }
 
 // ===== TRANSFERÊNCIA entre unidades (realocação de lote / produto solto) =====
+// Unidades da CLÍNICA (todas as ativas, via /units). NÃO usar pacState.unidades aqui:
+// aquilo traz só as unidades VINCULADAS ao usuário (meData.unidades), e o estoque é da
+// clínica inteira — a lista de lotes vem de todas as unidades e o destino da transferência
+// pode ser qualquer uma. Com pacState, quem tinha 1 unidade vinculada era barrado com
+// "é preciso ter pelo menos 2 unidades" mesmo havendo 2+ cadastradas.
+let esUnidades = [];
+async function esCarregarUnidades(force) {
+  if (esUnidades.length && !force) return esUnidades;
+  const r = await pacApi('/api/clinico/units');
+  if (r.ok && r.data && Array.isArray(r.data.unidades)) esUnidades = r.data.unidades;
+  return esUnidades;
+}
 let esTransfLotes = [];
 let esTransfEnviando = false;
 async function esAbrirTransf() {
   document.getElementById('es-transf-erro').style.display = 'none';
-  if (pacState.unidades.length < 2) { alert('É preciso ter pelo menos 2 unidades cadastradas pra transferir estoque.'); return; }
+  const unidades = await esCarregarUnidades();
+  // Erro de carga NÃO pode virar "faltam unidades" (mensagem mentirosa que motivou o fix).
+  if (!unidades.length) { alert('Não consegui carregar as unidades agora. Verifique a conexão e tente de novo.'); return; }
+  if (unidades.length < 2) { alert('Só há 1 unidade ativa cadastrada — pra transferir estoque é preciso ter pelo menos 2.'); return; }
   const sel = document.getElementById('es-transf-lote');
   sel.innerHTML = '<option value="">Carregando…</option>';
   document.getElementById('es-transf-obs').value = '';
@@ -28229,8 +28244,10 @@ function esTransfLoteChange() {
   info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${l.qtd_atual}</strong> · validade ${esc(l.validade)}`;
   qtd.max = l.qtd_atual;
   qtd.value = l.qtd_atual;   // padrão = mover o lote inteiro (editável)
+  // Destino = qualquer unidade ativa MENOS a de origem (o lote escolhido pode estar numa
+  // unidade que o usuário não tem vinculada — a lista de lotes é da clínica toda).
   destSel.innerHTML = '<option value="">—</option>' +
-    pacState.unidades.filter(u => u.id !== l.unidade.id).map(u => `<option value="${esc(u.id)}">${esc(u.nome)}</option>`).join('');
+    esUnidades.filter(u => u.id !== l.unidade.id).map(u => `<option value="${esc(u.id)}">${esc(u.nome)}</option>`).join('');
 }
 async function esSalvarTransf() {
   const erroEl = document.getElementById('es-transf-erro'); erroEl.style.display = 'none';
