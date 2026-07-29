@@ -9724,6 +9724,16 @@
 // ============================================================
 const CHANGELOG_CLINICO = [
   {
+    versao: '1.1.0',
+    data: '2026-07-29',
+    titulo: 'Observações gerais do paciente + insight da IA',
+    mudancas: [
+      { tipo: 'add', texto: 'Todo acompanhamento e onboarding (médico, nutri e enfermagem) agora tem no FINAL um campo "Observações gerais" — escreva qualquer coisa sobre o paciente: como foi a consulta, humor, adesão, intercorrências.' },
+      { tipo: 'add', texto: 'Logo abaixo, um "Insight da IA" lê TODAS as observações já registradas (as de hoje e as passadas) e resume em 2-3 frases como o paciente está, cruzando com os dados coletados (peso, scores).' },
+      { tipo: 'melhoria', texto: 'As observações ficam no prontuário e no histórico, e NÃO aparecem para o paciente — é registro interno da equipe.' }
+    ]
+  },
+  {
     versao: '1.0.0',
     data: '2026-05-26',
     titulo: 'Sistema Clínico MVP completo — Etapa 8 fechada',
@@ -10078,6 +10088,7 @@ async function carregarMe() {
     aplicarUI();
     await carregarStatus();
     caTratarRetorno();   // se voltou do Conta Azul (?contaazul=ok|erro), avisa e limpa a URL
+    novidadesAutoAbrir();  // mostra a última atualização UMA vez pra quem entrou/recarregou
   } catch (e) {
     document.getElementById('status-text').textContent = 'Offline';
     document.getElementById('status-dot').style.background = '#f85149';
@@ -14193,6 +14204,22 @@ function abrirNovidades() {
 }
 function fecharNovidades() {
   document.getElementById('novidades-overlay').classList.remove('aberto');
+}
+// Abre as Novidades UMA vez pra quem ainda não viu a versão atual (ao entrar OU
+// recarregar o sistema). abrirNovidades() já marca como lida, então não reabre depois.
+let _novidadesAutoFeito = false;
+function novidadesAutoAbrir() {
+  if (_novidadesAutoFeito) return;
+  _novidadesAutoFeito = true;
+  try {
+    if (!temNovidadeNaoLida()) return;
+    setTimeout(function () {
+      // não atropela login/convite/reset abertos, nem se já abriu outra coisa
+      const overlaysBloqueio = ['auth-overlay', 'reset-overlay', 'convite-overlay', 'novidades-overlay'];
+      if (overlaysBloqueio.some(id => { const el = document.getElementById(id); return el && el.classList.contains('aberto'); })) return;
+      abrirNovidades();
+    }, 800);
+  } catch (e) {}
 }
 document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') fecharNovidades();
