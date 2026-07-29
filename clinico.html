@@ -6449,7 +6449,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BH</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BI</b></span></div>
   </div>
 </div>
 
@@ -29147,7 +29147,7 @@ function notifBeep() {
 // O back guarda as definições no clin_config e mescla nos templates no render; o mesmo campo em
 // vários templates herda o último valor preenchido (carry-forward por slug, que já existia).
 // ============================================================
-let edState = { campos: [], templates: [], tela: 'hub', carregado: false, erro: null };
+let edState = { campos: [], templates: [], secoes: [], tela: 'hub', carregado: false, erro: null };
 
 const ED_TIPO_LABEL = {
   texto: 'Texto curto', texto_longo: 'Texto longo', numero: 'Número',
@@ -29240,6 +29240,15 @@ function edModal(campo) {
   const tipos = Object.keys(ED_TIPO_LABEL).map(function (t) {
     return '<option value="' + t + '"' + (campo && campo.tipo === t ? ' selected' : '') + '>' + ED_TIPO_LABEL[t] + '</option>';
   }).join('');
+  // Seções: as que já existem (nativas dos templates + das criadas + as personalizadas salvas) e,
+  // no fim, "criar personalizada" — a nova fica salva e aparece aqui na próxima vez.
+  const secoes = (edState.secoes || []).slice();
+  if (secoes.indexOf('Campos personalizados') < 0) secoes.unshift('Campos personalizados');
+  const secAtual = (campo && campo.secao) || 'Campos personalizados';
+  let secOpts = secoes.map(function (s) {
+    return '<option value="' + esc(s) + '"' + (secAtual === s ? ' selected' : '') + '>' + esc(s) + '</option>';
+  }).join('');
+  secOpts += '<option value="__nova__">+ Criar seção personalizada…</option>';
   // Templates agrupados por categoria (ONBOARDING / ACOMPANHAMENTO / …). Template de TEXTO livre
   // não aceita campo novo — aparece desabilitado, em vez de aceitar e o campo nunca surgir.
   const porCat = {};
@@ -29262,8 +29271,10 @@ function edModal(campo) {
     + '<div class="pac-field"><label>Nome do campo *</label><input type="text" id="ed-f-label" maxlength="120" value="' + esc((campo && campo.label) || '') + '" placeholder="Ex.: Qualidade da digestão"></div>'
     + '<div class="pac-form-grid col-2" style="margin-top:10px;">'
     + '<div class="pac-field"><label>Tipo</label><select id="ed-f-tipo" onchange="edTipoMudou()">' + tipos + '</select></div>'
-    + '<div class="pac-field"><label>Seção no formulário</label><input type="text" id="ed-f-secao" maxlength="80" value="' + esc((campo && campo.secao) || '') + '" placeholder="Campos personalizados"></div>'
+    + '<div class="pac-field"><label>Seção no formulário</label><select id="ed-f-secao" onchange="edSecaoMudou()">' + secOpts + '</select></div>'
     + '</div>'
+    + '<div class="pac-field" id="ed-f-secao-nova-wrap" style="margin-top:10px;display:none;"><label>Nome da nova seção</label>'
+    + '<input type="text" id="ed-f-secao-nova" maxlength="80" placeholder="Ex.: Sono e recuperação"></div>'
     + '<div class="pac-field" id="ed-f-opcoes-wrap" style="margin-top:10px;display:none;"><label>Opções (uma por linha)</label>'
     + '<textarea id="ed-f-opcoes" rows="4" placeholder="Ótima&#10;Boa&#10;Ruim">' + esc((((campo && campo.opcoes) || []).join('\n'))) + '</textarea></div>'
     + '<div class="pac-field" style="margin-top:12px;"><label>Aparece em quais templates? *</label>'
@@ -29286,17 +29297,29 @@ function edTipoMudou() {
   const w = document.getElementById('ed-f-opcoes-wrap');
   if (sel && w) w.style.display = sel.value === 'opcoes' ? '' : 'none';
 }
+// "Criar seção personalizada" revela o campo do nome; a seção escolhida/criada é salva no servidor
+// e passa a aparecer na lista pra usar em outro campo.
+function edSecaoMudou() {
+  const sel = document.getElementById('ed-f-secao');
+  const w = document.getElementById('ed-f-secao-nova-wrap');
+  if (!sel || !w) return;
+  const nova = sel.value === '__nova__';
+  w.style.display = nova ? '' : 'none';
+  if (nova) setTimeout(function () { const i = document.getElementById('ed-f-secao-nova'); if (i) i.focus(); }, 20);
+}
 
 async function edSalvar(slug) {
   const erroEl = document.getElementById('ed-f-erro');
   const falha = function (m) { if (erroEl) { erroEl.textContent = m; erroEl.style.display = 'block'; } };
   const label = (document.getElementById('ed-f-label').value || '').trim();
   const tipo = document.getElementById('ed-f-tipo').value;
-  const secao = (document.getElementById('ed-f-secao').value || '').trim();
+  const secSel = document.getElementById('ed-f-secao').value;
+  const secao = secSel === '__nova__' ? ((document.getElementById('ed-f-secao-nova').value || '').trim()) : secSel;
   const opcoes = (document.getElementById('ed-f-opcoes').value || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
   const templates = Array.prototype.slice.call(document.querySelectorAll('#ed-modal .ed-tpl-grid input:checked')).map(function (i) { return i.value; });
   const salvar_paciente = !!document.getElementById('ed-f-salvar').checked;
   if (label.length < 2) return falha('Escreva o nome do campo.');
+  if (secSel === '__nova__' && !secao) return falha('Escreva o nome da nova seção.');
   if (!templates.length) return falha('Escolha ao menos um template onde o campo aparece.');
   if (tipo === 'opcoes' && !opcoes.length) return falha('Escreva as opções da lista (uma por linha).');
   const btn = document.getElementById('ed-f-btn'); if (btn) btn.disabled = true;
