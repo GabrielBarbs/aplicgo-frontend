@@ -22411,9 +22411,25 @@ async function onbSalvar(finalizar) {
     alert('Onboarding finalizado! Paciente promovido para ATIVO.');
   }
   document.getElementById('onb-modal').classList.remove('aberto');
+  // O que foi salvo aqui JÁ vale no paciente (programa, duração, início) mesmo sem finalizar —
+  // então recarrega tudo que estiver aberto, senão a tela continua mostrando o programa antigo
+  // (ex.: "Consulta avulsa") e parece que não pegou.
+  if (r.data.programa_inicio_em) {
+    homeToast('Programa aplicado ao paciente. Início: ' + dataDiaBR(r.data.programa_inicio_em) + '.');
+  }
   // Recarrega detalhe do paciente
   if (pacState.detalheAtual?.id === onbState.patientId) {
     pacAbrirDetalhe(onbState.patientId);
+  }
+  // Prontuário aberto NESSE paciente: refaz o cabeçalho (programa/duração/semana saem daí).
+  if (r.data.paciente_alterado && typeof prSelecionarPaciente === 'function'
+      && prState && prState.pacienteAtual && prState.pacienteAtual.id === onbState.patientId) {
+    prSelecionarPaciente(prState.pacienteAtual);
+  }
+  // Lista de pacientes já carregada: a coluna de programa mudou.
+  if (r.data.paciente_alterado && pacState && Array.isArray(pacState.pacientes) && pacState.pacientes.length
+      && typeof pacCarregarLista === 'function') {
+    pacCarregarLista();
   }
   // Se está na view de pendências, recarrega a lista
   const viewAtiva = document.querySelector('.view.active');
