@@ -23207,17 +23207,30 @@ async function admApagarUser(id) {
   const email = (d.usuario && d.usuario.email) || u.email || '';
   const lista = (arr) => arr.map((x) => `<li>${esc(String(x.n))} ${esc(x.o_que)}</li>`).join('');
 
-  // Tem registro que o banco não deixa apagar: não adianta oferecer o botão.
+  // Tem registro (prontuário, mensagens, histórico): o histórico FICA, então a linha do usuário
+  // não pode sumir — as FKs desses registros são obrigatórias e levariam tudo junto. A conta é
+  // excluída ANONIMIZANDO: some o dado pessoal, o acesso cai, ela sai das listas, e o histórico
+  // continua lá assinado como "Usuário removido".
   if (!d.pode) {
     admModal(`
-      <div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:6px"><i class="ti ti-lock" style="color:#f85149"></i> Não dá pra apagar ${esc(nome)}</div>
+      <div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:6px"><i class="ti ti-user-off" style="color:#EF9F27"></i> Excluir ${esc(nome)}</div>
       <div style="font-size:12.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px">
-        Esta conta assinou registros que fazem parte do prontuário e do histórico. Apagar o usuário
-        significaria apagar esses registros junto — por isso o sistema não permite.
+        Esta conta tem registros que ficam no sistema (prontuário, mensagens, histórico). Eles
+        <strong>são preservados</strong> — o que sai é a pessoa:
       </div>
-      <ul style="font-size:12px;color:var(--tx2);margin:0 0 12px 18px;line-height:1.7">${lista(d.bloqueios)}</ul>
-      <div style="font-size:12px;color:var(--tx3);margin-bottom:14px">O caminho aqui é <strong>suspender</strong> a conta: ela para de acessar o sistema e os registros continuam com o nome de quem os fez.</div>
-      <button class="pac-btn-secondary" style="width:100%" onclick="admModalFechar()">Entendi</button>`);
+      <ul style="font-size:12px;color:var(--tx2);margin:0 0 10px 18px;line-height:1.7">
+        <li>nome e e-mail apagados (o e-mail volta a ficar livre)</li>
+        <li>acesso cortado na hora — a sessão aberta cai e a senha deixa de valer</li>
+        <li>sai das listas, seletores, filas e filtros</li>
+        <li>cargos e unidades removidos</li>
+      </ul>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">O que ela assinou continua no lugar, agora como <strong>“Usuário removido”</strong>:</div>
+      <ul style="font-size:12px;color:var(--tx3);margin:0 0 12px 18px;line-height:1.7">${lista(d.bloqueios)}</ul>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:5px">Pra confirmar, digite o e-mail da conta:</div>
+      <input id="adm-del-conf" placeholder="${esc(email)}" style="width:100%;box-sizing:border-box;font-size:12px;padding:7px 9px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px;margin-bottom:12px">
+      <button class="pac-btn-primary" id="adm-del-ok" style="width:100%;background:#f85149;border-color:#f85149" onclick="admApagarUserConfirmar('${id}','${esc(email)}',this)"><i class="ti ti-user-off"></i> Excluir usuário</button>
+      <button class="pac-btn-secondary" style="width:100%;margin-top:8px" onclick="admModalFechar()">Cancelar</button>`);
+    setTimeout(() => { const i = document.getElementById('adm-del-conf'); if (i) i.focus(); }, 60);
     return;
   }
 
@@ -23246,7 +23259,11 @@ async function admApagarUserConfirmar(id, email, btn) {
   if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-trash"></i> Apagar para sempre'; }
   if (!r.ok) { alert((r.data && r.data.erro) || 'Não consegui apagar.'); return; }
   admModalFechar();
-  homeToast('Usuário apagado do banco.');
+  // Diz o que REALMENTE aconteceu: conta sem registro sai do banco; com registro, o histórico
+  // fica e ela vira "Usuário removido". Dizer "apagado do banco" nos dois casos seria mentira.
+  homeToast(r.data.modo === 'anonimizado'
+    ? 'Usuário excluído. O histórico ficou preservado como “Usuário removido”.'
+    : 'Usuário apagado do banco.');
   admCarregarUsuarios();
 }
 function admModal(html) {
