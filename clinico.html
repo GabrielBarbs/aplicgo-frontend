@@ -13341,11 +13341,17 @@ function injCobrarModal(prescId) {
   const f = injCobrancaCache[prescId];
   if (!f || !(f.sessoes || []).length) { homeToast('Não consegui carregar as sessões desta prescrição.'); return; }
   const linhas = f.sessoes.map((s) => `
-    <label class="inj-ses-row" style="display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--hair);cursor:pointer">
-      <input type="checkbox" class="inj-ses-ck" value="${s.semana}" checked onchange="injCobrarTotal()">
-      <span style="flex:1;font-size:13px;color:var(--tx1)">Sessão ${s.semana}<span style="color:var(--tx4);font-size:11px"> · ${s.itens} item(ns)</span></span>
-      <span style="font-size:13px;color:var(--tx2);font-variant-numeric:tabular-nums">${homeGestorFmtBRL(s.valor_cents)}</span>
-    </label>`).join('');
+    <div style="border-bottom:1px solid var(--hair)">
+      <label class="inj-ses-row" style="display:flex;align-items:center;gap:10px;padding:8px 2px;cursor:pointer">
+        <input type="checkbox" class="inj-ses-ck" value="${s.semana}" checked onchange="injCobrarTotal()">
+        <span style="flex:1;font-size:13px;color:var(--tx1)">Sessão ${s.semana}<span style="color:var(--tx4);font-size:11px"> · ${s.itens} item(ns)</span></span>
+        <button type="button" class="inj-ses-det-btn" id="inj-ses-detbtn-${s.semana}" title="Ver os itens desta sessão"
+          onclick="event.preventDefault(); event.stopPropagation(); injSesDetalhe(${s.semana})"
+          style="background:none;border:0;color:var(--tx3);cursor:pointer;padding:2px 5px;border-radius:5px;font-size:14px;line-height:1"><i class="ti ti-chevron-down"></i></button>
+        <span style="font-size:13px;color:var(--tx2);font-variant-numeric:tabular-nums">${homeGestorFmtBRL(s.valor_cents)}</span>
+      </label>
+      <div id="inj-ses-det-${s.semana}" style="display:none;padding:0 2px 8px 30px"></div>
+    </div>`).join('');
   injOverlay(`
     <div style="font-size:15px;font-weight:700;color:var(--tx1)">Cobrar — ${esc(f.paciente || '—')}</div>
     <div style="font-size:12px;color:var(--tx3);margin:4px 0 10px">Marque o que ele vai pagar agora. Cada sessão paga vira uma tarefa de agendamento.</div>
@@ -13364,6 +13370,30 @@ function injCobrarModal(prescId) {
 function injCobrarMarcar(v) {
   document.querySelectorAll('.inj-ses-ck').forEach((c) => { c.checked = v; });
   injCobrarTotal();
+}
+// Abre/fecha os itens que compõem o valor da sessão — a recepção precisa responder "o que tem
+// nesses R$ 417?" sem sair da tela. O botão vive DENTRO do <label>, então quem chama já cancelou o
+// evento: sem isso, clicar pra ver o detalhe desmarcaria a sessão e mudaria o total cobrado.
+function injSesDetalhe(semana) {
+  const box = document.getElementById('inj-ses-det-' + semana);
+  const btn = document.getElementById('inj-ses-detbtn-' + semana);
+  if (!box) return;
+  const estavaAberto = box.style.display !== 'none';
+  box.style.display = estavaAberto ? 'none' : 'block';
+  if (btn) btn.innerHTML = estavaAberto ? '<i class="ti ti-chevron-down"></i>' : '<i class="ti ti-chevron-up"></i>';
+  if (estavaAberto || box.dataset.pronto) return;
+  const f = injCobrancaCache[injCobrarPrescAtual()] || { sessoes: [] };
+  const s = (f.sessoes || []).find((x) => Number(x.semana) === Number(semana));
+  const det = (s && s.detalhe) || [];
+  // Sem detalhe = backend ainda não atualizado. Diz isso, em vez de mostrar caixa vazia (que
+  // pareceria "esta sessão não tem item", o que seria mentira).
+  box.innerHTML = det.length
+    ? det.map((i) => `<div style="display:flex;gap:8px;padding:3px 0;font-size:11.5px;color:var(--tx3)">
+        <span style="flex:1">${esc(i.produto || i.sku || '—')}${i.dose ? ' · ' + esc(i.dose) : ''}${i.via ? ' · ' + esc(i.via) : ''}</span>
+        <span style="font-variant-numeric:tabular-nums">${homeGestorFmtBRL(i.valor_cents)}</span>
+      </div>`).join('')
+    : '<div style="font-size:11.5px;color:var(--tx4);padding:3px 0">Detalhe dos itens indisponível — recarregue a fila depois do próximo deploy.</div>';
+  box.dataset.pronto = '1';
 }
 // O total é somado das sessões MARCADAS, não do valor cheio: a recepção fala esse número em voz
 // alta pro paciente — mostrar o total da prescrição enquanto ela cobra 2 semanas seria cobrar errado.
