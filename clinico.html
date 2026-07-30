@@ -10318,6 +10318,7 @@ async function resetTrocarSenha() {
 
 function fazerLogout() {
   setToken(null);
+  salvarPacienteAtual(null);   // a próxima pessoa na mesma máquina não reabre a ficha de quem saiu
   authUser = null; meData = null;
   document.getElementById('user-pill').style.display = 'none';
   mostrarLogin('Você saiu da sua conta');
@@ -14316,13 +14317,33 @@ document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
 // nasce com class="active" no HTML e ninguém restaurava nada). Agora a última aba fica guardada e
 // é reaberta depois do login — quem passa o dia na Agenda ou no Estoque não perde o lugar.
 const VIEW_ATUAL_KEY = 'aplic_clinico_view';
+const PAC_ATUAL_KEY = 'aplic_clinico_paciente';
 function salvarViewAtual(v) { try { localStorage.setItem(VIEW_ATUAL_KEY, v); } catch (e) {} }
+// Paciente aberto no prontuário: guardado junto pra o F5 cair na ficha certa, não no seletor.
+// Some ao trocar de paciente e ao SAIR da conta (a próxima pessoa na mesma máquina não pode
+// recarregar e abrir a ficha de quem estava antes).
+function salvarPacienteAtual(p) {
+  try {
+    if (p && p.id) localStorage.setItem(PAC_ATUAL_KEY, JSON.stringify({ id: p.id, nome: p.nome || '', codigo: p.codigo || '', telefone: p.telefone || '' }));
+    else localStorage.removeItem(PAC_ATUAL_KEY);
+  } catch (e) {}
+}
+function lerPacienteSalvo() {
+  try { const s = localStorage.getItem(PAC_ATUAL_KEY); const p = s ? JSON.parse(s) : null; return (p && p.id) ? p : null; } catch (e) { return null; }
+}
 function restaurarViewSalva() {
   let v = null;
   try { v = localStorage.getItem(VIEW_ATUAL_KEY); } catch (e) {}
   if (!v || v === 'painel') return;                    // painel já é o padrão do HTML
   if (!document.getElementById('view-' + v)) return;   // aba que não existe mais (renomeada/removida)
   trocarView(v);   // o próprio trocarView derruba pro painel se faltar permissão pra essa aba
+  // Só reabre o paciente se o prontuário for MESMO a aba restaurada (o trocarView pode ter caído
+  // no painel por falta de permissão — aí não é pra abrir ficha de ninguém).
+  const el = document.querySelector('.view.active');
+  if (el && el.id === 'view-prontuario') {
+    const p = lerPacienteSalvo();
+    if (p) prSelecionarPaciente(p);
+  }
 }
 
 function trocarView(v) {
@@ -19807,6 +19828,7 @@ async function prBuscarPaciente() {
 
 async function prSelecionarPaciente(p) {
   prState.pacienteAtual = p;
+  salvarPacienteAtual(p);    // recarregar a página volta nesta ficha (todas as entradas passam aqui)
   prState.documentos = [];   // anexos recarregam ao abrir o paciente
   prState.appMonitor = null; // monitoramento do app recarrega pro novo paciente
   prState.produtosRec = null; // produtos/recompra recarregam pro novo paciente
@@ -23406,6 +23428,7 @@ async function prEnviarAnamnese(patientId) {
 
 function prLimparPaciente() {
   prState.pacienteAtual = null;
+  salvarPacienteAtual(null);   // não reabre no próximo F5
   prState.timeline = [];
   rxState = rxEstadoLimpo(); // rascunho não migra de paciente
   document.getElementById('pr-pat-selector').innerHTML = `
