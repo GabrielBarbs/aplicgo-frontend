@@ -3766,6 +3766,24 @@
       transition: transform 0.15s, background 0.15s;
     }
     .chat-fab:hover { transform: scale(1.08); background: #22b384; }
+    /* Configurações (menu do perfil) */
+    .cfg-grupo { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--tx4); margin: 18px 0 8px; }
+    .cfg-grupo:first-child { margin-top: 0; }
+    .cfg-linha { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--bd1); }
+    .cfg-linha:last-child { border-bottom: 0; }
+    .cfg-linha .txt { flex: 1; min-width: 0; }
+    .cfg-linha .tt { font-size: 13px; color: var(--tx1); }
+    .cfg-linha .sub { font-size: 11.5px; color: var(--tx3); margin-top: 2px; line-height: 1.4; }
+    .cfg-linha select { flex: 0 0 auto; background: var(--bg1); border: 1px solid var(--bg3); color: var(--tx1); border-radius: 7px; padding: 6px 9px; font: inherit; font-size: 12.5px; }
+    .cfg-linha select:focus { outline: none; border-color: var(--ac); }
+    /* Interruptor */
+    .cfg-sw { position: relative; flex: 0 0 auto; width: 42px; height: 23px; cursor: pointer; }
+    .cfg-sw input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .cfg-sw .tr { position: absolute; inset: 0; background: var(--bg3); border-radius: 999px; transition: background .16s; }
+    .cfg-sw .tr::before { content: ''; position: absolute; left: 3px; top: 3px; width: 17px; height: 17px; border-radius: 50%; background: var(--tx3); transition: transform .16s, background .16s; }
+    .cfg-sw input:checked + .tr { background: rgba(var(--ac-rgb), .35); }
+    .cfg-sw input:checked + .tr::before { transform: translateX(19px); background: var(--ac); }
+    .cfg-sw input:disabled + .tr { opacity: .45; cursor: not-allowed; }
     /* Notificações de mensagem (WhatsApp + interno) — pilha no canto direito.
        --nc / --nc-soft vêm do JS: verde do WhatsApp ou a COR DO CARGO do colega. */
     #notif-stack { position: fixed; top: 68px; right: 18px; z-index: 9350; display: flex; flex-direction: column; gap: 10px; width: 348px; max-width: calc(100vw - 36px); pointer-events: none; }
@@ -6368,6 +6386,9 @@
     <i class="ti ti-dots chev"></i>
     <div class="user-menu" id="user-menu">
       <div class="user-menu-info" id="user-menu-info">—</div>
+      <div class="user-menu-item" onclick="cfgAbrir(event)">
+        <i class="ti ti-settings"></i> Configurações
+      </div>
       <div class="user-menu-item" onclick="fazerLogout()">
         <i class="ti ti-logout"></i> Sair
       </div>
@@ -6447,7 +6468,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BL</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BM</b></span></div>
   </div>
 </div>
 
@@ -29124,6 +29145,76 @@ async function ciAtualizarBadge() {
 }
 
 // ============================================================
+// CONFIGURAÇÕES (menu do perfil). Preferências da PESSOA neste aparelho (localStorage) — não
+// precisam de servidor e valem na hora. Padrão = tudo ligado (comportamento de antes).
+// ============================================================
+const CFG_CHAVE = 'aplic_prefs';
+const CFG_PADRAO = { notif_ativo: true, notif_som: true, notif_texto: true };
+function cfgTodas() {
+  try { const v = JSON.parse(localStorage.getItem(CFG_CHAVE) || '{}'); return (v && typeof v === 'object') ? v : {}; }
+  catch (e) { return {}; }
+}
+function cfgPref(k) { const v = cfgTodas()[k]; return v === undefined ? CFG_PADRAO[k] : v; }
+function cfgGravar(k, v) { const t = cfgTodas(); t[k] = v; try { localStorage.setItem(CFG_CHAVE, JSON.stringify(t)); } catch (e) {} }
+
+function cfgAbrir(ev) {
+  if (ev) ev.stopPropagation();   // senão o clique volta pro pill e reabre o menu
+  const um = document.getElementById('user-menu'); if (um) um.classList.remove('aberto');
+  cfgFechar();
+  const ov = document.createElement('div');
+  ov.id = 'cfg-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'cfg-modal') cfgFechar(); };
+  const sw = function (id, on, desabilitado) {
+    return '<label class="cfg-sw"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '')
+      + (desabilitado ? ' disabled' : '') + ' onchange="cfgMudou()"><span class="tr"></span></label>';
+  };
+  const claro = document.body.classList.contains('tema-claro');
+  const ativo = cfgPref('notif_ativo');
+  ov.innerHTML = '<div class="pac-modal" style="max-width:540px;">'
+    + '<div class="pac-modal-header"><div class="ttl"><i class="ti ti-settings"></i> Configurações</div>'
+    + '<button class="pac-modal-close" onclick="cfgFechar()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body">'
+    + '<div class="cfg-grupo">Aparência</div>'
+    + '<div class="cfg-linha"><div class="txt"><div class="tt">Tema</div>'
+    + '<div class="sub">Vale só neste aparelho.</div></div>'
+    + '<select id="cfg-tema" onchange="cfgMudou()"><option value="escuro"' + (claro ? '' : ' selected') + '>Escuro</option>'
+    + '<option value="claro"' + (claro ? ' selected' : '') + '>Claro</option></select></div>'
+    + '<div class="cfg-grupo">Notificações de mensagem</div>'
+    + '<div class="cfg-linha"><div class="txt"><div class="tt">Mostrar notificações</div>'
+    + '<div class="sub">O cartão no canto da tela quando chega mensagem no WhatsApp ou no chat interno.</div></div>'
+    + sw('cfg-notif', ativo, false) + '</div>'
+    + '<div class="cfg-linha"><div class="txt"><div class="tt">Tocar som</div>'
+    + '<div class="sub">Um apito curto quando chega mensagem nova.</div></div>'
+    + sw('cfg-som', cfgPref('notif_som'), !ativo) + '</div>'
+    + '<div class="cfg-linha"><div class="txt"><div class="tt">Mostrar o texto da mensagem</div>'
+    + '<div class="sub">Desligado, o cartão mostra só quem mandou. Melhor em computador de balcão, onde o paciente enxerga a tela.</div></div>'
+    + sw('cfg-texto', cfgPref('notif_texto'), !ativo) + '</div>'
+    + '</div>'
+    + '<div class="pac-modal-footer"><button class="pac-btn-primary" onclick="cfgFechar()"><i class="ti ti-check"></i> Pronto</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+}
+function cfgFechar() { const ov = document.getElementById('cfg-modal'); if (ov) ov.remove(); }
+function cfgMudou() {
+  const t = document.getElementById('cfg-tema');
+  if (t) {
+    const claro = t.value === 'claro';
+    aplicarTema(claro ? 'claro' : 'escuro');
+    try { localStorage.setItem('aplic_tema', claro ? 'claro' : 'escuro'); } catch (e) {}
+  }
+  const n = document.getElementById('cfg-notif');
+  const s = document.getElementById('cfg-som');
+  const x = document.getElementById('cfg-texto');
+  if (n) cfgGravar('notif_ativo', !!n.checked);
+  if (s) cfgGravar('notif_som', !!s.checked);
+  if (x) cfgGravar('notif_texto', !!x.checked);
+  // Som e texto só fazem sentido com a notificação ligada.
+  const on = !!(n && n.checked);
+  if (s) s.disabled = !on;
+  if (x) x.disabled = !on;
+}
+
+// ============================================================
 // NOTIFICAÇÕES DE MENSAGEM (WhatsApp + chat interno) — card lateral + som
 // Poll global (roda em qualquer tela). Detecta mensagem NOVA de OUTRA pessoa comparando o
 // timestamp da última msg de cada conversa contra o que já vimos; a 1ª leitura vira baseline
@@ -29143,6 +29234,10 @@ async function notifTick() {
   const tk = getToken();
   if (!tk || !meData) return;               // sem sessão: nada de buscar/mostrar (tela de login)
   if (document.hidden) return;              // aba em segundo plano não gasta chamada (volta ao focar)
+  // Desligado nas Configurações: nem busca. Zera o baseline pra que, ao religar, o 1º ciclo só
+  // registre o estado atual — senão viria uma enxurrada de "mensagem nova" do que chegou enquanto
+  // estava desligado, tudo de uma vez e como se fosse de agora.
+  if (!cfgPref('notif_ativo')) { notifState.baseWa = false; notifState.baseInt = false; return; }
   // A página Conversas já pesquisa essa MESMA lista a cada 6s — reusar o que ela tem em memória
   // evita dobrar a carga no Evolution (o /chats é o endpoint caro) justamente na tela mais usada.
   const waMem = (notifViewAtual() === 'whatsapp' && typeof wvState !== 'undefined' && wvState && Array.isArray(wvState.chats) && wvState.chats.length) ? wvState.chats : null;
@@ -29240,7 +29335,11 @@ function notifMostrar(it) {
   card.style.setProperty('--nc-soft', notifRgba(cor, 0.18));
   const ini = waIni(it.nome);                       // inicial emoji-safe
   const ico = it.canal === 'wa' ? 'ti-brand-whatsapp' : (it.equipe ? 'ti-users-group' : 'ti-message-circle');
-  const msg = waTrunc(String(it.ultima || '').replace(/\s+/g, ' ').trim(), 120);
+  // Privacidade: com "mostrar o texto" desligado, o card avisa QUEM mandou sem expor o conteúdo
+  // (computador de balcão, onde o paciente enxerga a tela).
+  const msg = cfgPref('notif_texto')
+    ? waTrunc(String(it.ultima || '').replace(/\s+/g, ' ').trim(), 120)
+    : 'Nova mensagem';
   // FOTO real do WhatsApp quando existe. A URL do pps.whatsapp.net EXPIRA -> onerror cai na inicial.
   const av = it.foto
     ? '<img class="notif-foto" alt="" src="' + esc(it.foto) + '"><span class="notif-ini" style="display:none;">' + esc(ini) + '</span>'
@@ -29286,6 +29385,7 @@ function notifRgba(hex, a) {
   return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
 }
 function notifBeep() {
+  if (!cfgPref('notif_som')) return;   // som desligado nas Configurações
   // Varias mensagens no mesmo ciclo = 1 apito so (senao vira metralhadora ao voltar pra aba).
   const agoraMs = Date.now();
   if (agoraMs - (notifState.ultimoBeep || 0) < 2500) return;
