@@ -95,6 +95,7 @@
       width: 100%;
       background: transparent; border: 0;
       color: var(--tx2);
+      text-decoration: none;   /* viraram <a href="?view="> pra abrir em nova guia (scroll/botão direito) */
       padding: 9px 12px;
       border-radius: 8px;
       font-size: 13px;
@@ -6283,78 +6284,78 @@
   <nav class="sidebar-nav">
     <div class="sidebar-group">
       <div class="sidebar-group-label"><i class="ti ti-layout-grid"></i> Painel</div>
-      <button class="sidebar-item active" data-view="painel">
+      <a class="sidebar-item active" href="?view=painel" data-view="painel">
         <i class="ti ti-home"></i> Visão Geral
-      </button>
+      </a>
     </div>
 
     <div class="sidebar-group" data-grupo-operacional>
       <div class="sidebar-group-label"><i class="ti ti-users"></i> Operacional</div>
-      <button class="sidebar-item" data-view="pacientes" data-perm="paciente.ver_lista">
+      <a class="sidebar-item" href="?view=pacientes" data-view="pacientes" data-perm="paciente.ver_lista">
         <i class="ti ti-user-heart"></i> Pacientes
-      </button>
-      <button class="sidebar-item" data-view="agenda" data-perm="agenda.ver">
+      </a>
+      <a class="sidebar-item" href="?view=agenda" data-view="agenda" data-perm="agenda.ver">
         <i class="ti ti-calendar"></i> Agenda
-      </button>
-      <button class="sidebar-item" data-view="prontuario" data-perm="prontuario.ver">
+      </a>
+      <a class="sidebar-item" href="?view=prontuario" data-view="prontuario" data-perm="prontuario.ver">
         <i class="ti ti-clipboard-text"></i> Prontuário
-      </button>
-      <button class="sidebar-item" data-view="pendencias" data-perm="onboarding.ver_pendencias">
+      </a>
+      <a class="sidebar-item" href="?view=pendencias" data-view="pendencias" data-perm="onboarding.ver_pendencias">
         <i class="ti ti-alert-square"></i> Pendências
-      </button>
-      <button class="sidebar-item" data-view="whatsapp">
+      </a>
+      <a class="sidebar-item" href="?view=whatsapp" data-view="whatsapp">
         <i class="ti ti-brand-whatsapp"></i> WhatsApp
-      </button>
+      </a>
     </div>
 
     <div class="sidebar-group" data-grupo-clinico>
       <div class="sidebar-group-label"><i class="ti ti-stethoscope"></i> Clínico</div>
-      <button class="sidebar-item" data-view="estoque" data-perm="estoque.ver">
+      <a class="sidebar-item" href="?view=estoque" data-view="estoque" data-perm="estoque.ver">
         <i class="ti ti-package"></i> Estoque
-      </button>
-      <button class="sidebar-item" data-view="insumos">
+      </a>
+      <a class="sidebar-item" href="?view=insumos" data-view="insumos">
         <i class="ti ti-list-details"></i> Catálogo
-      </button>
-      <button class="sidebar-item" data-view="injetaveis" data-perm="prescricao_inj.cobrar|financeiro.ver|prontuario.aplicacao.registrar">
+      </a>
+      <a class="sidebar-item" href="?view=injetaveis" data-view="injetaveis" data-perm="prescricao_inj.cobrar|financeiro.ver|prontuario.aplicacao.registrar">
         <i class="ti ti-prescription"></i> Injetáveis
-      </button>
-      <button class="sidebar-item" data-view="varejo" data-perm="financeiro.ver">
+      </a>
+      <a class="sidebar-item" href="?view=varejo" data-view="varejo" data-perm="financeiro.ver">
         <i class="ti ti-shopping-cart"></i> Varejo
-      </button>
+      </a>
     </div>
 
     <div class="sidebar-group" data-grupo-equipe>
       <div class="sidebar-group-label"><i class="ti ti-trophy"></i> Equipe</div>
-      <button class="sidebar-item" data-view="pontuacao" data-perm="pontuacao.ver">
+      <a class="sidebar-item" href="?view=pontuacao" data-view="pontuacao" data-perm="pontuacao.ver">
         <i class="ti ti-trophy"></i> Pontuação
-      </button>
-      <button class="sidebar-item" data-view="gtarefas" data-perm="tarefas.gerenciar">
+      </a>
+      <a class="sidebar-item" href="?view=gtarefas" data-view="gtarefas" data-perm="tarefas.gerenciar">
         <i class="ti ti-checklist"></i> Gestão de Tarefas
-      </button>
+      </a>
     </div>
 
     <div class="sidebar-group" id="sidebar-group-admin" style="display:none;">
       <div class="sidebar-group-label"><i class="ti ti-shield-lock"></i> Administração</div>
-      <button class="sidebar-item" data-view="admin">
+      <a class="sidebar-item" href="?view=admin" data-view="admin">
         <i class="ti ti-settings-cog"></i> Cargos &amp; Permissões
-      </button>
-      <button class="sidebar-item" data-view="editaveis">
+      </a>
+      <a class="sidebar-item" href="?view=editaveis" data-view="editaveis">
         <i class="ti ti-forms"></i> Editáveis
-      </button>
-      <button class="sidebar-item" data-view="dev" data-perm="dev.acesso">
+      </a>
+      <a class="sidebar-item" href="?view=dev" data-view="dev" data-perm="dev.acesso">
         <i class="ti ti-code"></i> Desenvolvedor
-      </button>
+      </a>
     </div>
 
     <div class="sidebar-group" data-grupo-sistema>
       <div class="sidebar-group-label"><i class="ti ti-settings"></i> Sistema</div>
-      <button class="sidebar-item" data-view="auditoria" data-perm="admin.ver_auditoria">
+      <a class="sidebar-item" href="?view=auditoria" data-view="auditoria" data-perm="admin.ver_auditoria">
         <i class="ti ti-shield-check"></i> Auditoria
-      </button>
-      <button class="sidebar-item" data-view="financeiro" data-perm="financeiro.ver">
+      </a>
+      <a class="sidebar-item" href="?view=financeiro" data-view="financeiro" data-perm="financeiro.ver">
         <i class="ti ti-coin"></i> Financeiro
         <span class="badge-mini esquema">esquema</span>
-      </button>
+      </a>
     </div>
   </nav>
 
@@ -14305,10 +14306,15 @@ const VIEW_TITLES = {
   editaveis: { titulo: 'Editáveis', sub: 'Campos que você cria nos templates' }
 };
 
+// Os itens da sidebar são <a href="?view=X"> pra o navegador oferecer "abrir em nova guia"
+// (clique do scroll, botão direito, Ctrl/⌘+clique). O clique SIMPLES continua trocando de aba na
+// mesma página — só ele é interceptado; qualquer clique com modificador ou de outro botão passa
+// direto pro navegador fazer o que faz com link normal.
 document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
-  b.addEventListener('click', () => {
-    const v = b.dataset.view;
-    trocarView(v);
+  b.addEventListener('click', (e) => {
+    if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; // nova guia/janela
+    e.preventDefault();
+    trocarView(b.dataset.view);
   });
 });
 
@@ -14318,7 +14324,18 @@ document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
 // é reaberta depois do login — quem passa o dia na Agenda ou no Estoque não perde o lugar.
 const VIEW_ATUAL_KEY = 'aplic_clinico_view';
 const PAC_ATUAL_KEY = 'aplic_clinico_paciente';
-function salvarViewAtual(v) { try { localStorage.setItem(VIEW_ATUAL_KEY, v); } catch (e) {} }
+function salvarViewAtual(v) {
+  try { localStorage.setItem(VIEW_ATUAL_KEY, v); } catch (e) {}
+  // A URL passa a dizer a verdade sobre a aba aberta. É o que faz "abrir em nova guia" e copiar o
+  // endereço caírem AQUI em vez da Visão Geral. replaceState (não push) pra não encher o histórico
+  // de "voltar" a cada troca de aba. Preserva os outros parâmetros da query.
+  try {
+    const u = new URL(window.location.href);
+    if (u.searchParams.get('view') === v) return;
+    u.searchParams.set('view', v);
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  } catch (e) {}
+}
 // Paciente aberto no prontuário: guardado junto pra o F5 cair na ficha certa, não no seletor.
 // Some ao trocar de paciente e ao SAIR da conta (a próxima pessoa na mesma máquina não pode
 // recarregar e abrir a ficha de quem estava antes).
@@ -14332,8 +14349,11 @@ function lerPacienteSalvo() {
   try { const s = localStorage.getItem(PAC_ATUAL_KEY); const p = s ? JSON.parse(s) : null; return (p && p.id) ? p : null; } catch (e) { return null; }
 }
 function restaurarViewSalva() {
+  // 1º a URL (guia aberta pelo link: "?view=agenda"), depois a última aba usada. A URL manda
+  // porque foi um pedido explícito — abrir em nova guia tem que respeitar o link clicado.
   let v = null;
-  try { v = localStorage.getItem(VIEW_ATUAL_KEY); } catch (e) {}
+  try { v = new URL(window.location.href).searchParams.get('view'); } catch (e) {}
+  if (!v) { try { v = localStorage.getItem(VIEW_ATUAL_KEY); } catch (e) {} }
   if (!v || v === 'painel') return;                    // painel já é o padrão do HTML
   if (!document.getElementById('view-' + v)) return;   // aba que não existe mais (renomeada/removida)
   trocarView(v);   // o próprio trocarView derruba pro painel se faltar permissão pra essa aba
