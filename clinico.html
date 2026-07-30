@@ -6446,7 +6446,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BI</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BJ</b></span></div>
   </div>
 </div>
 
@@ -7873,6 +7873,37 @@
     #view-editaveis .ed-chip.ia { background: rgba(29,158,117,.16); color: #1D9E75; }
     #view-editaveis .ed-acts { display: flex; gap: 6px; flex-shrink: 0; }
     #view-editaveis .ed-vazio { color: var(--tx3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--bd1); border-radius: 10px; padding: 22px; text-align: center; }
+    /* Editor do template inteiro */
+    #view-editaveis .ed-tpl-aviso { display: flex; gap: 9px; align-items: flex-start; background: rgba(232,148,90,.10); border: 1px solid rgba(232,148,90,.30); color: var(--tx2); border-radius: 9px; padding: 10px 12px; font-size: 12px; margin-bottom: 14px; }
+    #view-editaveis .ed-tpl-aviso i { color: #E8945A; font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    #view-editaveis .ed-ed-lista { display: flex; flex-direction: column; gap: 5px; }
+    #view-editaveis .ed-sec-head { display: flex; align-items: center; gap: 7px; margin: 14px 0 4px; }
+    #view-editaveis .ed-sec-head:first-child { margin-top: 0; }
+    #view-editaveis .ed-sec-head i { color: var(--tx4); font-size: 13px; }
+    #view-editaveis .ed-sec-input {
+      background: transparent; border: 1px solid transparent; border-radius: 6px;
+      color: var(--tx3); font: inherit; font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; padding: 3px 6px; min-width: 180px; flex: 0 1 340px;
+    }
+    #view-editaveis .ed-sec-input:hover { border-color: var(--bd1); }
+    #view-editaveis .ed-sec-input:focus { outline: none; border-color: var(--ac); color: var(--tx1); background: var(--bg2); }
+    #view-editaveis .ed-fld {
+      display: flex; align-items: center; gap: 9px; background: var(--bg2);
+      border: 1px solid var(--bd1); border-radius: 9px; padding: 8px 11px;
+    }
+    #view-editaveis .ed-fld.fixo { background: var(--bg1); border-style: dashed; }
+    #view-editaveis .ed-fld.arrastando { opacity: .4; }
+    #view-editaveis .ed-fld.alvo { border-color: var(--ac); box-shadow: inset 0 2px 0 var(--ac); }
+    #view-editaveis .ed-grip { color: var(--tx4); font-size: 15px; cursor: grab; flex-shrink: 0; }
+    #view-editaveis .ed-grip:active { cursor: grabbing; }
+    #view-editaveis .ed-lock { color: #E8945A; font-size: 14px; flex-shrink: 0; cursor: help; }
+    #view-editaveis .ed-fld-input {
+      flex: 1; min-width: 0; background: var(--bg1); border: 1px solid var(--bg3);
+      color: var(--tx1); border-radius: 6px; padding: 6px 9px; font: inherit; font-size: 13px;
+    }
+    #view-editaveis .ed-fld-input:focus { outline: none; border-color: var(--ac); }
+    #view-editaveis .ed-fld-fixo-nome { flex: 1; min-width: 0; font-size: 13px; color: var(--tx3); padding: 6px 0; }
+    #view-editaveis .ed-fld-tipo { font-size: 10px; color: var(--tx4); background: var(--bg3); border-radius: 5px; padding: 2px 7px; flex-shrink: 0; }
     /* Modal: lista de templates, UM EMBAIXO DO OUTRO.
        O prefixo #ed-modal é necessário: a lista vive dentro de um .pac-field, e a regra
        `.pac-field label` (block + UPPERCASE + letter-spacing) tem especificidade maior que uma
@@ -29202,7 +29233,8 @@ async function edCarregar() {
 function edRender() {
   const box = document.getElementById('ed-conteudo');
   if (!box) return;
-  box.innerHTML = edState.tela === 'anamneses' ? edHtmlAnamneses() : edHtmlHub();
+  box.innerHTML = edState.tela === 'template' ? edHtmlTemplate()
+    : edState.tela === 'anamneses' ? edHtmlAnamneses() : edHtmlHub();
 }
 
 function edHtmlHub() {
@@ -29247,7 +29279,15 @@ function edHtmlAnamneses() {
     + '<div style="font-size:12px;color:var(--tx3);margin-top:2px;max-width:640px;">Você cria o campo e escolhe em quais templates ele aparece. O mesmo campo em vários templates conversa entre si: o último valor preenchido já vem preenchido no próximo.</div></div>'
     + '<button class="pac-btn-primary" onclick="edNovo()"><i class="ti ti-plus"></i> Criar novo campo</button></div>'
     + (itens ? '<div class="ed-lista">' + itens + '</div>'
-             : '<div class="ed-vazio">Nenhum campo criado ainda. Clique em <b>Criar novo campo</b> pra começar.</div>');
+             : '<div class="ed-vazio">Nenhum campo criado ainda. Clique em <b>Criar novo campo</b> pra começar.</div>')
+    // Editar a anamnese INTEIRA: renomear campos/seções e reordenar. Só template de formulário.
+    + '<div style="font-size:15px;color:var(--tx1);font-weight:600;margin:26px 0 3px;">Editar uma anamnese inteira</div>'
+    + '<div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">Abre o template como ele aparece no atendimento. Dá pra renomear campo e seção e arrastar pra mudar a ordem — menos os campos fixos, que alimentam o prontuário e a IA.</div>'
+    + '<div class="ed-lista">' + ((edState.templates || []).filter(function (t) { return t.formulario; }).map(function (t) {
+        return '<div class="ed-item"><div class="info"><div class="nm">' + esc(t.nome) + '</div>'
+          + '<div class="meta">' + esc(t.categoria || '—') + (t.tipo_evolucao ? ' · ' + esc(t.tipo_evolucao) : '') + '</div></div>'
+          + '<div class="ed-acts"><button class="pac-btn-secondary ex-mini" onclick="edAbrirTemplate(\'' + esc(t.slug) + '\')"><i class="ti ti-edit"></i> Editar template</button></div></div>';
+      }).join('') || '<div class="ed-vazio">Nenhum template de formulário disponível.</div>') + '</div>';
 }
 
 function edNovo() { edModal(null); }
@@ -29358,6 +29398,124 @@ async function edSalvar(slug) {
   edFecharModal();
   if (typeof homeToast === 'function') homeToast(slug ? 'Campo atualizado.' : 'Campo criado — já aparece nos templates escolhidos.');
   edCarregar();
+}
+
+// ---- Editor do TEMPLATE inteiro: renomear campo/seção e arrastar pra reordenar ----
+// Campo que alimenta o prontuário ou a IA vem com imutavel=true do servidor: sai com cadeado, sem
+// input e sem alça de arrastar. O servidor recusa de novo no save (a trava não vive só na tela).
+let edTplState = { slug: null, nome: '', campos: [], carregando: false, dragIdx: -1 };
+
+async function edAbrirTemplate(slug) {
+  edTplState = { slug: slug, nome: '', campos: [], carregando: true, dragIdx: -1 };
+  edState.tela = 'template'; edRender();
+  let r = null;
+  try { r = await pacApi('/api/clinico/campos-custom/template/' + encodeURIComponent(slug)); } catch (e) { r = null; }
+  edTplState.carregando = false;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    edTplState.erro = (r && r.data && r.data.erro) || 'Não consegui abrir este template.';
+  } else {
+    edTplState.erro = null;
+    edTplState.nome = (r.data.template && r.data.template.nome) || slug;
+    edTplState.campos = (r.data.campos || []).map(function (c) { return Object.assign({}, c); });
+  }
+  edRender();
+}
+
+function edHtmlTemplate() {
+  const voltar = '<button class="ed-voltar" onclick="edAbrir(\'anamneses\')"><i class="ti ti-chevron-left"></i> Anamneses</button>';
+  if (edTplState.carregando) return voltar + '<div class="pt-empty">Carregando o template…</div>';
+  if (edTplState.erro) return voltar + '<div class="ed-vazio"><i class="ti ti-alert-triangle"></i> ' + esc(edTplState.erro) + '</div>';
+  const cs = edTplState.campos || [];
+  let corpo = '', secAtual = null;
+  cs.forEach(function (c, i) {
+    const sec = c.secao || '';
+    if (sec !== secAtual) {
+      secAtual = sec;
+      corpo += '<div class="ed-sec-head"><i class="ti ti-layout-list"></i>'
+        + '<input class="ed-sec-input" value="' + esc(sec) + '" placeholder="(sem seção)" title="Renomear esta seção"'
+        + ' onchange="edTplRenomearSecao(' + i + ', this.value)"></div>';
+    }
+    const nome = c.imutavel
+      ? '<i class="ti ti-lock ed-lock" title="' + esc(c.motivo || 'campo fixo do sistema') + '"></i>'
+        + '<span class="ed-fld-fixo-nome" title="' + esc(c.motivo || '') + '">' + esc(c.label) + '</span>'
+      : '<i class="ti ti-grip-vertical ed-grip" title="Arraste pra mudar a posição"></i>'
+        + '<input class="ed-fld-input" value="' + esc(c.label) + '" maxlength="160" onchange="edTplRenomear(' + i + ', this.value)">';
+    corpo += '<div class="ed-fld' + (c.imutavel ? ' fixo' : '') + '" data-i="' + i + '"'
+      + (c.imutavel ? '' : ' draggable="true" ondragstart="edTplDragStart(event,' + i + ')" ondragend="edTplDragEnd(event)"')
+      + ' ondragover="edTplDragOver(event,' + i + ')" ondragleave="edTplDragLeave(event)" ondrop="edTplDrop(event,' + i + ')">'
+      + (c.imutavel ? '<i class="ti ti-grip-vertical ed-grip" style="opacity:.2;cursor:not-allowed" title="Campo fixo: não pode ser movido"></i>' : '')
+      + nome
+      + '<span class="ed-fld-tipo">' + esc(ED_TIPO_LABEL[c.tipo] || c.tipo || 'texto') + '</span>'
+      + (c.custom ? '<span class="ed-chip">criado por você</span>' : '')
+      + '</div>';
+  });
+  const fixos = cs.filter(function (c) { return c.imutavel; }).length;
+  return voltar
+    + '<div class="ed-bar"><div><div style="font-size:15px;color:var(--tx1);font-weight:600;">Editar: ' + esc(edTplState.nome) + '</div>'
+    + '<div style="font-size:12px;color:var(--tx3);margin-top:2px;">' + cs.length + ' campos · ' + fixos + ' fixos</div></div>'
+    + '<button class="pac-btn-primary" onclick="edTplSalvar(this)"><i class="ti ti-check"></i> Salvar alterações</button></div>'
+    + '<div class="ed-tpl-aviso"><i class="ti ti-lock"></i><div>Os campos com <b>cadeado</b> alimentam o prontuário (medicação injetável, dose, suplemento…), viram tarefa ou são lidos pelos agentes de IA. Eles não podem ser renomeados nem movidos — passe o mouse no cadeado pra ver o motivo. O nome da <b>seção</b> pode ser mudado em qualquer caso.</div></div>'
+    + '<div class="ed-ed-lista" id="ed-ed-lista">' + corpo + '</div>';
+}
+
+function edTplRenomear(i, valor) {
+  const c = edTplState.campos[i]; if (!c || c.imutavel) return;
+  c.label = String(valor || '').trim() || c.label;
+}
+// Renomear a seção vale pro GRUPO todo (os campos seguintes que compartilham a mesma seção).
+function edTplRenomearSecao(i, valor) {
+  const cs = edTplState.campos; const c = cs[i]; if (!c) return;
+  const antiga = c.secao || '';
+  const nova = String(valor || '').trim();
+  for (let k = i; k < cs.length; k++) {
+    if ((cs[k].secao || '') !== antiga) break;
+    cs[k].secao = nova;
+  }
+  edRender();
+}
+function edTplDragStart(e, i) {
+  edTplState.dragIdx = i;
+  if (e.currentTarget) e.currentTarget.classList.add('arrastando');
+  try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); } catch (x) {}
+}
+function edTplDragEnd(e) {
+  edTplState.dragIdx = -1;
+  document.querySelectorAll('#ed-ed-lista .arrastando, #ed-ed-lista .alvo').forEach(function (el) { el.classList.remove('arrastando', 'alvo'); });
+}
+function edTplDragOver(e, i) {
+  if (edTplState.dragIdx < 0) return;
+  e.preventDefault();
+  if (e.currentTarget) e.currentTarget.classList.add('alvo');
+}
+function edTplDragLeave(e) { if (e.currentTarget) e.currentTarget.classList.remove('alvo'); }
+function edTplDrop(e, destino) {
+  e.preventDefault();
+  const de = edTplState.dragIdx;
+  edTplDragEnd(e);
+  if (de < 0 || de === destino) return;
+  const cs = edTplState.campos;
+  const item = cs.splice(de, 1)[0];
+  cs.splice(destino, 0, item);
+  // A seção segue o vizinho de CIMA: arrastar pra dentro de outro grupo move o campo pra aquela
+  // seção (é o que a pessoa espera ao soltar ali). No topo, herda a seção do que ficou embaixo.
+  const idx = cs.indexOf(item);
+  if (!item.imutavel) item.secao = idx > 0 ? (cs[idx - 1].secao || '') : ((cs[1] && cs[1].secao) || item.secao || '');
+  edRender();
+}
+
+async function edTplSalvar(btn) {
+  if (btn) btn.disabled = true;
+  const payload = { campos: edTplState.campos.map(function (c) { return { slug: c.slug, label: c.label, secao: c.secao || '' }; }) };
+  let r = null;
+  try { r = await pacApi('/api/clinico/campos-custom/template/' + encodeURIComponent(edTplState.slug), { method: 'PUT', body: JSON.stringify(payload) }); } catch (e) { r = null; }
+  if (btn) btn.disabled = false;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    // O servidor recusa renome que quebraria vínculo — mostra o motivo inteiro, não um "erro".
+    if (typeof homeToast === 'function') homeToast((r && r.data && r.data.erro) || 'Não consegui salvar as alterações.');
+    return;
+  }
+  if (typeof homeToast === 'function') homeToast('Template salvo — as mudanças já valem nas próximas anamneses.');
+  edAbrirTemplate(edTplState.slug); // recarrega do servidor (mostra o que ele realmente aceitou)
 }
 
 async function edToggle(slug, ativar) {
