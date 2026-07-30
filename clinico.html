@@ -6446,7 +6446,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BJ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BK</b></span></div>
   </div>
 </div>
 
@@ -7904,6 +7904,11 @@
     #view-editaveis .ed-fld-input:focus { outline: none; border-color: var(--ac); }
     #view-editaveis .ed-fld-fixo-nome { flex: 1; min-width: 0; font-size: 13px; color: var(--tx3); padding: 6px 0; }
     #view-editaveis .ed-fld-tipo { font-size: 10px; color: var(--tx4); background: var(--bg3); border-radius: 5px; padding: 2px 7px; flex-shrink: 0; }
+    #view-editaveis .ed-fld-tipo-sel {
+      flex: 0 0 auto; background: var(--bg1); border: 1px solid var(--bg3); color: var(--tx2);
+      border-radius: 6px; padding: 5px 6px; font: inherit; font-size: 11.5px; max-width: 130px;
+    }
+    #view-editaveis .ed-fld-tipo-sel:focus { outline: none; border-color: var(--ac); }
     /* Modal: lista de templates, UM EMBAIXO DO OUTRO.
        O prefixo #ed-modal é necessário: a lista vive dentro de um .pac-field, e a regra
        `.pac-field label` (block + UPPERCASE + letter-spacing) tem especificidade maior que uma
@@ -29300,7 +29305,7 @@ function edHtmlAnamneses() {
     + '<div style="font-size:15px;color:var(--tx1);font-weight:600;margin:26px 0 3px;">Editar uma anamnese inteira</div>'
     + '<div style="font-size:12px;color:var(--tx3);margin-bottom:12px;">Abre o template como ele aparece no atendimento. Dá pra renomear campo e seção e arrastar pra mudar a ordem — menos os campos fixos, que alimentam o prontuário e a IA.</div>'
     + '<div class="ed-lista">' + ((edState.templates || []).filter(function (t) { return t.formulario; }).map(function (t) {
-        return '<div class="ed-item"><div class="info"><div class="nm">' + esc(t.nome) + '</div>'
+        return '<div class="ed-item"><div class="info"><div class="nm">' + esc(t.nome_padrao || t.nome) + '</div>'
           + '<div class="meta">' + esc(t.categoria || '—') + (t.tipo_evolucao ? ' · ' + esc(t.tipo_evolucao) : '') + '</div></div>'
           + '<div class="ed-acts"><button class="pac-btn-secondary ex-mini" onclick="edAbrirTemplate(\'' + esc(t.slug) + '\')"><i class="ti ti-edit"></i> Editar template</button></div></div>';
       }).join('') || '<div class="ed-vazio">Nenhum template de formulário disponível.</div>') + '</div>';
@@ -29343,7 +29348,7 @@ function edModal(campo) {
       const off = !t.formulario;
       tplHtml += '<label class="ed-tpl-item' + (off ? ' off' : '') + '"' + (off ? ' title="Template de texto livre — não aceita campo novo"' : '') + '>'
         + '<input type="checkbox" value="' + esc(t.slug) + '"' + (marcado ? ' checked' : '') + (off ? ' disabled' : '') + '>'
-        + '<span>' + esc(t.nome) + (off ? ' <span style="color:var(--tx4)">(texto livre)</span>' : '') + '</span></label>';
+        + '<span>' + esc(t.nome_padrao || t.nome) + (off ? ' <span style="color:var(--tx4)">(texto livre)</span>' : '') + '</span></label>';
     });
   });
   ov.innerHTML = '<div class="pac-modal" style="max-width:640px;">'
@@ -29461,7 +29466,15 @@ function edHtmlTemplate() {
       + ' ondragover="edTplDragOver(event,' + i + ')" ondragleave="edTplDragLeave(event)" ondrop="edTplDrop(event,' + i + ')">'
       + (c.imutavel ? '<i class="ti ti-grip-vertical ed-grip" style="opacity:.2;cursor:not-allowed" title="Campo fixo: não pode ser movido"></i>' : '')
       + nome
-      + '<span class="ed-fld-tipo">' + esc(ED_TIPO_LABEL[c.tipo] || c.tipo || 'texto') + '</span>'
+      // Tipo: select nos campos livres (dá pra alternar texto curto/longo, número, nota, data,
+      // sim-não, lista). Campo fixo mostra só o rótulo — o tipo dele casa com o formato que a
+      // fonte/write-back espera, mudar quebraria o vínculo.
+      + (c.imutavel
+          ? '<span class="ed-fld-tipo">' + esc(ED_TIPO_LABEL[c.tipo] || c.tipo || 'texto') + '</span>'
+          : '<select class="ed-fld-tipo-sel" title="Tipo do campo" onchange="edTplTipo(' + i + ', this.value)">'
+            + Object.keys(ED_TIPO_LABEL).map(function (t) {
+                return '<option value="' + t + '"' + ((c.tipo || 'texto') === t ? ' selected' : '') + '>' + ED_TIPO_LABEL[t] + '</option>';
+              }).join('') + '</select>')
       + (c.custom ? '<span class="ed-chip">criado por você</span>' : '')
       + '</div>';
   });
@@ -29477,6 +29490,12 @@ function edHtmlTemplate() {
 function edTplRenomear(i, valor) {
   const c = edTplState.campos[i]; if (!c || c.imutavel) return;
   c.label = String(valor || '').trim() || c.label;
+}
+// Alterna o tipo do campo (texto curto <-> longo, numero, nota 0-10, data, sim/nao, lista).
+// So em campo livre; o servidor recusa de novo se vier de um campo fixo.
+function edTplTipo(i, valor) {
+  const c = edTplState.campos[i]; if (!c || c.imutavel) return;
+  c.tipo = String(valor || '') || c.tipo;
 }
 // Renomear a seção vale pro GRUPO todo (os campos seguintes que compartilham a mesma seção).
 function edTplRenomearSecao(i, valor) {
