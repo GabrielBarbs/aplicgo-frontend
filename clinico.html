@@ -4592,6 +4592,12 @@
     .admin-user-card .acoes {
       flex-shrink: 0;
     }
+    /* Excluir é destrutivo e irreversível: fica discreto até o hover, e aí assume o vermelho —
+       não pode ter o mesmo peso visual de "Cargos"/"Unidades", que são reversíveis. */
+    .admin-user-card .acoes .adm-del { color: var(--tx3); }
+    .admin-user-card .acoes .adm-del:hover {
+      color: #f85149; border-color: rgba(248,81,73,.55); background: rgba(248,81,73,.10);
+    }
 
     /* Modal: toggle de cargos */
     .adm-user-cargo-row {
@@ -23179,11 +23185,80 @@ async function admCarregarUsuarios() {
         <div class="acoes">
           <button class="pac-btn-secondary" onclick="admEditarCargosUser('${u.id}')"><i class="ti ti-edit"></i> Cargos</button>
           <button class="pac-btn-secondary" onclick="admEditarUnidadesUser('${u.id}')"><i class="ti ti-building"></i> Unidades</button>
+          ${admPodeApagarUser() ? `<button class="pac-btn-secondary adm-del" onclick="admApagarUser('${u.id}')" title="Apagar do banco, sem volta"><i class="ti ti-trash"></i> Excluir</button>` : ''}
         </div>
       </div>
     `;
   }).join('');
 }
+
+// ---- Exclusão PERMANENTE de usuário (apaga do banco, sem volta) ----------------------------
+// Só gestor/desenvolvedor vê o botão — o backend exige o mesmo, o front só evita oferecer o que
+// seria recusado. Fluxo: prévia do impacto -> confirmação DIGITADA -> apaga.
+function admPodeApagarUser() {
+  return typeof authUser !== 'undefined' && authUser && (authUser.role === 'gestor' || authUser.role === 'desenvolvedor');
+}
+async function admApagarUser(id) {
+  const u = (admState.usuarios || []).find((x) => x.id === id) || {};
+  const r = await pacApi('/api/clinico/admin/usuarios/' + id + '/exclusao-impacto');
+  if (!r.ok) { alert('Não consegui checar o impacto: ' + ((r.data && r.data.erro) || '--')); return; }
+  const d = r.data;
+  const nome = d.usuario && (d.usuario.nome || d.usuario.email) || u.nome || u.email || 'usuário';
+  const email = (d.usuario && d.usuario.email) || u.email || '';
+  const lista = (arr) => arr.map((x) => `<li>${esc(String(x.n))} ${esc(x.o_que)}</li>`).join('');
+
+  // Tem registro que o banco não deixa apagar: não adianta oferecer o botão.
+  if (!d.pode) {
+    admModal(`
+      <div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:6px"><i class="ti ti-lock" style="color:#f85149"></i> Não dá pra apagar ${esc(nome)}</div>
+      <div style="font-size:12.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px">
+        Esta conta assinou registros que fazem parte do prontuário e do histórico. Apagar o usuário
+        significaria apagar esses registros junto — por isso o sistema não permite.
+      </div>
+      <ul style="font-size:12px;color:var(--tx2);margin:0 0 12px 18px;line-height:1.7">${lista(d.bloqueios)}</ul>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:14px">O caminho aqui é <strong>suspender</strong> a conta: ela para de acessar o sistema e os registros continuam com o nome de quem os fez.</div>
+      <button class="pac-btn-secondary" style="width:100%" onclick="admModalFechar()">Entendi</button>`);
+    return;
+  }
+
+  const perdas = (d.perdas || []).length
+    ? `<div style="font-size:12px;color:var(--tx2);margin-bottom:6px">Ao apagar, isto se perde:</div>
+       <ul style="font-size:12px;color:#EF9F27;margin:0 0 12px 18px;line-height:1.7">${lista(d.perdas)}</ul>`
+    : '<div style="font-size:12px;color:var(--tx3);margin-bottom:12px">Esta conta não deixou registros no sistema.</div>';
+  admModal(`
+    <div style="font-size:15px;font-weight:700;color:var(--tx1);margin-bottom:6px"><i class="ti ti-alert-triangle" style="color:#f85149"></i> Apagar ${esc(nome)} do banco</div>
+    <div style="font-size:12.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px">Isso é <strong>permanente</strong>. Não tem desfazer, nem lixeira.</div>
+    ${perdas}
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:5px">Pra confirmar, digite o e-mail da conta:</div>
+    <input id="adm-del-conf" placeholder="${esc(email)}" style="width:100%;box-sizing:border-box;font-size:12px;padding:7px 9px;background:var(--bg2);border:1px solid var(--bg3);color:var(--tx1);border-radius:6px;margin-bottom:12px">
+    <button class="pac-btn-primary" id="adm-del-ok" style="width:100%;background:#f85149;border-color:#f85149" onclick="admApagarUserConfirmar('${id}','${esc(email)}',this)"><i class="ti ti-trash"></i> Apagar para sempre</button>
+    <button class="pac-btn-secondary" style="width:100%;margin-top:8px" onclick="admModalFechar()">Cancelar</button>`);
+  setTimeout(() => { const i = document.getElementById('adm-del-conf'); if (i) i.focus(); }, 60);
+}
+async function admApagarUserConfirmar(id, email, btn) {
+  const dig = (document.getElementById('adm-del-conf') || {}).value || '';
+  if (dig.trim().toLowerCase() !== String(email).trim().toLowerCase()) {
+    alert('O e-mail digitado não confere. Nada foi apagado.');
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Apagando…'; }
+  const r = await pacApi('/api/clinico/admin/usuarios/' + id + '/permanente', { method: 'DELETE' });
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-trash"></i> Apagar para sempre'; }
+  if (!r.ok) { alert((r.data && r.data.erro) || 'Não consegui apagar.'); return; }
+  admModalFechar();
+  homeToast('Usuário apagado do banco.');
+  admCarregarUsuarios();
+}
+function admModal(html) {
+  admModalFechar();
+  const o = document.createElement('div');
+  o.id = 'adm-modal';
+  o.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9400;display:flex;align-items:center;justify-content:center;padding:20px';
+  o.onclick = (e) => { if (e.target === o) admModalFechar(); };
+  o.innerHTML = `<div style="background:var(--bg1);border:1px solid var(--bg3);border-radius:14px;padding:20px;max-width:460px;width:100%;max-height:88vh;overflow-y:auto">${html}</div>`;
+  document.body.appendChild(o);
+}
+function admModalFechar() { const o = document.getElementById('adm-modal'); if (o) o.remove(); }
 
 // ---- Níveis (senioridade) -- movido de Gestão de Tarefas para cá ----
 async function admCarregarNiveis() {
