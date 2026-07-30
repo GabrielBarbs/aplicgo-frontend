@@ -6447,7 +6447,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BK</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BL</b></span></div>
   </div>
 </div>
 
@@ -17171,7 +17171,11 @@ function cpTagFiltro(tipo, valor) {
 // sink de XSS — o nome vem do pushName do WhatsApp, controlado por quem manda mensagem pra clínica.
 // Nomes das unidades reais da clínica (pra oferecer no "+"). Reusa o apoio já carregado.
 function cpUnidades() {
-  const src = (typeof pacState !== 'undefined' && pacState.unidades && pacState.unidades.length) ? pacState.unidades
+  // TODAS as unidades da clínica primeiro (carregadas em cpTagEditorAbrir). pacState/meData são
+  // fallback e trazem só as unidades DO USUÁRIO — com elas, quem é de uma unidade não conseguia
+  // marcar o contato com a outra.
+  const src = (cpState.unidadesTodas && cpState.unidadesTodas.length) ? cpState.unidadesTodas
+    : (typeof pacState !== 'undefined' && pacState.unidades && pacState.unidades.length) ? pacState.unidades
     : ((typeof meData !== 'undefined' && meData && meData.unidades) || []);
   return src.map(u => u && u.nome).filter(Boolean);
 }
@@ -17179,8 +17183,16 @@ function cpUnidades() {
 const CP_SITUACOES = ['Ativo', 'Inativo'];
 
 async function cpTagEditorAbrir(contatoKey) {
-  // Garante a lista de unidades antes de abrir (o popup pode ser usado sem passar pela aba Pacientes).
-  if (!cpUnidades().length && typeof pacCarregarApoio === 'function') { try { await pacCarregarApoio(); } catch (e) {} }
+  // Busca TODAS as unidades da clínica (uma vez, cacheado). Sem isto a lista caía em
+  // pacState/meData.unidades = as unidades DO USUÁRIO LOGADO: quem é de Uberlândia nunca via
+  // "Ituiutaba" e não conseguia marcar o contato com a outra unidade. Tag é livre — a unidade do
+  // contato não pode limitar o que dá pra escrever nele.
+  if (!cpState.unidadesTodas) {
+    try {
+      const r = await pacApi('/api/clinico/units');
+      cpState.unidadesTodas = (r.ok && r.data && r.data.unidades) ? r.data.unidades : [];
+    } catch (e) { cpState.unidadesTodas = []; }
+  }
   cpTagEditorRender(contatoKey);
 }
 function cpTagEditorRender(contatoKey) {
