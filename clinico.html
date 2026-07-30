@@ -4987,9 +4987,6 @@
     .rx-doc-btn i { font-size: 19px; }
     .rx-doc-btn:hover { border-color: var(--ac); }
     .rx-doc-btn.ativo { background: var(--ac); border-color: var(--ac); color: #fff; }
-    .rx-doc-btn.breve { opacity: 0.45; cursor: default; }
-    .rx-doc-btn.breve:hover { border-color: var(--bg3); }
-    .rx-doc-btn .mini { font-size: 8.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--tx3b); }
     .rx-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
     .rx-row .cresce { flex: 1; min-width: 200px; }
     .rx-panel select, .rx-panel input[type="text"], .rx-panel input[type="datetime-local"] {
@@ -26821,7 +26818,6 @@ function rxSetTipoDoc(t) {
   }
   if (t === 'injetaveis') { prAbrirInjetaveis(); return; }
   if (t === 'medbase') { prAbrirMedBase(); return; }
-  if (t === 'breve') { if (typeof homeToast === 'function') homeToast('Em construção — por enquanto: Receituário, Atestado e Exames.'); return; }
   rxState.tipoDoc = t;
   rxRerender(false);
 }
@@ -26922,10 +26918,9 @@ function rxLimparMed() {
 
 function prRenderPrescritor() {
   const ehAtestado = rxState.tipoDoc === 'atestado';
-  const docBtn = (id, label, icone, extra) => `
-    <button type="button" class="rx-doc-btn ${rxState.tipoDoc === id ? 'ativo' : ''} ${extra || ''}"
-      onclick="rxSetTipoDoc('${extra === 'breve' ? 'breve' : id}')">
-      <i class="ti ti-${icone}"></i> ${label}${extra === 'breve' ? '<span class="mini">em construção</span>' : ''}
+  const docBtn = (id, label, icone) => `
+    <button type="button" class="rx-doc-btn ${rxState.tipoDoc === id ? 'ativo' : ''}" onclick="rxSetTipoDoc('${id}')">
+      <i class="ti ti-${icone}"></i> ${label}
     </button>`;
   const modelosOpts = Object.keys(RX_MODELOS).map((k) => `<option value="${rxEsc(k)}">${rxEsc(k)}</option>`).join('');
   return `
@@ -26938,13 +26933,9 @@ function prRenderPrescritor() {
       <div class="rx-tipos">
         ${docBtn('receituario', 'Receituário', 'pill')}
         ${docBtn('atestado', 'Atestado', 'file-certificate')}
-        ${docBtn('declaracao', 'Declaração', 'file-text', 'breve')}
-        ${docBtn('carta', 'Carta', 'mail', 'breve')}
         ${docBtn('exames', 'Solicitação de Exames', 'flask')}
         ${docBtn('injetaveis', 'Injetáveis', 'vaccine')}
         ${docBtn('medbase', 'Medicamento base (GLP-1)', 'vaccine-bottle')}
-        ${docBtn('cirurgia', 'Solicitação de Cirurgia', 'building-hospital', 'breve')}
-        ${docBtn('laudo', 'Laudo', 'report-medical', 'breve')}
       </div>
       ${rxState.tipoDoc === 'injetaveis' ? `<div id="pr-inj-wrap" style="margin-top:14px"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando módulo de injetáveis…</div></div>`
         : rxState.tipoDoc === 'medbase' ? `<div id="pr-medbase-wrap" style="margin-top:14px"><div class="pac-empty"><i class="ti ti-loader"></i>Carregando medicamento base…</div></div>` : `
