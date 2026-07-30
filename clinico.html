@@ -6482,7 +6482,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BN</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BO</b></span></div>
   </div>
 </div>
 
@@ -28636,6 +28636,7 @@ function esRenderLotes() {
       <th class="num">Saldo</th>
       <th class="num">Inicial</th>
       <th>Status</th>
+      <th></th>
     </tr></thead>
     <tbody>
       ${esState.lotes.map(l => {
@@ -28651,10 +28652,33 @@ function esRenderLotes() {
           <td style="text-align:right;"><strong style="color:${l.esgotado ? '#f85149' : (!l.produto.conta_em_mg && l.qtd_atual < 5 ? '#EF9F27' : 'var(--tx1)')};">${esFmtQtd(l.qtd_atual, l.produto)}</strong></td>
           <td style="text-align:right; color:var(--tx3b);">${esFmtQtd(l.qtd_inicial, l.produto)}</td>
           <td>${tag}</td>
+          <td style="text-align:right;">${
+            // Só oferece excluir enquanto o lote está INTOCADO (cadastrou errado). Depois de
+            // sair ou ser aplicado, apagar reescreveria o histórico — o servidor recusa e explica.
+            l.qtd_atual === l.qtd_inicial
+              ? `<button class="pac-btn-secondary ex-mini" style="color:#f85149;border-color:rgba(248,81,73,.35);" title="Excluir este lote" onclick="esExcluirLote('${l.id}', '${cpEnc(l.lote)}')"><i class="ti ti-trash"></i></button>`
+              : `<i class="ti ti-lock" style="color:var(--tx4);font-size:13px;" title="Lote já movimentado: não dá pra apagar sem reescrever o histórico. Use um ajuste de saída."></i>`
+          }</td>
         </tr>`;
       }).join('')}
     </tbody>
   </table>`;
+}
+
+// Exclui um lote cadastrado errado. O servidor só deixa se ele estiver intocado; se recusar,
+// o toast mostra o motivo dele (que já vem dizendo o que fazer no lugar).
+async function esExcluirLote(id, loteEnc) {
+  const nome = cpDec(loteEnc);
+  if (!confirm('Excluir o lote ' + nome + '?\n\nSó dá pra excluir lote que ainda não teve saída nem aplicação. A entrada dele sai do histórico junto. Não dá pra desfazer.')) return;
+  let r = null;
+  try { r = await pacApi('/api/clinico/estoque/batches/' + encodeURIComponent(id), { method: 'DELETE' }); } catch (e) { r = null; }
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    homeToast((r && r.data && r.data.erro) || 'Não consegui excluir o lote.');
+    return;
+  }
+  homeToast('Lote excluído.');
+  esCarregarTab();
+  if (typeof esCarregarDashboard === 'function') esCarregarDashboard();
 }
 
 function esRenderMovimentos() {
