@@ -10353,6 +10353,7 @@ async function carregarMe() {
     aplicarUI();
     await carregarStatus();
     caTratarRetorno();   // se voltou do Conta Azul (?contaazul=ok|erro), avisa e limpa a URL
+    restaurarViewSalva();  // reabre a última aba (depois das permissões, que o trocarView consulta)
     novidadesAutoAbrir();  // mostra a última atualização UMA vez pra quem entrou/recarregou
   } catch (e) {
     document.getElementById('status-text').textContent = 'Offline';
@@ -14305,6 +14306,20 @@ document.querySelectorAll('.sidebar-item[data-view]').forEach(b => {
   });
 });
 
+// ---- Lembrar a aba aberta -------------------------------------------------------------------
+// F5, deploy novo ou fechar/abrir o navegador voltavam SEMPRE pra Visão Geral (a view-painel já
+// nasce com class="active" no HTML e ninguém restaurava nada). Agora a última aba fica guardada e
+// é reaberta depois do login — quem passa o dia na Agenda ou no Estoque não perde o lugar.
+const VIEW_ATUAL_KEY = 'aplic_clinico_view';
+function salvarViewAtual(v) { try { localStorage.setItem(VIEW_ATUAL_KEY, v); } catch (e) {} }
+function restaurarViewSalva() {
+  let v = null;
+  try { v = localStorage.getItem(VIEW_ATUAL_KEY); } catch (e) {}
+  if (!v || v === 'painel') return;                    // painel já é o padrão do HTML
+  if (!document.getElementById('view-' + v)) return;   // aba que não existe mais (renomeada/removida)
+  trocarView(v);   // o próprio trocarView derruba pro painel se faltar permissão pra essa aba
+}
+
 function trocarView(v) {
   // Bloqueio: se o item da sidebar dessa view está escondido por permissão, volta pra Visão Geral
   const sidebarItem = document.querySelector(`.sidebar-item[data-view="${v}"]`);
@@ -14319,6 +14334,7 @@ function trocarView(v) {
   const t = VIEW_TITLES[v] || { titulo: v, sub: '' };
   document.getElementById('topbar-page-current').textContent = t.titulo;
   document.getElementById('topbar-page-sub').textContent = t.sub;
+  salvarViewAtual(v);   // recarregar a página volta pra esta aba, não pra Visão Geral
   // Hooks por view
   // A home é um div que só troca de class: sem este hook ela mostrava o HTML da última carga pra
   // sempre. Toda conclusão feita FORA dela (aplicar injetável, agendar) deixava a tarefa fantasma
