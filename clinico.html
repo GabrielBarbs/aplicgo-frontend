@@ -20963,10 +20963,27 @@ function prRenderFisicoSection() {
     </div>`;
 }
 function prRerenderFisico() { const el = document.getElementById('pr-fisico-section'); if (el) el.innerHTML = prRenderFisicoSection(); }
+// ---- Um painel de cada vez ----------------------------------------------------------------
+// Os botões da barra de ações (Nova prescrição / Exames / Plano alimentar / Físico) abrem painéis
+// INLINE. Abrir um com outro aberto empilhava os dois na tela; agora abrir fecha o anterior.
+// Devolve false se o usuário desistiu — só acontece quando havia prescrição digitada e não salva,
+// que não pode sumir calada só porque ele clicou em outro botão.
+function prFecharOutrosPaineis(exceto) {
+  if (exceto !== 'presc' && typeof rxState !== 'undefined' && rxState && rxState.aberto) {
+    if ((rxState.texto || '').trim()
+        && !confirm('Você tem uma prescrição escrita que ainda não foi salva. Fechar o prescritor assim mesmo?')) return false;
+    rxFechar();
+  }
+  if (exceto !== 'exames' && prState.examesAberto) prFecharExames();
+  if (exceto !== 'plano' && prState.planoAberto) prFecharPlano();
+  if (exceto !== 'fisico' && prState.fisicoAberto) prFecharFisico();
+  return true;
+}
 function prFecharFisico() { prState.fisicoAberto = false; fisState.formAberto = false; prRerenderFisico(); }
 async function prAbrirFisico() {
   const pac = prState.pacienteAtual; if (!pac) return;
   if (prState.fisicoAberto) { prFecharFisico(); return; }
+  if (!prFecharOutrosPaineis('fisico')) return;
   prState.fisicoAberto = true; prState.fisicoPid = pac.id;
   prRerenderFisico();
   setTimeout(function () { const el = document.getElementById('pr-fisico-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
@@ -25961,6 +25978,7 @@ function prFecharExames() { prState.examesAberto = false; prRerenderExames(); }
 async function prAbrirExames() {
   const pac = prState.pacienteAtual; if (!pac) return;
   if (prState.examesAberto) { prFecharExames(); return; } // clicar de novo fecha
+  if (!prFecharOutrosPaineis('exames')) return;
   prState.examesAberto = true; prState.examesLoading = true; prState.examesPid = pac.id; prState.examesInsightHtml = null;
   prRerenderExames();
   setTimeout(function () { const el = document.getElementById('pr-exames-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
@@ -26109,6 +26127,7 @@ function prPlanoRegenerar() {
 async function prAbrirPlano() {
   const pac = prState.pacienteAtual; if (!pac) return;
   if (prState.planoAberto) { prFecharPlano(); return; }
+  if (!prFecharOutrosPaineis('plano')) return;
   prState.planoAberto = true; prState.planoPid = pac.id; prState.planoHtml = null; prState.planoData = null;
   prRerenderPlano();
   setTimeout(function () { const el = document.getElementById('pr-plano-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
@@ -26739,6 +26758,7 @@ Tomar à noite antes de dormir.`,
 // Botão "Nova prescrição" -> abre o prescritor inline (embaixo da barra de ações)
 function prAbrirNovaPresc() {
   if (!prState.pacienteAtual) return;
+  if (!prFecharOutrosPaineis('presc')) return;
   rxState = rxEstadoLimpo({ aberto: true, data: rxAgoraLocal(), icpAtivo: rxState.icpAtivo });
   rxRerender(true);
   // Confere se o e-CPF A1 está no servidor — o hint do painel só promete o que existe.
