@@ -6485,7 +6485,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BR</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BS</b></span></div>
   </div>
 </div>
 
@@ -7646,6 +7646,7 @@
           <input type="text" id="wv-nova-input" placeholder="Nome, código ou número de telefone…" oninput="wvNovaBusca(this.value)">
           <div id="wv-nova-res"></div>
         </div>
+        <div class="cp-tagbar" id="wv-tagbar" style="display:none;"></div>
         <div class="wv-banner" id="wv-banner" style="display:none;"></div>
         <div class="wv-convs" id="wv-convs">
           <div class="wv-vazio"><i class="ti ti-loader"></i> Carregando conversas…</div>
@@ -17959,7 +17960,11 @@ function wvRenderLista() {
   if (banner) banner.style.display = 'none';
   const f = (wvState.filtro || '').trim().toLowerCase();
   wvState.vis = (wvState.chats || []).filter(c =>
-    !f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(f.replace(/\D/g, '') || f));
+    (!f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(f.replace(/\D/g, '') || f))
+    && wvTagMatch(c));   // busca de texto E filtro de tag valem juntos
+  // Antes dos early-return de "lista vazia": senão um filtro que zera a lista escondia a própria
+  // barra, e a pessoa ficava sem o chip aceso pra clicar e desfazer.
+  wvTagbarRender();
   if (!wvState.vis.length) {
     // Buscou um NÚMERO que ainda não tem conversa -> oferece abrir um chat com ele.
     const _dig = f.replace(/\D/g, '');
@@ -17985,10 +17990,55 @@ function wvRenderLista() {
       + '<div class="wv-conv-info"><div class="wv-conv-top"><span class="nm">' + esc(waTrunc(nome, 28)) + '</span><span class="hr">' + cpHora(c.ultima_em) + '</span></div>'
       + '<div class="wv-conv-bot"><span class="prev">' + (c.ultima ? tick + prev : '<span style="color:var(--tx4);">' + prev + '</span>') + '</span>'
       + (c.nao_lidas > 0 ? '<span class="wv-badge">' + (c.nao_lidas > 99 ? '99+' : c.nao_lidas) + '</span>' : '') + '</div>'
-      // Mesmos chips do popup (unidade e status do paciente + tags livres), da mesma fonte.
-      + (function () { const ch = cpChipsDoContato(c); return ch ? '<div class="wv-conv-tags">' + ch + '</div>' : ''; })()
+      // Mesmos chips do popup (unidade e status do paciente + tags livres) + o "+" pra etiquetar
+      // sem precisar abrir a conversa. stopPropagation: o clique não pode abrir o chat junto.
+      + '<div class="wv-conv-tags">' + cpChipsDoContato(c)
+        + '<span class="ci-tag-add" title="Etiquetar" onclick="event.stopPropagation();cpTagEditorAbrir(cpDec(\'' + cpEnc(cpContatoKey(c)) + '\'))">+</span></div>'
       + '</div></div>';
   }).join('');
+}
+
+// Barra de filtro por tag da PÁGINA. Espelha a do popup, mas com filtro PRÓPRIO (wvState.tagFiltro):
+// a busca de texto das duas telas também é separada, e herdar o filtro de outra tela esconderia
+// conversas sem a pessoa entender por quê.
+function wvTagMatch(c) {
+  const f = wvState.tagFiltro;
+  if (!f) return true;
+  if (f.tipo === 'unidade') return c.paciente_unidade === f.valor;
+  if (f.tipo === 'status') return c.paciente_status === f.valor;
+  if (f.tipo === 'tag') return cpTagsLivres(c).includes(f.valor);
+  return true;
+}
+function wvTagFiltro(tipo, valor) {
+  const f = wvState.tagFiltro;
+  wvState.tagFiltro = (!tipo || (f && f.tipo === tipo && f.valor === valor)) ? null : { tipo: tipo, valor: valor };
+  wvRenderLista();
+}
+function wvTagbarRender() {
+  const bar = document.getElementById('wv-tagbar');
+  if (!bar) return;
+  const unidades = [...new Set((wvState.chats || []).map(c => c.paciente_unidade).filter(Boolean))].sort();
+  const status = [...new Set((wvState.chats || []).map(c => c.paciente_status).filter(Boolean))].sort();
+  const livres = [...new Set(Object.values(cpState.waTags || {}).flat())].sort((a, b) => a.localeCompare(b));
+  // Filtro órfão (a tag foi removida por outra pessoa, o paciente mudou de status): limpa sozinho —
+  // senão a lista fica vazia sem nenhum chip aceso explicando o motivo.
+  const f0 = wvState.tagFiltro;
+  if (f0) {
+    const conj = f0.tipo === 'unidade' ? unidades : f0.tipo === 'status' ? status : livres;
+    if (!conj.includes(f0.valor)) wvState.tagFiltro = null;
+  }
+  if (!unidades.length && !status.length && !livres.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const f = wvState.tagFiltro;
+  // Valor codificado (base64) e decodificado no clique: texto livre nunca entra cru no onclick.
+  const chip = (tipo, valor, label, extra) =>
+    '<span class="cp-tagchip' + (f && f.tipo === tipo && f.valor === valor ? ' ativo' : '') + '" ' + (extra || '')
+    + ' onclick="wvTagFiltro(\'' + tipo + '\',cpDec(\'' + cpEnc(valor) + '\'))">' + esc(label) + '</span>';
+  let html = '<span class="cp-tagchip' + (f ? '' : ' ativo') + '" onclick="wvTagFiltro(null,null)">Todas</span>';
+  html += livres.map(t => chip('tag', t, t, 'style="' + cpTagCorLivre(t) + ';border-color:transparent"')).join('');
+  html += unidades.map(u => chip('unidade', u, u)).join('');
+  html += status.map(s => chip('status', s, labelStatus(s))).join('');
+  bar.innerHTML = html;
 }
 function wvAbrirIdx(i) {
   const c = wvState.vis[i];
