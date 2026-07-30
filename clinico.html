@@ -2990,6 +2990,9 @@
     .wv-conv-bot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px; }
     .wv-conv-bot .prev { font-size:11.5px; color:var(--tx3b); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .wv-badge { background:#25D366; color:#06281a; font-size:10px; font-weight:800; border-radius:999px; min-width:19px; height:19px; display:inline-flex; align-items:center; justify-content:center; padding:0 6px; flex-shrink:0; }
+    /* Tags do contato na lista da página (mesmos chips .ci-tag do popup) */
+    .wv-conv-tags { display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; }
+    .wv-conv-tags .ci-tag { font-size:9px; padding:1px 6px; }
     .wv-thread-pane { flex:1; min-width:0; display:flex; flex-direction:column; }
     .wv-thread-vazio { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:var(--tx4); font-size:13px; }
     .wv-thread-vazio i { font-size:44px; color:rgba(37,211,102,.35); }
@@ -6482,7 +6485,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BQ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BR</b></span></div>
   </div>
 </div>
 
@@ -7658,6 +7661,8 @@
           <div class="wv-msgs" id="wv-msgs"></div>
           <div class="wv-composer" id="wv-composer">
             <button class="wv-clip" id="wv-mic" onclick="wvMicToggle()" title="Gravar áudio"><i class="ti ti-microphone"></i></button>
+            <div class="cp-emoji-pop" id="wv-emoji-pop" style="display:none;"></div>
+            <button class="wv-clip" id="wv-emoji" onclick="wvEmojiToggle()" title="Emoji"><i class="ti ti-mood-smile"></i></button>
             <button class="wv-clip" id="wv-clip" onclick="wvAnexarClique()" title="Anexar imagem ou PDF"><i class="ti ti-paperclip"></i></button>
             <input type="file" id="wv-file" accept="image/*,application/pdf" style="display:none;" onchange="wvAnexarArquivo(this)">
             <textarea id="wv-input" rows="1" placeholder="Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)" onkeydown="wvInputKey(event)" oninput="wvAutoGrow(this)"></textarea>
@@ -17259,6 +17264,16 @@ function cpDec(s) { try { return decodeURIComponent(escape(atob(s))); } catch (e
 // & PRIMEIRO: o parser HTML decodifica entidades no atributo ANTES do JS — sem isso um "&quot;"
 // no texto viraria aspa e quebraria o JSON (attribute/JSON breakout).
 function jsAttr(o) { return JSON.stringify(o).replace(/&/g, '&amp;').replace(/'/g, '&apos;'); }
+// Acha o contato pela chave de tag no popup OU na pagina Conversas: as tags sao as MESMAS
+// (mesma contato_key), entao o editor tem que enxergar as duas listas.
+function waChatPorChave(contatoKey) {
+  const listas = [cpState.waChats, (typeof wvState !== 'undefined' && wvState) ? wvState.chats : null];
+  for (const l of listas) {
+    const achado = (l || []).find(function (x) { return cpContatoKey(x) === contatoKey; });
+    if (achado) return achado;
+  }
+  return null;
+}
 function cpTagsLivres(c) { return cpState.waTags[cpContatoKey(c)] || []; }
 
 // Cor determinística da tag livre a partir do texto — a mesma tag tem sempre a mesma cor.
@@ -17365,7 +17380,7 @@ function cpTagEditorRender(contatoKey) {
     ov.addEventListener('click', (e) => { if (e.target === ov) ov.remove(); });
     document.body.appendChild(ov);
   }
-  const c = (cpState.waChats || []).find(x => cpContatoKey(x) === contatoKey);
+  const c = waChatPorChave(contatoKey);
   const unidadeDerivada = c ? c.paciente_unidade : null;   // a unidade que já aparece sozinha (paciente)
   const atuais = cpState.waTags[contatoKey] || [];
   const temCI = (v) => atuais.some(t => t.toLowerCase() === String(v).toLowerCase());
@@ -17407,6 +17422,7 @@ async function cpTagAdicionar(contatoKey, texto) {
   if (!atual.some(t => t.toLowerCase() === texto.toLowerCase())) cpState.waTags[contatoKey] = atual.concat([texto]);
   cpTagEditorRender(contatoKey);
   chatPopRenderLista();
+  if (typeof wvRenderLista === 'function' && typeof wvState !== 'undefined' && (wvState.chats || []).length) wvRenderLista();
 }
 async function cpTagRemover(contatoKey, texto) {
   let ok = false;
@@ -17417,9 +17433,10 @@ async function cpTagRemover(contatoKey, texto) {
   if (cpState.tagFiltro && cpState.tagFiltro.tipo === 'tag' && !Object.values(cpState.waTags).flat().includes(cpState.tagFiltro.valor)) cpState.tagFiltro = null;
   cpTagEditorRender(contatoKey);
   chatPopRenderLista();
+  if (typeof wvRenderLista === 'function' && typeof wvState !== 'undefined' && (wvState.chats || []).length) wvRenderLista();
 }
 function cpTagNomeAtual(contatoKey) {
-  const c = (cpState.waChats || []).find(x => cpContatoKey(x) === contatoKey);
+  const c = waChatPorChave(contatoKey);
   return c ? (c.nome || (c.numero ? wdFmtTel(c.numero) : 'Contato')) : 'contato';
 }
 
@@ -17894,7 +17911,18 @@ async function wvCarregarChats(silent) {
   const wrap = document.getElementById('wv-convs');
   if (!silent && wrap) wrap.innerHTML = '<div class="wv-vazio"><i class="ti ti-loader"></i> Carregando conversas…</div>';
   let r = null;
-  try { r = await pacApi('/api/clinico/whatsapp/chats'); } catch (e) { r = null; }
+  // As TAGS vêm junto (mesmo índice do popup: cpState.waTags por contato_key). É uma fonte só —
+  // marcar aqui aparece lá e vice-versa. Tag que falha não derruba a lista de conversas.
+  let rt = null;
+  try { [r, rt] = await Promise.all([
+    pacApi('/api/clinico/whatsapp/chats'),
+    pacApi('/api/clinico/whatsapp/tags').catch(function () { return null; }),
+  ]); } catch (e) { r = null; }
+  if (rt && rt.ok && rt.data && rt.data.tags) {
+    const idx = {};
+    rt.data.tags.forEach(function (t) { (idx[t.contato_key] = idx[t.contato_key] || []).push(t.texto); });
+    cpState.waTags = idx;
+  }
   // ERRO ≠ "sem WhatsApp": em falha transitória mantém a lista que já está na
   // tela e avisa discreto (antes o 502 virava banner falso de desconectado).
   if (!r || !r.ok) {
@@ -17956,7 +17984,10 @@ function wvRenderLista() {
       + av
       + '<div class="wv-conv-info"><div class="wv-conv-top"><span class="nm">' + esc(waTrunc(nome, 28)) + '</span><span class="hr">' + cpHora(c.ultima_em) + '</span></div>'
       + '<div class="wv-conv-bot"><span class="prev">' + (c.ultima ? tick + prev : '<span style="color:var(--tx4);">' + prev + '</span>') + '</span>'
-      + (c.nao_lidas > 0 ? '<span class="wv-badge">' + (c.nao_lidas > 99 ? '99+' : c.nao_lidas) + '</span>' : '') + '</div></div></div>';
+      + (c.nao_lidas > 0 ? '<span class="wv-badge">' + (c.nao_lidas > 99 ? '99+' : c.nao_lidas) + '</span>' : '') + '</div>'
+      // Mesmos chips do popup (unidade e status do paciente + tags livres), da mesma fonte.
+      + (function () { const ch = cpChipsDoContato(c); return ch ? '<div class="wv-conv-tags">' + ch + '</div>' : ''; })()
+      + '</div></div>';
   }).join('');
 }
 function wvAbrirIdx(i) {
@@ -18001,8 +18032,13 @@ function wvComposerAtivo(ativo) {
 function wvRenderHead() {
   const ct = wvState.contato || {};
   const nome = ct.nome || (ct.telefone ? wdFmtTel(ct.telefone) : 'Contato');
+  // Chave do contato: a MESMA regra do popup (contato_key do servidor, senão o core do telefone),
+  // pra a tag posta aqui aparecer lá e vice-versa.
+  const chatAtual = (wvState.chats || []).find(function (x) { return x.id === wvState.jid; });
+  const chaveTag = chatAtual ? cpContatoKey(chatAtual) : (ct.telefone ? cpTelCore(ct.telefone) : wvState.jid);
   const acoes = [
     ct.paciente_id ? '<button class="cp-acao" title="Abrir prontuário" onclick="wvIrProntuario()"><i class="ti ti-clipboard-text"></i></button>' : '',
+    chaveTag ? '<button class="cp-acao" title="Tags do contato" onclick="cpTagEditorAbrir(cpDec(\'' + cpEnc(String(chaveTag)) + '\'))"><i class="ti ti-tag"></i></button>' : '',
     ct.telefone ? '<button class="cp-acao" title="Ligar (discador)" onclick="wvLigar()"><i class="ti ti-phone"></i></button>' : '',
     ct.telefone ? '<button class="cp-acao" title="Abrir no WhatsApp" onclick="wvWaWeb()"><i class="ti ti-brand-whatsapp"></i></button>' : '',
   ].join('');
@@ -18056,6 +18092,25 @@ function wvRenderMsgs(scroll) {
 }
 function wvInputKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.repeat) return; wvEnviar(); }
+}
+// Emoji no composer da PAGINA. Reusa o mesmo vocabulario do popup (CP_EMOJIS) — uma lista so.
+function wvEmojiToggle() {
+  const pop = document.getElementById('wv-emoji-pop');
+  if (!pop) return;
+  if (pop.style.display === 'flex') { pop.style.display = 'none'; return; }
+  if (!pop.dataset.built) { pop.innerHTML = CP_EMOJIS.map(function (e) { return '<button type="button" class="cp-emo" onclick="wvEmojiInserir(\'' + e + '\')">' + e + '</button>'; }).join(''); pop.dataset.built = '1'; }
+  pop.style.display = 'flex';
+}
+function wvEmojiFechar() { const p = document.getElementById('wv-emoji-pop'); if (p) p.style.display = 'none'; }
+function wvEmojiInserir(e) {
+  const inp = document.getElementById('wv-input');
+  if (!inp) return;
+  const ini = inp.selectionStart == null ? inp.value.length : inp.selectionStart;
+  const fim = inp.selectionEnd == null ? inp.value.length : inp.selectionEnd;
+  inp.value = inp.value.slice(0, ini) + e + inp.value.slice(fim);
+  const pos = ini + e.length;
+  inp.focus(); try { inp.setSelectionRange(pos, pos); } catch (x) {}
+  wvAutoGrow(inp);
 }
 function wvAutoGrow(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; }
 async function wvEnviar() {
