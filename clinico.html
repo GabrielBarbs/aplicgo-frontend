@@ -1362,6 +1362,14 @@
     }
     .ag-day-header.hoje .num { color: var(--ac); }
     .ag-day-header.hoje { background: rgba(var(--ac-rgb),0.06); }
+    /* Cabeçalho da coluna de PROFISSIONAL (visão dia com vários). Nome pode ser longo: quebra em
+       2 linhas e corta com reticências em vez de esticar a coluna. */
+    .ag-prof-header .prof {
+      font-size: 12px; color: var(--tx1); font-weight: 600; line-height: 1.25;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; word-break: break-word;
+    }
+    .ag-prof-header.hoje .prof { color: var(--ac); }
     /* Chips de PRAZO de tarefa no cabeçalho do dia (all-day) */
     .ag-day-tasks { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
     .ag-task-chip {
@@ -15940,6 +15948,43 @@ function agTarefaChipsHtml(dayKey) {
 }
 function agEscAttr(s) { return esc(String(s || '')).replace(/"/g, '&quot;'); }
 
+// ---- Visão DIA com vários profissionais: uma coluna por profissional ------------------------
+// Pedido do Matheus: no "dia", com 2+ ou "todos" selecionados, cada profissional ganha a própria
+// fileira com o nome — antes tudo caía numa coluna só e virava um amontoado.
+// Devolve null quando NÃO é pra dividir (semana/mês, 1 profissional escolhido, ou só sobrou 1
+// coluna) — aí a agenda segue exatamente como era.
+function agProfNomeCurto(id) {
+  const p = (pacState.profissionais || []).find((x) => x.id === id);
+  if (!p) return 'Profissional';
+  const role = ({ medico: 'Dr.', nutricionista: 'Nutri', enfermagem: 'Enf.', gestor: '' })[p.role] || '';
+  return (role ? role + ' ' : '') + (p.nome || p.email || 'Profissional');
+}
+function agProfDe(x) { return (x && ((x.professional && x.professional.id) || x.professional_id)) || null; }
+function agColunasProf(diaRef) {
+  if (agState.mode !== 'dia') return null;
+  if (agState.profs.length === 1) return null;           // 1 escolhido: coluna única, como antes
+  const dia = new Date(diaRef); dia.setHours(0, 0, 0, 0);
+  const doDia = (arr) => (arr || []).filter((x) => agSameDay(new Date(x.start_at), dia));
+  const itens = doDia(agState.agendamentos).concat(doDia(agState.bloqueios));
+  const ids = [];
+  if (agState.profs.length >= 2) {
+    ids.push(...agState.profs);                          // escolheu N: mostra os N, mesmo vazios
+  } else {
+    // "Todos": só quem TEM algo no dia — senão viram dez colunas vazias e o dia fica ilegível.
+    for (const x of itens) { const p = agProfDe(x); if (p && !ids.includes(p)) ids.push(p); }
+  }
+  const cols = ids.map((id) => ({ id, nome: agProfNomeCurto(id) }));
+  // Coluna pro que NÃO tem profissional (ex.: aplicação de injetável, que nasce sem enfermeira).
+  // Sem ela esses agendamentos sumiriam da tela ao dividir por profissional.
+  if (itens.some((x) => !agProfDe(x))) cols.push({ id: null, nome: 'Sem profissional' });
+  return cols.length >= 2 ? cols : null;
+}
+// Índice da coluna de um agendamento/bloqueio. -1 = não aparece nas colunas mostradas.
+function agColDoProf(x, colsProf) {
+  const pid = agProfDe(x);
+  return colsProf.findIndex((c) => (c.id || null) === (pid || null));
+}
+
 function agRender() {
   const grid = document.getElementById('ag-grid');
 
@@ -15954,10 +15999,13 @@ function agRender() {
   // Dia, semana, seg-sex
   const ehDia = agState.mode === 'dia';
   const ehSegSex = agState.mode === 'seg-sex';
+  // No DIA com mais de um profissional, cada um ganha a PRÓPRIA coluna (com o nome no topo).
+  // Antes tudo caía numa coluna só e não dava pra ver quem atende o quê.
+  const colsProf = ehDia ? agColunasProf(new Date(agState.semanaRef)) : null;
   let diasMostrados, colsTemplate, startDow;
   if (ehDia) {
-    diasMostrados = 1;
-    colsTemplate = '56px 1fr';
+    diasMostrados = colsProf ? colsProf.length : 1;
+    colsTemplate = colsProf ? `56px repeat(${colsProf.length}, minmax(110px, 1fr))` : '56px 1fr';
     startDow = null; // só mostra o dia atual
   } else if (ehSegSex) {
     diasMostrados = 5;
@@ -15980,6 +16028,16 @@ function agRender() {
     const d = ehDia ? ini : agDiaDaSemana(ini, i);
     const ehHoje = agSameDay(d, hoje);
     const dowIdx = d.getDay();
+    if (colsProf) {
+      // Coluna por PROFISSIONAL: o topo é o nome dele. A data não se repete em cada coluna —
+      // ela já está no rótulo do período, na barra de cima.
+      const c = colsProf[i];
+      html += `<div class="ag-day-header ag-prof-header${ehHoje ? ' hoje' : ''}" title="${esc(c.nome)}">
+        <div class="prof">${esc(c.nome)}</div>
+        ${i === 0 ? agTarefaChipsHtml(agDayKey(d)) : ''}
+      </div>`;
+      continue;
+    }
     html += `<div class="ag-day-header${ehHoje ? ' hoje' : ''}">
       <div class="dow">${AG_DIAS_SEMANA[dowIdx]}</div>
       <div class="num">${d.getDate()}</div>
@@ -15998,18 +16056,19 @@ function agRender() {
       const slotDate = new Date(dia);
       slotDate.setHours(hora, min, 0, 0);
       const iso = agIsoLocal(slotDate);
-      html += `<div class="ag-slot${ehHoje ? ' hoje' : ''}" onclick="agAbrirNovoModalEm('${iso}')" data-iso="${iso}" ondragover="agSlotDragOver(event)" ondragleave="agSlotDragLeave(event)" ondrop="agSlotDrop(event)"></div>`;
+      const pid = colsProf ? (colsProf[i].id || '') : '';
+      html += `<div class="ag-slot${ehHoje ? ' hoje' : ''}" onclick="agAbrirNovoModalEm('${iso}'${pid ? `, '${pid}'` : ''})" data-iso="${iso}"${pid ? ` data-prof="${pid}"` : ''} ondragover="agSlotDragOver(event)" ondragleave="agSlotDragLeave(event)" ondrop="agSlotDrop(event)"></div>`;
     }
   }
   grid.innerHTML = html;
 
   // Posiciona os eventos
   agState.agendamentos.forEach(a => {
-    agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex);
+    agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex, colsProf);
   });
   // Posiciona os bloqueios
   (agState.bloqueios || []).forEach(b => {
-    agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex);
+    agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex, colsProf);
   });
 }
 
@@ -16164,7 +16223,7 @@ function agStatusLabel(status, origem) {
   return status;
 }
 
-function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
+function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex, colsProf) {
   const start = new Date(a.start_at);
   const end = new Date(a.end_at);
 
@@ -16172,7 +16231,9 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
   let col = 0;
   if (ehDia) {
     if (!agSameDay(start, ini)) return;
-    col = 0;
+    // Uma coluna por profissional: a coluna é QUEM atende, não o dia.
+    col = colsProf ? agColDoProf(a, colsProf) : 0;
+    if (col < 0) return;   // profissional fora das colunas mostradas
   } else if (ehSegSex) {
     // ini = segunda; col = 0..4
     col = start.getDay() - 1;
@@ -16243,14 +16304,15 @@ function agPosicionarEvento(a, ini, diasMostrados, ehDia, ehSegSex) {
 }
 
 // ========== RENDER DE BLOQUEIO ==========
-function agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex) {
+function agPosicionarBloqueio(b, ini, diasMostrados, ehDia, ehSegSex, colsProf) {
   const start = new Date(b.start_at);
   const end = new Date(b.end_at);
 
   let col = 0;
   if (ehDia) {
     if (!agSameDay(start, ini)) return;
-    col = 0;
+    col = colsProf ? agColDoProf(b, colsProf) : 0;   // bloqueio cai na coluna de quem bloqueou
+    if (col < 0) return;
   } else if (ehSegSex) {
     col = start.getDay() - 1;
     if (col < 0 || col > 4) return;
@@ -16343,11 +16405,20 @@ async function agSlotDrop(e) {
   const newStart = new Date(iso);
   const newEnd = new Date(newStart.getTime() + dur * 60000);
 
+  // Na visão dia dividida por profissional, a COLUNA é quem atende: soltar na coluna de outro
+  // profissional passa o agendamento pra ele. Sem isso só a hora mudaria e o card "pularia de
+  // volta" pra coluna de origem no próximo render — parecendo que o arraste não funcionou.
+  const profDestino = slot.dataset.prof || null;
+  const profAtual = (oldEvent.professional && oldEvent.professional.id) || oldEvent.professional_id || null;
+  const trocaProf = !!profDestino && profDestino !== profAtual;
+  if (trocaProf && !confirm('Passar este agendamento para ' + agProfNomeCurto(profDestino) + '?')) return;
+
   const r = await pacApi('/api/clinico/appointments/' + id, {
     method: 'PUT',
     body: JSON.stringify({
       start_at: newStart.toISOString(),
       end_at: newEnd.toISOString(),
+      ...(trocaProf && { professional_id: profDestino }),
     })
   });
   if (!r.ok) {
@@ -18807,7 +18878,7 @@ async function agSalvarBloqueioTab() {
   agCarregar();
 }
 
-function agAbrirNovoModalEm(isoLocal) {
+function agAbrirNovoModalEm(isoLocal, profId) {
   agResetForm();
   agTrocarTab('agendamento');
   document.getElementById('ag-modal-title').textContent = 'Novo agendamento';
@@ -18815,6 +18886,8 @@ function agAbrirNovoModalEm(isoLocal) {
   const [data, hora] = isoLocal.split('T');
   document.getElementById('ag-data').value = data;
   document.getElementById('ag-hora').value = hora;
+  // Clicou num vazio da coluna de um profissional: já vem com ele escolhido (a coluna É o pedido).
+  if (profId) { const sel = document.getElementById('ag-prof'); if (sel) sel.value = profId; }
   document.getElementById('ag-modal').classList.add('aberto');
   setTimeout(() => document.getElementById('ag-pat-search').focus(), 100);
 }
