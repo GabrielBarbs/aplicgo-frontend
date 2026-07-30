@@ -6482,7 +6482,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BP</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BQ</b></span></div>
   </div>
 </div>
 
@@ -28663,13 +28663,16 @@ function esRenderLotes() {
 // o toast mostra o motivo dele (que já vem dizendo o que fazer no lugar).
 async function esExcluirLote(id, loteEnc, qtdAtual, qtdInicial) {
   const nome = cpDec(loteEnc);
-  // Lote nunca usado sai de vez; lote já usado é ARQUIVADO (some da tela, histórico fica).
-  // O aviso tem que dizer qual dos dois vai acontecer — some da tela não é igual a some do sistema.
-  const intocado = qtdAtual === qtdInicial;
-  const msg = intocado
-    ? 'Remover o lote ' + nome + '?\n\nEle nunca foi usado, então sai de vez (a entrada dele sai do histórico junto).'
-    : 'Remover o lote ' + nome + ' da tela?\n\nO histórico dele (movimentos e aplicações em paciente) CONTINUA guardado — ele só deixa de aparecer na lista.'
-      + (qtdAtual > 0 ? '\n\nO saldo que ainda resta vai ser zerado, com o ajuste registrado no histórico.' : '');
+  // O aviso NÃO tenta adivinhar se o lote vai ser apagado ou arquivado: quem decide isso é o
+  // servidor, com um critério mais rígido (ele também olha aplicações e movimentos). Um lote com
+  // aplicação ESTORNADA tem saldo = entrada e pareceria "nunca usado" aqui — e o saldo real seria
+  // zerado depois de eu ter dito que não ia mexer em nada. Então o que é CERTO vem sempre:
+  // se há saldo, ele vai a zero. O que aconteceu de fato, o toast informa depois.
+  const msg = 'Remover o lote ' + nome + ' da tela?'
+    + (qtdAtual > 0
+        ? '\n\nATENÇÃO: o saldo atual (' + qtdAtual + ') vai ser ZERADO. Só confirme se esse estoque não existe mais de verdade.'
+        : '')
+    + '\n\nSe o lote já tiver sido usado, ele é só arquivado: o histórico (movimentos e aplicações em paciente) continua guardado. Se nunca foi usado, sai de vez.';
   if (!confirm(msg)) return;
   let r = null;
   try { r = await pacApi('/api/clinico/estoque/batches/' + encodeURIComponent(id), { method: 'DELETE' }); } catch (e) { r = null; }
