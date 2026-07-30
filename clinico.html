@@ -6476,7 +6476,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BM</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BN</b></span></div>
   </div>
 </div>
 
@@ -7903,6 +7903,39 @@
     #view-editaveis .ed-chip.ia { background: rgba(29,158,117,.16); color: #1D9E75; }
     #view-editaveis .ed-acts { display: flex; gap: 6px; flex-shrink: 0; }
     #view-editaveis .ed-vazio { color: var(--tx3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--bd1); border-radius: 10px; padding: 22px; text-align: center; }
+    /* Abertura de agenda (Editáveis > Agenda) */
+    #view-editaveis .ag-busca { position: relative; margin-bottom: 16px; }
+    #view-editaveis .ag-busca i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--tx4); font-size: 15px; }
+    #view-editaveis .ag-busca input { width: 100%; background: var(--bg2); border: 1px solid var(--bd1); border-radius: 10px; padding: 10px 12px 10px 36px; color: var(--tx1); font: inherit; font-size: 13px; }
+    #view-editaveis .ag-busca input:focus { outline: none; border-color: var(--ac); }
+    #view-editaveis .ag-profs { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; }
+    #view-editaveis .ag-prof { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+    #view-editaveis .ag-prof-top { display: flex; align-items: center; gap: 13px; padding: 16px; border-bottom: 1px solid var(--bd1); }
+    #view-editaveis .ag-prof-av { width: 54px; height: 54px; border-radius: 50%; background: var(--bg3); color: var(--tx3); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0; }
+    #view-editaveis .ag-prof-id { flex: 1; min-width: 0; }
+    #view-editaveis .ag-prof-nome { font-size: 14.5px; font-weight: 700; color: var(--ac); }
+    #view-editaveis .ag-prof-ocup { font-size: 12px; color: var(--tx3); margin-top: 3px; line-height: 1.35; }
+    #view-editaveis .ag-prof-corpo { padding: 14px 16px; flex: 1; }
+    #view-editaveis .ag-un { font-size: 12.5px; color: var(--tx2); display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    #view-editaveis .ag-un + .ag-dia { margin-top: 0; }
+    #view-editaveis .ag-un i { color: var(--ac); font-size: 13px; }
+    #view-editaveis .ag-un-bloco + .ag-un-bloco { margin-top: 14px; }
+    #view-editaveis .ag-dia { font-size: 12px; color: var(--tx3); line-height: 1.7; }
+    #view-editaveis .ag-vazio-prof { font-size: 12px; color: var(--tx4); font-style: italic; }
+    #view-editaveis .ag-prof-foot { padding: 12px 16px 16px; }
+    #view-editaveis .ag-prof-foot button { width: 100%; }
+    /* Modal de configuração */
+    .agc-un-tit { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--ac); margin: 16px 0 8px; }
+    .agc-un-tit:first-child { margin-top: 0; }
+    .agc-dia { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid var(--bd1); flex-wrap: wrap; }
+    .agc-dia:last-child { border-bottom: 0; }
+    .agc-dia .nm { flex: 0 0 108px; font-size: 12.5px; color: var(--tx2); }
+    .agc-dia.off .nm { color: var(--tx4); }
+    .agc-dia .faixas { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; }
+    .agc-dia input[type="time"] { background: var(--bg1); border: 1px solid var(--bg3); color: var(--tx1); border-radius: 6px; padding: 5px 6px; font: inherit; font-size: 12px; }
+    .agc-dia input[type="time"]:disabled { opacity: .35; }
+    .agc-dia .ate { font-size: 11px; color: var(--tx4); }
+    .agc-dia .sep { color: var(--tx4); margin: 0 2px; }
     /* Editor do template inteiro */
     #view-editaveis .ed-tpl-aviso { display: flex; gap: 9px; align-items: flex-start; background: rgba(232,148,90,.10); border: 1px solid rgba(232,148,90,.30); color: var(--tx2); border-radius: 9px; padding: 10px 12px; font-size: 12px; margin-bottom: 14px; }
     #view-editaveis .ed-tpl-aviso i { color: #E8945A; font-size: 15px; flex-shrink: 0; margin-top: 1px; }
@@ -29491,7 +29524,11 @@ const ED_TIPO_LABEL = {
 };
 
 function edInit() { edState.tela = 'hub'; edRender(); if (!edState.carregado) edCarregar(); }
-function edAbrir(id) { if (id !== 'anamneses') return; edState.tela = 'anamneses'; edRender(); }
+function edAbrir(id) {
+  if (id === 'agenda') { edState.tela = 'agenda'; if (!agcState.carregado) agcCarregar(); else edRender(); return; }
+  if (id !== 'anamneses') return;
+  edState.tela = 'anamneses'; edRender();
+}
 function edVoltar() { edState.tela = 'hub'; edRender(); }
 
 async function edCarregar() {
@@ -29513,6 +29550,7 @@ function edRender() {
   const box = document.getElementById('ed-conteudo');
   if (!box) return;
   box.innerHTML = edState.tela === 'template' ? edHtmlTemplate()
+    : edState.tela === 'agenda' ? edHtmlAgenda()
     : edState.tela === 'anamneses' ? edHtmlAnamneses() : edHtmlHub();
 }
 
@@ -29677,6 +29715,169 @@ async function edSalvar(slug) {
   edFecharModal();
   if (typeof homeToast === 'function') homeToast(slug ? 'Campo atualizado.' : 'Campo criado — já aparece nos templates escolhidos.');
   edCarregar();
+}
+
+// ============================================================
+// ABERTURA DE AGENDA (Editáveis > Agenda) — horários de atendimento por profissional/unidade
+// ============================================================
+let agcState = { profs: [], unidades: [], busca: '', carregado: false, erro: null };
+const AGC_DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+async function agcCarregar() {
+  agcState.carregado = false; edRender();
+  let r = null;
+  try { r = await pacApi('/api/clinico/agenda-config'); } catch (e) { r = null; }
+  agcState.carregado = true;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    agcState.erro = (r && r.data && r.data.erro) || 'Não consegui carregar a abertura de agenda.';
+  } else {
+    agcState.erro = null;
+    agcState.profs = r.data.profissionais || [];
+    agcState.unidades = r.data.unidades || [];
+  }
+  edRender();
+}
+function agcBuscar(v) {
+  agcState.busca = String(v || '');
+  const box = document.getElementById('agc-lista');
+  if (box) box.innerHTML = agcCardsHtml();   // re-render só a lista: o input não perde o foco
+}
+function agcNomeUnidade(id) {
+  const u = (agcState.unidades || []).find(function (x) { return x.id === id; });
+  return u ? u.nome : 'Unidade';
+}
+function agcCardsHtml() {
+  const f = agcState.busca.trim().toLowerCase();
+  const lista = (agcState.profs || []).filter(function (p) {
+    if (!f) return true;
+    return String(p.nome || '').toLowerCase().indexOf(f) > -1 || String(p.cargo || '').toLowerCase().indexOf(f) > -1;
+  });
+  if (!lista.length) return '<div class="ed-vazio">Nenhum profissional encontrado.</div>';
+  return '<div class="ag-profs">' + lista.map(function (p) {
+    const ini = String(p.nome || '?').trim().charAt(0).toUpperCase() || '?';
+    // Sem agenda configurada a ocupação vem null: dizer "0%" seria mentira (não há base de cálculo).
+    const ocup = (p.ocupacao == null)
+      ? '<span style="color:var(--tx4)">sem horário configurado</span>'
+      : String(p.ocupacao).replace('.', ',') + '% de ocupação nos últimos 30 dias';
+    const unids = Object.keys(p.horarios || {});
+    const corpo = unids.length ? unids.map(function (uid) {
+      const dias = p.horarios[uid] || {};
+      const linhas = Object.keys(dias).map(Number).sort(function (a, b) { return a - b; }).map(function (d) {
+        const faixas = (dias[String(d)] || []).map(function (x) { return x.ini + ' - ' + x.fim; }).join(' / ');
+        return '<div class="ag-dia">- ' + AGC_DIAS[d] + ' (' + esc(faixas) + ') · Semanal</div>';
+      }).join('');
+      return '<div class="ag-un-bloco"><div class="ag-un"><i class="ti ti-calendar-cog"></i> ' + esc(agcNomeUnidade(uid)) + '</div>' + linhas + '</div>';
+    }).join('') : '<div class="ag-vazio-prof">Nenhum horário de atendimento configurado.</div>';
+    return '<div class="ag-prof">'
+      + '<div class="ag-prof-top"><div class="ag-prof-av">' + esc(ini) + '</div>'
+      + '<div class="ag-prof-id"><div class="ag-prof-nome">' + esc(p.nome) + '</div>'
+      + '<div class="ag-prof-ocup">' + ocup + '</div></div></div>'
+      + '<div class="ag-prof-corpo">' + corpo + '</div>'
+      + '<div class="ag-prof-foot"><button class="pac-btn-secondary" onclick="agcConfigurar(\'' + p.id + '\')">'
+      + '<i class="ti ti-calendar-cog"></i> Configurar os horários de atendimento</button></div>'
+      + '</div>';
+  }).join('') + '</div>';
+}
+function edHtmlAgenda() {
+  const voltar = '<button class="ed-voltar" onclick="edVoltar()"><i class="ti ti-chevron-left"></i> Editáveis</button>';
+  if (!agcState.carregado) return voltar + '<div class="pt-empty">Carregando…</div>';
+  if (agcState.erro) return voltar + '<div class="ed-vazio"><i class="ti ti-alert-triangle"></i> ' + esc(agcState.erro) + '</div>';
+  return voltar
+    + '<div style="font-size:15px;color:var(--tx1);font-weight:600;margin-bottom:3px;">Abertura de agenda</div>'
+    + '<div style="font-size:12px;color:var(--tx3);margin-bottom:14px;">Horários em que cada profissional atende, por unidade e dia da semana. A ocupação compara o que foi agendado nos últimos 30 dias com o horário aberto.</div>'
+    + '<div class="ag-busca"><i class="ti ti-search"></i><input type="search" placeholder="Pesquisar profissional…" value="' + esc(agcState.busca) + '" oninput="agcBuscar(this.value)"></div>'
+    + '<div id="agc-lista">' + agcCardsHtml() + '</div>';
+}
+
+// --- Modal: horários de UM profissional (todas as unidades, 7 dias, até 2 faixas por dia) ---
+function agcConfigurar(userId) {
+  const p = (agcState.profs || []).find(function (x) { return x.id === userId; });
+  if (!p) return;
+  agcFechar();
+  const ov = document.createElement('div');
+  ov.id = 'agc-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'agc-modal') agcFechar(); };
+  const H = p.horarios || {};
+  let corpo = '';
+  (agcState.unidades || []).forEach(function (u) {
+    const dias = H[u.id] || {};
+    corpo += '<div class="agc-un-tit">' + esc(u.nome) + '</div>';
+    for (let d = 0; d <= 6; d++) {
+      const fs = dias[String(d)] || [];
+      const on = fs.length > 0;
+      const v = function (i, campo) { return (fs[i] && fs[i][campo]) ? fs[i][campo] : ''; };
+      const t = function (i, campo) {
+        return '<input type="time" data-u="' + u.id + '" data-d="' + d + '" data-i="' + i + '" data-c="' + campo + '"'
+          + ' value="' + v(i, campo) + '"' + (on ? '' : ' disabled') + '>';
+      };
+      corpo += '<div class="agc-dia' + (on ? '' : ' off') + '" data-dia="' + u.id + '-' + d + '">'
+        + '<label class="cfg-sw" style="flex:0 0 auto"><input type="checkbox"' + (on ? ' checked' : '')
+        + ' onchange="agcDiaToggle(this, \'' + u.id + '\', ' + d + ')"><span class="tr"></span></label>'
+        + '<span class="nm">' + AGC_DIAS[d] + '</span>'
+        + '<span class="faixas">' + t(0, 'ini') + '<span class="ate">até</span>' + t(0, 'fim')
+        + '<span class="sep">/</span>' + t(1, 'ini') + '<span class="ate">até</span>' + t(1, 'fim') + '</span>'
+        + '</div>';
+    }
+  });
+  ov.innerHTML = '<div class="pac-modal" style="max-width:680px;">'
+    + '<div class="pac-modal-header"><div class="ttl"><i class="ti ti-calendar-cog"></i> Horários — ' + esc(p.nome) + '</div>'
+    + '<button class="pac-modal-close" onclick="agcFechar()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body">'
+    + '<div style="font-size:11.5px;color:var(--tx3);margin-bottom:6px;">Ligue o dia e informe o horário. A segunda faixa é opcional (ex.: manhã e tarde). Vale toda semana.</div>'
+    + corpo
+    + '<div id="agc-erro" style="display:none;color:#f85149;font-size:12px;margin-top:10px;"></div>'
+    + '</div>'
+    + '<div class="pac-modal-footer"><button class="pac-btn-secondary" onclick="agcFechar()">Cancelar</button>'
+    + '<button class="pac-btn-primary" id="agc-btn" onclick="agcSalvar(\'' + p.id + '\')"><i class="ti ti-check"></i> Salvar horários</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+}
+function agcFechar() { const ov = document.getElementById('agc-modal'); if (ov) ov.remove(); }
+function agcDiaToggle(chk, unitId, d) {
+  const linha = document.querySelector('#agc-modal .agc-dia[data-dia="' + unitId + '-' + d + '"]');
+  if (!linha) return;
+  linha.classList.toggle('off', !chk.checked);
+  linha.querySelectorAll('input[type="time"]').forEach(function (i) { i.disabled = !chk.checked; });
+  // Dia recém-ligado sem horário: sugere um padrão pra não salvar vazio sem querer.
+  if (chk.checked) {
+    const ini = linha.querySelector('input[data-i="0"][data-c="ini"]');
+    const fim = linha.querySelector('input[data-i="0"][data-c="fim"]');
+    if (ini && !ini.value) ini.value = '08:00';
+    if (fim && !fim.value) fim.value = '18:00';
+  }
+}
+async function agcSalvar(userId) {
+  const erroEl = document.getElementById('agc-erro');
+  const falha = function (m) { if (erroEl) { erroEl.textContent = m; erroEl.style.display = 'block'; } };
+  if (erroEl) erroEl.style.display = 'none';
+  const horarios = {};
+  const linhas = document.querySelectorAll('#agc-modal .agc-dia');
+  for (let k = 0; k < linhas.length; k++) {
+    const linha = linhas[k];
+    if (linha.classList.contains('off')) continue;
+    const par = String(linha.getAttribute('data-dia') || '').split('-');
+    const unitId = par.slice(0, par.length - 1).join('-'), d = par[par.length - 1];
+    const faixas = [];
+    for (let i = 0; i < 2; i++) {
+      const ini = linha.querySelector('input[data-i="' + i + '"][data-c="ini"]').value;
+      const fim = linha.querySelector('input[data-i="' + i + '"][data-c="fim"]').value;
+      if (!ini && !fim) continue;
+      if (!ini || !fim) return falha(AGC_DIAS[Number(d)] + ': preencha o início e o fim do horário.');
+      if (fim <= ini) return falha(AGC_DIAS[Number(d)] + ': o fim (' + fim + ') tem que ser depois do início (' + ini + ').');
+      faixas.push({ ini: ini, fim: fim });
+    }
+    if (!faixas.length) return falha(AGC_DIAS[Number(d)] + ': o dia está ligado mas sem horário. Preencha ou desligue o dia.');
+    horarios[unitId] = horarios[unitId] || {};
+    horarios[unitId][d] = faixas;
+  }
+  const btn = document.getElementById('agc-btn'); if (btn) btn.disabled = true;
+  let r = null;
+  try { r = await pacApi('/api/clinico/agenda-config/' + encodeURIComponent(userId), { method: 'PUT', body: JSON.stringify({ horarios: horarios }) }); } catch (e) { r = null; }
+  if (btn) btn.disabled = false;
+  if (!r || !r.ok || !r.data || !r.data.ok) return falha((r && r.data && r.data.erro) || 'Não consegui salvar os horários.');
+  agcFechar();
+  if (typeof homeToast === 'function') homeToast('Horários salvos.');
+  agcCarregar();
 }
 
 // ---- Editor do TEMPLATE inteiro: renomear campo/seção e arrastar pra reordenar ----
