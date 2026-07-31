@@ -23995,6 +23995,28 @@ async function prCarregarAppMonitor(id) {
   if (wrap) wrap.innerHTML = prRenderAppMonitor();
 }
 
+// Reação REAL da equipe na foto de evolução — vira "👏 Dra. Camille" no post do paciente no app.
+// Mesmo emoji de novo desfaz; emoji diferente troca (1 reação por pessoa, regra do servidor).
+async function prFotoReagir(pid, docId, emoji) {
+  try {
+    const r = await pacApi('/api/clinico/app/paciente/' + pid + '/fotos/' + docId + '/reagir', {
+      method: 'POST', body: JSON.stringify({ emoji })
+    });
+    if (!r.ok || !r.data || !r.data.ok) {
+      homeToast((r.data && (r.data.error || r.data.erro)) || 'Não consegui registrar a reação agora.');
+      return;
+    }
+    const m = prState.appMonitor;
+    if (m && m.data && m.data.fotos_evolucao) {
+      (m.data.fotos_evolucao.fotos || []).forEach(function(f){ if (f.id === docId) f.reacoes = r.data.reacoes; });
+    }
+    const wrap = document.getElementById('pr-app-monitor');
+    if (wrap) wrap.innerHTML = prRenderAppMonitor();
+  } catch (e) {
+    homeToast('Não consegui registrar a reação agora.');
+  }
+}
+
 // ===== Produtos & recompra (suplementos/energéticos do paciente) =====
 async function prCarregarProdutos(id) {
   try {
@@ -24297,19 +24319,34 @@ function prRenderAppMonitor() {
   // Fotos de evolução — enviadas pelo paciente no app (ClinPatientDocument tipo=foto_evolucao)
   (function(){
     var fotosArr = ((d.fotos_evolucao || {}).fotos) || [];
+    var pidFoto = (d.paciente && d.paciente.id) || '';
+    var meuIdFoto = (typeof meData !== 'undefined' && meData && meData.user) ? meData.user.id : null;
+    var emojisFoto = ((d.fotos_evolucao || {}).emojis) || ['👏', '❤️', '💪', '🔥', '🎉'];
     var thumbs = fotosArr.map(function(f){
       var lbl = (f.semana != null) ? ('Semana ' + f.semana) : pacAppData(f.data);
+      var reacoes = f.reacoes || [];
+      // Barra de reação: emoji curado; o paciente vê "👏 Dra. Camille" (nome REAL) no post do app.
+      var barra = emojisFoto.map(function(e){
+        var quem = reacoes.filter(function(r){ return r.emoji === e; });
+        var minha = meuIdFoto && quem.some(function(r){ return r.uid === meuIdFoto; });
+        var tit = quem.length ? quem.map(function(r){ return r.nome; }).join(' · ') : ('Reagir com ' + e + ' — o paciente vê seu nome no app');
+        return '<button onclick="event.stopPropagation();prFotoReagir(\'' + pidFoto + '\',\'' + f.id + '\',\'' + e + '\')" title="' + esc(tit) + '"'
+          + ' style="border:1px solid ' + (minha ? 'var(--ac)' : (quem.length ? 'var(--bd2)' : 'transparent')) + ';background:' + (quem.length ? 'var(--bg3)' : 'transparent') + ';border-radius:7px;padding:0 3px;font-size:11px;line-height:18px;cursor:pointer;color:var(--tx2);">'
+          + e + (quem.length ? '<span style="font-size:8px;vertical-align:top;color:var(--tx3);">' + quem.length + '</span>' : '') + '</button>';
+      }).join('');
       return '<div style="flex:0 0 auto;width:88px;cursor:pointer;" onclick="docAbrir(\'' + f.id + '\')" title="' + lbl + '">'
         + '<div style="width:88px;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--bg1);border:1px solid var(--bd1);">'
         + '<img data-doc-seg="' + f.id + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.innerHTML=\'<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--tx4);&quot;><i class=&quot;ti ti-photo-off&quot;></i></div>\'">'
         + '</div>'
-        + '<div style="font-size:10px;color:var(--tx3);text-align:center;margin-top:4px;">' + lbl + '</div></div>';
+        + '<div style="font-size:10px;color:var(--tx3);text-align:center;margin-top:4px;">' + lbl + '</div>'
+        + (f.legenda ? '<div style="font-size:9px;color:var(--tx4);text-align:center;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;" title="' + esc(f.legenda) + '">“' + esc(f.legenda) + '”</div>' : '')
+        + '<div style="display:flex;justify-content:center;gap:2px;margin-top:3px;flex-wrap:wrap;">' + barra + '</div></div>';
     }).join('');
     setTimeout(carregarImagensSeguras, 50);
     cards.push('<div class="dash-card"><div class="dash-card-head"><div class="ttl"><i class="ti ti-photo"></i> Fotos de evolução</div>'
       + (fotosArr.length ? '<div class="dash-count">' + fotosArr.length + ' foto' + (fotosArr.length > 1 ? 's' : '') + '</div>' : '') + '</div>'
       + (fotosArr.length
-          ? '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">' + thumbs + '</div><div style="font-size:10px;color:var(--tx4);margin-top:8px;">Enviadas pelo paciente no app · clique pra ampliar.</div>'
+          ? '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">' + thumbs + '</div><div style="font-size:10px;color:var(--tx4);margin-top:8px;">Enviadas pelo paciente no app · clique pra ampliar · reaja e o paciente vê seu nome no post.</div>'
           : '<div style="display:flex;gap:8px;">' + [0, 1, 2].map(function(){ return '<div style="flex:1;aspect-ratio:3/4;background:var(--bg1);border:1px dashed var(--bd1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--tx4);"><i class="ti ti-camera"></i></div>'; }).join('') + '</div><div style="font-size:11px;color:var(--tx3);margin-top:8px;">O paciente ainda não enviou fotos de evolução pelo app.</div>'
       ) + '</div>');
   })();
