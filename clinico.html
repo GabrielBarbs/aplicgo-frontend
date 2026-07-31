@@ -4795,35 +4795,8 @@
       display: flex; gap: 10px; align-items: center;
       flex-wrap: wrap;
     }
-    .pr-evol-tpl-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-    }
-    .pr-evol-tpl-menu {
-      position: absolute; top: calc(100% + 4px); left: 0;
-      min-width: 280px;
-      background: var(--bg1);
-      border: 1px solid var(--bg3);
-      border-radius: 8px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      z-index: 9500;
-      display: none;
-      max-height: 320px; overflow-y: auto;
-    }
-    .pr-evol-tpl-menu.aberto { display: block; }
-    .pr-evol-tpl-menu .opt {
-      padding: 10px 12px;
-      cursor: pointer;
-      font-size: 12px; color: var(--tx2);
-      border-bottom: 1px solid rgba(var(--bg3-rgb),0.5);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .pr-evol-tpl-menu .opt:last-child { border-bottom: 0; }
-    .pr-evol-tpl-menu .opt:hover { background: rgba(var(--ac-rgb),0.08); color: var(--tx1); }
-    .pr-evol-tpl-menu .opt i { color: var(--ac); }
-    .pr-evol-tpl-menu .vazio {
-      padding: 14px; text-align: center;
-      font-size: 11px; color: var(--tx3b); font-style: italic;
-    }
+    /* A barra sobrou só como faixa de status: o botão "USAR TEXTO PADRÃO" e o menu de templates
+       saíram. O template agora vem do card do setor e se edita na página Editáveis. */
     .pr-evol-tpl-info {
       font-size: 11px; color: #6FD89A;
       display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
@@ -6485,7 +6458,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BS</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BT</b></span></div>
   </div>
 </div>
 
@@ -9370,29 +9343,23 @@
       <input type="hidden" id="pr-evol-id">
       <input type="hidden" id="pr-evol-template-slug">
 
-      <!-- Linha topo: tipo + data + escolher template -->
+      <!-- O tipo NÃO é mais escolhido à mão: em evolução nova ele vem do card do setor que foi
+           clicado (Médica/Nutricional/Enfermagem) ou é GERAL na Roda da Vida; na edição vem do
+           próprio registro. Continua no DOM como hidden porque é ele que decide a permissão de
+           escrita, em qual card do prontuário a evolução aparece e a contagem de consultas do
+           app do paciente — nunca fixar um valor na hora de salvar. -->
+      <input type="hidden" id="pr-evol-tipo" value="MEDICA">
+
+      <!-- Linha topo: data -->
       <div class="pac-form-grid col-3">
-        <div class="pac-field">
-          <label>Tipo de evolução <span class="req">*</span></label>
-          <select id="pr-evol-tipo" required>
-            <option value="MEDICA">Médica</option>
-            <option value="NUTRICIONAL">Nutricional</option>
-            <option value="ENFERMAGEM">Enfermagem</option>
-            <option value="GERAL">Geral</option>
-          </select>
-        </div>
         <div class="pac-field">
           <label>Data</label>
           <input type="text" inputmode="numeric" maxlength="16" placeholder="dd/mm/aaaa hh:mm" class="inp-data" data-alvo="pr-evol-data" data-hora="1" oninput="mascararData(this, event)"><input type="hidden" id="pr-evol-data">
         </div>
       </div>
 
+      <!-- Faixa de status do template (qual foi aplicado, de onde veio o pré-preenchido). -->
       <div class="pr-evol-tpl-bar">
-        <button type="button" class="pac-btn-secondary pr-evol-tpl-btn" onclick="prToggleTemplateMenu(event)">
-          <i class="ti ti-template"></i> USAR TEXTO PADRÃO
-          <i class="ti ti-chevron-down"></i>
-        </button>
-        <div class="pr-evol-tpl-menu" id="pr-evol-tpl-menu"></div>
         <div class="pr-evol-tpl-info" id="pr-evol-tpl-info"></div>
       </div>
 
@@ -9421,13 +9388,6 @@
       <!-- Formulário estruturado (modo FORMULÁRIO) -->
       <div class="pr-evol-form" id="pr-evol-form" style="display:none;"></div>
 
-      <div style="margin-top: 12px; display:flex; align-items:center; gap: 8px;">
-        <input type="checkbox" id="pr-evol-salvar-tpl" style="cursor: pointer; accent-color: var(--ac);">
-        <label for="pr-evol-salvar-tpl" style="font-size: 12px; color: var(--tx2); cursor: pointer;">
-          Salvar este texto como template pra uso futuro
-        </label>
-        <input type="text" id="pr-evol-salvar-tpl-nome" placeholder="Nome do template" style="display:none; flex:1; background: var(--bg2); border: 1px solid var(--bg3); color: var(--tx1); padding: 6px 10px; border-radius: 6px; font-size: 11px;">
-      </div>
     </div>
     <div class="ag-modal-footer">
       <div></div>
@@ -24863,15 +24823,25 @@ async function prAbrirSetor(tipo, categoria) {
   const r = await pacApi(`/api/clinico/prontuario/evolution-templates?tipo=${tipo}&categoria=${categoria}`);
   const templates = (r.ok && r.data.templates) ? r.data.templates : [];
   const ehOnboarding = categoria === 'ONBOARDING';
+  const modo = (ehOnboarding ? 'Onboarding' : 'Acompanhamento') + ' · ' + prTipoLabel(tipo);
 
   if (templates.length === 0) {
-    // Setor sem template configurado ainda -- abre evolução em branco
+    // Abre em branco. Duas causas MUITO diferentes: ou o setor não tem template cadastrado, ou a
+    // requisição falhou. Separar importa: sem o antigo botão "USAR TEXTO PADRÃO" não há mais
+    // escapatória manual, e chamar falha de rede de "não configurado" faria o profissional digitar
+    // à mão uma anamnese que devia ser estruturada (perde carry-forward, peso e o que a IA lê).
     prAbrirNovaEvol();
     setTimeout(() => {
       const sel = document.getElementById('pr-evol-tipo');
       if (sel) sel.value = tipo;
+      const titulo = document.getElementById('pr-evol-title');
+      if (titulo) titulo.textContent = modo;
       const info = document.getElementById('pr-evol-tpl-info');
-      if (info) info.innerHTML = `<i class="ti ti-info-circle" style="color:var(--tx3b);"></i> ${ehOnboarding ? 'Onboarding' : 'Acompanhamento'} ${prTipoLabel(tipo)} -- template ainda não configurado. Use texto livre por enquanto.`;
+      if (!info) return;
+      info.innerHTML = r.ok
+        ? `<i class="ti ti-info-circle" style="color:var(--tx3b);"></i> ${modo} — template ainda não configurado. Use texto livre por enquanto.`
+        : `<i class="ti ti-alert-triangle" style="color:#E5A54B;"></i> <span style="color:#E5A54B;">Não consegui carregar o formulário deste setor agora.</span>`
+          + ` <button type="button" class="pac-btn-secondary" style="padding:2px 8px;font-size:10px;" onclick="prFecharEvol(); prAbrirSetor('${tipo}','${categoria}')">Tentar de novo</button>`;
     }, 60);
     return;
   }
@@ -24880,14 +24850,9 @@ async function prAbrirSetor(tipo, categoria) {
   setTimeout(() => {
     const sel = document.getElementById('pr-evol-tipo');
     if (sel) sel.value = tipo;
-    // Onboarding: trava no template padrão (esconde o seletor "USAR TEXTO PADRÃO")
-    // Acompanhamento: mantém o seletor pra poder trocar
-    const tplBar = document.getElementById('pr-evol-tpl-bar');
-    const tplBtn = tplBar ? tplBar.querySelector('.pr-evol-tpl-btn') : null;
-    if (tplBtn) tplBtn.style.display = ehOnboarding ? 'none' : '';
-    // Título do modal reflete o modo
+    // Título do modal reflete o modo (é o que mostra o setor agora que o select de tipo saiu)
     const titulo = document.getElementById('pr-evol-title');
-    if (titulo) titulo.textContent = (ehOnboarding ? 'Onboarding' : 'Acompanhamento') + ' · ' + prTipoLabel(tipo);
+    if (titulo) titulo.textContent = modo;
     prAplicarTemplate(templates[0].slug, templates[0].nome);
   }, 80);
 }
@@ -25758,17 +25723,10 @@ function prAbrirNovaEvol() {
   document.getElementById('pr-evol-tpl-info').innerHTML = '';
   prEvolMencoes = [];
   prEvolAtualizarChips();
-  document.getElementById('pr-evol-salvar-tpl').checked = false;
-  document.getElementById('pr-evol-salvar-tpl-nome').style.display = 'none';
-  document.getElementById('pr-evol-salvar-tpl-nome').value = '';
   // Reset modo formulário
   prEvolFormState = { campos: [], respostas: {}, origens: {} };
   document.getElementById('pr-evol-form').style.display = 'none';
   document.getElementById('pr-evol-editor-wrap').style.display = '';
-  // Restaura o seletor "USAR TEXTO PADRÃO" (pode ter sido escondido num onboarding)
-  const tplBar = document.getElementById('pr-evol-tpl-bar');
-  const tplBtn = tplBar ? tplBar.querySelector('.pr-evol-tpl-btn') : null;
-  if (tplBtn) tplBtn.style.display = '';
   // Data default = agora
   const agora = new Date();
   const pad = x => String(x).padStart(2, '0');
@@ -25828,8 +25786,6 @@ async function prEditarEvol(id) {
       ? `<i class="ti ti-template"></i> Editando evolução criada pelo template "${esc(d.template_slug)}"`
       : '';
   }
-  document.getElementById('pr-evol-salvar-tpl').checked = false;
-  document.getElementById('pr-evol-salvar-tpl-nome').style.display = 'none';
   const dt = new Date(item.data);
   const pad = x => String(x).padStart(2, '0');
   document.getElementById('pr-evol-data').value =
@@ -25840,7 +25796,6 @@ async function prEditarEvol(id) {
 
 function prFecharEvol() {
   document.getElementById('pr-evol-modal').classList.remove('aberto');
-  document.getElementById('pr-evol-tpl-menu').classList.remove('aberto');
 }
 
 // Formatação do contenteditable
@@ -25849,40 +25804,10 @@ function prFmt(cmd) {
   document.execCommand(cmd, false, null);
 }
 
-// Menu de templates
-async function prToggleTemplateMenu(ev) {
-  ev?.stopPropagation();
-  const menu = document.getElementById('pr-evol-tpl-menu');
-  if (menu.classList.contains('aberto')) {
-    menu.classList.remove('aberto');
-    return;
-  }
-  menu.innerHTML = '<div class="vazio">Carregando templates...</div>';
-  menu.classList.add('aberto');
-  const r = await pacApi('/api/clinico/prontuario/evolution-templates');
-  if (!r.ok || !r.data.templates || r.data.templates.length === 0) {
-    menu.innerHTML = '<div class="vazio">Nenhum template cadastrado ainda.</div>';
-    return;
-  }
-  menu.innerHTML = r.data.templates.map(t => `
-    <div class="opt" onclick="prAplicarTemplate('${esc(t.slug)}', '${(t.nome||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">
-      <i class="ti ti-template"></i>
-      <span>${esc(t.nome)}</span>
-    </div>
-  `).join('');
-}
-
-document.addEventListener('click', (e) => {
-  // Fecha menu se clicar fora
-  const menu = document.getElementById('pr-evol-tpl-menu');
-  const btn = e.target.closest('.pr-evol-tpl-btn');
-  if (menu && !menu.contains(e.target) && !btn) {
-    menu.classList.remove('aberto');
-  }
-});
-
+// Aplica o template no modal. Continua sendo o motor de TODO formulário estruturado — só perdeu o
+// acesso manual (o botão "USAR TEXTO PADRÃO"). Quem chama: prAbrirSetor (todos os setores e o
+// onboarding), Roda da Vida, pré-consulta e a restauração de rascunho.
 async function prAplicarTemplate(slug, nome) {
-  document.getElementById('pr-evol-tpl-menu').classList.remove('aberto');
   if (!prState.pacienteAtual) return;
   const r = await pacApi(`/api/clinico/prontuario/evolution-templates/${slug}/render?patient_id=${prState.pacienteAtual.id}`);
   if (!r.ok) return alert('Erro: ' + (r.data.erro || '--'));
@@ -26255,23 +26180,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (evForm) { evForm.addEventListener('input', evolDraftAgendarSalvar); evForm.addEventListener('change', evolDraftAgendarSalvar); }
   const evEditor = document.getElementById('pr-evol-conteudo');
   if (evEditor) evEditor.addEventListener('input', evolDraftAgendarSalvar);
-  const evTipo = document.getElementById('pr-evol-tipo');
-  if (evTipo) evTipo.addEventListener('change', evolDraftAgendarSalvar);
+  // (o tipo virou hidden — não dispara change, então não tem gatilho de rascunho aqui)
   const onbModal = document.getElementById('onb-modal');
   if (onbModal) {
     onbModal.addEventListener('input', onbDraftAgendarSalvar);
     onbModal.addEventListener('change', onbDraftAgendarSalvar);
     onbModal.addEventListener('click', onbDraftAgendarSalvar);
-  }
-});
-
-// Checkbox "salvar este texto" mostra input de nome
-document.addEventListener('DOMContentLoaded', () => {
-  const chk = document.getElementById('pr-evol-salvar-tpl');
-  if (chk) {
-    chk.addEventListener('change', () => {
-      document.getElementById('pr-evol-salvar-tpl-nome').style.display = chk.checked ? '' : 'none';
-    });
   }
 });
 
@@ -26309,9 +26223,6 @@ async function prSalvarEvol() {
     if (!conteudoTexto) { erroEl.textContent = 'Escreva a evolução'; erroEl.style.display = 'block'; return; }
   }
 
-  const salvarTpl = document.getElementById('pr-evol-salvar-tpl').checked;
-  const salvarTplNome = document.getElementById('pr-evol-salvar-tpl-nome').value.trim();
-
   const body = {
     patient_id: prState.pacienteAtual.id,
     tipo,
@@ -26320,8 +26231,8 @@ async function prSalvarEvol() {
     template_slug: document.getElementById('pr-evol-template-slug').value || null,
     peso_atual_kg: parseFloat(String((respostas && respostas['peso_atual']) || '').replace(',', '.')) || null,
     data: document.getElementById('pr-evol-data').value ? new Date(document.getElementById('pr-evol-data').value).toISOString() : null,
-    salvar_template: salvarTpl && !modoForm,    // salvar como template só faz sentido em modo texto
-    salvar_template_nome: salvarTpl && !modoForm ? (salvarTplNome || 'Texto personalizado') : null,
+    // salvar_template saiu junto com o checkbox: criava template sem tipo nem categoria, que não
+    // aparecia em lista nenhuma. O backend tem default false, então basta não mandar.
     mencoes_marcacao: [...new Map(prEvolMencoes.map(m => [m.user_id, m])).values()],
   };
 
@@ -30270,7 +30181,12 @@ async function edTplSalvar(btn) {
     return;
   }
   if (typeof homeToast === 'function') homeToast('Template salvo — as mudanças já valem nas próximas anamneses.');
-  edAbrirTemplate(edTplState.slug); // recarrega do servidor (mostra o que ele realmente aceitou)
+  // Salvou = terminou: volta sozinho pra lista, sem obrigar a clicar em "< Anamneses".
+  // Volta ANTES de esperar a rede (não trava a tela) e recarrega em segundo plano, porque uma
+  // seção renomeada aqui vira opção nova no formulário de campo.
+  edState.tela = 'anamneses';
+  edRender();
+  edCarregar();
 }
 
 async function edToggle(slug, ativar) {
