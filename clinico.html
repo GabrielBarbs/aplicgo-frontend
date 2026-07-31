@@ -1567,6 +1567,14 @@
       margin-top: 10px;
     }
     .ag-recorrencia-box.aberto .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ag-recor-prev {
+      margin-top: 8px; font-size: 11.5px; color: var(--tx2);
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .ag-recor-prev:empty { display: none; }
+    .ag-recor-prev i { color: var(--ac); font-size: 12px; }
+    .ag-recor-prev b { color: var(--tx1); font-weight: 600; }
+    .ag-recor-prev.alerta { color: #EF9F27; }
     .ag-recorrencia-info {
       font-size: 11px; color: var(--tx3b);
       margin-top: 8px; padding: 8px 10px;
@@ -6458,7 +6466,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BV</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BW</b></span></div>
   </div>
 </div>
 
@@ -8384,11 +8392,16 @@
                 <option value="MONTHLY">Mensal</option>
               </select>
             </div>
+            <!-- Quantidade, NÃO data. Sem class="inp-data"/data-alvo de propósito: aquele par
+                 visível+hidden é sequestrado por configurarMascarasData, que joga fora tudo que
+                 não tenha 8 dígitos de data — o número digitado nunca chegaria no .value. -->
             <div class="pac-field">
-              <label>Termina em</label>
-              <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-recor-until" oninput="mascararData(this, event)"><input type="hidden" id="ag-recor-until">
+              <label id="ag-recor-qtd-label">Quantas semanas</label>
+              <input type="number" id="ag-recor-qtd" min="1" max="200" step="1" placeholder="ex.: 12" oninput="agRecorPreview()">
             </div>
           </div>
+          <!-- Trava humana: o número digitado vira quantas sessões e até quando, antes de salvar. -->
+          <div class="ag-recor-prev" id="ag-recor-prev"></div>
           <!-- Bisemanal: cada um dos dois dias tem o seu horário -->
           <div class="ag-bisem" id="ag-bisem" style="display:none;">
             <div class="ag-bisem-hint">Escolha os dois dias da semana e o horário de cada um. A partir da data acima, repete toda semana.</div>
@@ -8499,8 +8512,11 @@
                 <option value="MONTHLY">Mensalmente</option>
               </select>
             </div>
+            <!-- Bloqueio continua por DATA de propósito: "sala em reforma até dia 30" é mesmo
+                 assunto de data, não de quantidade. Rótulo diferente pra diferença parecer
+                 intencional ao lado da caixa do agendamento, que agora é por quantidade. -->
             <div class="pac-field">
-              <label>Termina em</label>
+              <label>Bloquear até</label>
               <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="ag-bloq-recor-until" oninput="mascararData(this, event)"><input type="hidden" id="ag-bloq-recor-until">
             </div>
           </div>
@@ -15640,6 +15656,7 @@ let agState = {
   recurCancelTarget: null,        // { id, statusAlvo, motivo, origem } para modal de escolha
   edicaoRecurInfo: null,          // { recurrenceId, pattern, until } para o modal de edição
   recorOriginal: null,            // recorrência como estava ao abrir a edição (detecta mudança real)
+  recorRestantes: null,           // quantas repetições ainda existem na série (CONTADO pelo servidor)
 };
 
 function agInicioSemana(d) {
@@ -19075,7 +19092,13 @@ async function agAbrirEditarModal(id) {
     const pat = document.getElementById('ag-recor-pattern');
     agLegadoNoSelect(pat, a.recurrencePattern);
     pat.value = a.recurrencePattern || 'WEEKLY';
-    document.getElementById('ag-recor-until').value = a.recurrenceUntil ? String(a.recurrenceUntil).slice(0, 10) : '';
+    // Quantidade CONTADA pelo servidor (quantas repetições ainda existem daqui pra frente) — nunca
+    // recalculada da data-fim. Uma conta que divergisse em 1 faria todo Salvar acusar "mudou a
+    // recorrência" e apagar/recriar a série. Série antiga (criada por data) não tem esse número:
+    // o campo abre VAZIO e nada é reescrito enquanto a pessoa não digitar.
+    agState.recorRestantes = (typeof r.data.serie_restantes === 'number') ? r.data.serie_restantes : null;
+    const q = document.getElementById('ag-recor-qtd');
+    if (q) q.value = agState.recorRestantes != null ? String(agState.recorRestantes) : '';
   }
   agRecorPatternMudou();
   // Bisemanal: os dois dias reais vêm do servidor (serie_ancoras = as 2 primeiras ocorrências da
@@ -19094,7 +19117,7 @@ async function agAbrirEditarModal(id) {
   agState.recorOriginal = {
     ativo: !!a.recurrenceId,
     pattern: a.recurrencePattern || null,
-    until: a.recurrenceUntil ? String(a.recurrenceUntil).slice(0, 10) : '',
+    qtd: agState.recorRestantes,
     // Os dias da bisemanal como estão salvos, pra saber se a pessoa mexeu neles de verdade.
     bisem: a.recurrencePattern === 'TWICE_WEEKLY' && Array.isArray(anc) && anc.length === 2
       ? anc.map((x) => { const d = new Date(x); return d.getDay() + '@' + agHhMm(d); }).sort().join('|')
@@ -19317,8 +19340,9 @@ function agResetForm() {
   // Estado da série aberta antes: sem zerar, um "salvar" no próximo agendamento poderia se achar
   // uma mudança de recorrência e sair reescrevendo série.
   agState.recorOriginal = null;
-  const until = document.getElementById('ag-recor-until');
-  if (until) until.value = '';
+  agState.recorRestantes = null;
+  { const q = document.getElementById('ag-recor-qtd'); if (q) q.value = ''; }
+  { const pv = document.getElementById('ag-recor-prev'); if (pv) { pv.innerHTML = ''; pv.classList.remove('alerta'); } }
   const info = document.getElementById('ag-recor-info');
   if (info) info.style.display = 'none';
   const recSec = document.getElementById('ag-recorrencia-section');
@@ -19365,16 +19389,11 @@ function agToggleBloqRecorrencia() {
 
 function agToggleRecorrencia() {
   const tog = document.getElementById('ag-recorrente-toggle');
-  const box = document.getElementById('ag-recorrencia-box');
+  const box = document.getElementById('ag-recorrente-toggle') && document.getElementById('ag-recorrencia-box');
   if (tog.checked) {
     box.classList.add('aberto');
-    // Sugere "termina em" 3 meses à frente
-    const until = document.getElementById('ag-recor-until');
-    if (!until.value) {
-      const d = new Date();
-      d.setMonth(d.getMonth() + 3);
-      until.value = d.toISOString().slice(0, 10);
-    }
+    // Sem palpite: quantidade pré-preenchida é uma promessa numérica que ninguém decidiu, e um
+    // Salvar distraído criaria 12 sessões. O Salvar barra enquanto estiver vazio.
   } else {
     box.classList.remove('aberto');
   }
@@ -19563,6 +19582,17 @@ function agBisemAtiva() {
 // Na bisemanal quem manda são os dois dias abaixo: a HORA do topo passaria a ser um campo
 // obrigatório que o sistema ignora — melhor desligar e dizer o porquê do que mentir.
 function agRecorPatternMudou() {
+  // Rótulo na unidade do padrão: é o que o Matheus pediu ("semanal -> semanas, quinzenal ->
+  // quinzenas"). Na edição o número vale daqui pra frente, e o rótulo tem que dizer isso.
+  {
+    const patEl = document.getElementById('ag-recor-pattern');
+    const lab = document.getElementById('ag-recor-qtd-label');
+    if (patEl && lab) {
+      const u = agRecorUnidade(patEl.value);
+      lab.textContent = agState.recorRestantes != null ? u.label + ' daqui pra frente' : u.label;
+    }
+  }
+  agRecorPreview();
   const bisem = agBisemAtiva();
   document.getElementById('ag-bisem').style.display = bisem ? '' : 'none';
   const hora = document.getElementById('ag-hora');
@@ -19596,6 +19626,91 @@ function agRecorPatternMudou() {
   }
 }
 
+// ===== Recorrência por QUANTIDADE =====
+// Unidade de cada padrão. Bisemanal conta SEMANAS (cada semana rende 2 sessões) — é a única em que
+// "quantidade" e "número de agendamentos" não são a mesma coisa, e é por isso que o preview abaixo
+// não é enfeite: sem ele, "8" viraria 16 sessões sem ninguém perceber.
+const AG_RECOR_UNIDADE = {
+  WEEKLY:        { label: 'Quantas semanas',  apoio: '1 por semana',            porUnidade: 1 },
+  TWICE_WEEKLY:  { label: 'Quantas semanas',  apoio: '2 sessões por semana',    porUnidade: 2 },
+  EVERY_10_DAYS: { label: 'Quantas vezes',    apoio: '1 a cada 10 dias',        porUnidade: 1 },
+  EVERY_15_DAYS: { label: 'Quantas quinzenas', apoio: '1 a cada 15 dias',       porUnidade: 1 },
+  MONTHLY:       { label: 'Quantos meses',    apoio: '1 por mês',               porUnidade: 1 },
+};
+function agRecorUnidade(p) { return AG_RECOR_UNIDADE[p] || AG_RECOR_UNIDADE.WEEKLY; }
+function agRecorQtd() {
+  const el = document.getElementById('ag-recor-qtd');
+  const n = el ? parseInt(el.value, 10) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+// Datas da série, MESMA regra do servidor (inclusive o clamp do mensal). Serve pro preview e pra
+// derivar a data final que ainda vai no payload — o backend é a autoridade, isto é espelho.
+function agRecorDatas(pattern, inicio, qtd) {
+  if (!inicio || !qtd) return [];
+  const passo = { WEEKLY: 7, EVERY_10_DAYS: 10, EVERY_15_DAYS: 15 }[pattern];
+  const out = [new Date(inicio)];
+  const diaOriginal = inicio.getDate();
+  let prox = new Date(inicio);
+  while (out.length < qtd) {
+    if (pattern === 'MONTHLY') {
+      const alvo = new Date(prox);
+      alvo.setDate(1);
+      alvo.setMonth(alvo.getMonth() + 1);
+      const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+      alvo.setDate(Math.min(diaOriginal, ultimoDia));
+      alvo.setHours(inicio.getHours(), inicio.getMinutes(), 0, 0);
+      prox = alvo;
+    } else if (passo) {
+      prox = new Date(prox);
+      prox.setDate(prox.getDate() + passo);
+    } else { break; }
+    out.push(new Date(prox));
+  }
+  return out;
+}
+// Última data da série (o que vai como recurrence_until no payload).
+function agRecorUltimaData() {
+  const pattern = document.getElementById('ag-recor-pattern').value;
+  const qtd = agRecorQtd();
+  if (!qtd) return null;
+  if (pattern === 'TWICE_WEEKLY') {
+    const anc = agBisemAncoras();
+    if (!anc || anc.length !== 2) return null;
+    // Cada âncora anda N semanas; a última da série é a mais tardia entre as duas.
+    const fins = anc.map((a) => new Date(a.getTime() + (qtd - 1) * 7 * 86400000));
+    return new Date(Math.max(fins[0].getTime(), fins[1].getTime()));
+  }
+  const base = agBisemDataBase();
+  if (!base) return null;
+  const h = (document.getElementById('ag-hora').value || '00:00').split(':');
+  base.setHours(Number(h[0]) || 0, Number(h[1]) || 0, 0, 0);
+  const datas = agRecorDatas(pattern, base, qtd);
+  return datas.length ? datas[datas.length - 1] : null;
+}
+function agRecorPreview() {
+  const el = document.getElementById('ag-recor-prev');
+  if (!el) return;
+  const tog = document.getElementById('ag-recorrente-toggle');
+  if (!tog || !tog.checked) { el.innerHTML = ''; el.classList.remove('alerta'); return; }
+  const pattern = document.getElementById('ag-recor-pattern').value;
+  const u = agRecorUnidade(pattern);
+  const qtd = agRecorQtd();
+  el.classList.remove('alerta');
+  if (!qtd) { el.innerHTML = '<i class="ti ti-info-circle"></i> ' + esc(u.apoio) + '.'; return; }
+  const sessoes = qtd * u.porUnidade;
+  const teto = pattern === 'TWICE_WEEKLY' ? 100 : 200;
+  if (qtd > teto) {
+    el.classList.add('alerta');
+    el.innerHTML = '<i class="ti ti-alert-triangle"></i> O máximo por série é <b>' + teto + '</b>.';
+    return;
+  }
+  const fim = agRecorUltimaData();
+  el.innerHTML = '<i class="ti ti-calendar-repeat"></i> Gera <b>' + sessoes + '</b> agendamento'
+    + (sessoes > 1 ? 's' : '') + (u.porUnidade > 1 ? ' (' + qtd + ' semanas × 2)' : '')
+    + (fim ? ', o último em <b>' + fim.toLocaleDateString('pt-BR') + '</b>' : '') + '.'
+    + (agState.recorRestantes != null ? ' <span style="color:var(--tx3)">— vale daqui pra frente; o que já passou não muda.</span>' : '');
+}
+
 // Data-base da série (campo "A partir de"), meia-noite local.
 function agBisemDataBase() {
   const data = document.getElementById('ag-data').value;
@@ -19617,12 +19732,14 @@ function agBisemPrimeira(weekday, hora) {
   return d;
 }
 
-// Fim da série ("Termina em"), no fim do dia, fuso local — mesmo critério do servidor.
-function agBisemFimSerie() {
-  const u = document.getElementById('ag-recor-until').value;
-  if (!u) return null;
-  const d = new Date(u + 'T23:59:59');
-  return isNaN(d.getTime()) ? null : d;
+// As duas âncoras da bisemanal (1ª ocorrência de cada dia), ou null se ainda falta preencher.
+function agBisemAncoras() {
+  const w1 = document.getElementById('ag-bisem-dia1').value;
+  const w2 = document.getElementById('ag-bisem-dia2').value;
+  if (!w1 || !w2 || w1 === w2) return null;
+  const p1 = agBisemPrimeira(w1, document.getElementById('ag-bisem-hora1').value);
+  const p2 = agBisemPrimeira(w2, document.getElementById('ag-bisem-hora2').value);
+  return (p1 && p2) ? [p1, p2] : null;
 }
 
 function agBisemPreview() {
@@ -19641,13 +19758,10 @@ function agBisemPreview() {
   // Tudo daqui sai do fuso LOCAL (o da clínica). dataDiaBR() formata em UTC e é só pra data-only do
   // backend: usada aqui, às 21h ela pularia pro dia seguinte e a frase diria "Sexta 18/07" (um sábado).
   const f = (d) => `${AG_BISEM_DIAS[d.getDay()].replace('-feira', '')} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} às ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  // Não anunciar um dia que o fim da série vai descartar.
-  const fim = agBisemFimSerie();
-  if (fim && b > fim) {
-    el.innerHTML = `<span style="color:#EF9F27">${esc(f(b))} fica depois do fim da série — só ${esc(f(a))} seria criado. Ajuste a data em "Termina em".</span>`;
-    return;
-  }
+  // A trava de "âncora depois do fim da série" saiu junto com o campo de data: contando SEMANAS,
+  // as duas âncoras sempre entram e sempre terminam na mesma semana — nenhum dia é descartado.
   el.innerHTML = `Começa em <b>${esc(f(a))}</b> e <b>${esc(f(b))}</b>, repetindo toda semana.`;
+  agRecorPreview();
 }
 
 function agFecharModal() {
@@ -19871,16 +19985,8 @@ async function agSalvar() {
     const p2 = agBisemPrimeira(w2, h2);
     if (!p1 || !p2) { erroEl.textContent = 'Informe o horário dos dois dias (hh:mm)'; erroEl.style.display = 'block'; return; }
     ancoras = [p1, p2].sort((a, b) => a - b);
-    // Âncora depois do fim da série seria descartada em silêncio no servidor, e o paciente ficaria
-    // só com o outro dia — depois de ver os dois escritos na tela. Barra antes de mandar.
-    const fim = agBisemFimSerie();
-    const fora = fim ? ancoras.filter((a) => a > fim) : [];
-    if (fora.length) {
-      const q = fora.map((d) => AG_BISEM_DIAS[d.getDay()].replace('-feira', '') + ' ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')).join(' e ');
-      erroEl.textContent = `${q} ${fora.length > 1 ? 'ficam' : 'fica'} depois do fim da série. Ajuste os dias ou a data em "Termina em".`;
-      erroEl.style.display = 'block';
-      return;
-    }
+    // (a antiga trava de "âncora depois do fim da série" saiu: contando SEMANAS as duas âncoras
+    // sempre entram — nenhum dia é descartado em silêncio pelo servidor)
   }
 
   const startAt = bisem ? ancoras[0] : new Date(`${data}T${hora}:00`);
@@ -19916,14 +20022,28 @@ async function agSalvar() {
   const recorTog = document.getElementById('ag-recorrente-toggle');
   if (recorTog && recorTog.checked) {
     const pattern = document.getElementById('ag-recor-pattern').value;
-    const until = document.getElementById('ag-recor-until').value;
-    if (!until) {
-      erroEl.textContent = 'Informe a data final da recorrência';
+    const qtd = agRecorQtd();
+    const uni = agRecorUnidade(pattern);
+    const teto = pattern === 'TWICE_WEEKLY' ? 100 : 200;
+    if (!qtd) {
+      erroEl.textContent = 'Informe ' + uni.label.toLowerCase() + ' a série vai repetir';
+      erroEl.style.display = 'block';
+      return;
+    }
+    if (qtd > teto) {
+      erroEl.textContent = 'O máximo por série é ' + teto + '.';
       erroEl.style.display = 'block';
       return;
     }
     body.recurrence_pattern = pattern;
-    body.recurrence_until = until;
+    body.recurrence_count = qtd;
+    // Manda também a data final DERIVADA. O servidor novo ignora (a quantidade manda), mas se o
+    // deploy do backend ainda não subiu, é isto que impede a série de virar 1 agendamento calado.
+    const fimDerivado = agRecorUltimaData();
+    if (fimDerivado) {
+      const p2 = (n) => String(n).padStart(2, '0');
+      body.recurrence_until = fimDerivado.getFullYear() + '-' + p2(fimDerivado.getMonth() + 1) + '-' + p2(fimDerivado.getDate());
+    }
     if (pattern === 'TWICE_WEEKLY') {
       // Nunca deixar o Salvar estourar calado num TypeError: sem âncoras, diz o que falta.
       if (!ancoras) {
@@ -19976,7 +20096,12 @@ function agRecorMudou(body) {
   if (ativoAgora !== o.ativo) return true;
   if (!ativoAgora) return false;
   if (body.recurrence_pattern !== o.pattern) return true;
-  if ((body.recurrence_until || '') !== (o.until || '')) return true;
+  // Quantidade como NÚMERO: '12' !== 12 dispararia reescrita de série em todo Salvar.
+  // o.qtd vem CONTADO do servidor (serie_restantes); null = série antiga, criada por data — aí o
+  // campo abre vazio e só acusa mudança se a pessoa digitar alguma coisa.
+  const qtdAgora = Number(body.recurrence_count) || null;
+  if (o.qtd == null) { if (qtdAgora != null) return true; }
+  else if (qtdAgora !== o.qtd) return true;
   // Bisemanal: o padrão sozinho não denuncia troca de dia/horário — compara as âncoras.
   if (body.recurrence_pattern === 'TWICE_WEEKLY') {
     if (!o.bisem) return true; // sem as âncoras salvas não dá pra afirmar que é igual
