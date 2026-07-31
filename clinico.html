@@ -8165,18 +8165,23 @@
               </select>
             </div>
           </div>
-          <div class="pac-form-grid col-3" id="pac-jornada-row" style="margin-top:10px; display:none;">
+          <!-- 4 datas em 2x2: com 4 colunas num modal de 720px o <input type=date> não cabe. -->
+          <div class="pac-form-grid" id="pac-jornada-row" style="margin-top:10px;">
             <div class="pac-field">
               <label>Última consulta médica</label>
-              <input type="date" id="pac-ult-medica" title="Puxa automático do último registro; edite pra sobrepor.">
+              <input type="date" id="pac-ult-medica" title="Puxa automático do último registro; edite pra sobrepor. Apague pra voltar ao automático.">
             </div>
             <div class="pac-field">
               <label>Última consulta nutricional</label>
-              <input type="date" id="pac-ult-nutri" title="Puxa automático do último registro; edite pra sobrepor.">
+              <input type="date" id="pac-ult-nutri" title="Puxa automático do último registro; edite pra sobrepor. Apague pra voltar ao automático.">
             </div>
             <div class="pac-field">
               <label>Última aplicação</label>
-              <input type="date" id="pac-ult-aplic" title="Puxa automático do último registro; edite pra sobrepor.">
+              <input type="date" id="pac-ult-aplic" title="Puxa automático do último registro; edite pra sobrepor. Apague pra voltar ao automático.">
+            </div>
+            <div class="pac-field">
+              <label>Última pesagem</label>
+              <input type="date" id="pac-ult-pesagem" title="Puxa automático da última bioimpedância COM peso; edite pra sobrepor. Apague pra voltar ao automático.">
             </div>
           </div>
           <div class="pac-field" style="margin-top:10px;">
@@ -15083,10 +15088,19 @@ function pacAbrirNovoModal() {
 function pacSetJornadaInp(elId, manualIso, autoIso) {
   const el = document.getElementById(elId);
   if (!el) return;
-  const auto = autoIso ? String(autoIso).slice(0, 10) : '';
+  // Dia LOCAL do automático. slice(0,10) do ISO mostrava o dia seguinte pra tudo que foi salvo
+  // depois das 21h (o UTC já virou), e era essa data errada que aparecia no campo.
+  let auto = '';
+  if (autoIso) {
+    const d = new Date(autoIso);
+    auto = isNaN(d) ? String(autoIso).slice(0, 10) : d.toLocaleDateString('en-CA');
+  }
   const manual = manualIso ? String(manualIso).slice(0, 10) : '';
   el.dataset.auto = auto;
-  el.value = manual || auto;
+  // O manual vale enquanto não entrar um registro REAL mais novo que ele — mesma regra do servidor.
+  // Quando o registro novo vence, o campo volta a mostrar o automático e o override morto é
+  // apagado no próximo save (pacJornadaManual devolve null porque valor === data-auto).
+  el.value = (manual && (!auto || manual > auto)) ? manual : auto;
 }
 // No save: manda o override só quando o valor difere do automático; igual/vazio-igual = null (limpa).
 function pacJornadaManual(elId) {
@@ -15143,11 +15157,12 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-programa-duracao').value = p.programa_duracao_semanas || '';
   document.getElementById('pac-status-clinico').value = p.status_clinico || 'ESTAVEL';
   document.getElementById('pac-obs-imutaveis').value = p.observacoes_imutaveis_medico || '';
-  // Jornada (só leitura): último atendimento de cada tipo. Só aparece no editar (paciente novo não tem histórico).
+  // Jornada: data automática do último registro de cada tipo, com override manual por cima.
   document.getElementById('pac-jornada-row').style.display = '';
   pacSetJornadaInp('pac-ult-medica', p.ultima_medica_manual, p.ultima_evolucao_medica);
   pacSetJornadaInp('pac-ult-nutri', p.ultima_nutri_manual, p.ultima_evolucao_nutricional);
   pacSetJornadaInp('pac-ult-aplic', p.ultima_aplicacao_manual, p.ultima_aplicacao);
+  pacSetJornadaInp('pac-ult-pesagem', p.ultima_pesagem_manual, p.ultima_pesagem);
   // Saúde estruturada
   document.getElementById('pac-bariatrica').value = p.anamnesis?.cirurgia_bariatrica ? 'true' : 'false';
   document.getElementById('pac-ativ-modalidade').value = p.health?.atividade_modalidade || '';
@@ -15165,8 +15180,15 @@ async function pacAbrirEditarModal(id) {
 
 function pacResetForm() {
   document.getElementById('pac-form').reset();
-  // Jornada é só do editar (paciente novo não tem histórico) — esconde ao abrir "novo".
-  { const _jr = document.getElementById('pac-jornada-row'); if (_jr) _jr.style.display = 'none'; }
+  // Jornada aparece TAMBÉM no cadastro: serve pra quem já vinha de antes (migração do Prontuário
+  // Verde, paciente antigo voltando) registrar as datas que o sistema ainda não tem.
+  { const _jr = document.getElementById('pac-jornada-row'); if (_jr) _jr.style.display = ''; }
+  // form.reset() NÃO limpa dataset — e pacJornadaManual descarta o valor quando ele bate com o
+  // dataset.auto. Sem zerar, o "auto" do paciente editado antes ficaria grudado e uma data digitada
+  // igual a ela sumiria sem aviso no cadastro do próximo.
+  ['pac-ult-medica', 'pac-ult-nutri', 'pac-ult-aplic', 'pac-ult-pesagem'].forEach(function (id) {
+    const el = document.getElementById(id); if (el) { el.dataset.auto = ''; el.value = ''; }
+  });
   document.getElementById('pac-form-id').value = '';
   document.getElementById('pac-form-contact-id').value = '';
   document.getElementById('pac-modal-erro').style.display = 'none';
@@ -15327,10 +15349,11 @@ async function pacSalvar() {
     programa_duracao_semanas: parseInt(document.getElementById('pac-programa-duracao').value) || null,
     status_clinico: document.getElementById('pac-status-clinico').value || 'ESTAVEL',
     observacoes_imutaveis_medico: document.getElementById('pac-obs-imutaveis').value.trim() || null,
-    // Jornada manual (última médica/nutri/aplicação): só sobrepõe se você mudou o valor.
+    // Jornada manual (última médica/nutri/aplicação/pesagem): só sobrepõe se você mudou o valor.
     ultima_medica_manual: pacJornadaManual('pac-ult-medica'),
     ultima_nutri_manual: pacJornadaManual('pac-ult-nutri'),
     ultima_aplicacao_manual: pacJornadaManual('pac-ult-aplic'),
+    ultima_pesagem_manual: pacJornadaManual('pac-ult-pesagem'),
     health: {
       alergias: document.getElementById('pac-alergias').value.trim() || null,
       medicacoes_em_uso: document.getElementById('pac-medicacoes').value.trim() || null,
