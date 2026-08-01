@@ -3927,6 +3927,49 @@
     .cp-lista-topo i { color: var(--tx3b); }
     .cp-lista-topo input { flex: 1; background: var(--bg2); border: 1px solid var(--bd1); border-radius: 8px; padding: 7px 10px; color: var(--tx1); font-size: 12px; font-family: inherit; }
     /* Barra de tags (filtro) no topo da lista do WhatsApp. Rola no eixo x: o popup só tem ~336px. */
+    /* ===== Aba IA do popup (chat sobre o paciente) ===== */
+    .chat-pop .cp-tab.ia.ativo { background: rgba(124,92,252,0.16); border-color: rgba(124,92,252,0.45); color: #a78bfa; }
+    .cp-ia-head {
+      display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+      border-bottom: 1px solid var(--bg3); background: var(--bg2); flex-shrink: 0;
+    }
+    .cp-ia-head .nm { font-size: 13px; font-weight: 600; color: var(--tx1); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cp-ia-head .cod { font-size: 10px; color: var(--tx3b); }
+    .cp-ia-head button {
+      background: none; border: 1px solid var(--bg3); color: var(--tx3); border-radius: 8px;
+      font-size: 11px; padding: 4px 9px; cursor: pointer; flex-shrink: 0;
+    }
+    .cp-ia-head button:hover { color: var(--tx1); border-color: var(--tx3); }
+    .cp-ia-corpo { flex: 1; min-height: 0; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .cp-ia-vazio { color: var(--tx3b); font-size: 12px; text-align: center; padding: 18px 10px; line-height: 1.6; }
+    .cp-ia-busca-wrap { padding: 2px 0 8px; }
+    .cp-ia-busca-wrap input {
+      width: 100%; box-sizing: border-box; background: var(--bg2); border: 1px solid var(--bg3);
+      color: var(--tx1); border-radius: 9px; padding: 9px 11px; font-size: 13px;
+    }
+    .cp-ia-pac {
+      display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 9px;
+      cursor: pointer; border: 1px solid transparent;
+    }
+    .cp-ia-pac:hover { background: rgba(124,92,252,0.09); border-color: rgba(124,92,252,0.28); }
+    .cp-ia-pac .av {
+      width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex;
+      align-items: center; justify-content: center; background: rgba(124,92,252,0.18);
+      color: #a78bfa; font-size: 11px; font-weight: 700;
+    }
+    .cp-ia-pac .nm { font-size: 12.5px; color: var(--tx1); }
+    .cp-ia-pac .meta { font-size: 10.5px; color: var(--tx3b); }
+    .cp-ia-msg { max-width: 88%; padding: 9px 11px; border-radius: 12px; font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .cp-ia-msg.eu { align-self: flex-end; background: rgba(124,92,252,0.16); color: var(--tx1); border-bottom-right-radius: 4px; }
+    .cp-ia-msg.ia { align-self: flex-start; background: var(--bg2); color: var(--tx1); border: 1px solid var(--bg3); border-bottom-left-radius: 4px; }
+    .cp-ia-msg.erro { align-self: stretch; background: rgba(239,159,39,0.10); border: 1px solid rgba(239,159,39,0.35); color: #EF9F27; }
+    .cp-ia-rodape {
+      flex-shrink: 0; padding: 6px 12px; font-size: 10px; color: var(--tx3b);
+      border-top: 1px solid var(--bg3); display: flex; align-items: center; gap: 5px;
+    }
+    .cp-ia-rodape i { font-size: 11px; }
+    .cp-mic.gravando { color: #f85149; animation: cpMicPulse 1.1s ease-in-out infinite; }
+    @keyframes cpMicPulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
     .cp-tagbar { display: flex; gap: 5px; padding: 6px 10px; border-bottom: 1px solid var(--bg3); overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
     .cp-tagbar::-webkit-scrollbar { height: 0; }
     .cp-tagchip { font-size: 10px; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--bd1); background: var(--bg2); color: var(--tx2); white-space: nowrap; cursor: pointer; flex-shrink: 0; }
@@ -6466,7 +6509,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BW</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BX</b></span></div>
   </div>
 </div>
 
@@ -17206,12 +17249,18 @@ function chatPopAbrir(modo) {
 }
 function chatPopFechar() {
   cpMicAbortar();
+  iaMicParar();   // senao o reconhecimento continua ouvindo com o popup fechado
   cpState.aberto = false;
   chatPopPararPoll();
   cpPararPollWa();
   cpPararPollLista();
   document.getElementById('chat-pop').style.display = 'none';
 }
+// ---- Aba IA: estado ----
+// iaPaciente = {id, nome, codigo} | null (null = ainda perguntando qual paciente)
+// iaMsgs = [{role:'user'|'assistant', content}]  — historico reenviado a cada turno
+let iaState = { paciente: null, msgs: [], enviando: false, buscaTimer: null, rec: null, gravando: false };
+
 function chatPopModo(modo) {
   cpMicAbortar();
   cpState.modo = modo;
@@ -17220,9 +17269,14 @@ function chatPopModo(modo) {
   const tb = document.getElementById('cp-tagbar'); if (tb) tb.style.display = 'none';
   chatPopPararPoll();
   cpPararPollWa();
-  const tw = document.getElementById('cp-tab-wa'), ti = document.getElementById('cp-tab-int');
-  if (tw) tw.classList.toggle('ativo', modo === 'whatsapp');
-  if (ti) ti.classList.toggle('ativo', modo === 'interno');
+  cpMarcarAba(modo);
+  // A aba IA nao tem lista de conversas: ela tem vista propria com dois estados
+  // (escolher paciente / conversar). Sair aqui evita cair no par
+  // mostrarLista+carregarLista, cujo `else` significa "interno" e dispararia
+  // fetch do chat interno na aba errada.
+  if (modo === 'ia') { mentionFechar(); iaMostrar(); return; }
+  const iaV = document.getElementById('cp-vista-ia'); if (iaV) iaV.style.display = 'none';
+  iaMicParar();
   const busca = document.getElementById('cp-busca');
   if (busca) { busca.value = ''; busca.placeholder = modo === 'whatsapp' ? 'Buscar paciente...' : 'Buscar colega...'; }
   // O placeholder é o único lugar que conta que o @ existe. Só no interno: no WhatsApp quem lê é o
@@ -17233,10 +17287,21 @@ function chatPopModo(modo) {
   chatPopMostrarLista();
   chatPopCarregarLista();
 }
+// Marcacao das abas num lugar so. Antes estava duplicada: chatPopModo marcava
+// duas, e cpAbrirConversaWa marcava a do WhatsApp na mao — com uma 3a aba, abrir
+// um WhatsApp por notificacao deixaria a aba de IA acesa junto.
+function cpMarcarAba(modo) {
+  const map = { whatsapp: 'cp-tab-wa', interno: 'cp-tab-int', ia: 'cp-tab-ia' };
+  Object.keys(map).forEach(function (m) {
+    const el = document.getElementById(map[m]);
+    if (el) el.classList.toggle('ativo', m === modo);
+  });
+}
 function chatPopMostrarLista() {
   cpState.vista = 'lista';
   document.getElementById('cp-vista-lista').style.display = 'flex';
   document.getElementById('cp-vista-conversa').style.display = 'none';
+  { const v = document.getElementById('cp-vista-ia'); if (v) v.style.display = 'none'; }
   if (cpState.modo === 'whatsapp') cpIniciarPollLista(); else cpPararPollLista();
 }
 function chatPopBusca(v) { cpState.filtro = v; chatPopRenderLista(); }
@@ -17442,6 +17507,7 @@ function cpTagNomeAtual(contatoKey) {
 }
 
 async function chatPopCarregarLista(silent) {
+  if (cpState.modo === 'ia') return;   // aba IA nao tem lista de conversas
   const wrap = document.getElementById('cp-lista');
   if (!silent) wrap.innerHTML = '<div class="ci-loading">Carregando...</div>';
   if (cpState.modo === 'whatsapp') {
@@ -17560,6 +17626,7 @@ function chatPopMostrarConversa() {
   cpPararPollLista();
   document.getElementById('cp-vista-lista').style.display = 'none';
   document.getElementById('cp-vista-conversa').style.display = 'flex';
+  { const v = document.getElementById('cp-vista-ia'); if (v) v.style.display = 'none'; }
   // mic só faz sentido no WhatsApp (o Interno é texto). Áudio não depende de telefone.
   const mic = document.getElementById('cp-mic'); if (mic) mic.style.display = (cpState.modo === 'whatsapp' && wvMicSuportado()) ? 'flex' : 'none';
 }
@@ -17570,6 +17637,228 @@ function chatPopVoltar() {
   cpState.intPeer = null; cpState.waContato = null; cpState.waJid = null; cpState.waMsgs = [];
   chatPopMostrarLista();
   chatPopRenderLista();
+}
+
+// ============================================================
+// ABA IA — chat da equipe SOBRE um paciente
+// ------------------------------------------------------------
+// Fluxo: escolhe o paciente (sempre a 1ª coisa) → pergunta o que quiser.
+// A resposta é RELATO do prontuário: quem responde é a rota /ia-chat, que monta
+// o dossiê no servidor. O front nunca monta contexto clínico.
+// ============================================================
+function iaMostrar() {
+  const v = document.getElementById('cp-vista-ia'); if (!v) return;
+  document.getElementById('cp-vista-lista').style.display = 'none';
+  document.getElementById('cp-vista-conversa').style.display = 'none';
+  v.style.display = 'flex';
+  cpState.vista = 'ia';
+  iaRender();
+}
+
+// Sai da aba: para o microfone. Sem isso o reconhecimento continua ouvindo
+// depois de trocar de aba — num consultório isso é gravar a consulta errada.
+function iaMicParar() {
+  if (iaState.rec) { try { iaState.rec.stop(); } catch (e) {} }
+  iaState.gravando = false;
+  const b = document.getElementById('cp-ia-mic');
+  if (b) b.classList.remove('gravando');
+}
+
+function iaTrocarPaciente() {
+  iaState.paciente = null;
+  iaState.msgs = [];
+  iaMicParar();
+  iaRender();
+}
+
+function iaRender() {
+  const head = document.getElementById('cp-ia-head');
+  const corpo = document.getElementById('cp-ia-corpo');
+  const bar = document.getElementById('cp-ia-bar');
+  const rod = document.getElementById('cp-ia-rodape');
+  if (!corpo) return;
+
+  // ---- Estado 1: nenhum paciente escolhido ----
+  if (!iaState.paciente) {
+    head.style.display = 'none';
+    bar.style.display = 'none';
+    rod.style.display = 'none';
+    if (!document.getElementById('cp-ia-busca')) {
+      corpo.innerHTML =
+        '<div class="cp-ia-busca-wrap">'
+        + '<input id="cp-ia-busca" placeholder="Sobre qual paciente?" oninput="iaBuscar(this.value)" autocomplete="off">'
+        + '</div>'
+        + '<div id="cp-ia-res"><div class="cp-ia-vazio">Digite o nome ou o código do paciente<br>pra começar a conversa.</div></div>';
+      const inp = document.getElementById('cp-ia-busca');
+      if (inp) setTimeout(function () { try { inp.focus(); } catch (e) {} }, 60);
+    }
+    return;
+  }
+
+  // ---- Estado 2: conversando sobre o paciente ----
+  const p = iaState.paciente;
+  head.style.display = 'flex';
+  bar.style.display = 'flex';
+  rod.style.display = 'flex';
+  head.innerHTML =
+    '<i class="ti ti-sparkles" style="color:#a78bfa;"></i>'
+    + '<div class="nm">' + esc(p.nome) + (p.codigo ? ' <span class="cod">' + esc(p.codigo) + '</span>' : '') + '</div>'
+    + '<button onclick="iaTrocarPaciente()"><i class="ti ti-switch-horizontal"></i> Trocar</button>';
+
+  const micBtn = document.getElementById('cp-ia-mic');
+  if (micBtn) micBtn.style.display = iaVozSuportada() ? 'flex' : 'none';
+
+  if (!iaState.msgs.length) {
+    corpo.innerHTML = '<div class="cp-ia-vazio">Pergunte o que quiser sobre <b>' + esc(p.nome) + '</b>.<br>'
+      + 'Ex.: "última pesagem?", "tem alergia?", "o que ficou combinado na última consulta?"</div>';
+  } else {
+    // esc() SEMPRE: a resposta cita texto livre do prontuário (observação da
+    // equipe, legenda escrita pelo paciente). innerHTML cru aqui é XSS
+    // armazenado com o prontuário como vetor.
+    corpo.innerHTML = iaState.msgs.map(function (m) {
+      const cls = m.role === 'user' ? 'eu' : (m.erro ? 'erro' : 'ia');
+      return '<div class="cp-ia-msg ' + cls + '">' + esc(m.content) + '</div>';
+    }).join('');
+  }
+  if (iaState.enviando) corpo.innerHTML += '<div class="cp-ia-msg ia" style="opacity:.6;">pensando…</div>';
+  corpo.scrollTop = corpo.scrollHeight;
+}
+
+function iaBuscar(q) {
+  clearTimeout(iaState.buscaTimer);
+  const termo = String(q || '').trim();
+  const res = document.getElementById('cp-ia-res');
+  if (!res) return;
+  if (termo.length < 2) { res.innerHTML = '<div class="cp-ia-vazio">Digite pelo menos 2 letras.</div>'; return; }
+  iaState.buscaTimer = setTimeout(async function () {
+    res.innerHTML = '<div class="cp-ia-vazio">Buscando…</div>';
+    let pacs = null;
+    try {
+      const r = await pacApi('/api/clinico/patients?limit=8&q=' + encodeURIComponent(termo));
+      if (r.ok) pacs = r.data.pacientes || [];
+    } catch (e) { pacs = null; }
+    // null = a busca FALHOU. Dizer "nenhum paciente" aqui faria a pessoa
+    // concluir que o paciente não existe no sistema.
+    if (pacs === null) { res.innerHTML = '<div class="cp-ia-vazio">Não consegui buscar agora. Tente de novo.</div>'; return; }
+    if (!pacs.length) { res.innerHTML = '<div class="cp-ia-vazio">Nenhum paciente encontrado.</div>'; return; }
+    res.innerHTML = pacs.map(function (p) {
+      const nome = p.nome_completo || '—';
+      const ini = nome.trim().split(/\s+/).map(function (x) { return x[0]; }).slice(0, 2).join('').toUpperCase();
+      // cpEnc/cpDec (base64) porque nome é texto livre indo pra onclick inline —
+      // esc() não protege JS-string: o navegador decodifica a entidade antes.
+      return '<div class="cp-ia-pac" onclick="iaEscolher(\'' + esc(p.id) + '\', cpDec(\'' + cpEnc(nome) + '\'), cpDec(\'' + cpEnc(p.codigo || '') + '\'))">'
+        + '<div class="av">' + esc(ini) + '</div>'
+        + '<div><div class="nm">' + esc(nome) + '</div>'
+        + '<div class="meta">' + esc(p.codigo || '') + (p.unidade && p.unidade.nome ? ' · ' + esc(p.unidade.nome) : '') + '</div></div>'
+        + '</div>';
+    }).join('');
+  }, 260);
+}
+
+function iaEscolher(id, nome, codigo) {
+  iaState.paciente = { id: id, nome: nome, codigo: codigo || '' };
+  iaState.msgs = [];
+  iaRender();
+  setTimeout(function () { const i = document.getElementById('cp-ia-input'); if (i) try { i.focus(); } catch (e) {} }, 60);
+}
+
+function iaInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); iaEnviar(); }
+}
+
+async function iaEnviar() {
+  if (iaState.enviando || !iaState.paciente) return;
+  const inp = document.getElementById('cp-ia-input');
+  const texto = (inp.value || '').trim();
+  if (!texto) return;
+  iaMicParar();
+  inp.value = '';
+  iaState.msgs.push({ role: 'user', content: texto });
+  iaState.enviando = true;
+  iaRender();
+
+  let r = null;
+  try {
+    r = await pacApi('/api/clinico/prontuario/ia-chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        patient_id: iaState.paciente.id,
+        // Erro NAO vai no historico: o servidor exige alternancia e a IA leria a
+        // mensagem de erro como se fosse coisa que ela mesma disse.
+        // Só role/content: o servidor recusa qualquer campo a mais (zod estrito).
+        mensagens: iaState.msgs.filter(function (m) { return !m.erro; }).slice(-12)
+          .map(function (m) { return { role: m.role, content: m.content }; }),
+      }),
+    });
+  } catch (e) { r = null; }
+
+  iaState.enviando = false;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    // Erro é ERRO, não uma resposta da IA: entra como bloco de aviso e NÃO vai
+    // pro histórico, senão o próximo turno mandaria a mensagem de erro como se
+    // fosse coisa que a IA disse.
+    const msg = (r && r.data && r.data.erro) || 'Não consegui responder agora.';
+    // Marca TAMBÉM a pergunta que falhou: ela continua visível na tela (a pessoa
+    // vê o que perguntou e que deu erro), mas sai do que é reenviado. Sem isso a
+    // pergunta ficava pendurada e a IA podia responder a pergunta abandonada em
+    // vez da próxima.
+    for (let i = iaState.msgs.length - 1; i >= 0; i--) {
+      if (iaState.msgs[i].role === 'user') { iaState.msgs[i].erro = true; break; }
+    }
+    iaState.msgs.push({ role: 'assistant', content: msg, erro: true });
+    iaRender();
+    return;
+  }
+  iaState.msgs.push({ role: 'assistant', content: r.data.resposta });
+  iaRender();
+}
+
+// ---- Ditado por voz (Web Speech API do navegador) ----
+// A fala vira TEXTO NO CAMPO, e a pessoa revisa e aperta enter. Não envia
+// sozinho de propósito: em pt-BR clínico o reconhecimento troca "mg" por "ml" e
+// "0,25" por "0,5" — e o erro não é a IA errar, é ela responder certo a uma
+// pergunta que ninguém fez. Com o texto na tela, quem perguntou vê antes.
+function iaVozSuportada() {
+  return typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+function iaMicToggle() {
+  if (!iaVozSuportada()) { if (typeof homeToast === 'function') homeToast('Este navegador não reconhece voz. Use o Chrome.'); return; }
+  if (iaState.gravando) { iaMicParar(); return; }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'pt-BR';
+  rec.continuous = false;
+  rec.interimResults = true;
+  const inp = document.getElementById('cp-ia-input');
+  const btn = document.getElementById('cp-ia-mic');
+  const base = (inp.value || '').trim();
+
+  rec.onresult = function (ev) {
+    let txt = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) txt += ev.results[i][0].transcript;
+    inp.value = (base ? base + ' ' : '') + txt.trim();
+  };
+  rec.onerror = function (ev) {
+    iaState.gravando = false;
+    if (btn) btn.classList.remove('gravando');
+    if (typeof homeToast === 'function') {
+      homeToast(ev && ev.error === 'not-allowed'
+        ? 'Microfone bloqueado. Libere nas permissões do navegador.'
+        : 'Não consegui ouvir. Tente de novo ou digite.');
+    }
+  };
+  rec.onend = function () {
+    iaState.gravando = false;
+    if (btn) btn.classList.remove('gravando');
+    if (inp) try { inp.focus(); } catch (e) {}
+  };
+
+  iaState.rec = rec;
+  iaState.gravando = true;
+  if (btn) btn.classList.add('gravando');
+  try { rec.start(); } catch (e) { iaMicParar(); }
 }
 
 // ---- WhatsApp (conversas reais via Evolution) ----
@@ -30448,6 +30737,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="chat-pop-tabsbar">
       <button class="cp-tab wa" id="cp-tab-wa" onclick="chatPopModo('whatsapp')"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button>
       <button class="cp-tab" id="cp-tab-int" onclick="chatPopModo('interno')"><i class="ti ti-users-group"></i> Interno <span class="cp-tab-badge" id="cp-tab-badge" style="display:none;">0</span></button>
+      <button class="cp-tab ia" id="cp-tab-ia" onclick="chatPopModo('ia')"><i class="ti ti-sparkles"></i> IA</button>
     </div>
     <div class="cp-lista-topo">
       <div class="cp-busca-wrap">
@@ -30481,6 +30771,22 @@ document.addEventListener('DOMContentLoaded', () => {
       <span class="wv-rec-time" id="cp-rec-time">0:00</span>
       <span class="wv-rec-hint">gravando…</span>
       <button class="ci-send" onclick="cpMicEnviar()" title="Enviar áudio"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+
+  <!-- VISTA: chat de IA sobre o paciente. Vista PRÓPRIA (não reusa a de conversa)
+       porque ela tem dois estados internos — escolher paciente e conversar — e
+       porque as funções de lista/conversa são binárias (whatsapp x interno). -->
+  <div class="chat-pop-body" id="cp-vista-ia" style="display:none; flex-direction:column; min-height:0; flex:1;">
+    <div class="cp-ia-head" id="cp-ia-head" style="display:none;"></div>
+    <div class="cp-ia-corpo cp-scroll" id="cp-ia-corpo"></div>
+    <div class="ci-input-bar" id="cp-ia-bar" style="display:none;">
+      <button class="cp-mic" id="cp-ia-mic" onclick="iaMicToggle()" title="Ditar a pergunta" style="display:none;"><i class="ti ti-microphone"></i></button>
+      <textarea id="cp-ia-input" placeholder="Pergunte sobre o paciente…" rows="1" onkeydown="iaInputKey(event)"></textarea>
+      <button class="ci-send" id="cp-ia-send" onclick="iaEnviar()" title="Perguntar"><i class="ti ti-send"></i></button>
+    </div>
+    <div class="cp-ia-rodape" id="cp-ia-rodape" style="display:none;">
+      <i class="ti ti-info-circle"></i> Relato do prontuário. Não é conduta nem prescrição.
     </div>
   </div>
 </div>
