@@ -3963,6 +3963,53 @@
     .cp-ia-msg.eu { align-self: flex-end; background: rgba(124,92,252,0.16); color: var(--tx1); border-bottom-right-radius: 4px; }
     .cp-ia-msg.ia { align-self: flex-start; background: var(--bg2); color: var(--tx1); border: 1px solid var(--bg3); border-bottom-left-radius: 4px; }
     .cp-ia-msg.erro { align-self: stretch; background: rgba(239,159,39,0.10); border: 1px solid rgba(239,159,39,0.35); color: #EF9F27; }
+    /* ===== Voz ao vivo: tela cheia, só áudio ===== */
+    .iavoz {
+      position: fixed; inset: 0; z-index: 9800;
+      background: radial-gradient(120% 90% at 50% 35%, #1a1530 0%, #0c0b14 55%, #08080d 100%);
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .iavoz-topo { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; }
+    .iavoz-pac { font-size: 13px; color: rgba(255,255,255,0.62); letter-spacing: .3px; }
+    .iavoz-x { background: none; border: 0; color: rgba(255,255,255,0.5); font-size: 22px; cursor: pointer; line-height: 1; }
+    .iavoz-x:hover { color: #fff; }
+    .iavoz-centro { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; }
+    .iavoz-orb {
+      width: 190px; height: 190px; border-radius: 50%; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .18s cubic-bezier(.34,1.56,.64,1);
+    }
+    .iavoz-orb-in {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: conic-gradient(from 0deg, #7c5cfc, #22d3ee, #a78bfa, #7c5cfc);
+      filter: blur(2px);
+      box-shadow: 0 0 60px rgba(124,92,252,.55), inset 0 0 50px rgba(255,255,255,.14);
+    }
+    /* Ouvindo: respiração lenta — a tela precisa dizer "pode falar" sem escrever. */
+    .iavoz-orb.ouvindo .iavoz-orb-in { animation: iavozResp 3.4s ease-in-out infinite; }
+    @keyframes iavozResp { 0%,100% { transform: scale(1); opacity: .88; } 50% { transform: scale(1.07); opacity: 1; } }
+    /* Pensando: gira, sem pulsar — leitura diferente de "ouvindo" à distância. */
+    .iavoz-orb.pensando .iavoz-orb-in { animation: iavozGira 1.5s linear infinite; }
+    @keyframes iavozGira { to { transform: rotate(360deg); } }
+    /* Falando: o pulso vem de cada palavra (onboundary), não de um loop cego. */
+    .iavoz-orb.falando { transform: scale(1.06); }
+    .iavoz-orb.falando .iavoz-orb-in { box-shadow: 0 0 90px rgba(34,211,238,.6), inset 0 0 50px rgba(255,255,255,.2); }
+    .iavoz-orb.pulso { transform: scale(1.13); }
+    .iavoz-orb.pausado .iavoz-orb-in { animation: none; opacity: .35; filter: blur(4px) grayscale(.5); }
+    .iavoz-estado { font-size: 15px; color: rgba(255,255,255,0.75); letter-spacing: .4px; min-height: 20px; }
+    .iavoz-baixo { display: flex; gap: 12px; padding: 0 20px 42px; }
+    .iavoz-btn {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.16);
+      color: rgba(255,255,255,0.86); border-radius: 999px; padding: 12px 22px;
+      font-size: 13.5px; font-family: inherit; cursor: pointer;
+    }
+    .iavoz-btn:hover { background: rgba(255,255,255,0.15); }
+    .iavoz-btn.sair { background: rgba(248,81,73,0.14); border-color: rgba(248,81,73,0.35); color: #ff8a80; }
+    @media (max-width: 520px) { .iavoz-orb { width: 150px; height: 150px; } }
+    @media (prefers-reduced-motion: reduce) {
+      .iavoz-orb, .iavoz-orb-in { animation: none !important; transition: none !important; }
+    }
     .cp-ia-head .cp-ia-vivo { border-color: rgba(124,92,252,0.45); color: #a78bfa; }
     .cp-ia-head .cp-ia-vivo.on { background: rgba(248,81,73,0.14); border-color: rgba(248,81,73,0.5); color: #f85149; }
     .cp-ia-estado {
@@ -6519,7 +6566,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BY</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BZ</b></span></div>
   </div>
 </div>
 
@@ -17270,7 +17317,7 @@ function chatPopFechar() {
 // iaPaciente = {id, nome, codigo} | null (null = ainda perguntando qual paciente)
 // iaMsgs = [{role:'user'|'assistant', content}]  — historico reenviado a cada turno
 let iaState = { paciente: null, msgs: [], enviando: false, buscaTimer: null, rec: null, gravando: false,
-  aoVivo: false, ouvindo: false, falando: false, parcial: '' };
+  aoVivo: false, ouvindo: false, falando: false, parcial: '', pausado: false };
 
 function chatPopModo(modo) {
   cpMicAbortar();
@@ -17859,15 +17906,36 @@ function iaVozLigar() {
   if (!iaVozSuportada()) { if (typeof homeToast === 'function') homeToast('Este navegador não reconhece voz. Use o Chrome.'); return; }
   if (!iaState.paciente) return;
   iaState.aoVivo = true;
+  iaState.pausado = false;
+  const tela = document.getElementById('iavoz');
+  if (tela) {
+    tela.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    const pac = document.getElementById('iavoz-pac');
+    if (pac) pac.textContent = iaState.paciente.nome;
+  }
   iaRender();
   iaEscutar();
 }
 
 function iaVozDesligar() {
   iaState.aoVivo = false;
+  iaState.pausado = false;
+  const tela = document.getElementById('iavoz'); if (tela) tela.style.display = 'none';
+  document.body.style.overflow = '';
   iaFalarParar();
   iaMicParar();
   iaRender();
+}
+
+// Botao unico do rodape: muda de funcao com o estado. Falando -> corta e volta a
+// ouvir. Ouvindo -> pausa (o mic fecha de verdade, nao fica "escutando calado").
+function iaVozAcao() {
+  if (iaState.falando) { iaFalarParar(); iaState.pausado = false; iaEscutar(); iaRenderAoVivo(); return; }
+  if (iaState.pausado) { iaState.pausado = false; iaEscutar(); iaRenderAoVivo(); return; }
+  iaState.pausado = true;
+  iaMicParar();
+  iaRenderAoVivo();
 }
 
 function iaVozToggle() { if (iaState.aoVivo) iaVozDesligar(); else iaVozLigar(); }
@@ -17880,7 +17948,7 @@ function iaInterromper() {
 
 // ---- Escutar ----
 function iaEscutar() {
-  if (!iaState.aoVivo || iaState.enviando || iaState.falando) return;
+  if (!iaState.aoVivo || iaState.enviando || iaState.falando || iaState.pausado) return;
   iaMicParar();
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const rec = new SR();
@@ -17916,7 +17984,7 @@ function iaEscutar() {
     iaRenderAoVivo();
     // "no-speech" encerra sozinho depois de alguns segundos de silêncio. Em modo
     // ao vivo isso não é fim de conversa — é só ninguém ter falado ainda.
-    if (iaState.aoVivo && !iaState.enviando && !iaState.falando) setTimeout(iaEscutar, 250);
+    if (iaState.aoVivo && !iaState.enviando && !iaState.falando && !iaState.pausado) setTimeout(iaEscutar, 250);
   };
 
   iaState.rec = rec;
@@ -17937,6 +18005,15 @@ function iaFalar(frase) {
   const vozes = window.speechSynthesis.getVoices() || [];
   const ptbr = vozes.find(function (v) { return /pt[-_]BR/i.test(v.lang); }) || vozes.find(function (v) { return /^pt/i.test(v.lang); });
   if (ptbr) u.voice = ptbr;
+  // Pulso por PALAVRA: o orbe acompanha a fala de verdade em vez de piscar num
+  // loop cego que continua batendo depois que a frase acabou.
+  u.onboundary = function () {
+    const o = document.getElementById('iavoz-orb');
+    if (!o) return;
+    o.classList.add('pulso');
+    clearTimeout(iaState.pulsoT);
+    iaState.pulsoT = setTimeout(function () { o.classList.remove('pulso'); }, 110);
+  };
   u.onend = function () {
     // Só volta a ouvir quando a FILA inteira acabou (senão reabre o mic no meio
     // da resposta e capta a própria voz).
@@ -17972,6 +18049,7 @@ function iaExtrairFrases(buf) {
 }
 
 function iaRenderAoVivo() {
+  iaRenderTelaVoz();
   const el = document.getElementById('cp-ia-estado');
   const btn = document.getElementById('cp-ia-mic');
   if (btn) btn.classList.toggle('gravando', !!iaState.ouvindo);
@@ -18059,6 +18137,27 @@ async function iaEnviarStream() {
     if (iaState.aoVivo && !iaState.falando) iaEscutar();
   } catch (e) {
     encerrar('Perdi a conexão com a IA.');
+  }
+}
+
+// Pinta a tela cheia. Quatro estados, cada um com leitura propria a distancia:
+// ouvindo (respira), pensando (gira), falando (pulsa por palavra), pausado (apaga).
+function iaRenderTelaVoz() {
+  const tela = document.getElementById('iavoz');
+  if (!tela || tela.style.display === 'none') return;
+  const orb = document.getElementById('iavoz-orb');
+  const est = document.getElementById('iavoz-estado');
+  const acao = document.getElementById('iavoz-acao');
+  const modo = iaState.falando ? 'falando'
+    : iaState.enviando ? 'pensando'
+    : iaState.pausado ? 'pausado'
+    : iaState.ouvindo ? 'ouvindo' : 'ouvindo';
+  if (orb) orb.className = 'iavoz-orb ' + modo;
+  if (est) est.textContent = { ouvindo: 'ouvindo', pensando: 'pensando…', falando: 'falando', pausado: 'pausado' }[modo];
+  if (acao) {
+    acao.innerHTML = iaState.falando ? '<i class="ti ti-player-skip-forward"></i> Cortar'
+      : iaState.pausado ? '<i class="ti ti-microphone"></i> Retomar'
+      : '<i class="ti ti-player-pause"></i> Pausar';
   }
 }
 
@@ -30976,6 +31075,25 @@ document.addEventListener('DOMContentLoaded', () => {
   <i class="ti ti-messages"></i>
   <span class="chat-fab-badge" id="chat-fab-badge">0</span>
 </button>
+<!-- ============== VOZ AO VIVO: tela cheia, só áudio ============== -->
+<div class="iavoz" id="iavoz" style="display:none;">
+  <div class="iavoz-topo">
+    <div class="iavoz-pac" id="iavoz-pac"></div>
+    <button class="iavoz-x" onclick="iaVozDesligar()" title="Encerrar"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="iavoz-centro">
+    <div class="iavoz-orb" id="iavoz-orb"><div class="iavoz-orb-in"></div></div>
+    <div class="iavoz-estado" id="iavoz-estado">ouvindo</div>
+  </div>
+  <div class="iavoz-baixo">
+    <!-- Um botão só, e ele muda de função com o estado: enquanto ele fala é
+         "cortar"; enquanto ouve é "pausar". Dois botões numa tela de voz é
+         exatamente o tipo de coisa que ninguém acha falando. -->
+    <button class="iavoz-btn" id="iavoz-acao" onclick="iaVozAcao()"></button>
+    <button class="iavoz-btn sair" onclick="iaVozDesligar()"><i class="ti ti-x"></i> Encerrar</button>
+  </div>
+</div>
+
 <div class="chat-pop" id="chat-pop" style="display:none;">
   <div class="chat-pop-head">
     <div class="chat-pop-title"><i class="ti ti-messages"></i> Atendimento</div>
