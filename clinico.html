@@ -6566,7 +6566,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BZ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CA</b></span></div>
   </div>
 </div>
 
@@ -17317,7 +17317,7 @@ function chatPopFechar() {
 // iaPaciente = {id, nome, codigo} | null (null = ainda perguntando qual paciente)
 // iaMsgs = [{role:'user'|'assistant', content}]  — historico reenviado a cada turno
 let iaState = { paciente: null, msgs: [], enviando: false, buscaTimer: null, rec: null, gravando: false,
-  aoVivo: false, ouvindo: false, falando: false, parcial: '', pausado: false };
+  aoVivo: false, ouvindo: false, falando: false, parcial: '', pausado: false, audio: null, pulsoT: null };
 
 function chatPopModo(modo) {
   cpMicAbortar();
@@ -17915,6 +17915,7 @@ function iaVozLigar() {
     if (pac) pac.textContent = iaState.paciente.nome;
   }
   iaRender();
+  iaAudioIniciar();   // medidor de volume: e ele que permite cortar a fala falando por cima
   iaEscutar();
 }
 
@@ -17925,6 +17926,7 @@ function iaVozDesligar() {
   document.body.style.overflow = '';
   iaFalarParar();
   iaMicParar();
+  iaAudioParar();   // solta o stream: senao a luz do microfone fica acesa
   iaRender();
 }
 
@@ -17996,15 +17998,46 @@ function iaEscutar() {
 // ---- Falar ----
 // Fila de frases: o streaming entrega pedaços, e cada frase fechada vai pra fala
 // imediatamente. speechSynthesis já enfileira sozinho, então é só empurrar.
+// Escolhe a MELHOR voz disponível, uma vez só. Duas coisas deixavam a fala
+// robótica aqui: getVoices() volta VAZIO na primeira chamada (a lista carrega
+// assíncrona), então a primeira resposta saía na voz padrão do sistema — a pior;
+// e mesmo depois, pegar "a primeira pt-BR" cai na voz local em vez da natural.
+let iaVozEscolhida = null;
+function iaMelhorVoz() {
+  if (iaVozEscolhida) return iaVozEscolhida;
+  const vozes = (window.speechSynthesis && window.speechSynthesis.getVoices()) || [];
+  if (!vozes.length) return null;   // ainda não carregou — tenta de novo na próxima frase
+  const ptbr = vozes.filter(function (v) { return /pt[-_]BR/i.test(v.lang); });
+  const pt = ptbr.length ? ptbr : vozes.filter(function (v) { return /^pt/i.test(v.lang); });
+  if (!pt.length) return null;
+  // As neurais (Google / Natural / de rede) soam muito melhor que as locais do
+  // sistema, que são justamente as travadas.
+  const nota = function (v) {
+    const n = (v.name || '').toLowerCase();
+    if (n.indexOf('google') > -1) return 4;
+    if (n.indexOf('natural') > -1 || n.indexOf('neural') > -1) return 3;
+    if (v.localService === false) return 2;
+    return 1;
+  };
+  iaVozEscolhida = pt.slice().sort(function (a, b) { return nota(b) - nota(a); })[0];
+  return iaVozEscolhida;
+}
+try {
+  // A lista chega depois do load; quando chegar, refaz a escolha.
+  if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = function () { iaVozEscolhida = null; iaMelhorVoz(); };
+} catch (e) {}
+
+const IA_VOZ_RATE = 1.45;   // ~40% mais rápido que o 1.05 anterior
+
 function iaFalar(frase) {
   const t = String(frase || '').trim();
   if (!t || !window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(t);
   u.lang = 'pt-BR';
-  u.rate = 1.05;
-  const vozes = window.speechSynthesis.getVoices() || [];
-  const ptbr = vozes.find(function (v) { return /pt[-_]BR/i.test(v.lang); }) || vozes.find(function (v) { return /^pt/i.test(v.lang); });
-  if (ptbr) u.voice = ptbr;
+  u.rate = IA_VOZ_RATE;
+  u.pitch = 1;
+  const v = iaMelhorVoz();
+  if (v) u.voice = v;
   // Pulso por PALAVRA: o orbe acompanha a fala de verdade em vez de piscar num
   // loop cego que continua batendo depois que a frase acabou.
   u.onboundary = function () {
@@ -18028,6 +18061,98 @@ function iaFalar(frase) {
   iaRenderAoVivo();
 }
 
+// ============================================================
+// BARGE-IN — falou por cima, ele cala
+// ------------------------------------------------------------
+// Um segundo fluxo de microfone, SÓ pra medir volume (nunca transcreve). O
+// segredo é o echoCancellation do navegador: ele subtrai o que sai do
+// alto-falante do que entra no microfone, então o que sobra acima do piso é voz
+// HUMANA, não o eco da própria resposta. Sem AEC isso viraria a IA se cortando
+// sozinha na primeira palavra que ela mesma falasse.
+//
+// Duas travas contra falso positivo: piso de energia calibrado no silêncio dos
+// primeiros instantes, e exigir ~180ms contínuos acima dele — tosse, clique de
+// mouse e batida na mesa são picos curtos e não passam.
+// ============================================================
+async function iaAudioIniciar() {
+  if (iaState.audio) return true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser();
+    an.fftSize = 512;
+    src.connect(an);
+    iaState.audio = { stream: stream, ctx: ctx, an: an, dados: new Uint8Array(an.frequencyBinCount), piso: 0, amostras: 0, acima: 0, raf: 0 };
+    iaAudioLoop();
+    return true;
+  } catch (e) {
+    // Sem permissão de microfone o modo ao vivo inteiro não funciona; o
+    // reconhecimento vai reclamar em seguida com mensagem própria.
+    iaState.audio = null;
+    return false;
+  }
+}
+
+function iaAudioParar() {
+  const a = iaState.audio;
+  if (!a) return;
+  iaState.audio = null;
+  try { cancelAnimationFrame(a.raf); } catch (e) {}
+  try { a.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+  try { a.ctx.close(); } catch (e) {}
+  // O loop escreve transform inline no orbe. Sem limpar aqui ele fica preso na
+  // escala da última medição — e a tela reabriria com o orbe inchado até a
+  // primeira leitura nova. (iaRenderTelaVoz não limpa: já saiu de cena.)
+  const orb = document.getElementById('iavoz-orb');
+  if (orb) orb.style.transform = '';
+}
+
+function iaAudioLoop() {
+  const a = iaState.audio;
+  if (!a) return;
+  a.raf = requestAnimationFrame(iaAudioLoop);
+  a.an.getByteTimeDomainData(a.dados);
+  let soma = 0;
+  for (let i = 0; i < a.dados.length; i++) { const d = (a.dados[i] - 128) / 128; soma += d * d; }
+  const rms = Math.sqrt(soma / a.dados.length);
+
+  // Calibra o piso no ambiente real durante os primeiros ~120 quadros de silêncio.
+  // Consultório com ar-condicionado tem piso bem mais alto que sala silenciosa.
+  if (a.amostras < 120 && !iaState.falando) {
+    a.piso = a.piso ? (a.piso * 0.97 + rms * 0.03) : rms;
+    a.amostras++;
+  }
+  const limiar = Math.max(0.045, a.piso * 3.2);
+
+  // Orbe respirando no volume real da voz enquanto ouve — é o que faz a tela
+  // parecer viva em vez de uma animação em loop.
+  if (iaState.ouvindo && !iaState.falando) {
+    const orb = document.getElementById('iavoz-orb');
+    if (orb) orb.style.transform = 'scale(' + (1 + Math.min(0.18, rms * 2.2)).toFixed(3) + ')';
+  }
+
+  if (iaState.falando) {
+    if (rms > limiar) {
+      a.acima++;
+      if (a.acima >= 11) {          // ~180ms a 60fps
+        a.acima = 0;
+        iaFalarParar();
+        iaState.pausado = false;
+        iaEscutar();
+        iaRenderAoVivo();
+      }
+    } else if (a.acima > 0) {
+      a.acima--;                    // decai em vez de zerar: fala tem micro-pausas
+    }
+  } else {
+    a.acima = 0;
+  }
+}
+
 function iaFalarParar() {
   try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
   iaState.falando = false;
@@ -18036,7 +18161,7 @@ function iaFalarParar() {
 // Corta o texto em frases FECHADAS. O resto parcial fica no buffer: mandar meia
 // frase pra fala produz entonação errada e corta número no meio ("noventa e
 // dois vírgula" … "quatro").
-function iaExtrairFrases(buf) {
+function iaExtrairFrases(buf, primeira) {
   const frases = [];
   let resto = buf;
   for (;;) {
@@ -18045,7 +18170,26 @@ function iaExtrairFrases(buf) {
     frases.push(m[1].trim());
     resto = resto.slice(m[0].length);
   }
-  return { frases: frases, resto: resto };
+  if (!frases.length) return { frases: [], resto: resto };
+  // Agrupa antes de falar. Cada speak() separado deixa uma EMENDA audível: falar
+  // 8 frases soltas soa picotado, 2 blocos soa contínuo. A 1ª sai sozinha (é ela
+  // que mata o silêncio depois da pergunta); da 2ª em diante junta até ~180
+  // caracteres. Sobra curta volta pro buffer e espera o resto chegar, em vez de
+  // virar uma falinha solta no meio.
+  const blocos = [];
+  let acc = '';
+  let nAcc = 0;
+  for (let i = 0; i < frases.length; i++) {
+    if (primeira) { blocos.push(frases[i]); primeira = false; continue; }
+    acc = acc ? acc + ' ' + frases[i] : frases[i];
+    nAcc++;
+    // Fecha o bloco por tamanho OU por 2 frases. Só o teto de 180 travava uma
+    // resposta inteira feita de frases curtas: ela nunca chegava ao limite e
+    // nada era falado durante o streaming. Duas frases já soam contínuas.
+    if (acc.length >= 180 || nAcc >= 2) { blocos.push(acc); acc = ''; nAcc = 0; }
+  }
+  if (acc) resto = acc + (resto ? ' ' + resto : '');
+  return { frases: blocos, resto: resto };
 }
 
 function iaRenderAoVivo() {
@@ -18070,6 +18214,7 @@ async function iaEnviarStream() {
   const idx = iaState.msgs.push({ role: 'assistant', content: '' }) - 1;
   let buf = '';        // texto ainda não falado
   let deuAlgo = false;
+  let falouAlgo = false;   // a 1ª fala sai sozinha; depois agrupa (menos emendas)
   iaRender();
 
   const encerrar = (erroMsg) => {
@@ -18120,8 +18265,9 @@ async function iaEnviarStream() {
           deuAlgo = true;
           iaState.msgs[idx].content += ev.t;
           buf += ev.t;
-          const corte = iaExtrairFrases(buf);
+          const corte = iaExtrairFrases(buf, !falouAlgo);
           buf = corte.resto;
+          if (corte.frases.length) falouAlgo = true;
           corte.frases.forEach(iaFalar);
           iaRender();
         } else if (ev.tipo === 'erro') {
@@ -18152,7 +18298,12 @@ function iaRenderTelaVoz() {
     : iaState.enviando ? 'pensando'
     : iaState.pausado ? 'pausado'
     : iaState.ouvindo ? 'ouvindo' : 'ouvindo';
-  if (orb) orb.className = 'iavoz-orb ' + modo;
+  if (orb) {
+    orb.className = 'iavoz-orb ' + modo;
+    // O medidor escreve transform inline enquanto ouve. Fora de "ouvindo" isso
+    // congelaria o orbe na escala da ultima medicao — devolve pro CSS.
+    if (modo !== 'ouvindo') orb.style.transform = '';
+  }
   if (est) est.textContent = { ouvindo: 'ouvindo', pensando: 'pensando…', falando: 'falando', pausado: 'pausado' }[modo];
   if (acao) {
     acao.innerHTML = iaState.falando ? '<i class="ti ti-player-skip-forward"></i> Cortar'
