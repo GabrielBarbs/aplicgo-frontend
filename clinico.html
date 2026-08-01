@@ -3963,6 +3963,16 @@
     .cp-ia-msg.eu { align-self: flex-end; background: rgba(124,92,252,0.16); color: var(--tx1); border-bottom-right-radius: 4px; }
     .cp-ia-msg.ia { align-self: flex-start; background: var(--bg2); color: var(--tx1); border: 1px solid var(--bg3); border-bottom-left-radius: 4px; }
     .cp-ia-msg.erro { align-self: stretch; background: rgba(239,159,39,0.10); border: 1px solid rgba(239,159,39,0.35); color: #EF9F27; }
+    .cp-ia-head .cp-ia-vivo { border-color: rgba(124,92,252,0.45); color: #a78bfa; }
+    .cp-ia-head .cp-ia-vivo.on { background: rgba(248,81,73,0.14); border-color: rgba(248,81,73,0.5); color: #f85149; }
+    .cp-ia-estado {
+      flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding: 7px 12px;
+      font-size: 11.5px; color: var(--tx2); background: rgba(124,92,252,0.07);
+      border-bottom: 1px solid var(--bg3);
+    }
+    .cp-ia-estado i { color: #a78bfa; font-size: 13px; }
+    .cp-ia-parcial { color: var(--tx3b); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cp-ia-cortar { color: #a78bfa; text-decoration: underline; cursor: pointer; }
     .cp-ia-rodape {
       flex-shrink: 0; padding: 6px 12px; font-size: 10px; color: var(--tx3b);
       border-top: 1px solid var(--bg3); display: flex; align-items: center; gap: 5px;
@@ -6509,7 +6519,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BX</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-BY</b></span></div>
   </div>
 </div>
 
@@ -17249,7 +17259,7 @@ function chatPopAbrir(modo) {
 }
 function chatPopFechar() {
   cpMicAbortar();
-  iaMicParar();   // senao o reconhecimento continua ouvindo com o popup fechado
+  iaState.aoVivo = false; iaFalarParar(); iaMicParar();   // senao continua ouvindo e falando com o popup fechado
   cpState.aberto = false;
   chatPopPararPoll();
   cpPararPollWa();
@@ -17259,7 +17269,8 @@ function chatPopFechar() {
 // ---- Aba IA: estado ----
 // iaPaciente = {id, nome, codigo} | null (null = ainda perguntando qual paciente)
 // iaMsgs = [{role:'user'|'assistant', content}]  — historico reenviado a cada turno
-let iaState = { paciente: null, msgs: [], enviando: false, buscaTimer: null, rec: null, gravando: false };
+let iaState = { paciente: null, msgs: [], enviando: false, buscaTimer: null, rec: null, gravando: false,
+  aoVivo: false, ouvindo: false, falando: false, parcial: '' };
 
 function chatPopModo(modo) {
   cpMicAbortar();
@@ -17276,7 +17287,7 @@ function chatPopModo(modo) {
   // fetch do chat interno na aba errada.
   if (modo === 'ia') { mentionFechar(); iaMostrar(); return; }
   const iaV = document.getElementById('cp-vista-ia'); if (iaV) iaV.style.display = 'none';
-  iaMicParar();
+  iaState.aoVivo = false; iaFalarParar(); iaMicParar();
   const busca = document.getElementById('cp-busca');
   if (busca) { busca.value = ''; busca.placeholder = modo === 'whatsapp' ? 'Buscar paciente...' : 'Buscar colega...'; }
   // O placeholder é o único lugar que conta que o @ existe. Só no interno: no WhatsApp quem lê é o
@@ -17658,8 +17669,15 @@ function iaMostrar() {
 // Sai da aba: para o microfone. Sem isso o reconhecimento continua ouvindo
 // depois de trocar de aba — num consultório isso é gravar a consulta errada.
 function iaMicParar() {
-  if (iaState.rec) { try { iaState.rec.stop(); } catch (e) {} }
+  if (iaState.rec) {
+    // onend religa o microfone no modo ao vivo. Solta a referencia ANTES do stop,
+    // senao desligar a voz reabriria o mic sozinho.
+    const r = iaState.rec; iaState.rec = null;
+    try { r.onend = null; r.onresult = null; r.stop(); } catch (e) {}
+  }
   iaState.gravando = false;
+  iaState.ouvindo = false;
+  iaState.parcial = '';
   const b = document.getElementById('cp-ia-mic');
   if (b) b.classList.remove('gravando');
 }
@@ -17667,6 +17685,8 @@ function iaMicParar() {
 function iaTrocarPaciente() {
   iaState.paciente = null;
   iaState.msgs = [];
+  iaState.aoVivo = false;
+  iaFalarParar();
   iaMicParar();
   iaRender();
 }
@@ -17703,10 +17723,17 @@ function iaRender() {
   head.innerHTML =
     '<i class="ti ti-sparkles" style="color:#a78bfa;"></i>'
     + '<div class="nm">' + esc(p.nome) + (p.codigo ? ' <span class="cod">' + esc(p.codigo) + '</span>' : '') + '</div>'
+    + (iaVozSuportada()
+        ? '<button class="cp-ia-vivo' + (iaState.aoVivo ? ' on' : '') + '" onclick="iaVozToggle()" title="Conversar por voz">'
+          + '<i class="ti ti-' + (iaState.aoVivo ? 'player-stop' : 'microphone') + '"></i> ' + (iaState.aoVivo ? 'Parar' : 'Ao vivo') + '</button>'
+        : '')
     + '<button onclick="iaTrocarPaciente()"><i class="ti ti-switch-horizontal"></i> Trocar</button>';
+  iaRenderAoVivo();
 
   const micBtn = document.getElementById('cp-ia-mic');
-  if (micBtn) micBtn.style.display = iaVozSuportada() ? 'flex' : 'none';
+  // O botao de ditado some no modo ao vivo: la o microfone e continuo e o
+  // controle esta no "Parar" do topo. Dois microfones na tela confundiria.
+  if (micBtn) micBtn.style.display = (iaVozSuportada() && !iaState.aoVivo) ? 'flex' : 'none';
 
   if (!iaState.msgs.length) {
     corpo.innerHTML = '<div class="cp-ia-vazio">Pergunte o que quiser sobre <b>' + esc(p.nome) + '</b>.<br>'
@@ -17766,16 +17793,19 @@ function iaInputKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); iaEnviar(); }
 }
 
-async function iaEnviar() {
+async function iaEnviar(textoVoz, viaVoz) {
   if (iaState.enviando || !iaState.paciente) return;
   const inp = document.getElementById('cp-ia-input');
-  const texto = (inp.value || '').trim();
+  const texto = viaVoz ? String(textoVoz || '').trim() : (inp.value || '').trim();
   if (!texto) return;
-  iaMicParar();
-  inp.value = '';
+  if (!viaVoz) iaMicParar();
+  if (!viaVoz) inp.value = '';
   iaState.msgs.push({ role: 'user', content: texto });
   iaState.enviando = true;
   iaRender();
+
+  // Modo ao vivo: streaming, pra começar a falar na primeira frase.
+  if (viaVoz && iaState.aoVivo) { await iaEnviarStream(); return; }
 
   let r = null;
   try {
@@ -17811,6 +17841,225 @@ async function iaEnviar() {
   }
   iaState.msgs.push({ role: 'assistant', content: r.data.resposta });
   iaRender();
+}
+
+// ============================================================
+// VOZ AO VIVO — fala, ele responde falando
+// ------------------------------------------------------------
+// Três peças: reconhecimento contínuo (você fala e ele manda sozinho ao terminar
+// a frase), resposta em STREAMING (SSE) e fala frase a frase. A fala começa na
+// PRIMEIRA frase da resposta — esperar o texto inteiro daria 4-6s de silêncio
+// depois de cada pergunta, que numa conversa por voz soa como travamento.
+//
+// Enquanto ele fala, o reconhecimento fica PARADO. Não é preguiça: o microfone
+// capta o próprio alto-falante e transcreveria a fala dele como se fosse sua —
+// vira um loop de conversa consigo mesmo. Pra cortar no meio, toque no botão.
+// ============================================================
+function iaVozLigar() {
+  if (!iaVozSuportada()) { if (typeof homeToast === 'function') homeToast('Este navegador não reconhece voz. Use o Chrome.'); return; }
+  if (!iaState.paciente) return;
+  iaState.aoVivo = true;
+  iaRender();
+  iaEscutar();
+}
+
+function iaVozDesligar() {
+  iaState.aoVivo = false;
+  iaFalarParar();
+  iaMicParar();
+  iaRender();
+}
+
+function iaVozToggle() { if (iaState.aoVivo) iaVozDesligar(); else iaVozLigar(); }
+
+// Botão do meio durante o modo ao vivo: se está falando, corta a fala e volta a
+// ouvir na hora (é o "deixa, já entendi"). Se está ouvindo, não faz nada.
+function iaInterromper() {
+  if (iaState.falando) { iaFalarParar(); iaEscutar(); }
+}
+
+// ---- Escutar ----
+function iaEscutar() {
+  if (!iaState.aoVivo || iaState.enviando || iaState.falando) return;
+  iaMicParar();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'pt-BR';
+  rec.continuous = false;      // uma frase por vez: o onresult final é o "acabei de falar"
+  rec.interimResults = true;
+
+  rec.onresult = function (ev) {
+    let parcial = '', final = '';
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const t = ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) final += t; else parcial += t;
+    }
+    iaState.parcial = (final || parcial).trim();
+    iaRenderAoVivo();
+    if (final.trim()) {
+      iaState.parcial = '';
+      const pergunta = final.trim();
+      iaMicParar();               // fecha o mic ANTES de pensar/falar: aberto, ele
+      iaEnviar(pergunta, true);   // captaria o proprio alto-falante e se responderia
+    }
+  };
+  rec.onerror = function (ev) {
+    iaState.ouvindo = false;
+    if (ev && ev.error === 'not-allowed') {
+      iaState.aoVivo = false;
+      if (typeof homeToast === 'function') homeToast('Microfone bloqueado. Libere nas permissões do navegador.');
+    }
+    iaRender();
+  };
+  rec.onend = function () {
+    iaState.ouvindo = false;
+    iaRenderAoVivo();
+    // "no-speech" encerra sozinho depois de alguns segundos de silêncio. Em modo
+    // ao vivo isso não é fim de conversa — é só ninguém ter falado ainda.
+    if (iaState.aoVivo && !iaState.enviando && !iaState.falando) setTimeout(iaEscutar, 250);
+  };
+
+  iaState.rec = rec;
+  iaState.ouvindo = true;
+  iaRenderAoVivo();
+  try { rec.start(); } catch (e) { iaState.ouvindo = false; }
+}
+
+// ---- Falar ----
+// Fila de frases: o streaming entrega pedaços, e cada frase fechada vai pra fala
+// imediatamente. speechSynthesis já enfileira sozinho, então é só empurrar.
+function iaFalar(frase) {
+  const t = String(frase || '').trim();
+  if (!t || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = 'pt-BR';
+  u.rate = 1.05;
+  const vozes = window.speechSynthesis.getVoices() || [];
+  const ptbr = vozes.find(function (v) { return /pt[-_]BR/i.test(v.lang); }) || vozes.find(function (v) { return /^pt/i.test(v.lang); });
+  if (ptbr) u.voice = ptbr;
+  u.onend = function () {
+    // Só volta a ouvir quando a FILA inteira acabou (senão reabre o mic no meio
+    // da resposta e capta a própria voz).
+    if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+      iaState.falando = false;
+      iaRenderAoVivo();
+      if (iaState.aoVivo) iaEscutar();
+    }
+  };
+  iaState.falando = true;
+  window.speechSynthesis.speak(u);
+  iaRenderAoVivo();
+}
+
+function iaFalarParar() {
+  try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) {}
+  iaState.falando = false;
+}
+
+// Corta o texto em frases FECHADAS. O resto parcial fica no buffer: mandar meia
+// frase pra fala produz entonação errada e corta número no meio ("noventa e
+// dois vírgula" … "quatro").
+function iaExtrairFrases(buf) {
+  const frases = [];
+  let resto = buf;
+  for (;;) {
+    const m = resto.match(/^([\s\S]*?[.!?…]|[\s\S]*?\n)\s*/);
+    if (!m || m[1].trim().length < 12) break;   // < 12 chars = provavelmente "Dr." ou abreviação
+    frases.push(m[1].trim());
+    resto = resto.slice(m[0].length);
+  }
+  return { frases: frases, resto: resto };
+}
+
+function iaRenderAoVivo() {
+  const el = document.getElementById('cp-ia-estado');
+  const btn = document.getElementById('cp-ia-mic');
+  if (btn) btn.classList.toggle('gravando', !!iaState.ouvindo);
+  if (!el) return;
+  if (!iaState.aoVivo) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const txt = iaState.falando ? '<i class="ti ti-volume"></i> falando… <span class="cp-ia-cortar" onclick="iaInterromper()">tocar pra cortar</span>'
+    : iaState.enviando ? '<i class="ti ti-loader"></i> pensando…'
+    : iaState.ouvindo ? '<i class="ti ti-microphone"></i> ouvindo…' + (iaState.parcial ? ' <span class="cp-ia-parcial">' + esc(iaState.parcial) + '</span>' : '')
+    : '<i class="ti ti-microphone-off"></i> pausado';
+  el.innerHTML = txt;
+}
+
+// Envio em STREAMING. Não usa pacApi (que faz resp.json() de uma vez e mataria
+// o streaming) — é fetch cru com o mesmo Bearer. A bolha da resposta cresce na
+// tela enquanto ele fala, e cada frase fechada vai pra fala na hora.
+async function iaEnviarStream() {
+  const idx = iaState.msgs.push({ role: 'assistant', content: '' }) - 1;
+  let buf = '';        // texto ainda não falado
+  let deuAlgo = false;
+  iaRender();
+
+  const encerrar = (erroMsg) => {
+    iaState.enviando = false;
+    if (erroMsg) {
+      // Sem nada recebido = a pergunta não foi respondida: tira a bolha vazia e
+      // marca o par (pergunta + erro) fora do histórico reenviado.
+      if (!deuAlgo) iaState.msgs.splice(idx, 1);
+      for (let i = iaState.msgs.length - 1; i >= 0; i--) {
+        if (iaState.msgs[i].role === 'user') { iaState.msgs[i].erro = true; break; }
+      }
+      iaState.msgs.push({ role: 'assistant', content: erroMsg, erro: true });
+    }
+    iaRender();
+    // Nada foi falado (erro logo de cara): volta a ouvir, senão a conversa morre.
+    if (iaState.aoVivo && !iaState.falando) iaEscutar();
+  };
+
+  try {
+    const resp = await fetch(API_BASE + '/api/clinico/prontuario/ia-chat', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        patient_id: iaState.paciente.id,
+        stream: true,
+        mensagens: iaState.msgs.filter(function (m) { return !m.erro && m.content; }).slice(-12)
+          .map(function (m) { return { role: m.role, content: m.content }; }),
+      }),
+    });
+    if (!resp.ok || !resp.body) return encerrar('A IA não respondeu agora.');
+
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let sse = '';
+    for (;;) {
+      const r = await reader.read();
+      if (r.done) break;
+      sse += dec.decode(r.value, { stream: true });
+      // Mesmo cuidado do servidor: guardar o pedaço incompleto. Um evento
+      // cortado no meio viraria JSON inválido e a frase sumiria.
+      const partes = sse.split('\n\n');
+      sse = partes.pop() || '';
+      for (const bloco of partes) {
+        const linha = bloco.split('\n').find(function (l) { return l.indexOf('data:') === 0; });
+        if (!linha) continue;
+        let ev; try { ev = JSON.parse(linha.slice(5).trim()); } catch (e) { continue; }
+        if (ev.tipo === 'texto') {
+          deuAlgo = true;
+          iaState.msgs[idx].content += ev.t;
+          buf += ev.t;
+          const corte = iaExtrairFrases(buf);
+          buf = corte.resto;
+          corte.frases.forEach(iaFalar);
+          iaRender();
+        } else if (ev.tipo === 'erro') {
+          return encerrar(ev.erro || 'A IA interrompeu a resposta.');
+        }
+      }
+    }
+    if (buf.trim()) iaFalar(buf.trim());   // sobra sem pontuação final
+    if (!deuAlgo) return encerrar('A IA não respondeu agora.');
+    iaState.enviando = false;
+    iaRender();
+    // Se nada foi pra fila de fala, o onend nunca dispara — reabre o mic aqui.
+    if (iaState.aoVivo && !iaState.falando) iaEscutar();
+  } catch (e) {
+    encerrar('Perdi a conexão com a IA.');
+  }
 }
 
 // ---- Ditado por voz (Web Speech API do navegador) ----
@@ -30779,6 +31028,7 @@ document.addEventListener('DOMContentLoaded', () => {
        porque as funções de lista/conversa são binárias (whatsapp x interno). -->
   <div class="chat-pop-body" id="cp-vista-ia" style="display:none; flex-direction:column; min-height:0; flex:1;">
     <div class="cp-ia-head" id="cp-ia-head" style="display:none;"></div>
+    <div class="cp-ia-estado" id="cp-ia-estado" style="display:none;"></div>
     <div class="cp-ia-corpo cp-scroll" id="cp-ia-corpo"></div>
     <div class="ci-input-bar" id="cp-ia-bar" style="display:none;">
       <button class="cp-mic" id="cp-ia-mic" onclick="iaMicToggle()" title="Ditar a pergunta" style="display:none;"><i class="ti ti-microphone"></i></button>
