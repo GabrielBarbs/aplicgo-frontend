@@ -6159,6 +6159,63 @@
     .pl-edit-ta { width: 100%; min-height: 240px; max-height: 640px; box-sizing: border-box; resize: vertical; background: var(--bg1); color: var(--tx1); border: 1px solid var(--bd1); border-radius: 10px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; line-height: 1.55; }
     .pl-edit-ta:focus { outline: none; border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
     .pl-edit-acoes { display: flex; gap: 8px; margin-top: 10px; }
+    /* Abas do painel do plano: Plano | Recomendações da nutri */
+    /* overflow-x: em tela estreita "Recomendações da nutri" não cabe ao lado de "Plano" —
+       sem isto a segunda aba fica cortada pela metade e não dá pra clicar. */
+    .pl-abas { display: flex; gap: 4px; padding: 6px 14px 0; border-bottom: 1px solid var(--bd1); overflow-x: auto; scrollbar-width: thin; }
+    .pl-abas .aba {
+      background: transparent; border: 0; border-bottom: 2px solid transparent;
+      color: var(--tx3b); padding: 8px 12px; margin-bottom: -1px;
+      font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer;
+      text-transform: uppercase; letter-spacing: .4px; transition: all .12s;
+      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    }
+    .pl-abas .aba:hover { color: var(--tx1); }
+    .pl-abas .aba.ativa { color: #1D9E75; border-bottom-color: #1D9E75; }
+    .pl-abas .aba .cont { font-size: 10px; background: var(--bg3); color: var(--tx2); border-radius: 8px; padding: 1px 6px; }
+    .pl-abas .aba.ativa .cont { background: rgba(29,158,117,0.18); color: #1D9E75; }
+    /* Faixa que diz se o plano REALMENTE usou as recomendações (ou por que não usou) */
+    .pl-nutri-flag { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; }
+    .pl-nutri-flag.ok { background: rgba(29,158,117,0.08); border: 1px solid rgba(29,158,117,0.28); color: #1D9E75; }
+    .pl-nutri-flag.pend { background: rgba(239,159,39,0.08); border: 1px solid rgba(239,159,39,0.30); color: #EF9F27; }
+    .pl-nutri-flag button { margin-left: auto; font-size: 11px; padding: 4px 10px; }
+    /* Aba de recomendações */
+    .nr-intro { font-size: 12px; color: var(--tx3); line-height: 1.5; margin-bottom: 12px; }
+    .nr-lista { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .nr-item { border: 1px solid var(--bd1); border-radius: 12px; background: var(--bg1); overflow: hidden; }
+    .nr-cab { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+    .nr-cab > i { font-size: 18px; color: #1D9E75; flex-shrink: 0; }
+    .nr-cab .info { flex: 1; min-width: 0; }
+    .nr-cab .nome { font-size: 12.5px; color: var(--tx1); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nr-cab .meta { font-size: 10.5px; color: var(--tx3b); margin-top: 2px; }
+    .nr-acoes { display: flex; gap: 4px; flex-shrink: 0; }
+    .nr-acoes button {
+      width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid var(--bd1); border-radius: 8px; background: transparent; color: var(--tx3);
+      cursor: pointer; font-size: 15px; transition: all .12s;
+    }
+    .nr-acoes button:hover:not(:disabled) { color: var(--tx1); border-color: var(--ac); }
+    .nr-acoes button:disabled { opacity: .4; cursor: default; }
+    .nr-acoes button.wa:hover:not(:disabled) { color: #1D9E75; border-color: #1D9E75; }
+    .nr-acoes button.del:hover:not(:disabled) { color: #E05C5C; border-color: #E05C5C; }
+    .nr-st { font-size: 10.5px; padding: 2px 8px; border-radius: 7px; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .nr-st.ok { background: rgba(29,158,117,0.14); color: #1D9E75; }
+    .nr-st.pend { background: rgba(239,159,39,0.14); color: #EF9F27; }
+    .nr-st.err { background: rgba(224,92,92,0.14); color: #E05C5C; cursor: pointer; }
+    .nr-fb { border-top: 1px solid var(--bd1); padding: 12px 14px; background: rgba(var(--bg3-rgb),0.35); }
+    .nr-fb-tit { display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; color: #C58AF0; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+    .nr-fb .ex-ins-body { font-size: 12.5px; }
+    .nr-erro { border-top: 1px solid var(--bd1); padding: 10px 14px; font-size: 12px; color: #E05C5C; background: rgba(224,92,92,0.06); }
+    .nr-dir { border-top: 1px solid var(--bd1); }
+    .nr-dir-tog {
+      width: 100%; display: flex; align-items: center; gap: 6px; text-align: left;
+      background: transparent; border: 0; padding: 9px 14px; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 700; color: #1D9E75;
+      text-transform: uppercase; letter-spacing: .3px;
+    }
+    .nr-dir-tog:hover { background: rgba(29,158,117,0.06); }
+    .nr-dir-corpo { padding: 0 14px 12px; font-size: 12.5px; }
+    .nr-vazio { text-align: center; padding: 20px 12px; font-size: 12.5px; color: var(--tx3b); }
     .wa-num-wrap { display: inline-flex; align-items: center; gap: 8px; background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.3); border-radius: 10px; padding: 8px 14px; margin-top: 4px; }
     .wa-num-wrap:focus-within { border-color: #1D9E75; box-shadow: 0 0 0 3px rgba(29,158,117,0.15); }
     .wa-num-wrap i { color: #1D9E75; font-size: 16px; }
@@ -6575,7 +6632,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CC</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CD</b></span></div>
   </div>
 </div>
 
@@ -25350,7 +25407,7 @@ function prRenderAnexos() {
           <i class="ti ti-${prIconePorTipo(a.mime)}"></i>
           <div class="info">
             <div class="nome">${(a.nome || '').replace(/</g, '&lt;')}</div>
-            <div class="meta">${a.tipo}${a.tamanho ? ' · ' + prFmtTamanho(a.tamanho) : ''}${a.enviado_por ? ' · ' + a.enviado_por : ''}</div>
+            <div class="meta">${esc(prRotuloTipoAnexo(a.tipo))}${a.tamanho ? ' · ' + prFmtTamanho(a.tamanho) : ''}${a.enviado_por ? ' · ' + esc(a.enviado_por) : ''}</div>
           </div>
           ${badge}
           <button class="rm" onclick="prDocVer('${a.id}')" title="Ver / baixar"><i class="ti ti-eye"></i></button>
@@ -25373,6 +25430,11 @@ function prRenderAnexos() {
   `;
 }
 
+// `tipo` é o slug técnico que o banco guarda ('recomendacao_nutri'). Mostrar cru na lista de
+// anexos entrega jargão de banco pra quem só quer achar o arquivo. Slug desconhecido cai nele
+// mesmo — inventar rótulo seria pior que mostrar o que está gravado.
+const PR_ROTULO_TIPO = { anexo: 'Anexo', bioimpedancia: 'Bioimpedância', foto_evolucao: 'Foto de evolução', recomendacao_nutri: 'Recomendação da nutri' };
+function prRotuloTipoAnexo(tipo) { return PR_ROTULO_TIPO[tipo] || tipo || 'Anexo'; }
 function prFmtTamanho(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
@@ -25592,6 +25654,13 @@ async function prDocRemover(id) {
   if (typeof prExamesRefresh === 'function') prExamesRefresh(pid);
   if (typeof prCarregarTimeline === 'function') prCarregarTimeline();
   if (typeof prCarregarScores === 'function') prCarregarScores();
+  // O anexo apagado pode ser uma recomendação da nutri — o painel do plano mostra a MESMA
+  // lista de outro lugar e ficaria com um item fantasma, clicável, que já não existe. E a
+  // faixa do plano precisa ser recalculada igual à exclusão feita pela aba: senão a MESMA
+  // exclusão diz uma coisa se feita aqui e outra se feita lá.
+  if (prState.planoAberto && Array.isArray(prState.nutriRec)) {
+    prNutriCarregar().then(function () { prNutriRecalcularFlagDoPlano(); prRerenderPlano(); });
+  }
 }
 
 function prToggleHistorico() {
@@ -27450,16 +27519,52 @@ async function prCarregarInsight(pid) {
 function prRenderPlanoSection() {
   if (!prState.planoAberto) return '';
   if (prState.planoPid && prState.pacienteAtual && prState.planoPid !== prState.pacienteAtual.id) { prState.planoAberto = false; return ''; }
-  const inner = prState.planoLoading
-    ? '<div class="ex-insight-load"><i class="ti ti-loader-2"></i> Gerando plano alimentar personalizado…</div>'
+  const naNutri = prState.planoAba === 'nutri';
+  // Em modo edição o corpo é REMONTADO em vez de reusar prState.planoHtml: aquela string foi
+  // congelada quando a edição começou e traz o texto SALVO. Voltando da aba de recomendações
+  // ela reapareceria por cima do que estava sendo digitado — a perda que este bloco evita.
+  const corpoPlano = (prState.planoEditando && prState.planoData)
+    ? prRenderPlanoConteudo(prState.planoData)
     : (prState.planoHtml || '<div class="sc-empty">—</div>');
-  const podeReg = !prState.planoLoading && prState.planoData && prState.planoData.plano;
+  const inner = naNutri
+    ? prRenderNutriRec()
+    : (prState.planoLoading
+        ? '<div class="ex-insight-load"><i class="ti ti-loader-2"></i> Gerando plano alimentar personalizado…</div>'
+        : corpoPlano);
+  // "Regenerar" é do PLANO — na aba de recomendações ele não faz sentido e confundiria
+  // (parece que regeneraria a leitura do documento, que tem botão próprio por item).
+  const podeReg = !naNutri && !prState.planoLoading && prState.planoData && prState.planoData.plano;
   return '<div class="ex-panel pl-panel"><div class="ex-panel-head"><div class="ttl"><i class="ti ti-salad"></i> Plano alimentar</div>'
     + '<div class="ex-head-acoes">'
     + (podeReg ? '<button class="pac-btn-secondary ex-add" onclick="prPlanoRegenerar()"><i class="ti ti-refresh"></i> Regenerar</button>' : '')
     + '<button class="pac-btn-secondary ex-fechar" onclick="prFecharPlano()"><i class="ti ti-x"></i> Fechar</button>'
     + '</div></div>'
+    + prRenderPlanoAbas()
     + '<div class="ex-panel-body">' + inner + '</div></div>';
+}
+// Contagem da aba: prefere a lista já carregada; senão usa o que o próprio plano informou
+// (o GET do plano devolve nutri.docs/pendentes). Assim o número aparece mesmo antes de
+// alguém entrar na aba — e não fica "0" mentindo enquanto a lista não chegou.
+function prNutriQtd() {
+  if (Array.isArray(prState.nutriRec)) return prState.nutriRec.length;
+  const n = prState.planoData && prState.planoData.nutri;
+  return n ? ((n.docs || []).length + (n.pendentes || 0)) : 0;
+}
+function prRenderPlanoAbas() {
+  const aba = prState.planoAba === 'nutri' ? 'nutri' : 'plano';
+  const qtd = prNutriQtd();
+  return '<div class="pl-abas">'
+    + '<button class="aba' + (aba === 'plano' ? ' ativa' : '') + '" onclick="prPlanoTrocarAba(\'plano\')"><i class="ti ti-salad"></i> Plano</button>'
+    + '<button class="aba' + (aba === 'nutri' ? ' ativa' : '') + '" onclick="prPlanoTrocarAba(\'nutri\')"><i class="ti ti-file-text"></i> Recomendações da nutri'
+    + (qtd ? '<span class="cont">' + qtd + '</span>' : '') + '</button>'
+    + '</div>';
+}
+function prPlanoTrocarAba(aba) {
+  if (prState.planoAba === aba) return;
+  prState.planoAba = aba;
+  prRerenderPlano();
+  // Carrega a lista na primeira visita (e depois de qualquer mudança, que zera o cache).
+  if (aba === 'nutri' && !Array.isArray(prState.nutriRec)) prNutriCarregar();
 }
 function prRenderPlanoConteudo(data) {
   if (!data) return '<div class="sc-empty">Não foi possível gerar o plano.</div>';
@@ -27473,34 +27578,111 @@ function prRenderPlanoConteudo(data) {
     + (data.wa_link ? '<button class="pac-btn-secondary" onclick="prPlanoAbrirWa()"><i class="ti ti-external-link"></i> Abrir no WhatsApp</button>' : '')
     + '</div>';
   const insight = data.insight ? ('<div class="pl-insight"><div class="pl-ins-tit"><i class="ti ti-sparkles"></i> Insight</div><div class="ex-ins-body">' + prMd(data.insight) + '</div></div>') : '';
+  const flagNutri = prRenderPlanoFlagNutri(data);
   // O PLANO é editável (botão Editar → textarea com o markdown cru → Salvar). O INSIGHT fica imutável.
   const edMode = !!prState.planoEditando;
   const editadoTag = data.editado ? ' <span class="pl-editado" title="Plano editado à mão">· editado</span>' : '';
   const planoHead = '<div class="pl-plano-head"><span class="pl-plano-lbl"><i class="ti ti-salad"></i> Plano alimentar' + editadoTag + '</span>'
     + (edMode ? '' : '<button class="pac-btn-secondary pl-edit-btn" onclick="prPlanoEditar()"><i class="ti ti-pencil"></i> Editar</button>')
     + '</div>';
+  // Valor do textarea = o RASCUNHO em memória quando existe. O painel é reconstruído por
+  // vários caminhos (troca de aba, upload/exclusão de anexo -> prRenderTimeline), e o texto
+  // digitado só existia no DOM: qualquer um deles apagava a edição em andamento sem avisar.
   const planoBody = edMode
-    ? '<textarea id="pl-edit-ta" class="pl-edit-ta" spellcheck="false">' + prExEsc(data.plano) + '</textarea>'
+    ? '<textarea id="pl-edit-ta" class="pl-edit-ta" spellcheck="false" oninput="prState.planoRascunho = this.value;">' + prExEsc(prState.planoRascunho != null ? prState.planoRascunho : data.plano) + '</textarea>'
       + '<div class="pl-edit-acoes"><button class="pac-btn-primary" onclick="prPlanoSalvarEdicao(this)"><i class="ti ti-device-floppy"></i> Salvar</button>'
       + '<button class="pac-btn-secondary" onclick="prPlanoCancelarEdicao()"><i class="ti ti-x"></i> Cancelar</button></div>'
     : '<div class="pl-plano ex-ins-body">' + prMd(data.plano) + '</div>';
   return '<div class="pl-topo"><div class="pl-nome">' + prExEsc(nome) + (cod ? ' <span class="ex-id">' + prExEsc(cod) + '</span>' : '') + '</div><div class="pl-data">Plano gerado em ' + quando + '</div></div>'
-    + waBtns + insight + planoHead + planoBody;
+    + flagNutri + waBtns + insight + planoHead + planoBody;
+}
+// Diz, sem rodeio, se ESTE texto de plano nasceu das recomendações que estão anexadas agora.
+// Sem isso ninguém tem como saber se anexar o PDF surtiu efeito — e a nutri concluiria (com
+// razão) que o recurso não funciona. `usadas` vem do servidor comparando assinaturas.
+function prRenderPlanoFlagNutri(data) {
+  const n = data && data.nutri;
+  if (!n || !n.tem) return '';
+  const irPraAba = '<button class="pac-btn-secondary" onclick="prPlanoTrocarAba(\'nutri\')"><i class="ti ti-arrow-right"></i> Ver</button>';
+  const plural = (q, sing, plur) => q + ' ' + (q > 1 ? plur : sing);
+  // Cada motivo de um documento NÃO ter entrado tem tratamento diferente, então cada um é
+  // dito com o próprio nome. Somar tudo em "sem análise" fazia esta faixa contradizer a aba
+  // ao lado sobre o MESMO arquivo (lá "Analisado ✓", aqui "ainda sem análise").
+  const foraTxt = [
+    n.ignorados ? plural(n.ignorados, 'documento mais antigo ficou', 'documentos mais antigos ficaram') + ' de fora (entram os 5 mais recentes)' : '',
+    n.pendentes ? plural(n.pendentes, 'documento ainda não foi analisado', 'documentos ainda não foram analisados') : '',
+    n.falhos ? plural(n.falhos, 'documento falhou na leitura', 'documentos falharam na leitura') : '',
+    n.sem_orientacao ? plural(n.sem_orientacao, 'documento não tinha orientação nutricional', 'documentos não tinham orientação nutricional') : '',
+  ].filter(Boolean);
+  const fora = foraTxt.length ? ' Fora do plano: ' + foraTxt.join('; ') + '.' : '';
+
+  if (n.usadas) {
+    const qtd = (n.docs || []).length;
+    return '<div class="pl-nutri-flag ' + (foraTxt.length ? 'pend' : 'ok') + '"><i class="ti ti-' + (foraTxt.length ? 'alert-triangle' : 'circle-check') + '"></i> <span>Este plano seguiu '
+      + (qtd > 1 ? 'as ' + qtd + ' recomendações' : 'a recomendação') + ' da nutricionista.' + fora + '</span>' + irPraAba + '</div>';
+  }
+  if (n.indefinido) {
+    return '<div class="pl-nutri-flag pend"><i class="ti ti-alert-triangle"></i> <span>Não consegui conferir agora se este plano seguiu as recomendações da nutricionista — o plano na tela é o que já estava salvo.</span>'
+      + '<button class="pac-btn-secondary" onclick="prCarregarPlano(null, false)"><i class="ti ti-refresh"></i> Tentar de novo</button></div>';
+  }
+  // O plano veio de recomendações que já não existem (foram excluídas). Só sobra assim
+  // quando ele está congelado por edição manual — senão teria sido regerado sozinho.
+  if (n.orfao) {
+    return '<div class="pl-nutri-flag pend"><i class="ti ti-alert-triangle"></i> <span>Este plano foi montado a partir de recomendações da nutricionista que já foram excluídas'
+      + (data.editado ? ', e ficou congelado porque foi editado à mão' : '') + '.</span>'
+      + '<button class="pac-btn-secondary" onclick="prPlanoRegenerar()"><i class="ti ti-refresh"></i> Regenerar</button></div>';
+  }
+  // Tem documento anexado, mas o plano na tela não veio dele. Os motivos pedem saídas
+  // diferentes: nada utilizável ainda -> ir resolver na aba; edição manual CONGELA o plano
+  // (só "Regenerar" desfaz, descartando a edição); senão, basta recarregar que a IA refaz.
+  const nadaUtil = !(n.docs || []).length;
+  if (nadaUtil) {
+    return '<div class="pl-nutri-flag pend"><i class="ti ti-alert-triangle"></i> <span>Nenhuma recomendação da nutricionista entrou neste plano.'
+      + (fora || ' Anexe e analise o material pra ele entrar.') + '</span>' + irPraAba + '</div>';
+  }
+  const motivo = data.editado
+    ? 'Este plano foi editado à mão, então ficou congelado e não incorporou as recomendações da nutricionista.'
+    : 'As recomendações da nutricionista mudaram depois deste plano.';
+  const acao = data.editado
+    ? '<button class="pac-btn-secondary" onclick="prPlanoRegenerar()"><i class="ti ti-refresh"></i> Regenerar</button>'
+    : '<button class="pac-btn-secondary" onclick="prCarregarPlano(null, false)"><i class="ti ti-refresh"></i> Atualizar plano</button>';
+  return '<div class="pl-nutri-flag pend"><i class="ti ti-alert-triangle"></i> <span>' + motivo + fora + '</span>' + acao + '</div>';
+}
+// Depois de anexar/analisar/excluir, o `nutri` que veio no GET do plano ficou velho — e ele
+// é quem decide se a faixa aparece. Sem recalcular, o caso MAIS COMUM (primeiro documento do
+// paciente) mantinha `tem:false` e a faixa sumia: a nutri anexava, voltava pra aba Plano, via
+// o mesmo texto de antes e nenhum aviso — e podia mandar esse plano velho no WhatsApp.
+function prNutriRecalcularFlagDoPlano() {
+  if (!prState.planoData || !Array.isArray(prState.nutriRec)) return;
+  const lista = prState.nutriRec;
+  const util = (L) => !!L && L.status === 'lido' && !L.sem_orientacao && !L.formato_inesperado && !!(L.diretrizes || '').trim();
+  const uteis = lista.filter((d) => util(d.leitura));
+  const n = prState.planoData.nutri || (prState.planoData.nutri = {});
+  n.tem = lista.length > 0 || !!n.orfao;
+  n.usadas = false;   // qualquer mudança na lista desatualiza o plano que está na tela
+  n.docs = uteis.slice(0, 5).map((d) => ({ id: d.id, nome: d.nome, data: d.data }));
+  n.ignorados = Math.max(0, uteis.length - 5);
+  n.pendentes = lista.filter((d) => !d.leitura).length;
+  n.falhos = lista.filter((d) => d.leitura && (d.leitura.status === 'erro' || d.leitura.formato_inesperado)).length;
+  n.sem_orientacao = lista.filter((d) => d.leitura && d.leitura.status === 'lido' && !d.leitura.formato_inesperado && (d.leitura.sem_orientacao || !(d.leitura.diretrizes || '').trim())).length;
+  n.indefinido = false;
+  prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
 }
 function prPlanoEditar() {
   prState.planoEditando = true;
+  prState.planoRascunho = null;   // começa do texto salvo, não de um rascunho antigo
   prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
   prRerenderPlano();
   setTimeout(function () { const ta = document.getElementById('pl-edit-ta'); if (ta) { ta.style.height = Math.min(ta.scrollHeight, 640) + 'px'; ta.focus(); } }, 30);
 }
 function prPlanoCancelarEdicao() {
   prState.planoEditando = false;
+  prState.planoRascunho = null;   // cancelar DESCARTA mesmo
   prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
   prRerenderPlano();
 }
 async function prPlanoSalvarEdicao(btn) {
-  const ta = document.getElementById('pl-edit-ta'); if (!ta) return;
-  const texto = ta.value.trim();
+  const ta = document.getElementById('pl-edit-ta');
+  const texto = String(ta ? ta.value : (prState.planoRascunho != null ? prState.planoRascunho : '')).trim();
   if (!texto) { if (typeof homeToast === 'function') homeToast('O plano não pode ficar vazio.'); return; }
   const pac = prState.pacienteAtual; if (!pac) return;
   const original = btn ? btn.innerHTML : '';
@@ -27511,12 +27693,250 @@ async function prPlanoSalvarEdicao(btn) {
     // Atualiza o estado com o que o servidor devolveu (plano + whatsapp reconstruído do texto novo).
     prState.planoData = Object.assign({}, prState.planoData, { plano: r.data.plano, whatsapp: r.data.whatsapp, wa_link: r.data.wa_link, editado: true });
     prState.planoEditando = false;
+    prState.planoRascunho = null;   // virou texto salvo
     prState.planoHtml = prRenderPlanoConteudo(prState.planoData);
     prRerenderPlano();
     if (typeof homeToast === 'function') homeToast('Plano salvo. ✓');
   } catch (e) { if (btn) { btn.disabled = false; btn.innerHTML = original; } if (typeof homeToast === 'function') homeToast('Não consegui salvar.'); }
 }
-function prRerenderPlano() { const el = document.getElementById('pr-plano-section'); if (el) el.innerHTML = prRenderPlanoSection(); }
+// ===== ABA "RECOMENDAÇÕES DA NUTRI" =====
+// O material que a nutricionista monta pro paciente (quase sempre PDF do Canva). Fica no
+// MESMO acervo dos anexos do paciente (tipo 'recomendacao_nutri'), então aparece também em
+// "Anexos & Documentos" — não é uma cópia, é o mesmo registro visto de outro lugar.
+function prRenderNutriRec() {
+  const enviando = !!prState.nutriEnviando;
+  const intro = '<div class="nr-intro">Material que a nutricionista monta pra <b>este</b> paciente — orientações, cardápio, lista de substituições. '
+    + 'A IA lê o arquivo, compara com o que está registrado no prontuário e devolve um parecer; e o <b>plano alimentar passa a seguir</b> o que está escrito aqui. '
+    + 'O arquivo também fica em Anexos &amp; Documentos.</div>';
+  const drop = '<label class="pr-anexos-drop">'
+    + '<input type="file" multiple accept=".pdf,image/*,application/pdf" style="display:none;" onchange="prNutriUpload(this.files)" ' + (enviando ? 'disabled' : '') + '>'
+    + '<i class="ti ti-' + (enviando ? 'loader' : 'cloud-upload') + '"></i>'
+    + '<div class="txt">' + (enviando ? 'Enviando e analisando…' : '<strong>Clique para anexar</strong> as recomendações') + '</div>'
+    + '<div class="sub">PDF ou imagem, até ' + UPLOAD_MAX_MB + ' MB</div>'
+    + '</label>';
+  let lista;
+  if (prState.nutriLoading) lista = '<div class="ex-insight-load"><i class="ti ti-loader-2"></i> Carregando…</div>';
+  else if (prState.nutriErro) lista = '<div class="nr-vazio"><i class="ti ti-alert-triangle"></i> ' + prExEsc(prState.nutriErro) + ' <button class="pac-btn-secondary" style="margin-left:8px;font-size:11px;padding:4px 10px;" onclick="prNutriCarregar()">Tentar de novo</button></div>';
+  else if (!Array.isArray(prState.nutriRec)) lista = '';
+  else if (!prState.nutriRec.length) lista = '<div class="nr-vazio">Nenhuma recomendação anexada. Sem elas o plano alimentar é gerado normalmente, só a partir dos dados do prontuário.</div>';
+  else lista = '<div class="nr-lista">' + prState.nutriRec.map(prRenderNutriItem).join('') + '</div>';
+  return intro + drop + lista;
+}
+function prRenderNutriItem(d) {
+  const L = d.leitura;
+  const ocupado = prState.nutriOcupado === d.id;
+  const naFila = (prState.nutriFila || []).indexOf(d.id) > -1;
+  const travado = ocupado || naFila;
+  // O selo diz o estado REAL, e cada estado tem saída diferente. "Analisado" com o arquivo
+  // sem orientação nutricional não é sucesso do ponto de vista de quem espera influenciar o
+  // plano — e chamar isso de "sem análise" (como a faixa do plano fazia) era pior ainda.
+  let st;
+  if (ocupado) st = '<span class="nr-st pend"><i class="ti ti-loader-2"></i> Analisando…</span>';
+  else if (naFila) st = '<span class="nr-st pend"><i class="ti ti-clock"></i> Na fila…</span>';
+  else if (!L) st = '<span class="nr-st pend"><i class="ti ti-clock"></i> Sem análise</span>';
+  else if (L.status === 'erro') st = '<span class="nr-st err" title="' + prExEsc(L.erro || '') + '" onclick="prNutriAnalisar(\'' + d.id + '\')"><i class="ti ti-alert-triangle"></i> Falhou — tentar de novo</span>';
+  else if (L.formato_inesperado) st = '<span class="nr-st err"><i class="ti ti-alert-triangle"></i> Resposta fora do formato</span>';
+  else if (L.sem_orientacao || !(L.diretrizes || '').trim()) st = '<span class="nr-st pend"><i class="ti ti-file-off"></i> Sem orientação</span>';
+  else st = '<span class="nr-st ok"><i class="ti ti-circle-check"></i> No plano</span>';
+  const meta = [d.tamanho ? prFmtTamanho(d.tamanho) : '', d.data ? prDataCurta(d.data) : '', d.enviado_por || ''].filter(Boolean).join(' · ');
+  const acoes = '<div class="nr-acoes">'
+    + '<button title="Ver / baixar" onclick="prDocVer(\'' + d.id + '\')"' + (travado ? ' disabled' : '') + '><i class="ti ti-eye"></i></button>'
+    + '<button class="wa" title="Enviar o arquivo no WhatsApp do paciente" onclick="prNutriWhatsapp(this,\'' + d.id + '\')"' + (travado || prState.nutriEnviandoWa ? ' disabled' : '') + '><i class="ti ti-brand-whatsapp"></i></button>'
+    + '<button title="' + (L ? 'Analisar de novo' : 'Analisar com a IA') + '" onclick="prNutriAnalisar(\'' + d.id + '\')"' + (travado ? ' disabled' : '') + '><i class="ti ti-' + (ocupado ? 'loader-2' : 'sparkles') + '"></i></button>'
+    + '<button class="del" title="Excluir" onclick="prNutriRemover(\'' + d.id + '\')"' + (travado ? ' disabled' : '') + '><i class="ti ti-trash"></i></button>'
+    + '</div>';
+  let corpo = '';
+  // A tentativa mais recente falhou, MAS a leitura boa anterior foi preservada e continua
+  // mandando no plano. Dizer as duas coisas: o erro sozinho faria parecer que o documento
+  // saiu do plano; o silêncio esconderia que a releitura não pegou.
+  if (L && L.erro_ultima_tentativa) {
+    corpo += '<div class="nr-erro"><i class="ti ti-alert-triangle"></i> A última tentativa de reler falhou (' + prExEsc(L.erro_ultima_tentativa) + '). A análise anterior foi mantida e continua valendo no plano.</div>';
+  }
+  if (L && L.status === 'erro') {
+    corpo += '<div class="nr-erro"><i class="ti ti-alert-triangle"></i> ' + prExEsc(L.erro || 'Não consegui ler o arquivo.') + '</div>';
+  } else if (L && L.formato_inesperado) {
+    corpo += '<div class="nr-erro"><i class="ti ti-alert-triangle"></i> A IA respondeu fora do formato esperado, então nada deste arquivo entrou no plano. O texto que ela devolveu está abaixo — tente analisar de novo.</div>';
+  } else if (L && L.status === 'lido' && (L.sem_orientacao || !(L.diretrizes || '').trim())) {
+    corpo += '<div class="nr-erro"><i class="ti ti-info-circle"></i> Nada deste arquivo entrou no plano alimentar: a IA não encontrou orientação nutricional legível nele.</div>';
+  }
+  // As DIRETRIZES são o texto que vira ordem pro gerador do plano — e é por onde um erro de
+  // transcrição ("evitar leite" -> "incluir leite") chegaria no prato do paciente. Sem esta
+  // seção não havia lugar nenhum no sistema pra conferir isso antes de o plano sair.
+  if (L && (L.diretrizes || '').trim() && !L.sem_orientacao && !L.formato_inesperado) {
+    const ab = prState.nutriDiretrizesAbertas === d.id;
+    corpo += '<div class="nr-dir"><button class="nr-dir-tog" onclick="prNutriVerDiretrizes(\'' + d.id + '\')">'
+      + '<i class="ti ti-chevron-' + (ab ? 'down' : 'right') + '"></i> O que a IA extraiu deste arquivo (é isto que o plano obedece)</button>'
+      + (ab ? '<div class="ex-ins-body nr-dir-corpo">' + prMd(L.diretrizes) + '</div>' : '') + '</div>';
+  }
+  if (L && (L.feedback || '').trim()) {
+    corpo += '<div class="nr-fb"><div class="nr-fb-tit"><i class="ti ti-stethoscope"></i> Leitura da IA · documento x prontuário</div>'
+      + '<div class="ex-ins-body">' + prMd(L.feedback) + '</div></div>';
+  } else if (L && L.status === 'lido' && !L.formato_inesperado) {
+    corpo += '<div class="nr-erro">A IA leu o arquivo mas não devolveu parecer. Tente analisar de novo.</div>';
+  }
+  return '<div class="nr-item"><div class="nr-cab"><i class="ti ti-' + prIconePorTipo(d.mime) + '"></i>'
+    + '<div class="info"><div class="nome">' + prExEsc(d.nome || '') + '</div><div class="meta">' + prExEsc(meta) + '</div></div>'
+    + st + acoes + '</div>' + corpo + '</div>';
+}
+function prNutriVerDiretrizes(id) {
+  prState.nutriDiretrizesAbertas = prState.nutriDiretrizesAbertas === id ? null : id;
+  prRerenderPlano();
+}
+// Data do anexo é um instante (createdAt em UTC). prScoreData fatia a string ISO, então um
+// anexo das 22h30 de 02/08 no Brasil (01h30Z de 03/08) aparecia como 03/08 — um dia depois
+// do que aconteceu. Aqui converte pro fuso de quem está lendo.
+function prDataCurta(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? prScoreData(iso) : d.toLocaleDateString('pt-BR');
+}
+async function prNutriCarregar() {
+  const pid = prState.planoPid || (prState.pacienteAtual && prState.pacienteAtual.id);
+  if (!pid) return;
+  prState.nutriLoading = true; prState.nutriErro = null; prRerenderPlano();
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/nutri-recomendacao');
+    if (prState.planoPid !== pid) return;              // trocou de paciente durante a rede
+    if (!r.ok || !r.data || !r.data.ok) throw new Error('falhou');
+    prState.nutriRec = r.data.recomendacoes || [];
+  } catch (e) {
+    // Falha de rede NÃO pode virar "nenhuma recomendação": a nutri veria a lista vazia e
+    // anexaria o mesmo arquivo de novo, achando que o primeiro se perdeu.
+    prState.nutriErro = 'Não consegui carregar as recomendações agora.';
+  }
+  prState.nutriLoading = false;
+  prRerenderPlano();
+}
+async function prNutriUpload(files) {
+  const pid = prState.planoPid || (prState.pacienteAtual && prState.pacienteAtual.id);
+  if (!files || !files.length || !pid) return;
+  prState.nutriEnviando = true; prRerenderPlano();
+  const t = getToken();
+  const novos = [];
+  for (const f of Array.from(files)) {
+    const grande = upErroTamanho(f);
+    if (grande) { alert(grande); continue; }
+    const fd = new FormData();
+    fd.append('file', f);
+    fd.append('tipo', 'recomendacao_nutri');   // o tipo é o que mantém isso FORA do extrator de exames
+    try {
+      // fetch cru: pacApi crava Content-Type json e destruiria o multipart.
+      const resp = await fetch(API_BASE + '/api/clinico/documentos/patient/' + pid + '/upload', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + t }, body: fd,
+      });
+      const d = await resp.json().catch(() => ({}));
+      if (!resp.ok || !d.ok) { alert('Erro ao enviar ' + f.name + ': ' + (d.erro || resp.status)); continue; }
+      if (d.documento && d.documento.id) novos.push(d.documento.id);
+    } catch (e) { alert('Erro ao enviar ' + f.name + ': ' + e.message); }
+  }
+  prState.nutriEnviando = false;
+  await prNutriCarregar();
+  if (typeof prCarregarDocumentos === 'function') prCarregarDocumentos();  // o card de anexos mostra o mesmo registro
+  // Analisa o que acabou de subir, um por vez (a leitura pesa; em paralelo só empilharia).
+  for (const id of novos) await prNutriAnalisar(id, true);
+  // Mesmo sem análise nenhuma dar certo, a lista MUDOU — a faixa do plano tem que refletir
+  // isso, senão a nutri volta pra aba Plano e vê o plano velho como se nada tivesse mudado.
+  prNutriRecalcularFlagDoPlano();
+  prRerenderPlano();
+}
+async function prNutriAnalisar(docId, silencioso) {
+  const pid = prState.planoPid || (prState.pacienteAtual && prState.pacienteAtual.id);
+  if (!pid) return;
+  // ESPERA a análise em curso em vez de descartar a nova. Antes era `return` seco: anexar um
+  // 2º PDF enquanto o 1º era lido fazia o 2º ficar "Sem análise" pra sempre — sem erro, sem
+  // aviso, e fora do plano alimentar. A leitura é serial de propósito (pesa), mas serial não
+  // pode significar "o segundo some". A fila também impede o mesmo arquivo de ser analisado
+  // duas vezes por dois cliques (seria chamada paga em dobro).
+  prState.nutriFila = prState.nutriFila || [];
+  if (prState.nutriOcupado === docId || prState.nutriFila.indexOf(docId) > -1) return;
+  prState.nutriFila.push(docId);
+  prRerenderPlano();
+  while (prState.nutriOcupado) {
+    await new Promise(function (r) { setTimeout(r, 250); });
+    // Trocou de paciente ou fechou o painel: sai da fila em vez de analisar no vazio.
+    if (prState.planoPid !== pid || !prState.planoAberto) { prState.nutriFila = (prState.nutriFila || []).filter(function (x) { return x !== docId; }); return; }
+  }
+  prState.nutriFila = prState.nutriFila.filter(function (x) { return x !== docId; });
+  prState.nutriOcupado = docId; prRerenderPlano();
+  let leitura = null, erro = null;
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/nutri-recomendacao/' + docId + '/analisar', { method: 'POST' });
+    if (r.ok && r.data && r.data.leitura) leitura = r.data.leitura;
+    else erro = (r.data && r.data.erro) || 'Não consegui analisar agora.';
+  } catch (e) { erro = 'Não consegui analisar agora.'; }
+  // Solta a trava DEPOIS do guard: uma resposta atrasada do paciente A não pode limpar o
+  // "analisando" que já pertence ao paciente B (o spinner do B sumiria e daria pra disparar
+  // uma segunda análise paga do mesmo documento).
+  if (prState.planoPid !== pid) return;
+  prState.nutriOcupado = null;
+  if (leitura) {
+    // Casa a leitura no item certo em vez de recarregar tudo (a lista pode ter mudado).
+    const item = (prState.nutriRec || []).find(function (x) { return x.id === docId; });
+    if (item) item.leitura = leitura; else await prNutriCarregar();
+    // A leitura mudou as diretrizes -> o plano em memória ficou velho. Marcar em vez de
+    // regerar sozinho: regenerar é chamada paga, e quem decide é quem está na tela.
+    // Só quando a leitura DEU CERTO: uma tentativa que falhou não muda diretriz nenhuma,
+    // e marcar mesmo assim mandaria atualizar um plano que já estava correto.
+    if (leitura.status === 'lido') prNutriRecalcularFlagDoPlano();
+    if (!silencioso && typeof homeToast === 'function') {
+      homeToast(leitura.status === 'lido' ? 'Documento analisado. ✓' : (leitura.erro || 'Não consegui ler o arquivo.'));
+    }
+  } else if (typeof homeToast === 'function') homeToast(erro);
+  prRerenderPlano();
+}
+async function prNutriWhatsapp(btn, docId) {
+  const pid = prState.planoPid || (prState.pacienteAtual && prState.pacienteAtual.id);
+  if (!pid) return;
+  // O painel pode estar na aba de recomendações SEM o plano ter carregado (ou com ele em
+  // erro), então o telefone/nome não podem depender de planoData: cai pro cabeçalho.
+  const numero = (prState.planoData && prState.planoData.telefone) || (prState.headerData && prState.headerData.telefone1) || '';
+  const nome = (prState.planoData && prState.planoData.paciente && prState.planoData.paciente.nome)
+    || (prState.headerData && prState.headerData.nome_completo) || '';
+  // A trava fecha ANTES do diálogo do número, não depois: o diálogo é assíncrono e dois
+  // cliques passariam os dois pela verificação antes de qualquer um marcar. E o "em curso"
+  // vive no ESTADO, não no botão — enquanto o diálogo está aberto o plano pode terminar de
+  // carregar e re-renderizar o painel, transformando o botão clicado num nó fora do DOM
+  // (spinner some, botão parece livre, a pessoa clica de novo e o paciente recebe 2x).
+  if (prState.nutriEnviandoWa) return;
+  prState.nutriEnviandoWa = docId; prRerenderPlano();
+  const escolhido = await confirmarEnvioWhatsapp(numero, nome);   // confere/edita o número
+  if (!escolhido) { prState.nutriEnviandoWa = null; prRerenderPlano(); return; }
+  try {
+    const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/nutri-recomendacao/' + docId + '/whatsapp', { method: 'POST', body: JSON.stringify({ numero: escolhido }) });
+    if (r.ok && r.data && r.data.ok) { if (typeof homeToast === 'function') homeToast('Arquivo enviado no WhatsApp. ✓'); }
+    else {
+      // wa.me NÃO anexa arquivo — não existe fallback automático aqui. Dizer o que dá pra
+      // fazer é mais útil que oferecer um link que mandaria a conversa vazia.
+      alert('Não consegui enviar o arquivo: ' + ((r.data && r.data.erro) || 'falha') + '\n\nBaixe pelo botão do olho e mande pelo WhatsApp na mão.');
+    }
+  } catch (e) { alert('Não consegui enviar o arquivo.'); }
+  prState.nutriEnviandoWa = null; prRerenderPlano();
+}
+async function prNutriRemover(docId) {
+  if (!confirm('Excluir esta recomendação?\n\nEla sai também dos Anexos & Documentos, e o plano alimentar deixa de seguir o que estava escrito nela.')) return;
+  const r = await pacApi('/api/clinico/documentos/' + docId, { method: 'DELETE' });
+  if (!r.ok) return alert('Erro: ' + ((r.data && r.data.erro) || '--'));
+  await prNutriCarregar();
+  if (typeof prCarregarDocumentos === 'function') prCarregarDocumentos();
+  prNutriRecalcularFlagDoPlano();
+  prRerenderPlano();
+}
+
+// Todo re-render do painel destrói o DOM inteiro — inclusive o <textarea> da edição manual,
+// cujo texto só existia ali. Trocar de aba pra conferir o PDF da nutri (justamente o que ela
+// vai querer fazer enquanto escreve) apagava tudo que tinha sido digitado, sem aviso.
+// Aqui o rascunho é capturado ANTES de reescrever e devolvido depois.
+// O texto em si sobrevive pelo prState.planoRascunho (ver prRenderPlanoConteudo). Aqui só
+// se preserva a POSIÇÃO do cursor — sem isso, voltar da aba de recomendações jogaria o
+// cursor pro fim do texto no meio de uma frase que estava sendo escrita.
+function prRerenderPlano() {
+  const el = document.getElementById('pr-plano-section'); if (!el) return;
+  const ta = document.getElementById('pl-edit-ta');
+  const sel = (ta && prState.planoEditando) ? [ta.selectionStart, ta.selectionEnd] : null;
+  el.innerHTML = prRenderPlanoSection();
+  const novo = document.getElementById('pl-edit-ta');
+  if (novo && sel) { try { novo.setSelectionRange(sel[0], sel[1]); } catch (e) { /* fora de faixa */ } }
+}
 function prFecharPlano() { prState.planoAberto = false; prRerenderPlano(); }
 function prPlanoRegenerar() {
   if (prState.planoData && prState.planoData.editado && !confirm('Isso gera um plano NOVO pela IA e descarta sua edição manual. Continuar?')) return;
@@ -27527,14 +27947,19 @@ async function prAbrirPlano() {
   if (prState.planoAberto) { prFecharPlano(); return; }
   if (!prFecharOutrosPaineis('plano')) return;
   prState.planoAberto = true; prState.planoPid = pac.id; prState.planoHtml = null; prState.planoData = null;
+  // Zera a aba de recomendações junto: sem isto, abrir o painel de OUTRO paciente mostraria
+  // a lista do anterior (nutriRec fica em memória) até a nova carga chegar.
+  prState.planoAba = 'plano'; prState.nutriRec = null; prState.nutriErro = null; prState.nutriOcupado = null; prState.nutriEnviando = false;
+  prState.nutriFila = []; prState.nutriEnviandoWa = null; prState.nutriDiretrizesAbertas = null; prState.planoRascunho = null;
   prRerenderPlano();
+  prNutriCarregar();   // em paralelo com o plano: é consulta barata e faz a contagem da aba nascer certa
   setTimeout(function () { const el = document.getElementById('pr-plano-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
   prCarregarPlano(pac.id, false);
 }
 async function prCarregarPlano(pid, force) {
   pid = pid || (prState.pacienteAtual && prState.pacienteAtual.id);
   if (!pid || !prState.planoAberto) return;
-  prState.planoEditando = false; // (re)carregar/regenerar sempre volta pro modo leitura
+  prState.planoEditando = false; prState.planoRascunho = null; // (re)carregar/regenerar sempre volta pro modo leitura
   prState.planoLoading = true; prState.planoHtml = null; prRerenderPlano();
   try {
     const r = await pacApi('/api/clinico/prontuario/patient/' + pid + '/plano-alimentar' + (force ? '?force=1' : ''));
