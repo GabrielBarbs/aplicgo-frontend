@@ -2162,6 +2162,15 @@
       font-family: 'SF Mono', Consolas, monospace;
       font-weight: 400;
     }
+    .pr-h2-id .pr-h2-sub {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      margin-top: 5px; font-size: 11.5px; color: var(--tx3);
+    }
+    /* nowrap: sem isso "Últ. exame: 21/07/2026 (há 12 dias)" quebra POR DENTRO
+       em tela estreita e vira 4 linhas. A quebra tem que ser entre os itens. */
+    .pr-h2-id .pr-h2-sub span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .pr-h2-id .pr-h2-sub i { font-size: 13px; color: var(--tx3b); }
+    .pr-h2-id .pr-h2-sub strong { color: var(--tx2); font-weight: 600; }
     /* Blocos de destaque grandes (status, programa, semana, fase) */
     /* Faixa de alerta de segurança (alergias / comorbidades) */
     .pr-h2-alerta {
@@ -6566,7 +6575,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CB</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CC</b></span></div>
   </div>
 </div>
 
@@ -21281,6 +21290,47 @@ function prCalcSituacao(h) {
   return { cor: 'vermelho', icone: 'trending-up', label: 'Alerta', desc: `Ganhou ${absKg} kg desde o início -- revisar conduta.` };
 }
 
+// Linha logo abaixo do nome: idade + data do ULTIMO EXAME.
+//
+// "Ultimo exame" aqui e a COLETA mais recente, nao o upload mais recente — e o
+// servidor que resolve isso (ordena por dataColeta). Subir hoje um laudo colhido
+// em marco nao torna o exame recente, e era exatamente essa confusao que a data
+// de upload criaria.
+//
+// Tres estados diferentes, tres frases diferentes: nunca fez exame; fez mas o
+// laudo veio sem data de coleta; e tem data. Colapsar os dois primeiros num
+// "sem exames" afirmaria algo falso sobre o paciente.
+function prSubNome(h) {
+  const partes = [];
+  if (h.idade != null) partes.push('<span><i class="ti ti-cake"></i> ' + h.idade + ' anos</span>');
+
+  if (h.ultimo_exame_coleta) {
+    // Data pura (YYYY-MM-DD): fixa meio-dia local, senao o fuso joga pro dia
+    // anterior e o exame aparece um dia mais velho do que e.
+    const d = new Date(h.ultimo_exame_coleta + 'T12:00:00');
+    // Diferença em DIAS CIVIS, não em milissegundos. Contando por relógio, um
+    // exame de ontem aparecia como "hoje" até o meio-dia — a conta dava 0,7 dia
+    // e o floor comia. Zerar as duas pontas na meia-noite local resolve.
+    const meiaNoite = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const dias = Math.round((meiaNoite(new Date()) - meiaNoite(d)) / 86400000);
+    const quando = dias <= 0 ? 'hoje'
+      : dias === 1 ? 'ontem'
+      : dias < 30 ? 'há ' + dias + ' dias'
+      : dias < 365 ? 'há ' + Math.round(dias / 30) + ' meses'
+      : 'há ' + (dias / 365).toFixed(1).replace('.', ',') + ' anos';
+    // Exame velho fica alaranjado: a data sozinha nao grita, e "há 14 meses" é
+    // justamente o que muda a conduta.
+    const cor = dias > 365 ? ' style="color:#EF9F27;"' : '';
+    partes.push('<span' + cor + '><i class="ti ti-microscope"></i> Últ. exame: <strong>'
+      + d.toLocaleDateString('pt-BR') + '</strong> (' + quando + ')</span>');
+  } else if (h.exames_total > 0) {
+    partes.push('<span><i class="ti ti-microscope"></i> Últ. exame: sem data de coleta no laudo</span>');
+  } else {
+    partes.push('<span style="opacity:.7;"><i class="ti ti-microscope"></i> Sem exame registrado</span>');
+  }
+  return '<div class="pr-h2-sub">' + partes.join('') + '</div>';
+}
+
 function prRenderHeaderRico() {
   const h = prState.headerData;
   if (!h) return '';
@@ -21409,6 +21459,7 @@ function prRenderHeaderRico() {
         <div class="pr-h2-avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
         <div class="pr-h2-id">
           <div class="nome">${esc(h.nome_completo)} <span class="cod">${esc(h.codigo)}</span></div>
+          ${prSubNome(h)}
         </div>
         <div class="pr-h2-acoes">
           ${temPermissao('agenda.criar') ? `<button class="pr-h2-editar" onclick="prNovoAgendamento(this)" title="Novo agendamento para ${esc(h.nome_completo || 'este paciente')}">
@@ -30655,6 +30706,7 @@ async function edCarregar() {
     edState.erro = null;
     edState.campos = r.data.campos || [];
     edState.templates = r.data.templates || [];
+    edState.secoes = r.data.secoes || [];
   }
   edRender();
 }
@@ -31112,7 +31164,7 @@ function edTplDrop(e, destino) {
 
 async function edTplSalvar(btn) {
   if (btn) btn.disabled = true;
-  const payload = { campos: edTplState.campos.map(function (c) { return { slug: c.slug, label: c.label, secao: c.secao || '' }; }) };
+  const payload = { campos: edTplState.campos.map(function (c) { return { slug: c.slug, label: c.label, secao: c.secao || '', tipo: c.tipo || '' }; }) };
   let r = null;
   try { r = await pacApi('/api/clinico/campos-custom/template/' + encodeURIComponent(edTplState.slug), { method: 'PUT', body: JSON.stringify(payload) }); } catch (e) { r = null; }
   if (btn) btn.disabled = false;
