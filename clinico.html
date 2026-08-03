@@ -2986,6 +2986,65 @@
     .wa-media-btn { background:rgba(var(--bg3-rgb),0.6); border:1px solid var(--bd1); color:var(--tx2); border-radius:8px; padding:7px 11px; font:inherit; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
     .wa-media-btn:hover { border-color:var(--ac); color:var(--tx1); }
     .wa-media-load { font-size:11.5px; color:var(--tx3b); padding:6px 4px; }
+    /* ---- Anotação interna e mensagem agendada dentro da thread ----
+       NÃO usam .ci-msg/.bolha de propósito: essas classes são do WhatsApp, do chat interno E
+       da aba IA, e a anotação não pode parecer mensagem enviada em nenhum dos três. Sem lado,
+       sem check, com moldura própria e o aviso escrito. */
+    .wa-nota {
+      align-self: center; width: 92%; max-width: 560px; margin: 4px 0;
+      background: rgba(239,159,39,0.10); border: 1px solid rgba(239,159,39,0.35);
+      border-radius: 10px; padding: 8px 11px;
+    }
+    .wa-nota-top {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700; color: #EF9F27;
+      text-transform: uppercase; letter-spacing: .3px;
+    }
+    .wa-nota-top i { font-size: 13px; }
+    .wa-nota-x {
+      margin-left: auto; background: transparent; border: 0; color: var(--tx3b);
+      cursor: pointer; padding: 0 2px; font-size: 13px; line-height: 1;
+    }
+    .wa-nota-x:hover { color: #E05C5C; }
+    .wa-nota-txt { font-size: 13px; color: var(--tx1); margin-top: 5px; white-space: pre-wrap; word-break: break-word; }
+    .wa-nota-pe { font-size: 10px; color: var(--tx3b); margin-top: 5px; font-style: italic; }
+    .wa-agend {
+      align-self: flex-end; max-width: 78%; margin: 4px 0;
+      background: rgba(29,158,117,0.07); border: 1px dashed rgba(29,158,117,0.45);
+      border-radius: 12px; padding: 8px 11px;
+    }
+    .wa-agend.ruim { background: rgba(224,92,92,0.07); border-color: rgba(224,92,92,0.45); }
+    .wa-agend-top {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 700; color: #1D9E75;
+      text-transform: uppercase; letter-spacing: .3px;
+    }
+    .wa-agend.ruim .wa-agend-top { color: #E05C5C; }
+    .wa-agend-top i { font-size: 13px; }
+    .wa-agend-txt { font-size: 13px; color: var(--tx2); margin-top: 5px; white-space: pre-wrap; word-break: break-word; }
+    .wa-agend-erro { font-size: 11px; color: #E05C5C; margin-top: 5px; }
+    /* Faixa do modo anotação, acima do composer (as duas telas usam a mesma classe). */
+    .wv-nota-aviso {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 7px 12px; font-size: 11.5px; color: #EF9F27;
+      background: rgba(239,159,39,0.10); border-top: 1px solid rgba(239,159,39,0.30);
+    }
+    .wv-nota-aviso b { color: #EF9F27; }
+    /* Composer em modo anotação: âmbar por inteiro. O estado do campo tem que ser óbvio o
+       tempo todo — é o que impede alguém de achar que está escrevendo pro paciente. */
+    .wv-composer.nota-on, .ci-input-bar.nota-on { background: rgba(239,159,39,0.07); }
+    .wv-composer.nota-on textarea, .ci-input-bar.nota-on textarea { border-color: rgba(239,159,39,0.45); }
+    #wv-nota.ativo, #cp-nota.ativo { color: #EF9F27; background: rgba(239,159,39,0.16); }
+    /* Modal de agendar */
+    .wa-ag-atalhos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .wa-ag-atalhos button {
+      background: var(--bg1); border: 1px solid var(--bd1); color: var(--tx2);
+      border-radius: 20px; padding: 4px 11px; font-size: 11px; font-family: inherit; cursor: pointer;
+    }
+    .wa-ag-atalhos button:hover { border-color: #1D9E75; color: #1D9E75; }
+    .wa-ag-pe { font-size: 11px; color: var(--tx3); margin-top: 12px; display: flex; align-items: flex-start; gap: 5px; line-height: 1.45; }
+    .wa-ag-pe i { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .wa-ag-erro { font-size: 12px; color: #E05C5C; margin-top: 10px; }
     .wa-dia { display:flex; justify-content:center; margin:10px 0 6px; }
     .wa-dia span { font-size:10.5px; color:var(--tx3b); background:rgba(var(--bg3-rgb),0.55); border:1px solid var(--hair); border-radius:999px; padding:3px 12px; letter-spacing:.3px; }
 
@@ -6641,7 +6700,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CE</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CF</b></span></div>
   </div>
 </div>
 
@@ -7816,11 +7875,16 @@
         <div class="wv-thread" id="wv-thread" style="display:none;">
           <header class="wv-head" id="wv-head"></header>
           <div class="wv-msgs" id="wv-msgs"></div>
+          <div class="wv-nota-aviso" id="wv-nota-aviso" style="display:none;">
+            <i class="ti ti-notes"></i> <b>Anotação interna</b> — fica na conversa só para a equipe, o paciente não recebe.
+          </div>
           <div class="wv-composer" id="wv-composer">
             <button class="wv-clip" id="wv-mic" onclick="wvMicToggle()" title="Gravar áudio"><i class="ti ti-microphone"></i></button>
             <div class="cp-emoji-pop" id="wv-emoji-pop" style="display:none;"></div>
             <button class="wv-clip" id="wv-emoji" onclick="wvEmojiToggle()" title="Emoji"><i class="ti ti-mood-smile"></i></button>
             <button class="wv-clip" id="wv-clip" onclick="wvAnexarClique()" title="Anexar imagem ou PDF"><i class="ti ti-paperclip"></i></button>
+            <button class="wv-clip" id="wv-nota" onclick="waNotaToggle('wv')" title="Anotação interna (o paciente não vê)"><i class="ti ti-notes"></i></button>
+            <button class="wv-clip" id="wv-agendar" onclick="waAgendarAbrir('wv')" title="Agendar esta mensagem"><i class="ti ti-clock"></i></button>
             <input type="file" id="wv-file" accept="image/*,application/pdf" style="display:none;" onchange="wvAnexarArquivo(this)">
             <textarea id="wv-input" rows="1" placeholder="Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)" onkeydown="wvInputKey(event)" oninput="wvAutoGrow(this)"></textarea>
             <button class="wv-send" id="wv-send" onclick="wvEnviar()" title="Enviar"><i class="ti ti-send"></i></button>
@@ -17384,14 +17448,280 @@ function waCheckHtml(m) {
   }
 }
 // Thread completa (bolhas + separadores) — usada pelo popup e pela página
-function waThreadHtml(msgs, jid) {
+// `extras` = { notas, agendadas } — coisas NOSSAS, que não existem no Evolution. Elas entram
+// aqui, no render, e NÃO no array de mensagens: o poll de 4s substitui/mescla esse array por
+// id, e qualquer item sem id do Evolution ou some (popup) ou duplica (página). Mantendo em
+// arrays separados, o poll continua sendo só do WhatsApp e nada nosso se perde.
+function waThreadHtml(msgs, jid, extras) {
+  const notas = (extras && extras.notas) || [];
+  const agendadas = (extras && extras.agendadas) || [];
+  // Notas entram na ordem cronológica junto das mensagens — é o que dá contexto ("liguei e
+  // não atendeu" tem que estar ENTRE as mensagens daquele dia, não num painel à parte).
+  const linha = [];
+  for (const m of msgs) linha.push({ t: new Date(m.data).getTime(), tipo: 'msg', o: m });
+  for (const n of notas) linha.push({ t: new Date(n.data).getTime(), tipo: 'nota', o: n });
+  linha.sort((a, b) => a.t - b.t);
   let html = '', diaAtual = '';
-  for (const m of msgs) {
-    const dia = new Date(m.data).toDateString();
-    if (dia !== diaAtual) { diaAtual = dia; html += '<div class="wa-dia"><span>' + waDiaLabel(m.data) + '</span></div>'; }
+  for (const it of linha) {
+    const quando = it.tipo === 'msg' ? it.o.data : it.o.data;
+    const dia = new Date(quando).toDateString();
+    if (dia !== diaAtual) { diaAtual = dia; html += '<div class="wa-dia"><span>' + waDiaLabel(quando) + '</span></div>'; }
+    if (it.tipo === 'nota') { html += waNotaHtml(it.o); continue; }
+    const m = it.o;
     html += '<div class="ci-msg ' + (m.de_mim ? 'mine' : '') + '"><div class="bolha">' + waBolhaCorpo(m, jid) + '</div><div class="hora">' + waCheckHtml(m) + ciFmtHora(m.data) + '</div></div>';
   }
+  // Agendadas ficam no FIM: ainda não aconteceram. Misturá-las na cronologia faria uma
+  // mensagem que não existe parecer parte da conversa.
+  const pend = agendadas.filter((a) => a.status === 'pendente' || a.status === 'enviando');
+  const ruins = agendadas.filter((a) => a.status === 'falhou');
+  for (const a of ruins) html += waAgendadaHtml(a);
+  for (const a of pend) html += waAgendadaHtml(a);
   return html;
+}
+// A anotação é visualmente OUTRA COISA: não é bolha, não tem lado, e diz em letras que o
+// paciente não vê. Quem bate o olho na conversa não pode confundir com mensagem enviada.
+function waNotaHtml(n) {
+  const podeApagar = typeof authUser !== 'undefined' && authUser && (authUser.id === n.autor_id || authUser.role === 'gestor' || authUser.role === 'desenvolvedor');
+  return '<div class="wa-nota">'
+    + '<div class="wa-nota-top"><i class="ti ti-notes"></i> Anotação interna'
+    + (n.autor ? ' · ' + esc(n.autor) : '') + ' · ' + ciFmtHora(n.data)
+    + (podeApagar ? '<button class="wa-nota-x" title="Apagar anotação" onclick="waNotaApagar(cpDec(\'' + cpEnc(n.id) + '\'))"><i class="ti ti-x"></i></button>' : '')
+    + '</div>'
+    + '<div class="wa-nota-txt">' + esc(n.texto).replace(/\n/g, '<br>') + '</div>'
+    + '<div class="wa-nota-pe">O paciente não vê isto</div>'
+    + '</div>';
+}
+function waAgendadaHtml(a) {
+  const falhou = a.status === 'falhou';
+  const saindo = a.status === 'enviando';
+  return '<div class="wa-agend' + (falhou ? ' ruim' : '') + '">'
+    + '<div class="wa-agend-top"><i class="ti ti-' + (falhou ? 'alert-triangle' : 'clock') + '"></i> '
+    + (falhou ? 'Não foi enviada' : (saindo ? 'Saindo agora…' : 'Agendada para ' + waQuandoLabel(a.enviar_em)))
+    + (a.autor ? ' · ' + esc(a.autor) : '')
+    + (a.status === 'pendente' ? '<button class="wa-nota-x" title="Cancelar envio" onclick="waAgendadaCancelar(cpDec(\'' + cpEnc(a.id) + '\'))"><i class="ti ti-x"></i></button>' : '')
+    + '</div>'
+    + '<div class="wa-agend-txt">' + esc(a.texto).replace(/\n/g, '<br>') + '</div>'
+    + (falhou && a.erro ? '<div class="wa-agend-erro">' + esc(a.erro) + '</div>' : '')
+    + '</div>';
+}
+// "hoje às 14:30" / "amanhã às 9:00" / "12/08 às 9:00" — no fuso de quem lê.
+function waQuandoLabel(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '--';
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const dd = new Date(d); dd.setHours(0, 0, 0, 0);
+  const dias = Math.round((dd - hoje) / 86400000);
+  if (dias === 0) return 'hoje às ' + hora;
+  if (dias === 1) return 'amanhã às ' + hora;
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + hora;
+}
+
+// ============== ANOTAÇÃO INTERNA + MENSAGEM AGENDADA (as duas telas) ==============
+// Vive fora do array de mensagens (ver comentário do waThreadHtml). O estado é indexado pela
+// CHAVE DO CONTATO — a mesma das tags — porque a conversa não é nossa: ela vem do Evolution
+// ao vivo e não tem id em que ancorar.
+let waExtra = { chave: null, notas: [], agendadas: [], carregando: false };
+// A tela que está com a conversa aberta agora. As duas usam o mesmo waExtra: só uma conversa
+// fica aberta por vez em cada uma, e abrir a outra recarrega.
+function waExtraOrigem() {
+  if (typeof cpState !== 'undefined' && cpState.aberto && cpState.modo === 'whatsapp' && cpState.vista === 'conversa' && cpState.waJid) return 'cp';
+  if (typeof wvState !== 'undefined' && wvState.jid) return 'wv';
+  return null;
+}
+function waExtraContato() {
+  const o = waExtraOrigem();
+  if (o === 'cp') {
+    const c = (cpState.waChats || []).find(function (x) { return x.id === cpState.waJid; });
+    return { chave: (c && c.contato_key) || cpContatoKey({ id: cpState.waJid, numero: (cpState.waContato || {}).telefone }),
+             jid: cpState.waJid, numero: (cpState.waContato || {}).telefone || '', paciente_id: (c && c.paciente_id) || null };
+  }
+  if (o === 'wv') {
+    const c = (wvState.chats || []).find(function (x) { return x.id === wvState.jid; });
+    return { chave: (c && c.contato_key) || cpContatoKey({ id: wvState.jid, numero: (wvState.contato || {}).telefone }),
+             jid: wvState.jid, numero: (wvState.contato || {}).telefone || '', paciente_id: (wvState.contato || {}).paciente_id || null };
+  }
+  return null;
+}
+function waExtraRerender() {
+  const o = waExtraOrigem();
+  if (o === 'cp' && typeof cpRenderMsgsWa === 'function') cpRenderMsgsWa(false);
+  else if (o === 'wv' && typeof wvRenderMsgs === 'function') wvRenderMsgs(false);
+}
+// Carrega notas + agendadas do contato. Falha de rede NÃO vira "não tem": zera só quando o
+// servidor respondeu de verdade, senão uma anotação existente sumiria da tela e alguém
+// escreveria de novo achando que não salvou.
+async function waExtraCarregar(chave) {
+  if (!chave) { waExtra = { chave: null, notas: [], agendadas: [], carregando: false }; return; }
+  const trocou = waExtra.chave !== chave;
+  if (trocou) waExtra = { chave: chave, notas: [], agendadas: [], carregando: true };
+  const q = '?contato_key=' + encodeURIComponent(chave);
+  const [rn, ra] = await Promise.all([
+    pacApi('/api/clinico/whatsapp/notas' + q).catch(function () { return { ok: false }; }),
+    pacApi('/api/clinico/whatsapp/agendadas' + q).catch(function () { return { ok: false }; }),
+  ]);
+  if (waExtra.chave !== chave) return;   // trocou de conversa durante a rede
+  if (rn.ok && rn.data && rn.data.ok) waExtra.notas = rn.data.notas || [];
+  if (ra.ok && ra.data && ra.data.ok) waExtra.agendadas = ra.data.agendadas || [];
+  waExtra.carregando = false;
+  waExtraRerender();
+}
+function waExtrasDo(chaveEsperada) {
+  return (waExtra.chave && waExtra.chave === chaveEsperada) ? { notas: waExtra.notas, agendadas: waExtra.agendadas } : null;
+}
+async function waNotaApagar(id) {
+  if (!confirm('Apagar esta anotação?')) return;
+  const r = await pacApi('/api/clinico/whatsapp/notas/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (!r.ok) { if (typeof homeToast === 'function') homeToast('Não consegui apagar.'); return; }
+  waExtra.notas = (waExtra.notas || []).filter(function (n) { return n.id !== id; });
+  waExtraRerender();
+}
+async function waAgendadaCancelar(id) {
+  if (!confirm('Cancelar este envio agendado?\n\nA mensagem não será mandada.')) return;
+  const r = await pacApi('/api/clinico/whatsapp/agendadas/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (!r.ok || !r.data || !r.data.ok) {
+    // 409 = o worker já pegou. Recarrega pra tela mostrar o estado REAL em vez de sumir com
+    // um item que na verdade está saindo.
+    if (typeof homeToast === 'function') homeToast((r.data && r.data.erro) || 'Não consegui cancelar.');
+    waExtraCarregar(waExtra.chave);
+    return;
+  }
+  waExtra.agendadas = (waExtra.agendadas || []).filter(function (a) { return a.id !== id; });
+  waExtraRerender();
+  if (typeof homeToast === 'function') homeToast('Envio cancelado.');
+}
+
+// ---- modo ANOTAÇÃO no composer ----
+// Toggle em vez de modal: o estado do campo fica visível o tempo todo (fundo âmbar + aviso),
+// então não dá pra achar que está escrevendo pro paciente. E o pior erro possível na direção
+// contrária — salvar como nota o que era pra ser mensagem — não vaza nada.
+let waNotaModo = false;
+function waNotaToggle(origem) {
+  waNotaModo = !waNotaModo;
+  waNotaPintar(origem);
+  const inp = document.getElementById(origem === 'cp' ? 'cp-input' : 'wv-input');
+  if (inp) inp.focus();
+}
+function waNotaPintar(origem) {
+  const pre = origem === 'cp' ? 'cp' : 'wv';
+  const inp = document.getElementById(pre + '-input');
+  const barra = document.getElementById(pre === 'cp' ? 'cp-input-bar' : 'wv-composer');
+  const btn = document.getElementById(pre + '-nota');
+  const aviso = document.getElementById(pre + '-nota-aviso');
+  if (barra) barra.classList.toggle('nota-on', waNotaModo);
+  if (btn) btn.classList.toggle('ativo', waNotaModo);
+  if (aviso) aviso.style.display = waNotaModo ? 'flex' : 'none';
+  // Anotação NÃO depende do WhatsApp — e é justamente quando o canal cai que a equipe precisa
+  // deixar recado uma pra outra. Então o modo anotação REABRE o campo que wvComposerAtivo
+  // tinha fechado, e sair do modo devolve o estado real do canal.
+  const send = document.getElementById(pre === 'cp' ? 'cp-send' : 'wv-send');
+  const canalVivo = pre === 'cp' ? !cpState.waSemDevice : !wvState.semDevice;
+  if (inp) inp.disabled = waNotaModo ? false : !canalVivo;
+  if (send) send.disabled = waNotaModo ? false : !canalVivo;
+  if (inp) {
+    inp.placeholder = waNotaModo
+      ? 'Anotação para a equipe — NÃO vai para o paciente'
+      : (canalVivo
+          ? (pre === 'cp' ? 'Mensagem' : 'Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)')
+          : 'WhatsApp desconectado — reconecte na aba Aparelhos');
+  }
+}
+async function waNotaSalvar(origem) {
+  const ct = waExtraContato();
+  const inp = document.getElementById(origem === 'cp' ? 'cp-input' : 'wv-input');
+  if (!ct || !ct.chave || !inp) return;
+  const texto = (inp.value || '').trim();
+  if (!texto) return;
+  inp.value = ''; inp.style.height = 'auto';
+  const r = await pacApi('/api/clinico/whatsapp/notas', { method: 'POST', body: JSON.stringify({ contato_key: ct.chave, texto: texto }) });
+  if (!r.ok || !r.data || !r.data.ok) {
+    inp.value = texto;   // devolve o que a pessoa escreveu — não some sem aviso
+    if (typeof homeToast === 'function') homeToast((r.data && r.data.erro) || 'Não consegui salvar a anotação.');
+    return;
+  }
+  if (waExtra.chave === ct.chave) { waExtra.notas = (waExtra.notas || []).concat([r.data.nota]); waExtraRerender(); }
+}
+
+// ---- agendar mensagem ----
+function waAgendarAbrir(origem) {
+  const ct = waExtraContato();
+  if (!ct || !ct.chave) return;
+  if (!ct.numero) {
+    alert('Esse contato não tem um telefone que dê pra usar no agendamento.\n\nAbra a conversa pelo cadastro do paciente (que tem o número) ou mande a mensagem na hora.');
+    return;
+  }
+  const inp = document.getElementById(origem === 'cp' ? 'cp-input' : 'wv-input');
+  const rascunho = (inp && !waNotaModo) ? (inp.value || '') : '';
+  let ov = document.getElementById('wa-agendar-modal'); if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'wa-agendar-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'wa-agendar-modal') ov.remove(); };
+  ov.innerHTML = '<div class="pac-modal" style="max-width:480px;"><div class="pac-modal-head"><div class="ttl"><i class="ti ti-clock"></i> Agendar mensagem</div></div>'
+    + '<div class="pac-modal-body">'
+    + '<div class="pac-field"><label>Mensagem</label>'
+    + '<textarea id="wa-ag-txt" rows="4" placeholder="O que vai ser enviado…">' + prExEsc(rascunho) + '</textarea></div>'
+    + '<div class="pac-field" style="margin-top:10px;"><label>Quando enviar</label>'
+    + '<input type="datetime-local" id="wa-ag-quando" value="' + waAgProxHora() + '"></div>'
+    + '<div class="wa-ag-atalhos">'
+    + '<button type="button" onclick="waAgAtalho(1)">daqui a 1h</button>'
+    + '<button type="button" onclick="waAgAtalho(24, 9)">amanhã 9h</button>'
+    + '<button type="button" onclick="waAgAtalho(24, 14)">amanhã 14h</button>'
+    + '<button type="button" onclick="waAgSegunda()">segunda 9h</button>'
+    + '</div>'
+    + '<div class="wa-ag-pe"><i class="ti ti-info-circle"></i> Sai automaticamente no horário, com o seu nome na frente — como se você tivesse mandado na hora.</div>'
+    + '<div id="wa-ag-erro" class="wa-ag-erro" style="display:none;"></div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">'
+    + '<button class="pac-btn-secondary" onclick="document.getElementById(\'wa-agendar-modal\').remove()"><i class="ti ti-x"></i> Cancelar</button>'
+    + '<button class="pac-btn-primary" id="wa-ag-ok" onclick="waAgendarSalvar(this)"><i class="ti ti-clock-plus"></i> Agendar</button>'
+    + '</div></div></div>';
+  document.body.appendChild(ov);
+  setTimeout(function () { const t = document.getElementById('wa-ag-txt'); if (t) t.focus(); }, 30);
+}
+// Valor do datetime-local (que é sempre hora LOCAL, sem fuso) pra "daqui a 1h", arredondado.
+function waAgIsoLocal(d) {
+  const p = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function waAgProxHora() { const d = new Date(Date.now() + 3600000); d.setMinutes(0, 0, 0); return waAgIsoLocal(d); }
+function waAgSet(d) { const i = document.getElementById('wa-ag-quando'); if (i) i.value = waAgIsoLocal(d); }
+function waAgAtalho(horas, horaFixa) {
+  const d = new Date(Date.now() + horas * 3600000);
+  if (horaFixa != null) d.setHours(horaFixa, 0, 0, 0); else d.setMinutes(0, 0, 0);
+  waAgSet(d);
+}
+function waAgSegunda() {
+  const d = new Date();
+  d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));   // próxima segunda (nunca hoje)
+  d.setHours(9, 0, 0, 0);
+  waAgSet(d);
+}
+async function waAgendarSalvar(btn) {
+  const ct = waExtraContato();
+  const t = document.getElementById('wa-ag-txt');
+  const q = document.getElementById('wa-ag-quando');
+  const err = document.getElementById('wa-ag-erro');
+  const mostrar = function (m) { if (err) { err.textContent = m; err.style.display = 'block'; } };
+  if (!ct || !t || !q) return;
+  const texto = (t.value || '').trim();
+  if (!texto) return mostrar('Escreva a mensagem que vai ser enviada.');
+  if (!q.value) return mostrar('Escolha a data e a hora do envio.');
+  const quando = new Date(q.value);   // datetime-local é hora local da máquina
+  if (isNaN(quando.getTime())) return mostrar('Data inválida.');
+  if (quando.getTime() < Date.now() - 60000) return mostrar('Esse horário já passou. Escolha um horário à frente.');
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Agendando…'; }
+  const r = await pacApi('/api/clinico/whatsapp/agendadas', {
+    method: 'POST',
+    body: JSON.stringify({ contato_key: ct.chave, numero: ct.numero, texto: texto, enviar_em: quando.toISOString(), jid: ct.jid, patient_id: ct.paciente_id }),
+  }).catch(function () { return { ok: false }; });
+  if (btn) { btn.disabled = false; btn.innerHTML = original; }
+  if (!r.ok || !r.data || !r.data.ok) return mostrar((r.data && r.data.erro) || 'Não consegui agendar. Tente de novo.');
+  const ov = document.getElementById('wa-agendar-modal'); if (ov) ov.remove();
+  if (waExtra.chave === ct.chave) { waExtra.agendadas = (waExtra.agendadas || []).concat([r.data.agendada]); waExtraRerender(); }
+  // Se o texto veio do composer, limpa — senão a pessoa agenda e manda a mesma coisa na hora.
+  const inp = document.getElementById(document.getElementById('cp-input-bar') && waExtraOrigem() === 'cp' ? 'cp-input' : 'wv-input');
+  if (inp && (inp.value || '').trim() === texto) { inp.value = ''; inp.style.height = 'auto'; }
+  if (typeof homeToast === 'function') homeToast('Mensagem agendada para ' + waQuandoLabel(r.data.agendada.enviar_em) + '. ✓');
 }
 
 // ============== POPUP DE CHAT UNIFICADO (WhatsApp + Interno) ==============
@@ -17792,6 +18122,13 @@ function chatPopMostrarConversa() {
   { const v = document.getElementById('cp-vista-ia'); if (v) v.style.display = 'none'; }
   // mic só faz sentido no WhatsApp (o Interno é texto). Áudio não depende de telefone.
   const mic = document.getElementById('cp-mic'); if (mic) mic.style.display = (cpState.modo === 'whatsapp' && wvMicSuportado()) ? 'flex' : 'none';
+  // Anotação e agendamento são do WhatsApp. A barra é compartilhada com o chat interno, então
+  // sem esconder por modo eles apareceriam lá — onde não fazem sentido nenhum.
+  const soWa = cpState.modo === 'whatsapp';
+  const bn = document.getElementById('cp-nota'); if (bn) bn.style.display = soWa ? 'flex' : 'none';
+  const ba = document.getElementById('cp-agendar'); if (ba) ba.style.display = soWa ? 'flex' : 'none';
+  if (!soWa && waNotaModo) { waNotaModo = false; }   // sair do WhatsApp desliga o modo anotação
+  waNotaPintar('cp');
 }
 function chatPopVoltar() {
   cpMicAbortar();
@@ -18499,6 +18836,9 @@ async function cpAbrirConversaWa(chave, nome, numero, alt, foto) {
   if (!(numReal.length >= 10 && numReal.length <= 13)) numReal = ''; // descarta @lid (14+ digitos)
   cpState.waContato = { nome: nome || null, telefone: numReal || null };
   cpState.waMsgs = [];
+  waNotaModo = false;
+  waExtra = { chave: null, notas: [], agendadas: [], carregando: true };
+  waExtraCarregar(cpContatoKey({ id: chave, numero: numReal }));
   chatPopMostrarConversa();
   const nm = nome || (numReal ? wdFmtTel(numReal) : 'Contato');
   const sub = numReal ? wdFmtTel(numReal) : 'via WhatsApp';
@@ -18555,7 +18895,7 @@ function cpRenderMsgsWa(scroll) {
   if (!wrap) return;
   const msgs = cpState.waMsgs || [];
   if (!msgs.length) { wrap.innerHTML = '<div class="ci-loading">Sem mensagens ainda. Mande a primeira!</div>'; return; }
-  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, cpState.waJid));
+  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, cpState.waJid, waExtrasDo(waExtra.chave)));
   if (scroll) wrap.scrollTop = wrap.scrollHeight;
 }
 // ---- Anexos (documento/foto) + emoji do popup de WhatsApp ----
@@ -18611,6 +18951,7 @@ async function cpEnviarMidia(file) {
 }
 
 async function cpEnviarWa() {
+  if (waNotaModo) { await waNotaSalvar('cp'); return; }   // modo anotação: não vai pro paciente
   if (cpState.waEnviando) return; // guarda anti-duplo-envio (Enter repetido / clique + Enter)
   cpEmojiFechar();
   const inp = document.getElementById('cp-input');
@@ -18956,6 +19297,11 @@ async function wvAbrirConversa(c) {
   const inp = document.getElementById('wv-input');
   if (inp) { inp.value = ''; inp.style.height = 'auto'; inp.focus(); }
   document.getElementById('wv-msgs').innerHTML = '<div class="wv-vazio"><i class="ti ti-loader"></i> Carregando conversa…</div>';
+  // Modo anotação NÃO atravessa a troca de conversa: ficar ligado sem querer faria a próxima
+  // mensagem virar nota (o paciente não receberia) sem ninguém perceber.
+  waNotaModo = false; waNotaPintar('wv');
+  waExtra = { chave: null, notas: [], agendadas: [], carregando: true };
+  waExtraCarregar((c.contato_key) || cpContatoKey(c));
   await wvCarregarMsgs(true);
   wvMarcarLida();
   wvIniciarPollThread();
@@ -18971,6 +19317,13 @@ function wvComposerAtivo(ativo) {
   if (inp) { inp.disabled = !ativo; inp.placeholder = ativo ? 'Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)' : 'WhatsApp desconectado — reconecte na aba Aparelhos'; }
   if (btn) btn.disabled = !ativo;
   if (clip) clip.disabled = !ativo;
+  // Sem WhatsApp conectado não dá pra agendar (a mensagem nunca sairia). A ANOTAÇÃO continua
+  // valendo: ela não depende do WhatsApp, e é justamente quando o canal cai que a equipe
+  // precisa deixar recado uma pra outra.
+  const ag = document.getElementById('wv-agendar'); if (ag) ag.disabled = !ativo;
+  const nt = document.getElementById('wv-nota'); if (nt) nt.disabled = false;
+  if (!ativo && waNotaModo) { /* nota segue permitida: não desliga o modo */ }
+  waNotaPintar('wv');
 }
 function wvRenderHead() {
   const ct = wvState.contato || {};
@@ -19030,7 +19383,7 @@ function wvRenderMsgs(scroll) {
   const msgs = wvState.msgs || [];
   if (!msgs.length) { wrap.innerHTML = '<div class="wv-vazio">Sem mensagens ainda. Mande a primeira!</div>'; return; }
   const noFim = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 60;
-  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, wvState.jid));
+  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, wvState.jid, waExtrasDo(waExtra.chave)));
   if (scroll || noFim) wrap.scrollTop = wrap.scrollHeight;
 }
 function wvInputKey(e) {
@@ -19057,6 +19410,7 @@ function wvEmojiInserir(e) {
 }
 function wvAutoGrow(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; }
 async function wvEnviar() {
+  if (waNotaModo) { await waNotaSalvar('wv'); return; }   // modo anotação: não vai pro paciente
   if (wvState.enviando) return; // anti-duplo-envio
   const inp = document.getElementById('wv-input');
   const texto = (inp.value || '').trim();
@@ -31788,12 +32142,17 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="chat-pop-body" id="cp-vista-conversa" style="display:none; flex-direction:column; min-height:0; flex:1;">
     <div class="ci-conversa-head" id="cp-conv-head"></div>
     <div class="ci-msgs cp-scroll" id="cp-msgs"></div>
+    <div class="wv-nota-aviso" id="cp-nota-aviso" style="display:none;">
+      <i class="ti ti-notes"></i> <b>Anotação interna</b> — só a equipe vê.
+    </div>
     <div class="ci-input-bar" id="cp-input-bar">
       <div class="cp-emoji-pop" id="cp-emoji-pop" style="display:none;"></div>
       <button class="cp-io" onclick="cpEmojiToggle()" title="Emoji"><i class="ti ti-mood-smile"></i></button>
       <button class="cp-io" onclick="document.getElementById('cp-file-doc').click()" title="Enviar documento"><i class="ti ti-paperclip"></i></button>
       <button class="cp-io" onclick="document.getElementById('cp-file-img').click()" title="Enviar foto"><i class="ti ti-photo"></i></button>
       <button class="cp-mic" id="cp-mic" onclick="cpMicToggle()" title="Gravar áudio" style="display:none;"><i class="ti ti-microphone"></i></button>
+      <button class="cp-io" id="cp-nota" onclick="waNotaToggle('cp')" title="Anotação interna (o paciente não vê)" style="display:none;"><i class="ti ti-notes"></i></button>
+      <button class="cp-io" id="cp-agendar" onclick="waAgendarAbrir('cp')" title="Agendar esta mensagem" style="display:none;"><i class="ti ti-clock"></i></button>
       <textarea id="cp-input" placeholder="Mensagem" rows="1" oninput="chatPopInput(this)" onkeydown="chatPopInputKey(event)"></textarea>
       <button class="ci-send" id="cp-send" onclick="chatPopEnviarAtual()" title="Enviar"><i class="ti ti-send"></i></button>
       <input type="file" id="cp-file-doc" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx" style="display:none;" onchange="cpArquivoSelecionar(this)">
