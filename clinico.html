@@ -923,6 +923,15 @@
       .pac-form-grid .pr-sp2 { grid-column: auto; } /* span 2 numa grade de 1 coluna desalinha */
     }
     .pac-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    /* Aviso sob a data da jornada: o que está no campo x o que está no prontuário. */
+    .pac-jornada-aviso {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 10.5px; color: #EF9F27; line-height: 1.3;
+    }
+    .pac-jornada-aviso i { font-size: 13px; flex-shrink: 0; }
+    /* Lápis na lista: data informada à mão, não derivada do último registro. */
+    .jor-manual { display: inline-flex; align-items: center; gap: 3px; }
+    .jor-manual i { font-size: 11px; color: var(--tx3b); }
     .pac-field label {
       font-size: 10px; color: var(--tx3b);
       text-transform: uppercase; letter-spacing: 0.4px;
@@ -6632,7 +6641,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CD</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CE</b></span></div>
   </div>
 </div>
 
@@ -8343,19 +8352,19 @@
           <div class="pac-form-grid" id="pac-jornada-row" style="margin-top:10px;">
             <div class="pac-field">
               <label>Última consulta médica</label>
-              <input type="date" id="pac-ult-medica" title="Puxa automático do último registro; edite pra sobrepor. Apague pra voltar ao automático.">
+              <input type="date" id="pac-ult-medica" title="Puxa automático do último registro do prontuário. Pode editar: a data digitada vale até entrar um registro NOVO. Apague pra voltar ao automático.">
             </div>
             <div class="pac-field">
               <label>Última consulta nutricional</label>
-              <input type="date" id="pac-ult-nutri" title="Puxa automático do último registro; edite pra sobrepor. Apague pra voltar ao automático.">
+              <input type="date" id="pac-ult-nutri" title="Puxa automático do último registro do prontuário. Pode editar: a data digitada vale até entrar um registro NOVO. Apague pra voltar ao automático.">
             </div>
             <div class="pac-field">
               <label>Última aplicação</label>
-              <input type="date" id="pac-ult-aplic" title="Puxa automático do último registro; edite pra sobrepor. Apague pra voltar ao automático.">
+              <input type="date" id="pac-ult-aplic" title="Puxa automático do último registro do prontuário. Pode editar: a data digitada vale até entrar um registro NOVO. Apague pra voltar ao automático.">
             </div>
             <div class="pac-field">
               <label>Última pesagem</label>
-              <input type="date" id="pac-ult-pesagem" title="Puxa automático da última bioimpedância COM peso; edite pra sobrepor. Apague pra voltar ao automático.">
+              <input type="date" id="pac-ult-pesagem" title="Puxa automático da última bioimpedância COM peso. Pode editar: a data digitada vale até entrar uma pesagem NOVA. Apague pra voltar ao automático.">
             </div>
           </div>
           <div class="pac-field" style="margin-top:10px;">
@@ -15052,6 +15061,13 @@ function renderListaPacientes() {
   }
   const na = '<span class="pac-na">—</span>';
   const fData = (iso) => { if (!iso) return na; const d = new Date(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(2)}`; };
+  // Data DIGITADA à mão sai com um lápis. Sem a marca, a coluna mostra um dia que não bate com
+  // o prontuário e não há como saber se é erro do sistema ou correção de alguém.
+  const fJor = (iso, p, eixo) => {
+    const txt = fData(iso);
+    return (p.jornada_manual || []).indexOf(eixo) === -1 ? txt
+      : `<span class="jor-manual" title="Data informada à mão — não veio do último registro do prontuário">${txt} <i class="ti ti-pencil"></i></span>`;
+  };
   const fKg = (v) => (v == null ? na : String(v).replace('.', ',') + ' kg');
   wrap.innerHTML = `
     <div class="pac-scroll-top" id="pac-scroll-top"><div></div></div>
@@ -15119,10 +15135,10 @@ function renderListaPacientes() {
             <td data-label="P. atual">${fKg(p.peso_atual_kg)}</td>
             <td data-label="Meta">${fKg(p.meta_kg)}</td>
             <td data-label="kg/sem">${perda}</td>
-            <td data-label="Últ. médica">${fData(p.ult_consulta_medica)}</td>
-            <td data-label="Últ. nutri">${fData(p.ult_consulta_nutri)}</td>
-            <td data-label="Últ. aplic.">${fData(p.ult_aplicacao)}</td>
-            <td data-label="Últ. pesagem">${fData(p.ult_pesagem)}</td>
+            <td data-label="Últ. médica">${fJor(p.ult_consulta_medica, p, 'medica')}</td>
+            <td data-label="Últ. nutri">${fJor(p.ult_consulta_nutri, p, 'nutri')}</td>
+            <td data-label="Últ. aplic.">${fJor(p.ult_aplicacao, p, 'aplicacao')}</td>
+            <td data-label="Últ. pesagem">${fJor(p.ult_pesagem, p, 'pesagem')}</td>
             <td data-label="Médico">${p.medico ? esc(p.medico.name || p.medico.email) : na}</td>
             <td data-label="Nutri">${p.nutri ? esc(p.nutri.name || p.nutri.email) : na}</td>
             <td data-label="Unidade">${p.unidade ? esc(p.unidade.nome) : na}</td>
@@ -15267,7 +15283,7 @@ function pacAbrirNovoModal() {
 // Preenche um input de data da jornada (última médica/nutri/aplicação). Mostra o override MANUAL
 // se houver, senão a data AUTOMÁTICA do último registro; guarda a automática em data-auto pra o save
 // decidir se o valor é override (difere) ou só o automático (não persiste, continua puxando sozinho).
-function pacSetJornadaInp(elId, manualIso, autoIso) {
+function pacSetJornadaInp(elId, manualIso, autoIso, snap, temSnap) {
   const el = document.getElementById(elId);
   if (!el) return;
   // Dia LOCAL do automático. slice(0,10) do ISO mostrava o dia seguinte pra tudo que foi salvo
@@ -15279,10 +15295,33 @@ function pacSetJornadaInp(elId, manualIso, autoIso) {
   }
   const manual = manualIso ? String(manualIso).slice(0, 10) : '';
   el.dataset.auto = auto;
-  // O manual vale enquanto não entrar um registro REAL mais novo que ele — mesma regra do servidor.
-  // Quando o registro novo vence, o campo volta a mostrar o automático e o override morto é
-  // apagado no próximo save (pacJornadaManual devolve null porque valor === data-auto).
-  el.value = (manual && (!auto || manual > auto)) ? manual : auto;
+  // MESMA regra do servidor: a data digitada vale enquanto o automático continuar sendo aquele
+  // contra o qual ela foi digitada (o snapshot). Entrando registro novo, o registro volta a
+  // mandar e o override morto some no próximo save (pacJornadaManual devolve null).
+  // Sem snapshot = override salvo antes desta mudança -> regra antiga (só vale se for mais novo).
+  let valeManual;
+  if (!manual) valeManual = false;
+  else if (!temSnap) valeManual = (!auto || manual > auto);
+  else valeManual = (auto || '') === (snap || '');
+  el.value = valeManual ? manual : auto;
+  // A data na tela pode não ser a do prontuário — e isso PRECISA estar escrito, senão a equipe
+  // vê dois números diferentes pra mesma coisa em duas telas e não tem como saber qual vale.
+  pacJornadaAviso(el, valeManual && auto && auto !== manual ? auto : '');
+}
+// Linha de aviso embaixo do campo. Criada sob demanda e sempre atualizada (inclusive pra sumir),
+// senão o aviso de um paciente fica grudado no formulário do próximo.
+function pacJornadaAviso(el, autoDia) {
+  const id = el.id + '-aviso';
+  let av = document.getElementById(id);
+  if (!autoDia) { if (av) av.remove(); return; }
+  if (!av) {
+    av = document.createElement('div');
+    av.id = id;
+    av.className = 'pac-jornada-aviso';
+    el.parentNode.appendChild(av);
+  }
+  const d = autoDia.split('-');
+  av.innerHTML = '<i class="ti ti-info-circle"></i> Último registro no prontuário: ' + d[2] + '/' + d[1] + '/' + d[0];
 }
 // No save: manda o override só quando o valor difere do automático; igual/vazio-igual = null (limpa).
 function pacJornadaManual(elId) {
@@ -15341,10 +15380,10 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-obs-imutaveis').value = p.observacoes_imutaveis_medico || '';
   // Jornada: data automática do último registro de cada tipo, com override manual por cima.
   document.getElementById('pac-jornada-row').style.display = '';
-  pacSetJornadaInp('pac-ult-medica', p.ultima_medica_manual, p.ultima_evolucao_medica);
-  pacSetJornadaInp('pac-ult-nutri', p.ultima_nutri_manual, p.ultima_evolucao_nutricional);
-  pacSetJornadaInp('pac-ult-aplic', p.ultima_aplicacao_manual, p.ultima_aplicacao);
-  pacSetJornadaInp('pac-ult-pesagem', p.ultima_pesagem_manual, p.ultima_pesagem);
+  pacSetJornadaInp('pac-ult-medica', p.ultima_medica_manual, p.ultima_evolucao_medica, p.ultima_medica_snap, p.tem_snap_medica);
+  pacSetJornadaInp('pac-ult-nutri', p.ultima_nutri_manual, p.ultima_evolucao_nutricional, p.ultima_nutri_snap, p.tem_snap_nutri);
+  pacSetJornadaInp('pac-ult-aplic', p.ultima_aplicacao_manual, p.ultima_aplicacao, p.ultima_aplicacao_snap, p.tem_snap_aplicacao);
+  pacSetJornadaInp('pac-ult-pesagem', p.ultima_pesagem_manual, p.ultima_pesagem, p.ultima_pesagem_snap, p.tem_snap_pesagem);
   // Saúde estruturada
   document.getElementById('pac-bariatrica').value = p.anamnesis?.cirurgia_bariatrica ? 'true' : 'false';
   document.getElementById('pac-ativ-modalidade').value = p.health?.atividade_modalidade || '';
@@ -15369,7 +15408,7 @@ function pacResetForm() {
   // dataset.auto. Sem zerar, o "auto" do paciente editado antes ficaria grudado e uma data digitada
   // igual a ela sumiria sem aviso no cadastro do próximo.
   ['pac-ult-medica', 'pac-ult-nutri', 'pac-ult-aplic', 'pac-ult-pesagem'].forEach(function (id) {
-    const el = document.getElementById(id); if (el) { el.dataset.auto = ''; el.value = ''; }
+    const el = document.getElementById(id); if (el) { el.dataset.auto = ''; el.value = ''; pacJornadaAviso(el, ''); }
   });
   document.getElementById('pac-form-id').value = '';
   document.getElementById('pac-form-contact-id').value = '';
