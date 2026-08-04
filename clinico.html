@@ -14526,7 +14526,12 @@ function pacAppWellCard(titulo, ic, blk, tipo, extra){
 }
 function renderPacAppDetalhe(d){
   const p=d.paciente, s=d.sessao, w=d.wearables, sc=d.aplic_score;
-  const foto=p.foto_url?'<img src="'+esc(p.foto_url)+'" style="width:54px;height:54px;border-radius:12px;object-fit:cover;">':'<div style="width:54px;height:54px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:22px;"><i class="ti ti-user"></i></div>';
+  // foto_url 'doc:<id>' = foto de perfil subida pelo app (anexo; baixa com token via data-doc-seg)
+  const fotoImg=p.foto_url?(String(p.foto_url).indexOf('doc:')===0
+    ?'<img data-doc-seg="'+esc(String(p.foto_url).slice(4))+'" style="width:54px;height:54px;border-radius:12px;object-fit:cover;" onerror="this.outerHTML=\'<div style=&quot;width:54px;height:54px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:22px;&quot;><i class=&quot;ti ti-user&quot;></i></div>\'">'
+    :'<img src="'+esc(p.foto_url)+'" style="width:54px;height:54px;border-radius:12px;object-fit:cover;">'):null;
+  if(fotoImg)setTimeout(carregarImagensSeguras,60);
+  const foto=fotoImg||'<div style="width:54px;height:54px;border-radius:12px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:22px;"><i class="ti ti-user"></i></div>';
   const statusApp=s.ativo_app?'<span class="pac-tag ATIVO" style="font-size:10px;">● Ativo no app</span>':'<span class="pac-tag INATIVO" style="font-size:10px;">○ Inativo no app</span>';
   const nomeEsc=pacAppEsc(p.nome);
 
@@ -15708,7 +15713,7 @@ function renderDetalhePaciente(p) {
   const idade = p.data_nascimento ? calcularIdade(p.data_nascimento) : null;
   const html = `
     <div class="pac-detail-header">
-      <div class="pac-detail-avatar">${inicial}</div>
+      ${pacAvatar(p.nome_completo, p.foto_url, 'pac-detail-avatar')}
       <div class="pac-detail-info">
         <div class="codigo">${esc(p.codigo)}</div>
         <h2 class="nome">${esc(p.nome_completo)}</h2>
@@ -21906,7 +21911,7 @@ function prRenderHeaderRico() {
     <div class="pr-header-card pr-header-v2">
       <!-- Topo: nome + codigo -->
       <div class="pr-h2-topo">
-        <div class="pr-h2-avatar">${(h.nome_completo || '?').charAt(0).toUpperCase()}</div>
+        ${pacAvatar(h.nome_completo, h.foto_url, 'pr-h2-avatar')}
         <div class="pr-h2-id">
           <div class="nome">${esc(h.nome_completo)} <span class="cod">${esc(h.codigo)}</span></div>
           ${prSubNome(h)}
@@ -25826,7 +25831,7 @@ function prRenderAnexos() {
 // `tipo` é o slug técnico que o banco guarda ('recomendacao_nutri'). Mostrar cru na lista de
 // anexos entrega jargão de banco pra quem só quer achar o arquivo. Slug desconhecido cai nele
 // mesmo — inventar rótulo seria pior que mostrar o que está gravado.
-const PR_ROTULO_TIPO = { anexo: 'Anexo', bioimpedancia: 'Bioimpedância', foto_evolucao: 'Foto de evolução', recomendacao_nutri: 'Recomendação da nutri' };
+const PR_ROTULO_TIPO = { anexo: 'Anexo', bioimpedancia: 'Bioimpedância', foto_evolucao: 'Foto de evolução', recomendacao_nutri: 'Recomendação da nutri', foto_perfil: 'Foto de perfil' };
 function prRotuloTipoAnexo(tipo) { return PR_ROTULO_TIPO[tipo] || tipo || 'Anexo'; }
 function prFmtTamanho(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -26027,6 +26032,24 @@ async function docAbrir(id) {
   try { const u = await docBlobUrl(id); window.open(u, '_blank'); setTimeout(function () { URL.revokeObjectURL(u); }, 60000); }
   catch (e) { if (typeof homeToast === 'function') homeToast('Não consegui abrir o documento.'); }
 }
+// Avatar de paciente: FOTO DE PERFIL quando existir, senão a inicial do nome.
+// foto_url pode ser 'doc:<id>' (foto que o paciente subiu pelo app — vive como anexo e
+// baixa pelo download seguro com token, via data-doc-seg) ou uma URL http legada.
+// A classe dá o tamanho/forma; o <img> preenche o quadro e herda o raio.
+function pacAvatar(nome, fotoUrl, cls) {
+  const ini = esc(((nome || '?').trim().charAt(0) || '?').toUpperCase());
+  if (fotoUrl) {
+    const img = String(fotoUrl).indexOf('doc:') === 0
+      ? '<img data-doc-seg="' + esc(String(fotoUrl).slice(4)) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.style.display=\'none\'">'
+      : '<img src="' + esc(String(fotoUrl)) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.style.display=\'none\'">';
+    setTimeout(carregarImagensSeguras, 60);
+    // A inicial fica POR BAIXO da foto: se o download falhar (onerror esconde o img), o
+    // avatar degrada pra inicial em vez de virar um quadro vazio.
+    return '<div class="' + cls + '" style="overflow:hidden;position:relative;"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">' + ini + '</span><span style="position:absolute;inset:0;">' + img + '</span></div>';
+  }
+  return '<div class="' + cls + '">' + ini + '</div>';
+}
+
 // Carrega com o cabeçalho todas as <img data-doc-seg> ainda não resolvidas (thumbnails de foto).
 async function carregarImagensSeguras() {
   const imgs = document.querySelectorAll('img[data-doc-seg]:not([data-seg-done])');
