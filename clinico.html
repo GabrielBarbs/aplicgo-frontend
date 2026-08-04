@@ -6700,7 +6700,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CH</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CI</b></span></div>
   </div>
 </div>
 
@@ -14971,6 +14971,40 @@ function pacCepAuto(el) {
   cepBuscar(el, { rua: 'pac-endereco', bairro: 'pac-bairro', cidade: 'pac-cidade', uf: 'pac-uf', foco: 'pac-numero' });
 }
 
+// ---- Unidades da CLÍNICA (todas as ativas) para o cadastro do paciente ----
+// Separado de pacState.unidades DE PROPÓSITO: aquilo são as unidades VINCULADAS ao usuário
+// (meData.unidades, com o flag `primaria`) e é o que agenda/estoque/varejo usam. A unidade
+// do PACIENTE não é um dado do usuário — é da clínica.
+let pacUnidadesClinica = [];
+async function pacCarregarUnidadesClinica(force) {
+  if (pacUnidadesClinica.length && !force) return pacUnidadesClinica;
+  try {
+    const r = await pacApi('/api/clinico/units');
+    if (r.ok && r.data && Array.isArray(r.data.unidades)) pacUnidadesClinica = r.data.unidades;
+  } catch (e) { /* mantém o que já tinha; quem chama trata a lista vazia */ }
+  // Rede falhou e nunca carregou: cai nas unidades do usuário pra não deixar o cadastro
+  // impossível. É pior que a lista completa, mas melhor que um select vazio.
+  if (!pacUnidadesClinica.length && pacState.unidades && pacState.unidades.length) {
+    pacUnidadesClinica = pacState.unidades.slice();
+  }
+  return pacUnidadesClinica;
+}
+// Popula o select de unidade e seleciona `valorAtual`.
+// O ponto: se a unidade do paciente NÃO estiver na lista (unidade desativada, ou a carga
+// falhou), ela é INJETADA como option. Sem isso o `select.value = <id inexistente>` do
+// navegador vira '' silenciosamente — o campo aparece vazio, e salvar move o paciente pra
+// outra unidade sem ninguém pedir. Perder o vínculo é pior que mostrar uma unidade inativa.
+function pacPopularSelectUnidade(sel, valorAtual, nomeAtual) {
+  if (!sel) return;
+  const lista = pacUnidadesClinica.slice();
+  if (valorAtual && !lista.some(u => u.id === valorAtual)) {
+    lista.unshift({ id: valorAtual, nome: (nomeAtual || 'Unidade atual') + ' (inativa)' });
+  }
+  sel.innerHTML = '<option value="">—</option>' +
+    lista.map(u => `<option value="${esc(u.id)}">${esc(u.nome)}</option>`).join('');
+  sel.value = valorAtual || '';
+}
+
 // Carrega listas de apoio (unidades + profissionais) UMA VEZ
 async function pacCarregarApoio() {
   // Unidades vêm do meData; se o usuário não tem nenhuma vinculada (array VAZIO — que é truthy em JS,
@@ -14987,19 +15021,23 @@ async function pacCarregarApoio() {
   if (r2.ok && r2.data.usuarios) {
     pacState.profissionais = r2.data.usuarios.filter(u => u.ativo);
   }
-  // Popula selects
-  const selUnit = document.getElementById('pac-filter-unit');
-  const selModalUnit = document.getElementById('pac-unit');
-  if (selUnit) {
-    selUnit.innerHTML = '<option value="">Todas unidades</option>' +
-      pacState.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
-  }
-  if (selModalUnit) {
-    selModalUnit.innerHTML = '<option value="">—</option>' +
-      pacState.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
-    // Pré-seleciona a primária se houver
-    const primaria = pacState.unidades.find(u => u.primaria);
-    if (primaria) selModalUnit.value = primaria.id;
+  // O select de unidade do PACIENTE e o filtro da lista usam as unidades da CLÍNICA (todas as
+  // ativas), não as do usuário logado. A unidade do paciente é dado da clínica: quem é de
+  // Uberlândia precisa conseguir mover um paciente pra Ituiutaba.
+  // Com pacState.unidades (= meData.unidades) quem tinha 1 vínculo via 1 opção — "não dá pra
+  // mudar" — e, pior, ao ABRIR um paciente de OUTRA unidade o value não existia entre as
+  // options e o campo ficava EM BRANCO: salvar dali ou dava "Selecione a unidade" ou movia o
+  // paciente pra unidade errada, calado.
+  // pacState.unidades continua sendo as do usuário: agenda, estoque e varejo dependem dele
+  // (e do flag `primaria`), e mexer lá mudaria o comportamento de outras telas de tabela.
+  await pacCarregarUnidadesClinica();
+  pacPopularSelectUnidade(document.getElementById('pac-unit'), null);
+  const selFiltroUnit = document.getElementById('pac-filter-unit');
+  if (selFiltroUnit) {
+    const filtroAtual = selFiltroUnit.value;   // não perde o filtro que já estava aplicado
+    selFiltroUnit.innerHTML = '<option value="">Todas unidades</option>' +
+      pacUnidadesClinica.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join('');
+    if (filtroAtual) selFiltroUnit.value = filtroAtual;
   }
   // Selects de médico/nutri
   const medicos = pacState.profissionais.filter(p => p.role === 'medico' || p.role === 'gestor');
@@ -15343,8 +15381,9 @@ function pacLimparFiltros() {
 
 // ===== MODAL CRIAR / EDITAR =====
 
-function pacAbrirNovoModal() {
+async function pacAbrirNovoModal() {
   document.getElementById('pac-modal-title').textContent = 'Novo paciente';
+  await pacCarregarUnidadesClinica();   // idem: sem a lista, o cadastro nasce sem opções
   pacResetForm();
   document.getElementById('pac-modal').classList.add('aberto');
 }
@@ -15402,7 +15441,9 @@ function pacJornadaManual(elId) {
 }
 
 async function pacAbrirEditarModal(id) {
-  const r = await pacApi('/api/clinico/patients/' + id);
+  // Garante a lista de unidades ANTES de preencher: se ela ainda não carregou, o select fica
+  // só com a unidade injetada do paciente e a pessoa não consegue trocar.
+  const [r] = await Promise.all([pacApi('/api/clinico/patients/' + id), pacCarregarUnidadesClinica()]);
   if (!r.ok) return alert('Erro: ' + r.data.erro);
   const p = r.data.paciente;
   document.getElementById('pac-modal-title').textContent = 'Editar paciente ' + p.codigo;
@@ -15422,7 +15463,11 @@ async function pacAbrirEditarModal(id) {
   document.getElementById('pac-bairro').value = p.bairro || '';
   document.getElementById('pac-cidade').value = p.cidade || '';
   document.getElementById('pac-uf').value = p.uf || '';
-  document.getElementById('pac-unit').value = p.unit_id || '';
+  // Garante a unidade do paciente entre as options ANTES de selecionar. Atribuir um id que
+  // não existe faz o navegador zerar o select em silêncio — era daí que vinha o "buga".
+  // O nome vem da linha da lista quando dá, só pra rotular direito uma unidade desativada.
+  const _uNome = ((pacState.pacientes || []).find(x => x.id === p.id) || {}).unidade;
+  pacPopularSelectUnidade(document.getElementById('pac-unit'), p.unit_id || '', _uNome && _uNome.nome);
   // Responsáveis filtrados pela unidade do paciente; força o já-salvo a aparecer mesmo fora dela.
   pacPopularResponsaveis(p.unit_id || '', p.medico_id || '', p.nutri_id || '');
   document.getElementById('pac-observacoes').value = p.observacoes || '';
@@ -15485,9 +15530,10 @@ function pacResetForm() {
   document.getElementById('pac-lead-alert-wrap').innerHTML = '';
   pacState.comorbidades = [];
   pacRenderComorbidades();
-  // Re-pré-seleciona unidade primária
-  const primaria = pacState.unidades.find(u => u.primaria);
-  if (primaria) document.getElementById('pac-unit').value = primaria.id;
+  // Paciente NOVO: lista completa da clínica, já apontando pra unidade primária de quem está
+  // cadastrando (atalho pro caso comum) — mas dá pra trocar pra qualquer outra.
+  const primaria = (pacState.unidades || []).find(u => u.primaria) || (pacState.unidades || [])[0];
+  pacPopularSelectUnidade(document.getElementById('pac-unit'), primaria ? primaria.id : '');
 }
 
 // ===== COMORBIDADES (tags) =====
