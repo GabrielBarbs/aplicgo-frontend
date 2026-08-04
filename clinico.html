@@ -6731,7 +6731,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CK</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CL</b></span></div>
   </div>
 </div>
 
@@ -15071,8 +15071,10 @@ async function pacCarregarApoio() {
     if (filtroAtual) selFiltroUnit.value = filtroAtual;
   }
   // Selects de médico/nutri
-  const medicos = pacState.profissionais.filter(p => p.role === 'medico' || p.role === 'gestor');
-  const nutris = pacState.profissionais.filter(p => p.role === 'nutricionista' || p.role === 'gestor');
+  // Mesma classificação do modal (cargo clínico + role). Antes era só `role`, então uma nutri
+  // cadastrada com outro papel no sistema não aparecia nem pra FILTRAR a lista por ela.
+  const medicos = pacState.profissionais.filter(p => pacEhMedico(p) || p.role === 'gestor');
+  const nutris = pacState.profissionais.filter(p => pacEhNutri(p) || p.role === 'gestor');
   // Modal (pac-medico/pac-nutri): preenchido POR UNIDADE via pacPopularResponsaveis, que
   // reage ao onchange do #pac-unit. Aqui só o disparo inicial (unidade primária já pré-selecionada).
   pacPopularResponsaveis(selModalUnit ? selModalUnit.value : '');
@@ -15090,6 +15092,14 @@ async function pacCarregarApoio() {
 // então entra como opção em qualquer unidade). Nutri = só 'nutricionista' vinculado à unidade.
 // forceMedId/forceNutId: na edição, garante que o responsável já salvo apareça mesmo que hoje
 // ele não esteja mais vinculado àquela unidade (não perde o valor gravado).
+// Quem pode ser médico / nutri responsável. O que decide é o CARGO CLÍNICO — `role` é o papel
+// no sistema, e uma nutri cadastrada como 'usuario'/'recepcao' não aparecia em lugar nenhum.
+// Mesmos slugs que o servidor usa na jornada e no rótulo do WhatsApp; role entra como reforço
+// pra quem foi cadastrado antes de existirem cargos.
+function pacTemCargo(p, arr) { return Array.isArray(p.cargos) && p.cargos.some(c => arr.includes(String(c).toLowerCase())); }
+function pacEhMedico(p) { return pacTemCargo(p, ['medico', 'médico', 'doutor']) || p.role === 'medico'; }
+function pacEhNutri(p) { return pacTemCargo(p, ['nutricionista', 'nutri']) || p.role === 'nutricionista'; }
+
 function pacPopularResponsaveis(unitId, forceMedId, forceNutId) {
   const selMed = document.getElementById('pac-medico');
   const selNut = document.getElementById('pac-nutri');
@@ -15097,12 +15107,25 @@ function pacPopularResponsaveis(unitId, forceMedId, forceNutId) {
   const alvoMed = forceMedId || selMed.value;
   const alvoNut = forceNutId || selNut.value;
   const todos = pacState.profissionais || [];
-  // Retrocompat: enquanto o backend novo (que devolve p.unidades) não subir, não filtra por unidade.
+  // (classificação em pacEhMedico/pacEhNutri) Quem é médico/nutri é o CARGO CLÍNICO, não o `role` (que é o papel no sistema). Uma nutri
+  // cadastrada com role 'usuario' ou 'recepcao' simplesmente não aparecia aqui. Mesma
+  // classificação que o servidor usa na jornada e no rótulo do WhatsApp; o role entra só como
+  // reforço, pra quem foi cadastrado antes de existirem cargos.
   const naUnidade = (p) => !unitId || !Array.isArray(p.unidades) || p.unidades.includes(unitId);
   const ehAlvo = (p, alvo) => alvo && (p.id === alvo || p.email === alvo);
-  const medicos = todos.filter(p => (p.role === 'medico' && naUnidade(p)) || p.role === 'gestor' || ehAlvo(p, alvoMed));
-  const nutris  = todos.filter(p => (p.role === 'nutricionista' && naUnidade(p)) || ehAlvo(p, alvoNut));
-  const opt = (p) => `<option value="${esc(p.id || p.email)}">${esc(p.nome || p.email)} (${esc(p.role)})</option>`;
+  // Da unidade do paciente primeiro; os das OUTRAS unidades continuam disponíveis, embaixo.
+  // Esconder era o que fazia "sumir a nutri" quando o paciente era de outra unidade — e agora
+  // que dá pra mover o paciente entre unidades, esconder seria pior ainda.
+  const ordenar = (arr) => arr.slice().sort((a, b) => (naUnidade(b) - naUnidade(a)) || String(a.nome || a.email).localeCompare(String(b.nome || b.email), 'pt-BR'));
+  const medicos = ordenar(todos.filter(p => pacEhMedico(p) || p.role === 'gestor' || ehAlvo(p, alvoMed)));
+  const nutris = ordenar(todos.filter(p => pacEhNutri(p) || ehAlvo(p, alvoNut)));
+  // Rótulo: o CARGO diz mais que o role ("Isabela (nutricionista)" > "Isabela (usuario)").
+  // Fora da unidade do paciente vai marcado, senão parece que a pessoa atende ali.
+  const opt = (p) => {
+    const papel = (Array.isArray(p.cargos_nome) && p.cargos_nome[0]) || (Array.isArray(p.cargos) && p.cargos[0]) || p.role;
+    const fora = naUnidade(p) ? '' : ' · outra unidade';
+    return `<option value="${esc(p.id || p.email)}">${esc(p.nome || p.email)} (${esc(papel)})${fora}</option>`;
+  };
   selMed.innerHTML = '<option value="">—</option>' + medicos.map(opt).join('');
   selNut.innerHTML = '<option value="">—</option>' + nutris.map(opt).join('');
   // Preserva a seleção (ou aplica a forçada da edição) se ainda for uma opção válida.
