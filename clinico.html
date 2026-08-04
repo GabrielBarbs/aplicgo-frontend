@@ -6700,7 +6700,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CG</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CH</b></span></div>
   </div>
 </div>
 
@@ -17708,11 +17708,11 @@ async function waNotaSalvar(origem) {
 // ---- agendar mensagem ----
 function waAgendarAbrir(origem) {
   const ct = waExtraContato();
-  if (!ct || !ct.chave) return;
-  if (!ct.numero) {
-    alert('Esse contato não tem um telefone que dê pra usar no agendamento.\n\nAbra a conversa pelo cadastro do paciente (que tem o número) ou mande a mensagem na hora.');
-    return;
-  }
+  // NÃO exige telefone: contato @lid (id opaco do WhatsApp) conversa normalmente pelo jid, e
+  // é pra ele que o envio ao vivo já manda. O destino do agendamento sai da MESMA regra no
+  // servidor (destinoWa): telefone quando existe, senão o jid da conversa. Exigir telefone
+  // aqui tirava o recurso justamente de quem usa o chat todo dia.
+  if (!ct || !ct.chave || !(ct.numero || ct.jid)) return;
   const inp = document.getElementById(origem === 'cp' ? 'cp-input' : 'wv-input');
   const rascunho = (inp && !waNotaModo) ? (inp.value || '') : '';
   let ov = document.getElementById('wa-agendar-modal'); if (ov) ov.remove();
@@ -17775,7 +17775,7 @@ async function waAgendarSalvar(btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Agendando…'; }
   const r = await pacApi('/api/clinico/whatsapp/agendadas', {
     method: 'POST',
-    body: JSON.stringify({ contato_key: ct.chave, numero: ct.numero, texto: texto, enviar_em: quando.toISOString(), jid: ct.jid, patient_id: ct.paciente_id }),
+    body: JSON.stringify({ contato_key: ct.chave, numero: ct.numero || null, texto: texto, enviar_em: quando.toISOString(), jid: ct.jid, patient_id: ct.paciente_id }),
   }).catch(function () { return { ok: false }; });
   if (btn) { btn.disabled = false; btn.innerHTML = original; }
   if (!r.ok || !r.data || !r.data.ok) return mostrar((r.data && r.data.erro) || 'Não consegui agendar. Tente de novo.');
