@@ -1353,6 +1353,7 @@
       padding: 10px 6px;
     }
     .ag-day-header {
+      position: relative;   /* âncora do marcador de tarefas (.ag-task-mini, absoluto no canto) */
       background: var(--bg2); border-bottom: 1px solid var(--bg3);
       border-right: 1px solid var(--bg3);
       padding: 10px 8px;
@@ -1380,18 +1381,48 @@
     }
     .ag-prof-header.hoje .prof { color: var(--ac); }
     /* Chips de PRAZO de tarefa no cabeçalho do dia (all-day) */
-    .ag-day-tasks { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
-    .ag-task-chip {
-      font-size: 9px; line-height: 1.3; padding: 2px 5px; border-radius: 4px;
-      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      text-align: left; display: flex; align-items: center; gap: 3px; font-weight: 500;
+    /* Marcador de tarefas do dia: ABSOLUTO no canto, altura ZERO no fluxo.
+       Antes era uma pilha de chips com o título inteiro dentro do cabeçalho — com 3 ou 4
+       tarefas o cabeçalho crescia, achatava as linhas de horário e a agenda ficava ilegível.
+       O que a pessoa precisa ver de longe é "tem tarefa aqui e é urgente?"; o resto vem no
+       hover/clique. */
+    .ag-task-mini {
+      position: absolute; top: 3px; right: 4px; z-index: 3;
+      height: 15px; min-width: 15px; padding: 0 4px;
+      border: 0; border-radius: 8px; cursor: pointer;
+      font-family: inherit; font-size: 9px; font-weight: 700; line-height: 1;
+      display: inline-flex; align-items: center; justify-content: center; gap: 2px;
     }
-    .ag-task-chip.ok   { background: rgba(var(--ac-rgb),0.13); color: var(--ac); }
-    .ag-task-chip.atn  { background: rgba(210,153,34,0.16); color: #e3b341; }
-    .ag-task-chip.venc { background: rgba(248,81,73,0.16); color: #f85149; }
-    .ag-task-chip:hover { filter: brightness(1.18); }
-    .ag-task-chip i { flex-shrink: 0; }
-    .ag-task-chip .txt { overflow: hidden; text-overflow: ellipsis; }
+    .ag-task-mini i { font-size: 10px; }
+    .ag-task-mini.ok   { background: rgba(var(--ac-rgb),0.22); color: var(--ac); }
+    .ag-task-mini.atn  { background: rgba(210,153,34,0.28); color: #e3b341; }
+    .ag-task-mini.venc { background: rgba(248,81,73,0.30); color: #f85149; }
+    .ag-task-mini:hover, .ag-task-mini.aberto { filter: brightness(1.3); }
+    /* Popover FIXO, ancorado no body: dentro do cabeçalho ele seria cortado pelo overflow da
+       grade da agenda. */
+    .ag-task-pop {
+      position: fixed; z-index: 9400;
+      min-width: 230px; max-width: 320px; max-height: 300px; overflow-y: auto;
+      background: var(--bg1); border: 1px solid var(--bd1); border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45); padding: 6px;
+    }
+    .ag-task-pop-tit {
+      font-size: 9.5px; font-weight: 700; color: var(--tx3b);
+      text-transform: uppercase; letter-spacing: .4px; padding: 3px 6px 5px;
+    }
+    .ag-task-pop-item {
+      display: flex; align-items: flex-start; gap: 6px;
+      padding: 6px; border-radius: 7px; cursor: pointer; text-align: left;
+      background: transparent; border: 0; width: 100%; font-family: inherit;
+    }
+    .ag-task-pop-item:hover { background: rgba(var(--bg3-rgb),0.6); }
+    .ag-task-pop-item > i { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+    .ag-task-pop-item.ok   > i { color: var(--ac); }
+    .ag-task-pop-item.atn  > i { color: #e3b341; }
+    .ag-task-pop-item.venc > i { color: #f85149; }
+    .ag-task-pop-item .tit { font-size: 12px; color: var(--tx1); line-height: 1.3; }
+    .ag-task-pop-item .sub { font-size: 10px; color: var(--tx3b); margin-top: 2px; }
+    .ag-task-pop-item.venc .sub { color: #f85149; }
 
     .ag-hour-cell {
       background: var(--bg2);
@@ -6700,7 +6731,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CJ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CK</b></span></div>
   </div>
 </div>
 
@@ -16300,17 +16331,88 @@ function agTarefaContagem(t) {
   if (t.hoje) return 'vence hoje';
   return `faltam ${t.prazo_dias}d`;
 }
-function agTarefaChip(t) {
-  const cls = t.vencida ? 'venc' : (t.prazo_dias <= 7 ? 'atn' : 'ok');
-  const ico = t.delegada ? 'ti-user-share' : 'ti-flag-3';
-  const tip = agEscAttr(`${t.titulo} — ${agTarefaContagem(t)}${t.delegada ? (t.sou_criador ? ' · você delegou p/ ' + t.dono_nome : ' · delegada por ' + t.criador_nome) : ''}`);
-  return `<div class="ag-task-chip ${cls}" title="${tip}" onclick="event.stopPropagation();homeTarefaDetalhe('${t.id}')"><i class="ti ${ico}"></i><span class="txt">${esc(t.titulo)}</span></div>`;
+function agTarefaSev(t) { return t.vencida ? 'venc' : (t.prazo_dias <= 7 ? 'atn' : 'ok'); }
+function agTarefaOrigem(t) {
+  if (!t.delegada) return '';
+  return t.sou_criador ? 'você delegou p/ ' + (t.dono_nome || '—') : 'delegada por ' + (t.criador_nome || '—');
 }
+// Marcador MÍNIMO do dia: só ícone + quantidade, no canto e fora do fluxo (não empurra nada).
+// A lista inteira vem no hover ou no clique — ver agTarefaPopAbrir.
 function agTarefaChipsHtml(dayKey) {
   const list = agTarefasDoDia(dayKey);
   if (!list.length) return '';
-  return '<div class="ag-day-tasks">' + list.map(agTarefaChip).join('') + '</div>';
+  // Cor da MAIS urgente: o marcador tem que responder "tem coisa atrasada aqui?" de longe.
+  const sev = list.some(t => t.vencida) ? 'venc' : (list.some(t => t.prazo_dias <= 7) ? 'atn' : 'ok');
+  const ico = list.every(t => t.delegada) ? 'ti-user-share' : 'ti-flag-3';
+  const resumo = list.length === 1
+    ? `${list[0].titulo} — ${agTarefaContagem(list[0])}`
+    : `${list.length} tarefas neste dia`;
+  return `<button class="ag-task-mini ${sev}" data-dia="${agEscAttr(dayKey)}" title="${agEscAttr(resumo)}"
+    onmouseenter="agTarefaPopAbrir(this)" onmouseleave="agTarefaPopSair()"
+    onclick="event.stopPropagation();agTarefaPopFixar(this)"><i class="ti ${ico}"></i>${list.length > 1 ? list.length : ''}</button>`;
 }
+// ---- popover das tarefas do dia ----
+// Fixo e pendurado no body: dentro do cabeçalho ele seria cortado pelo overflow da grade.
+let agTaskPopTimer = null, agTaskPopFixo = false;
+function agTarefaPopFechar(forcar) {
+  if (agTaskPopFixo && !forcar) return;
+  agTaskPopFixo = false;
+  clearTimeout(agTaskPopTimer);
+  const p = document.getElementById('ag-task-pop'); if (p) p.remove();
+  document.querySelectorAll('.ag-task-mini.aberto').forEach(b => b.classList.remove('aberto'));
+}
+function agTarefaPopSair() {
+  // Atraso pra dar tempo de levar o mouse do marcador até o popover (eles não se tocam).
+  clearTimeout(agTaskPopTimer);
+  agTaskPopTimer = setTimeout(() => agTarefaPopFechar(), 220);
+}
+function agTarefaPopFixar(btn) {
+  const jaAberto = agTaskPopFixo && btn.classList.contains('aberto');
+  agTarefaPopFechar(true);
+  if (jaAberto) return;          // clicar de novo fecha (é o comportamento de toque)
+  agTarefaPopAbrir(btn);
+  agTaskPopFixo = true;          // clicou: só fecha por clique fora / Esc / rolagem
+}
+function agTarefaPopAbrir(btn) {
+  clearTimeout(agTaskPopTimer);
+  if (document.getElementById('ag-task-pop') && btn.classList.contains('aberto')) return;
+  agTarefaPopFechar(true);
+  const list = agTarefasDoDia(btn.dataset.dia || '');
+  if (!list.length) return;
+  btn.classList.add('aberto');
+  const pop = document.createElement('div');
+  pop.id = 'ag-task-pop'; pop.className = 'ag-task-pop';
+  pop.onmouseenter = () => clearTimeout(agTaskPopTimer);
+  pop.onmouseleave = agTarefaPopSair;
+  pop.onclick = (e) => e.stopPropagation();   // clicar dentro não fecha nem abre o dia
+  pop.innerHTML = '<div class="ag-task-pop-tit">' + list.length + (list.length === 1 ? ' tarefa' : ' tarefas') + '</div>'
+    + list.map(t => {
+      const org = agTarefaOrigem(t);
+      return `<button class="ag-task-pop-item ${agTarefaSev(t)}" onclick="agTarefaPopFechar(true);homeTarefaDetalhe('${agEscAttr(t.id)}')">`
+        + `<i class="ti ${t.delegada ? 'ti-user-share' : 'ti-flag-3'}"></i>`
+        + `<span><span class="tit">${esc(t.titulo)}</span>`
+        + `<span class="sub">${esc(agTarefaContagem(t))}${org ? ' · ' + esc(org) : ''}</span></span></button>`;
+    }).join('');
+  document.body.appendChild(pop);
+  // Posiciona abaixo do marcador; se não couber, joga pra cima. Sempre dentro da janela.
+  // Nunca mais largo que a janela — senão o clamp abaixo não tem como caber e o popover
+  // sairia da tela num celular.
+  pop.style.maxWidth = Math.max(180, Math.min(320, window.innerWidth - 16)) + 'px';
+  const r = btn.getBoundingClientRect(), pr = pop.getBoundingClientRect();
+  let top = r.bottom + 6;
+  if (top + pr.height > window.innerHeight - 8) top = Math.max(8, r.top - pr.height - 6);
+  // Alinha a borda direita com a do marcador e depois prende na janela. O max(8) vem POR
+  // ÚLTIMO de propósito: com a janela mais estreita que o popover, `innerWidth - largura`
+  // é negativo e um min() no fim jogaria a caixa pra fora, à esquerda.
+  let left = Math.min(r.right - pr.width, window.innerWidth - pr.width - 8);
+  left = Math.max(8, left);
+  pop.style.top = top + 'px';
+  pop.style.left = left + 'px';
+}
+document.addEventListener('click', () => agTarefaPopFechar(true));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') agTarefaPopFechar(true); });
+// Rolagem move a âncora — o popover ficaria flutuando solto sobre a agenda.
+window.addEventListener('scroll', () => agTarefaPopFechar(true), true);
 function agEscAttr(s) { return esc(String(s || '')).replace(/"/g, '&quot;'); }
 
 // ---- Visão DIA com vários profissionais: uma coluna por profissional ------------------------
