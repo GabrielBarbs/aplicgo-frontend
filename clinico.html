@@ -6731,7 +6731,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CL</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CM</b></span></div>
   </div>
 </div>
 
@@ -8166,6 +8166,47 @@
     #view-editaveis .ed-chip.ia { background: rgba(29,158,117,.16); color: #1D9E75; }
     #view-editaveis .ed-acts { display: flex; gap: 6px; flex-shrink: 0; }
     #view-editaveis .ed-vazio { color: var(--tx3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--bd1); border-radius: 10px; padding: 22px; text-align: center; }
+    /* ---- Nomeamento: como cada pessoa assina no WhatsApp ---- */
+    .nm-topo { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin: 12px 0 16px; }
+    .nm-intro { flex: 1; min-width: 260px; font-size: 12.5px; color: var(--tx3); line-height: 1.5; }
+    .nm-busca {
+      background: var(--bg2); border: 1px solid var(--bg3); color: var(--tx1);
+      padding: 8px 12px; border-radius: 8px; font-size: 12.5px; font-family: inherit; min-width: 200px;
+    }
+    .nm-busca:focus { outline: none; border-color: var(--ac); }
+    .nm-lista { display: flex; flex-direction: column; gap: 8px; }
+    .nm-item { background: var(--bg2); border: 1px solid var(--bd1); border-radius: 10px; }
+    .nm-item.aberto { border-color: var(--ac); }
+    .nm-cab { display: flex; align-items: center; gap: 12px; padding: 10px 14px; flex-wrap: wrap; }
+    .nm-quem { min-width: 160px; }
+    .nm-nome { font-size: 13px; color: var(--tx1); font-weight: 600; }
+    .nm-cargo { font-size: 10.5px; color: var(--tx3b); margin-top: 1px; }
+    /* A prévia é o produto: mostra literalmente o que sai na mensagem. */
+    .nm-previa {
+      flex: 1; min-width: 140px; font-size: 13px; color: #1D9E75; font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .nm-tag {
+      font-size: 9.5px; text-transform: uppercase; letter-spacing: .4px; font-weight: 700;
+      color: #EF9F27; background: rgba(239,159,39,0.14); border-radius: 6px; padding: 3px 7px;
+    }
+    .nm-btn { padding: 5px 11px; font-size: 12px; }
+    .nm-form {
+      display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 0.8fr);
+      gap: 10px; padding: 4px 14px 12px;
+    }
+    @media (max-width: 640px) { .nm-form { grid-template-columns: minmax(0, 1fr); } }
+    .nm-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--tx4); }
+    .nm-rodape {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 14px; border-top: 1px solid var(--bd1); background: rgba(var(--bg3-rgb),0.3);
+      border-radius: 0 0 10px 10px;
+    }
+    .nm-exemplo { flex: 1; min-width: 200px; font-size: 12px; color: var(--tx3); }
+    .nm-exemplo b { color: #1D9E75; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .nm-exemplo-msg { display: block; color: var(--tx2); margin-top: 2px; }
+    .nm-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
     /* Abertura de agenda (Editáveis > Agenda) */
     #view-editaveis .ag-busca { position: relative; margin-bottom: 16px; }
     #view-editaveis .ag-busca i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--tx4); font-size: 15px; }
@@ -31760,6 +31801,7 @@ const ED_TIPO_LABEL = {
 function edInit() { edState.tela = 'hub'; edRender(); if (!edState.carregado) edCarregar(); }
 function edAbrir(id) {
   if (id === 'agenda') { edState.tela = 'agenda'; if (!agcState.carregado) agcCarregar(); else edRender(); return; }
+  if (id === 'nomeamento') { edState.tela = 'nomeamento'; edRender(); if (!nmState.carregado) nmCarregar(); return; }
   if (id !== 'anamneses') return;
   edState.tela = 'anamneses'; edRender();
 }
@@ -31786,6 +31828,7 @@ function edRender() {
   if (!box) return;
   box.innerHTML = edState.tela === 'template' ? edHtmlTemplate()
     : edState.tela === 'agenda' ? edHtmlAgenda()
+    : edState.tela === 'nomeamento' ? nmHtml()
     : edState.tela === 'anamneses' ? edHtmlAnamneses() : edHtmlHub();
 }
 
@@ -31794,6 +31837,7 @@ function edHtmlHub() {
   // sem prometer o que ainda não existe.
   const cards = [
     { id: 'anamneses', ico: 'ti-clipboard-text', lbl: 'Anamneses', ativo: true },
+    { id: 'nomeamento', ico: 'ti-signature', lbl: 'Nomeamento', ativo: true },
     { id: 'geral', ico: 'ti-adjustments-horizontal', lbl: 'Geral' },
     { id: 'financeiro', ico: 'ti-coin', lbl: 'Financeiro' },
     { id: 'agenda', ico: 'ti-calendar-check', lbl: 'Agenda', ativo: true },
@@ -31804,6 +31848,132 @@ function edHtmlHub() {
     if (c.ativo) return '<div class="ed-card" onclick="edAbrir(\'' + c.id + '\')"><i class="ti ' + c.ico + '"></i><div class="lbl">' + esc(c.lbl) + '</div></div>';
     return '<div class="ed-card soon"><i class="ti ' + c.ico + '"></i><div class="lbl">' + esc(c.lbl) + '</div><div class="soon-tag">em construção</div></div>';
   }).join('') + '</div>';
+}
+
+// ================= NOMEAMENTO (Editáveis) =================
+// Como cada pessoa assina no WhatsApp. O rótulo é PREFIXO + NOME + SUFIXO — essa forma existe
+// porque o padrão da casa é assim mesmo: "Dr." vem ANTES e os outros títulos vêm DEPOIS
+// ("Ana Nutri"). Quem não personaliza continua saindo exatamente como sai hoje.
+let nmState = { carregado: false, erro: null, pessoas: [], editando: null, salvando: false, busca: '' };
+
+async function nmCarregar() {
+  nmState.carregado = true; nmState.erro = null;
+  let r = null;
+  try { r = await pacApi('/api/clinico/whatsapp/nomeamento'); } catch (e) { r = null; }
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    // Falha de rede NÃO pode virar "nenhuma pessoa": pareceria que a equipe sumiu.
+    nmState.erro = (r && r.data && r.data.erro) || 'Não consegui carregar as pessoas agora.';
+  } else {
+    nmState.pessoas = r.data.pessoas || [];
+  }
+  edRender();
+}
+function nmHtml() {
+  const voltar = '<button class="ed-voltar" onclick="edVoltar()"><i class="ti ti-chevron-left"></i> Editáveis</button>';
+  if (!nmState.carregado) return voltar + '<div class="pt-empty">Carregando…</div>';
+  if (nmState.erro) {
+    return voltar + '<div class="ed-vazio"><i class="ti ti-alert-triangle"></i> ' + esc(nmState.erro)
+      + ' <button class="pac-btn-secondary" style="margin-left:8px;" onclick="nmCarregar()">Tentar de novo</button></div>';
+  }
+  const q = (nmState.busca || '').toLowerCase();
+  const lista = (nmState.pessoas || []).filter(p => !q || String(p.nome_real || '').toLowerCase().includes(q) || String(p.cargo || '').toLowerCase().includes(q));
+  const topo = '<div class="nm-topo">'
+    + '<div class="nm-intro">Como cada pessoa <b>assina</b> as mensagens que manda pelo WhatsApp. '
+    + 'O padrão vem do cargo; dá pra personalizar o prefixo, o nome e o título de qualquer pessoa.</div>'
+    + '<input class="nm-busca" type="search" placeholder="Buscar pessoa…" value="' + prExEsc(nmState.busca || '') + '" oninput="nmBuscar(this.value)">'
+    + '</div>';
+  if (!lista.length) return voltar + topo + '<div class="ed-vazio">Ninguém encontrado.</div>';
+  return voltar + topo + '<div class="nm-lista">' + lista.map(nmLinha).join('') + '</div>';
+}
+function nmBuscar(v) {
+  nmState.busca = v;
+  const box = document.querySelector('.nm-lista');
+  if (!box) { edRender(); return; }
+  // Re-render só da lista: reconstruir a tela inteira tiraria o foco do campo de busca.
+  const q = (v || '').toLowerCase();
+  const lista = (nmState.pessoas || []).filter(p => !q || String(p.nome_real || '').toLowerCase().includes(q) || String(p.cargo || '').toLowerCase().includes(q));
+  box.innerHTML = lista.length ? lista.map(nmLinha).join('') : '<div class="ed-vazio">Ninguém encontrado.</div>';
+}
+function nmLinha(p) {
+  const editando = nmState.editando === p.id;
+  const cab = '<div class="nm-cab">'
+    + '<div class="nm-quem"><div class="nm-nome">' + esc(p.nome_real) + '</div>'
+    + '<div class="nm-cargo">' + esc(p.cargo || '—') + '</div></div>'
+    + '<div class="nm-previa" title="É assim que aparece na mensagem">' + esc(p.previa || '—') + '</div>'
+    + (p.personalizado ? '<span class="nm-tag">personalizado</span>' : '')
+    + '<button class="pac-btn-secondary nm-btn" onclick="nmEditar(' + (editando ? 'null' : '\'' + esc(p.id) + '\'') + ')">'
+    + '<i class="ti ti-' + (editando ? 'x' : 'pencil') + '"></i> ' + (editando ? 'Fechar' : 'Editar') + '</button>'
+    + '</div>';
+  if (!editando) return '<div class="nm-item">' + cab + '</div>';
+  const a = p.atual || {};
+  const d = p.padrao || {};
+  return '<div class="nm-item aberto">' + cab
+    + '<div class="nm-form">'
+    + '<div class="pac-field"><label>Prefixo <span class="nm-hint">antes do nome</span></label>'
+    + '<input id="nm-pre" value="' + prExEsc(a.prefixo || '') + '" placeholder="' + prExEsc(d.prefixo || 'sem prefixo') + '" oninput="nmPreview(\'' + esc(p.id) + '\')"></div>'
+    + '<div class="pac-field"><label>Nome que aparece</label>'
+    + '<input id="nm-nome" value="' + prExEsc(a.nome || '') + '" placeholder="' + prExEsc(d.nome || '') + '" oninput="nmPreview(\'' + esc(p.id) + '\')"></div>'
+    + '<div class="pac-field"><label>Título <span class="nm-hint">depois do nome</span></label>'
+    + '<input id="nm-suf" value="' + prExEsc(a.sufixo || '') + '" placeholder="' + prExEsc(d.sufixo || 'sem título') + '" oninput="nmPreview(\'' + esc(p.id) + '\')"></div>'
+    + '</div>'
+    + '<div class="nm-rodape">'
+    + '<div class="nm-exemplo">Na mensagem: <b id="nm-previa-viva">' + esc(p.previa || '') + '</b><span class="nm-exemplo-msg">Bom dia! Tudo bem?</span></div>'
+    + '<div class="nm-acoes">'
+    + (p.personalizado ? '<button class="pac-btn-secondary" onclick="nmRestaurar(\'' + esc(p.id) + '\')"><i class="ti ti-rotate"></i> Voltar ao padrão do cargo</button>' : '')
+    + '<button class="pac-btn-primary" onclick="nmSalvar(this,\'' + esc(p.id) + '\')"><i class="ti ti-device-floppy"></i> Salvar</button>'
+    + '</div></div></div>';
+}
+function nmEditar(id) { nmState.editando = id; edRender(); }
+function nmPartesDoForm() {
+  const v = (i) => { const el = document.getElementById(i); return el ? el.value.trim() : ''; };
+  return { prefixo: v('nm-pre'), nome: v('nm-nome'), sufixo: v('nm-suf') };
+}
+// Prévia ao vivo, com a MESMA regra do servidor: pedaço vazio some, sem sobrar espaço.
+function nmPreview(id) {
+  const p = (nmState.pessoas || []).find(x => x.id === id); if (!p) return;
+  const f = nmPartesDoForm();
+  const nome = f.nome || (p.padrao && p.padrao.nome) || p.nome_real;
+  const txt = [f.prefixo, nome, f.sufixo].map(s => String(s || '').trim()).filter(Boolean).join(' ');
+  const el = document.getElementById('nm-previa-viva');
+  if (el) el.textContent = txt ? '*' + txt + '*' : '—';
+}
+async function nmSalvar(btn, id) {
+  if (nmState.salvando) return;
+  const f = nmPartesDoForm();
+  const p = (nmState.pessoas || []).find(x => x.id === id);
+  if (!f.nome && !(p && p.padrao && p.padrao.nome)) { if (typeof homeToast === 'function') homeToast('O nome não pode ficar vazio.'); return; }
+  nmState.salvando = true;
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando…'; }
+  let r = null;
+  try { r = await pacApi('/api/clinico/whatsapp/nomeamento/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify(f) }); } catch (e) { r = null; }
+  nmState.salvando = false;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    if (typeof homeToast === 'function') homeToast((r && r.data && r.data.erro) || 'Não consegui salvar.');
+    return;
+  }
+  nmAplicarResposta(id, r.data);
+  nmState.editando = null;
+  edRender();
+  if (typeof homeToast === 'function') homeToast('Assinatura salva. ✓');
+}
+async function nmRestaurar(id) {
+  if (!confirm('Voltar ao padrão do cargo?\n\nA personalização desta pessoa é apagada.')) return;
+  let r = null;
+  try { r = await pacApi('/api/clinico/whatsapp/nomeamento/' + encodeURIComponent(id), { method: 'PUT', body: JSON.stringify({}) }); } catch (e) { r = null; }
+  if (!r || !r.ok || !r.data || !r.data.ok) { if (typeof homeToast === 'function') homeToast('Não consegui restaurar.'); return; }
+  nmAplicarResposta(id, r.data);
+  nmState.editando = null;
+  edRender();
+  if (typeof homeToast === 'function') homeToast('Voltou ao padrão do cargo.');
+}
+// Usa o que o SERVIDOR devolveu (ele é quem manda no rótulo) em vez de adivinhar o resultado.
+function nmAplicarResposta(id, data) {
+  const p = (nmState.pessoas || []).find(x => x.id === id); if (!p) return;
+  p.personalizado = !!data.personalizado;
+  p.atual = data.atual || p.atual;
+  p.previa = data.previa || '';
 }
 
 function edHtmlAnamneses() {
