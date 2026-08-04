@@ -6700,7 +6700,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CF</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CG</b></span></div>
   </div>
 </div>
 
@@ -9579,7 +9579,7 @@
       </label>
       <div class="pr-anexos-lista" id="ag-anexo-lista"></div>
       <div style="font-size:10px; color:var(--tx4); margin-top:10px; text-align:center;">
-        <i class="ti ti-info-circle"></i> O armazenamento ainda não está ativo -- os arquivos aparecem na lista mas não são salvos no servidor por enquanto.
+        <i class="ti ti-info-circle"></i> Os arquivos vão para <strong>Anexos &amp; Documentos</strong> do paciente — os mesmos que aparecem no prontuário.
       </div>
     </div>
     <div class="ag-modal-footer">
@@ -16876,21 +16876,37 @@ async function agAcaoSolicitarAnamnese() {
 }
 
 // ===== ANEXO E DOCUMENTO (a partir do menu da agenda) =====
-function agAcaoAnexo() {
+async function agAcaoAnexo() {
   const p = _agAcaoPaciente();
   if (!p) return alert('Paciente não encontrado.');
   agFecharAcoesModal();
   agState.anexoPaciente = p;
   agState.anexoTemp = [];
+  agState.anexoEnviando = true;
   document.getElementById('ag-anexo-titulo').textContent =
     'Anexo e documento — ' + (p.nomeCompleto || p.nome || '');
   agAnexoRenderLista();
   document.getElementById('ag-anexo-modal').classList.add('aberto');
+  // Mostra o que o paciente JÁ tem. Agora que o modal salva de verdade, abrir e ver a lista
+  // vazia faria parecer que o anexo de ontem se perdeu.
+  try {
+    const r = await pacApi('/api/clinico/documentos/patient/' + p.id);
+    if (agState.anexoPaciente !== p) return;   // trocou de paciente durante a rede
+    agState.anexoTemp = ((r.ok && r.data && r.data.documentos) || []).map(function (d) {
+      return { id: d.id, nome: d.nome, tipo: d.tipo || 'arquivo', tamanho: d.tamanho ? prFmtTamanho(d.tamanho) : '', icone: prIconePorTipo(d.mime) };
+    });
+  } catch (e) { /* falha de rede: lista vazia, mas o upload segue funcionando */ }
+  agState.anexoEnviando = false;
+  agAnexoRenderLista();
 }
 
 function agAnexoRenderLista() {
   const wrap = document.getElementById('ag-anexo-lista');
   const arquivos = agState.anexoTemp || [];
+  if (agState.anexoEnviando) {
+    wrap.innerHTML = '<div class="pr-anexos-vazio"><i class="ti ti-loader"></i> Enviando…</div>';
+    return;
+  }
   if (arquivos.length === 0) {
     wrap.innerHTML = '<div class="pr-anexos-vazio"><i class="ti ti-folder-open"></i> Nenhum anexo ainda. Exames, laudos, fotos, contrato e documentos entram aqui.</div>';
     return;
@@ -16907,26 +16923,55 @@ function agAnexoRenderLista() {
   `).join('');
 }
 
-function agAnexoSelecionar(files) {
+// Sobe DE VERDADE pro acervo de anexos do paciente — o mesmo endpoint e o mesmo acervo do
+// card "Anexos & Documentos" do prontuário. Antes isto só empilhava o nome numa lista em
+// memória e avisava que "o armazenamento não está ativo": o botão existia, parecia funcionar,
+// e o arquivo sumia ao fechar o modal.
+async function agAnexoSelecionar(files) {
+  const p = agState.anexoPaciente;
+  if (!files || !files.length || !p || !p.id) return;
   if (!agState.anexoTemp) agState.anexoTemp = [];
-  Array.from(files).forEach(f => {
-    agState.anexoTemp.push({
-      nome: f.name,
-      tipo: f.type || 'arquivo',
-      tamanho: prFmtTamanho(f.size),
-      icone: prIconePorTipo(f.type),
-    });
-  });
-  agAnexoRenderLista();
-  if (!agState._avisouAnexo) {
-    agState._avisouAnexo = true;
-    setTimeout(() => alert('Os anexos aparecem na lista, mas o armazenamento ainda não está ativo -- nada é salvo no servidor por enquanto. Isso entra na próxima etapa.'), 100);
+  const t = getToken();
+  agState.anexoEnviando = true; agAnexoRenderLista();
+  for (const f of Array.from(files)) {
+    const grande = upErroTamanho(f);
+    if (grande) { alert(grande); continue; }   // não gasta o upload: avisa e vai pro próximo
+    const fd = new FormData();
+    fd.append('file', f);
+    fd.append('tipo', 'anexo');
+    try {
+      // fetch cru: pacApi crava Content-Type json e destruiria o multipart.
+      const resp = await fetch(API_BASE + '/api/clinico/documentos/patient/' + p.id + '/upload', {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + t }, body: fd,
+      });
+      const d = await resp.json().catch(() => ({}));
+      if (!resp.ok || !d.ok) { alert('Erro ao enviar ' + f.name + ': ' + (d.erro || d.error || ('HTTP ' + resp.status))); continue; }
+      agState.anexoTemp.push({
+        id: (d.documento && d.documento.id) || null,
+        nome: f.name, tipo: f.type || 'arquivo',
+        tamanho: prFmtTamanho(f.size), icone: prIconePorTipo(f.type),
+      });
+    } catch (e) { alert('Erro ao enviar ' + f.name + ': ' + e.message); }
   }
+  agState.anexoEnviando = false;
+  agAnexoRenderLista();
+  // Se o prontuário DESTE paciente está aberto atrás, atualiza a lista dele.
+  if (typeof prState !== 'undefined' && prState.pacienteAtual && prState.pacienteAtual.id === p.id && typeof prCarregarDocumentos === 'function') prCarregarDocumentos();
 }
 
-function agAnexoRemover(i) {
-  if (agState.anexoTemp) agState.anexoTemp.splice(i, 1);
+// O arquivo agora está NO SERVIDOR — tirar da lista sem apagar lá deixaria o modal mentindo
+// (some da tela, continua no prontuário).
+async function agAnexoRemover(i) {
+  const a = (agState.anexoTemp || [])[i];
+  if (!a) return;
+  if (!a.id) { agState.anexoTemp.splice(i, 1); agAnexoRenderLista(); return; }
+  if (!confirm('Remover "' + a.nome + '" dos anexos do paciente?')) return;
+  const r = await pacApi('/api/clinico/documentos/' + a.id, { method: 'DELETE' });
+  if (!r.ok) return alert('Não consegui remover: ' + ((r.data && r.data.erro) || '--'));
+  agState.anexoTemp.splice(i, 1);
   agAnexoRenderLista();
+  const p = agState.anexoPaciente;
+  if (p && typeof prState !== 'undefined' && prState.pacienteAtual && prState.pacienteAtual.id === p.id && typeof prCarregarDocumentos === 'function') prCarregarDocumentos();
 }
 
 function agAnexoFechar() {
@@ -17263,6 +17308,19 @@ function ligarParaPaciente(telefone) {
 // ============================================================
 // NÚCLEO COMPARTILHADO DO CHAT WHATSAPP (popup + página Conversas)
 // ============================================================
+// Teto de mídia do WhatsApp. Tem que casar com a checagem do backend (22 MB de BASE64, que é
+// o que trafega) e com o limite do express.json daquela rota (28mb) — se um dos três ficar pra
+// trás, o arquivo passa num e morre no outro, e a pessoa lê o erro do lugar errado.
+// É MENOR que o teto de anexo do prontuário (25 MB) de propósito: lá o arquivo sobe como
+// multipart; aqui vira base64 dentro de um JSON, que infla ~33% e fica inteiro na memória.
+const WA_MIDIA_MAX_MB = 16;
+// Diz QUANTO o arquivo tem, não só que é grande. Sem o número não dá pra saber se falta
+// comprimir um pouco ou se o PDF tem 60 MB e o caminho é outro.
+function waErroTamanhoMidia(f) {
+  if (!f || f.size <= WA_MIDIA_MAX_MB * 1024 * 1024) return null;
+  return '"' + f.name + '" tem ' + prFmtTamanho(f.size) + ' e o limite para enviar pelo WhatsApp é '
+    + WA_MIDIA_MAX_MB + ' MB.\n\nComprima o PDF e tente de novo. (No prontuário, o mesmo arquivo pode ser anexado até 25 MB.)';
+}
 // Trunca por PONTO DE CÓDIGO (nunca corta emoji no meio -> era o "emoji bugado")
 function waTrunc(s, n) {
   const arr = Array.from(String(s == null ? '' : s));
@@ -18930,7 +18988,7 @@ function cpArquivoSelecionar(input) {
 }
 async function cpEnviarMidia(file) {
   if (!file || !cpState.waJid) return;
-  if (file.size > 10 * 1024 * 1024) { alert('Arquivo grande demais (máx 10MB).'); return; }
+  const _gr = waErroTamanhoMidia(file); if (_gr) { alert(_gr); return; }
   if (cpState.waEnviando) return;
   cpState.waEnviando = true;
   cpEmojiFechar();
@@ -19448,7 +19506,7 @@ function wvAnexarClique() { const f = document.getElementById('wv-file'); if (f)
 async function wvAnexarArquivo(input) {
   const file = input.files && input.files[0];
   if (!file || !wvState.jid) return;
-  if (file.size > 10 * 1024 * 1024) { if (typeof homeToast === 'function') homeToast('Arquivo grande demais (máx 10MB).'); return; }
+  const _gr = waErroTamanhoMidia(file); if (_gr) { if (typeof homeToast === 'function') homeToast(_gr); alert(_gr); input.value = ''; return; }
   if (wvState.enviando) return;
   wvState.enviando = true;
   const btn = document.getElementById('wv-send');
