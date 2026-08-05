@@ -6773,7 +6773,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CQ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CR</b></span></div>
   </div>
 </div>
 
@@ -26466,7 +26466,7 @@ function prFmtTamanho(bytes) {
 // Teto de upload — tem que bater com o UPLOAD_MAX_MB do backend (src/upload.ts). Conferir ANTES de
 // enviar: subir 30 MB no 4G pra receber erro no fim é o pior dos mundos (e o erro do multer vinha
 // como 500 "Erro interno", então a pessoa nem sabia o motivo e tentava de novo).
-const UPLOAD_MAX_MB = 25;
+const UPLOAD_MAX_MB = 100;
 function upErroTamanho(f) {
   // >= e não >: o multer recusa o arquivo que ATINGE o teto (testado: 25 MB exatos dão 413). Com "<="
   // aqui, um arquivo de 25 MB cravados passaria na tela e só falharia depois de subir tudo.
