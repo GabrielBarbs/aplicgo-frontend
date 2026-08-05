@@ -6762,7 +6762,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CN</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CO</b></span></div>
   </div>
 </div>
 
@@ -10755,9 +10755,9 @@ async function carregarMe() {
     authUser = data.user;
     meData = data;
     aplicarUI();
-    await carregarStatus();
     caTratarRetorno();   // se voltou do Conta Azul (?contaazul=ok|erro), avisa e limpa a URL
     restaurarViewSalva();  // reabre a última aba (depois das permissões, que o trocarView consulta)
+    dashCarregarSeVisivel();  // a Visão Geral só carrega quando é ELA que está na tela
     novidadesAutoAbrir();  // mostra a última atualização UMA vez pra quem entrou/recarregou
   } catch (e) {
     document.getElementById('status-text').textContent = 'Offline';
@@ -10865,27 +10865,38 @@ function tickRelogio() {
 }
 setInterval(tickRelogio, 30000); // atualiza a cada 30s pra refletir mudança de minuto
 
-async function carregarStatus() {
-  try {
-    const resp = await fetch(API_BASE + '/api/clinico/status', {
-      headers: { 'Authorization': 'Bearer ' + getToken() }
-    });
-    const data = await resp.json();
-    if (data.ok) {
-      homeCounts = data.counts; // guardado p/ fallback do hero de impacto
-    }
-  } catch (e) { /* silencioso */ }
-  dashCarregar();
+// A Visão Geral custa ~9 idas ao servidor (o /resumo mais os 7 cards que ele dispara). Antes ela
+// carregava em TODO login, mesmo pra quem abre direto no Estoque ou nos Pacientes — a tela pedida
+// ficava esperando na fila atrás de uma home que ninguém ia olhar.
+// (Saiu daqui também o GET /api/clinico/status: eram 7 count() de tabela INTEIRA — agendamentos,
+//  evoluções, aplicações — pra preencher `homeCounts`, que nenhuma linha do sistema lia. E era
+//  await, então segurava a abertura de qualquer tela.)
+function dashCarregarSeVisivel() {
+  const el = document.querySelector('.view.active');
+  if (el && el.id === 'view-painel') dashCarregar();
 }
-let homeCounts = null;
 
 // ============================================================
 // DASHBOARD OPERACIONAL (Visão Geral)
 // ============================================================
+// Trava de carga em andamento: agora a home tem mais de um gatilho (boot, voltar pra aba, trocar a
+// unidade do filtro). Sem isso, dois gatilhos quase juntos disparam ~18 requisições em vez de 9.
+let dashCarregando = false;
 async function dashCarregar() {
+  if (dashCarregando) return;
+  dashCarregando = true;
+  try {
+    await dashCarregarAgora();
+  } finally {
+    dashCarregando = false;
+  }
+}
+async function dashCarregarAgora() {
   const q = (typeof homeUnit !== 'undefined' && homeUnit) ? ('?unit=' + encodeURIComponent(homeUnit)) : '';
   const r = await pacApi('/api/clinico/dashboard/resumo' + q);
-  if (!r.ok) return;
+  // Resumo fora do ar não pode levar junto o card de tarefas: ele era carregado por fora antes
+  // (homeTarefasSync no hook da aba) e continua tendo que aparecer.
+  if (!r.ok) { homeMinhasCarregar(); return; }
   const d = r.data;
   window.homeResumo = d;
 
@@ -14817,7 +14828,11 @@ function trocarView(v) {
   // A home é um div que só troca de class: sem este hook ela mostrava o HTML da última carga pra
   // sempre. Toda conclusão feita FORA dela (aplicar injetável, agendar) deixava a tarefa fantasma
   // na tela até um F5 — voltar pra home não era um refresh.
-  if (v === 'painel') homeTarefasSync();
+  // Voltar pra Visão Geral agora RECARREGA ela: como a home não carrega mais em todo login,
+  // sem isto quem abriu noutra aba veria a home vazia ao clicar nela. `dashCarregar` já inclui o
+  // `homeMinhasCarregar` que o `homeTarefasSync` fazia aqui (a parte da agenda não se aplica: a
+  // aba de agenda não está ativa quando se acaba de trocar pra home).
+  if (v === 'painel') dashCarregar();
   else if (v === 'financeiro') caStatusCarregar();
   else if (v === 'admin') adminTrocarTab('cargos');
   else if (v === 'pendencias') pendCarregar();
@@ -15149,6 +15164,11 @@ async function pacCarregarApoio() {
   const nutris = pacState.profissionais.filter(p => pacEhNutri(p) || p.role === 'gestor');
   // Modal (pac-medico/pac-nutri): preenchido POR UNIDADE via pacPopularResponsaveis, que
   // reage ao onchange do #pac-unit. Aqui só o disparo inicial (unidade primária já pré-selecionada).
+  // `selModalUnit` era uma const declarada aqui e sumiu no 01a2a05, mas o uso ficou: virou
+  // ReferenceError e MATAVA o pacCarregarApoio no meio. Efeitos vistos: os filtros de médico/nutri
+  // da lista (logo abaixo) nunca eram preenchidos, e o esInit — que dá `await` nesta função —
+  // abortava, deixando o Estoque VAZIO pra quem caía nele como primeira tela.
+  const selModalUnit = document.getElementById('pac-unit');
   pacPopularResponsaveis(selModalUnit ? selModalUnit.value : '');
   // Filtros de médico/nutri responsável (valor = id do profissional)
   const selFMed = document.getElementById('pac-filter-medico');
@@ -30711,11 +30731,15 @@ function esControlesDisponiveis() {
 }
 
 async function esInit() {
-  // Garante que unidades e selects básicos estão prontos
-  if (pacState.unidades.length === 0) await pacCarregarApoio();
-  await esCarregarDashboard();
+  // Garante que unidades e selects básicos estão prontos. O try existe porque uma falha aqui NÃO
+  // pode levar o estoque junto: era exatamente o que acontecia (ver `selModalUnit`) — a tela ficava
+  // vazia, sem erro visível, e parecia que o estoque estava "carregando pra sempre".
+  if (pacState.unidades.length === 0) {
+    try { await pacCarregarApoio(); } catch (e) { console.error('[estoque] apoio falhou:', e); }
+  }
   esRenderActions();
-  esCarregarTab();
+  // Cartões do topo e tabela saem juntos: um não depende do outro.
+  await Promise.all([esCarregarDashboard(), esCarregarTab()]);
 }
 
 async function esCarregarDashboard() {
@@ -30788,25 +30812,29 @@ async function esCarregarTab(opts) {
   // aqui só esvazia o seletor — a tabela continua carregando normalmente.
   // `produtosTodos` é lista SEPARADA de propósito: `esState.produtos` é o resultado FILTRADO da
   // aba Produtos, e reusá-lo faria o seletor "Medicamento" listar só um pedaço do catálogo.
-  if (esState.tab !== 'produtos') {
-    if (!esState.produtosTodos.length) {
-      try { const rp = await pacApi('/api/clinico/estoque/products'); if (rp.ok) esState.produtosTodos = rp.data.produtos || []; } catch (e) {}
-    }
-    try { await esCarregarUnidades(); } catch (e) {}
-  }
+  // Os três pedidos saem JUNTOS: a tabela não depende dos seletores, e em fila a tela esperava
+  // três idas ao servidor em vez de uma.
+  const rotaTab = esState.tab === 'produtos' ? '/api/clinico/estoque/products' + esQuery('produtos')
+    : esState.tab === 'lotes' ? '/api/clinico/estoque/batches' + esQuery('lotes')
+    : '/api/clinico/estoque/movements' + esQuery('movimentos');
+  const precisaSeletores = esState.tab !== 'produtos';
+  const [r] = await Promise.all([
+    pacApi(rotaTab),
+    (precisaSeletores && !esState.produtosTodos.length)
+      ? pacApi('/api/clinico/estoque/products').then((rp) => { if (rp.ok) esState.produtosTodos = rp.data.produtos || []; }).catch(() => {})
+      : Promise.resolve(),
+    precisaSeletores ? esCarregarUnidades().catch(() => {}) : Promise.resolve(),
+  ]);
   if (esState.tab === 'produtos') {
-    const r = await pacApi('/api/clinico/estoque/products' + esQuery('produtos'));
     if (meuTurno !== esState.carga) return;
     esState.produtos = r.ok ? r.data.produtos : [];
     esRenderProdutos();
   } else if (esState.tab === 'lotes') {
-    const r = await pacApi('/api/clinico/estoque/batches' + esQuery('lotes'));
     if (meuTurno !== esState.carga) return;
     esState.lotes = r.ok ? r.data.lotes : [];
     esState.truncado = !!(r.ok && r.data.truncado); esState.limite = (r.ok && r.data.limite) || 0;
     esRenderLotes();
   } else {
-    const r = await pacApi('/api/clinico/estoque/movements' + esQuery('movimentos'));
     if (meuTurno !== esState.carga) return;
     esState.movimentos = r.ok ? r.data.movimentos : [];
     esState.truncado = !!(r.ok && r.data.truncado); esState.limite = (r.ok && r.data.limite) || 0;
