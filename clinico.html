@@ -6773,7 +6773,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CS</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CT</b></span></div>
   </div>
 </div>
 
@@ -28750,7 +28750,9 @@ function prNutriRecalcularFlagDoPlano() {
   n.usadas = false;   // qualquer mudança na lista desatualiza o plano que está na tela
   n.docs = uteis.slice(0, 5).map((d) => ({ id: d.id, nome: d.nome, data: d.data }));
   n.ignorados = Math.max(0, uteis.length - 5);
-  n.pendentes = lista.filter((d) => !d.leitura).length;
+  // 'processando' conta como pendente: a leitura está em curso no servidor e o documento ainda
+  // não influencia o plano — pro banner, é a mesma coisa que "ainda não foi analisado".
+  n.pendentes = lista.filter((d) => !d.leitura || d.leitura.status === 'processando').length;
   n.falhos = lista.filter((d) => d.leitura && (d.leitura.status === 'erro' || d.leitura.formato_inesperado)).length;
   n.sem_orientacao = lista.filter((d) => d.leitura && d.leitura.status === 'lido' && !d.leitura.formato_inesperado && (d.leitura.sem_orientacao || !(d.leitura.diretrizes || '').trim())).length;
   n.indefinido = false;
@@ -28823,6 +28825,10 @@ function prRenderNutriItem(d) {
   if (ocupado) st = '<span class="nr-st pend"><i class="ti ti-loader-2"></i> Analisando…</span>';
   else if (naFila) st = '<span class="nr-st pend"><i class="ti ti-clock"></i> Na fila…</span>';
   else if (!L) st = '<span class="nr-st pend"><i class="ti ti-clock"></i> Sem análise</span>';
+  // PDF sendo transcrito/analisado em segundo plano no servidor. TEM que vir antes do "Sem
+  // orientação": um processando não tem diretrizes ainda, e cairia naquele rótulo — a nutri
+  // leria "sem orientação" num documento que está no meio da leitura.
+  else if (L.status === 'processando') st = '<span class="nr-st pend"><i class="ti ti-loader-2"></i> ' + prExEsc(L.etapa || 'Analisando…') + '</span>';
   else if (L.status === 'erro') st = '<span class="nr-st err" title="' + prExEsc(L.erro || '') + '" onclick="prNutriAnalisar(\'' + d.id + '\')"><i class="ti ti-alert-triangle"></i> Falhou — tentar de novo</span>';
   else if (L.formato_inesperado) st = '<span class="nr-st err"><i class="ti ti-alert-triangle"></i> Resposta fora do formato</span>';
   else if (L.sem_orientacao || !(L.diretrizes || '').trim()) st = '<span class="nr-st pend"><i class="ti ti-file-off"></i> Sem orientação</span>';
@@ -28953,6 +28959,32 @@ async function prNutriAnalisar(docId, silencioso) {
     if (r.ok && r.data && r.data.leitura) leitura = r.data.leitura;
     else erro = (r.data && r.data.erro) || 'Não consegui analisar agora.';
   } catch (e) { erro = 'Não consegui analisar agora.'; }
+  // PDF processa em SEGUNDO PLANO no servidor (transcrição página a página + análise): a resposta
+  // veio como 'processando' e o resultado chega por POLL na lista. O item mostra a etapa ao vivo
+  // ("transcrevendo… página 6 de 40"). Teto de 15 min — o mesmo da trava do servidor.
+  if (leitura && leitura.status === 'processando') {
+    const inicioPoll = Date.now();
+    while (Date.now() - inicioPoll < 15 * 60 * 1000) {
+      await new Promise(function (r2) { setTimeout(r2, 4000); });
+      // Trocou de paciente ou fechou o painel: o job continua no servidor, mas esta tela parou.
+      if (prState.planoPid !== pid || !prState.planoAberto) return;
+      let fresco = null;
+      try {
+        const rl = await pacApi('/api/clinico/prontuario/patient/' + pid + '/nutri-recomendacao');
+        const lista = (rl.ok && rl.data && rl.data.recomendacoes) || [];
+        fresco = lista.find(function (x) { return x.id === docId; }) || null;
+      } catch (e) { /* rede piscou: tenta no próximo ciclo */ }
+      if (!fresco) { erro = 'O documento saiu da lista durante a análise.'; leitura = null; break; }
+      const it = (prState.nutriRec || []).find(function (x) { return x.id === docId; });
+      if (it) { it.leitura = fresco.leitura; prRerenderPlano(); }   // a etapa anda na tela
+      if (!fresco.leitura || fresco.leitura.status !== 'processando') { leitura = fresco.leitura; break; }
+    }
+    if (leitura && leitura.status === 'processando') {
+      // Estourou o teto do poll: solta a tela com honestidade — o servidor pode ainda concluir.
+      erro = 'A leitura está demorando mais que o normal. Deixa rodando — o resultado aparece ao recarregar a aba.';
+      leitura = null;
+    }
+  }
   // Solta a trava DEPOIS do guard: uma resposta atrasada do paciente A não pode limpar o
   // "analisando" que já pertence ao paciente B (o spinner do B sumiria e daria pra disparar
   // uma segunda análise paga do mesmo documento).
