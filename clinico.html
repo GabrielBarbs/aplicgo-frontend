@@ -5525,6 +5525,37 @@
     }
     .es-card-alert .ext { font-size: 10px; color: var(--tx3b); margin-top: 4px; }
 
+    /* Barra de filtros do estoque: quebra em várias linhas em tela estreita em vez de
+       espremer os selects (grid blowout já mordeu esse dashboard antes). */
+    .es-filtros {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 10px 14px; border-bottom: 1px solid var(--bd1); background: var(--bg1);
+    }
+    .es-filtros select, .es-filtros input[type="search"], .es-filtros input[type="date"] {
+      background: var(--bg2); border: 1px solid var(--bd1); color: var(--tx1);
+      border-radius: 6px; padding: 6px 9px; font-size: 12px; font-family: inherit;
+      min-width: 0; max-width: 100%;
+    }
+    .es-filtros select:focus, .es-filtros input:focus { outline: none; border-color: var(--ac); }
+    .es-f-busca { flex: 1 1 220px; min-width: 160px; }
+    .es-f-check, .es-f-data {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--tx2); white-space: nowrap;
+    }
+    .es-f-check input { accent-color: var(--ac); }
+    .es-f-limpar {
+      background: none; border: 1px solid var(--bd1); color: var(--tx3b);
+      border-radius: 6px; padding: 6px 10px; font-size: 11px; font-family: inherit; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .es-f-limpar:hover { color: var(--tx1); border-color: var(--tx3b); }
+    .es-truncado {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 14px; font-size: 11px;
+      background: rgba(239,159,39,0.10); color: #EF9F27;
+      border-bottom: 1px solid var(--bd1);
+    }
+
     .es-table {
       width: 100%; border-collapse: collapse; font-size: 12px;
     }
@@ -6731,7 +6762,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CM</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CN</b></span></div>
   </div>
 </div>
 
@@ -30646,9 +30677,38 @@ async function apDeletarBio(id) {
 let esState = {
   tab: 'lotes',
   produtos: [],
+  produtosTodos: [],
   lotes: [],
   movimentos: [],
+  // Filtros POR ABA: cada uma responde uma pergunta diferente, e zerar o filtro da outra ao
+  // trocar de aba faria a pessoa refazer a busca toda vez.
+  filtros: {
+    lotes: { q: '', unit: '', product: '', situacao: '', com_estoque: '' },
+    produtos: { q: '', ativo: '', controle: '', refrig: '' },
+    movimentos: { q: '', unit: '', product: '', tipo: '', de: '', ate: '' },
+  },
+  truncado: false,
+  limite: 0,
+  buscaTimer: null,
+  carga: 0,
 };
+const ES_MOV_TIPOS = [
+  ['ENTRADA', 'Entrada'], ['SAIDA_APLICACAO', 'Saída — aplicação'], ['SAIDA_VENDA', 'Saída — venda'],
+  ['SAIDA_VAREJO', 'Saída — varejo'], ['AJUSTE', 'Ajuste'], ['PERDA', 'Perda'],
+  ['TRANSFERENCIA_ENTRADA', 'Transferência — entrada'], ['TRANSFERENCIA_SAIDA', 'Transferência — saída'],
+];
+const ES_SITUACOES = [['ok', 'Em dia'], ['vencendo', 'Vence em ≤ 30 dias'], ['vencido', 'Vencido'], ['esgotado', 'Esgotado']];
+// MESMA lista do <select id="es-prod-controle"> do cadastro. Se divergirem, o filtro oferece uma
+// faixa que nenhum produto pode ter (some sem explicação) e esconde uma que existe de verdade.
+const ES_CONTROLES = ['B1', 'B2', 'C1', 'C2', 'C5'];
+// Produto legado gravado com uma faixa fora dessa lista continua filtrável: entra a partir do que
+// o catálogo carregado realmente tem.
+function esControlesDisponiveis() {
+  const vistos = (esState.produtosTodos || []).concat(esState.produtos || [])
+    .map((p) => p && p.controle_anvisa).filter((c) => c && ES_CONTROLES.indexOf(c) < 0);
+  const extras = vistos.filter((c, i) => vistos.indexOf(c) === i).sort();
+  return [['livre', 'Livre (sem controle)']].concat(ES_CONTROLES.concat(extras).map((c) => [c, c]));
+}
 
 async function esInit() {
   // Garante que unidades e selects básicos estão prontos
@@ -30682,37 +30742,139 @@ function esRenderActions() {
 }
 
 function esTrocarTab(t) {
+  clearTimeout(esState.buscaTimer);   // busca ainda em espera não pode disparar na aba nova
   esState.tab = t;
   document.querySelectorAll('[data-estab]').forEach(b => b.classList.toggle('active', b.dataset.estab === t));
   esRenderActions();
   esCarregarTab();
 }
 
-async function esCarregarTab() {
+// Filtros vão pro SERVIDOR, não numa peneira no navegador: lotes e movimentos vêm cortados
+// (500 e 200). Peneirar o que já chegou diria "nada encontrado" com registros mais antigos
+// casando o filtro — e ninguém teria como desconfiar.
+function esQuery(aba) {
+  const f = esState.filtros[aba] || {};
+  const p = new URLSearchParams();
+  Object.keys(f).forEach((k) => { if (f[k]) p.set(k, f[k]); });
+  const s = p.toString();
+  return s ? '?' + s : '';
+}
+function esTemFiltro(aba) { const f = esState.filtros[aba] || {}; return Object.keys(f).some((k) => !!f[k]); }
+function esLimparFiltros(aba) {
+  const f = esState.filtros[aba] || {};
+  Object.keys(f).forEach((k) => { f[k] = ''; });
+  esCarregarTab();
+}
+function esSetFiltro(aba, campo, valor) {
+  esState.filtros[aba][campo] = valor;
+  esCarregarTab();
+}
+// Busca por texto espera a pessoa parar de digitar — cada tecla é uma consulta no servidor.
+function esBuscar(aba, valor) {
+  esState.filtros[aba].q = valor;
+  clearTimeout(esState.buscaTimer);
+  esState.buscaTimer = setTimeout(() => esCarregarTab({ manterFoco: 'es-f-q' }), 350);
+}
+
+async function esCarregarTab(opts) {
+  // Cada carga ganha um número. Mexer em dois filtros seguidos deixa duas buscas no ar e a mais
+  // ANTIGA pode voltar por último — a tabela mostraria o resultado do filtro anterior com a barra
+  // exibindo o filtro novo. Só a última chamada pinta a tela.
+  const meuTurno = ++esState.carga;
   const wrap = document.getElementById('es-conteudo');
   wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div>';
+  esState.truncado = false; esState.limite = 0;
+  // Produtos e unidades alimentam os seletores das outras abas. Carrega uma vez, e uma falha
+  // aqui só esvazia o seletor — a tabela continua carregando normalmente.
+  // `produtosTodos` é lista SEPARADA de propósito: `esState.produtos` é o resultado FILTRADO da
+  // aba Produtos, e reusá-lo faria o seletor "Medicamento" listar só um pedaço do catálogo.
+  if (esState.tab !== 'produtos') {
+    if (!esState.produtosTodos.length) {
+      try { const rp = await pacApi('/api/clinico/estoque/products'); if (rp.ok) esState.produtosTodos = rp.data.produtos || []; } catch (e) {}
+    }
+    try { await esCarregarUnidades(); } catch (e) {}
+  }
   if (esState.tab === 'produtos') {
-    const r = await pacApi('/api/clinico/estoque/products');
+    const r = await pacApi('/api/clinico/estoque/products' + esQuery('produtos'));
+    if (meuTurno !== esState.carga) return;
     esState.produtos = r.ok ? r.data.produtos : [];
     esRenderProdutos();
   } else if (esState.tab === 'lotes') {
-    const r = await pacApi('/api/clinico/estoque/batches');
+    const r = await pacApi('/api/clinico/estoque/batches' + esQuery('lotes'));
+    if (meuTurno !== esState.carga) return;
     esState.lotes = r.ok ? r.data.lotes : [];
+    esState.truncado = !!(r.ok && r.data.truncado); esState.limite = (r.ok && r.data.limite) || 0;
     esRenderLotes();
   } else {
-    const r = await pacApi('/api/clinico/estoque/movements');
+    const r = await pacApi('/api/clinico/estoque/movements' + esQuery('movimentos'));
+    if (meuTurno !== esState.carga) return;
     esState.movimentos = r.ok ? r.data.movimentos : [];
+    esState.truncado = !!(r.ok && r.data.truncado); esState.limite = (r.ok && r.data.limite) || 0;
     esRenderMovimentos();
   }
+  // Digitar na busca re-renderiza a tabela E a barra: sem devolver o foco, a pessoa perde o
+  // campo no meio da palavra.
+  if (opts && opts.manterFoco) {
+    const el = document.getElementById(opts.manterFoco);
+    if (el) { const p = el.value.length; el.focus(); try { el.setSelectionRange(p, p); } catch (e) {} }
+  }
+}
+
+// ---- barra de filtros (uma por aba) ----
+function esOpts(lista, atual) {
+  return lista.map(([v, l]) => `<option value="${esc(v)}"${String(atual) === String(v) ? ' selected' : ''}>${esc(l)}</option>`).join('');
+}
+function esSelUnidades() {
+  return (esUnidades || []).map((u) => [u.id, u.nome]);
+}
+function esSelProdutos() {
+  return (esState.produtosTodos || []).map((p) => [p.id, p.nome]);
+}
+function esFiltrosHtml(aba) {
+  const f = esState.filtros[aba];
+  const busca = `<input id="es-f-q" class="es-f-busca" type="search" placeholder="${aba === 'produtos' ? 'Buscar produto, princípio, fabricante…' : (aba === 'lotes' ? 'Buscar produto ou nº do lote…' : 'Buscar produto, lote ou observação…')}" value="${prExEsc(f.q || '')}" oninput="esBuscar('${aba}', this.value)">`;
+  let campos = '';
+  if (aba === 'lotes') {
+    campos = `<select onchange="esSetFiltro('lotes','unit',this.value)"><option value="">Todas as unidades</option>${esOpts(esSelUnidades(), f.unit)}</select>
+      <select onchange="esSetFiltro('lotes','product',this.value)"><option value="">Todos os medicamentos</option>${esOpts(esSelProdutos(), f.product)}</select>
+      <select onchange="esSetFiltro('lotes','situacao',this.value)"><option value="">Qualquer situação</option>${esOpts(ES_SITUACOES, f.situacao)}</select>
+      <label class="es-f-check"><input type="checkbox" ${f.com_estoque ? 'checked' : ''} onchange="esSetFiltro('lotes','com_estoque', this.checked ? '1' : '')"> Só com saldo</label>`;
+  } else if (aba === 'produtos') {
+    campos = `<select onchange="esSetFiltro('produtos','ativo',this.value)"><option value="">Ativos e inativos</option>${esOpts([['1', 'Só ativos'], ['0', 'Só inativos']], f.ativo)}</select>
+      <select onchange="esSetFiltro('produtos','controle',this.value)"><option value="">Qualquer controle</option>${esOpts(esControlesDisponiveis(), f.controle)}</select>
+      <select onchange="esSetFiltro('produtos','refrig',this.value)"><option value="">Refrigerado e ambiente</option>${esOpts([['1', 'Só refrigerados'], ['0', 'Só ambiente']], f.refrig)}</select>`;
+  } else {
+    campos = `<select onchange="esSetFiltro('movimentos','unit',this.value)"><option value="">Todas as unidades</option>${esOpts(esSelUnidades(), f.unit)}</select>
+      <select onchange="esSetFiltro('movimentos','product',this.value)"><option value="">Todos os medicamentos</option>${esOpts(esSelProdutos(), f.product)}</select>
+      <select onchange="esSetFiltro('movimentos','tipo',this.value)"><option value="">Todo tipo</option>${esOpts(ES_MOV_TIPOS, f.tipo)}</select>
+      <label class="es-f-data">de <input type="date" value="${esc(f.de || '')}" onchange="esSetFiltro('movimentos','de',this.value)"></label>
+      <label class="es-f-data">até <input type="date" value="${esc(f.ate || '')}" onchange="esSetFiltro('movimentos','ate',this.value)"></label>`;
+  }
+  const limpar = esTemFiltro(aba) ? `<button class="es-f-limpar" onclick="esLimparFiltros('${aba}')"><i class="ti ti-x"></i> Limpar filtros</button>` : '';
+  return `<div class="es-filtros">${busca}${campos}${limpar}</div>`;
+}
+// Aviso de lista CORTADA. Sem isso a tela parece completa e alguém conclui que o lote sumiu.
+function esAvisoTruncado() {
+  if (!esState.truncado) return '';
+  return `<div class="es-truncado"><i class="ti ti-alert-triangle"></i> Mostrando os ${esState.limite} mais recentes — há mais registros. Use os filtros pra encontrar o que procura.</div>`;
+}
+// Vazio COM filtro é diferente de vazio sem nada cadastrado: um se resolve tirando o filtro,
+// o outro cadastrando. Dizer a mesma coisa nos dois casos manda a pessoa pro lugar errado.
+function esVazioHtml(aba, ico, textoSemNada) {
+  if (esTemFiltro(aba)) {
+    return `<div class="pac-empty"><i class="ti ti-filter-off"></i>Nada encontrado com esses filtros.
+      <button class="pac-btn-secondary" style="margin-left:10px;" onclick="esLimparFiltros('${aba}')">Limpar filtros</button></div>`;
+  }
+  return `<div class="pac-empty"><i class="ti ${ico}"></i>${textoSemNada}</div>`;
 }
 
 function esRenderProdutos() {
   const wrap = document.getElementById('es-conteudo');
   if (esState.produtos.length === 0) {
-    wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-flask"></i>Sem produtos cadastrados. Cria o primeiro pra começar.</div>';
+    wrap.innerHTML = esFiltrosHtml('produtos') + esVazioHtml('produtos', 'ti-flask', 'Sem produtos cadastrados. Cria o primeiro pra começar.');
     return;
   }
-  wrap.innerHTML = `<table class="es-table">
+  wrap.innerHTML = esFiltrosHtml('produtos') + `<table class="es-table">
     <thead><tr>
       <th>Produto</th>
       <th>Princípio ativo</th>
@@ -30743,10 +30905,12 @@ function esFmtQtd(qtd, prod) {
   if (prod && prod.conta_em_mg) return (qtd / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) + ' mg';
   return String(qtd);
 }
-// Produto escolhido na ENTRADA de lote (da lista de produtos do estoque).
+// Produto escolhido na ENTRADA de lote. Procura no MESMO acervo que montou o <select>
+// (`produtosTodos`): achar null aqui faria o produto contado em mg passar por ampola e o
+// estoque entrar com a quantidade errada, sem nenhum aviso.
 function esProdSelecionado() {
   const id = (document.getElementById('es-lote-produto') || {}).value;
-  return (esState.produtos || []).find(p => p.id === id) || null;
+  return (esState.produtosTodos || []).find(p => p.id === id) || null;
 }
 // Entrada de produto contado em mg: a recepção conta AMPOLAS (o sistema guarda mg).
 function esLoteProdChange() {
@@ -30780,10 +30944,10 @@ function esAmpolasParaMcg(ampolas, mgPorAmpola) { return Math.round(ampolas * mg
 function esRenderLotes() {
   const wrap = document.getElementById('es-conteudo');
   if (esState.lotes.length === 0) {
-    wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-package"></i>Sem lotes cadastrados. Use "Entrada de lote" pra começar.</div>';
+    wrap.innerHTML = esFiltrosHtml('lotes') + esVazioHtml('lotes', 'ti-package', 'Sem lotes cadastrados. Use "Entrada de lote" pra começar.');
     return;
   }
-  wrap.innerHTML = `<table class="es-table">
+  wrap.innerHTML = esFiltrosHtml('lotes') + esAvisoTruncado() + `<table class="es-table">
     <thead><tr>
       <th>Produto</th>
       <th>Lote</th>
@@ -30843,10 +31007,10 @@ async function esExcluirLote(id, loteEnc, qtdAtual, qtdInicial) {
 function esRenderMovimentos() {
   const wrap = document.getElementById('es-conteudo');
   if (esState.movimentos.length === 0) {
-    wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-history"></i>Sem movimentações registradas.</div>';
+    wrap.innerHTML = esFiltrosHtml('movimentos') + esVazioHtml('movimentos', 'ti-history', 'Sem movimentações registradas.');
     return;
   }
-  wrap.innerHTML = `<table class="es-table">
+  wrap.innerHTML = esFiltrosHtml('movimentos') + esAvisoTruncado() + `<table class="es-table">
     <thead><tr>
       <th>Data</th>
       <th>Tipo</th>
@@ -30929,16 +31093,19 @@ async function esSalvarProd() {
   if (!r.ok) { erroEl.textContent = r.data.erro || 'Erro'; erroEl.style.display = 'block'; return; }
   esFecharProd();
   esCarregarDashboard();
+  esState.produtosTodos = [];   // catálogo mudou: os seletores das outras abas recarregam
   if (esState.tab === 'produtos') esCarregarTab();
 }
 
 async function esAbrirNovoLote() {
-  // Carrega produtos disponíveis pra select
-  if (esState.produtos.length === 0) {
+  // Carrega produtos disponíveis pra select. Usa `produtosTodos` (catálogo inteiro) e NÃO
+  // `esState.produtos`, que é o resultado filtrado da aba Produtos — senão um filtro deixado
+  // ligado lá esconderia produtos da entrada de lote.
+  if (esState.produtosTodos.length === 0) {
     const r = await pacApi('/api/clinico/estoque/products');
-    if (r.ok) esState.produtos = r.data.produtos;
+    if (r.ok) esState.produtosTodos = r.data.produtos;
   }
-  const ativos = esState.produtos.filter(p => p.ativo);
+  const ativos = esState.produtosTodos.filter(p => p.ativo);
   if (ativos.length === 0) {
     alert('Cadastra pelo menos 1 produto antes de dar entrada em lote.');
     return;
