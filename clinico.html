@@ -6773,7 +6773,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CR</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CS</b></span></div>
   </div>
 </div>
 
@@ -19484,6 +19484,13 @@ async function cpCarregarMsgsWa(scroll) {
   if (cpState.waJid !== jid) return; // trocou de conversa durante o fetch
   if (!r || !r.ok) { if (!(cpState.waMsgs || []).length) document.getElementById('cp-msgs').innerHTML = '<div class="ci-loading">Falha ao carregar — tentando de novo…</div>'; return; }
   cpState.waMsgs = r.data.mensagens || [];
+  // O servidor aprendeu o vínculo @lid<->telefone desta conversa: adota o alt e refaz a busca UMA
+  // vez pra unir as duas metades do histórico (na próxima chamada o alt já bate e não refaz).
+  if (r.data.jid_alt && r.data.jid_alt !== cpState.waAlt && r.data.jid_alt !== jid) {
+    cpState.waAlt = r.data.jid_alt;
+    cpCarregarMsgsWa(scroll);
+    return;
+  }
   // Nome vindo das mensagens (pushName): preenche o header E o item da lista.
   if (r.ok && r.data.contato_nome) {
     if (cpState.waContato && !cpState.waContato.nome) {
@@ -19602,6 +19609,8 @@ async function cpPollWa() {
   let r = null;
   try { r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages?full=1' + alt); } catch (e) { return; }
   if (!(r && r.ok && r.data.mensagens) || cpState.waJid !== jid) return; // ignora resposta tardia de outra conversa
+  // Vínculo aprendido no meio da conversa: adota o alt; o próximo tick (full=1) já une o histórico.
+  if (r.data.jid_alt && r.data.jid_alt !== cpState.waAlt && r.data.jid_alt !== jid) cpState.waAlt = r.data.jid_alt;
   const serv = r.data.mensagens;
   // mantem mensagens otimistas locais (sem id) que ainda nao apareceram no servidor
   const pendentes = (cpState.waMsgs || []).filter(m => !m.id && m.de_mim && !serv.some(s => s.de_mim && s.texto === m.texto));
@@ -19780,8 +19789,21 @@ async function wvCarregarChats(silent) {
   }
   wvState.semDevice = !!(r.data.sem_device || r.data.configurado === false);
   const novos = r.data.chats || [];
-  // preserva o zero de não-lidas da conversa aberta (o servidor pode demorar a refletir o read)
-  if (wvState.jid) { const aberto = novos.find(c => c.id === wvState.jid); if (aberto) aberto.nao_lidas = 0; }
+  // A conversa ABERTA acompanha a fusão de contatos: quando o servidor aprende o vínculo
+  // @lid<->telefone, as duas entradas viram UMA — e o jid que está aberto pode ter virado o
+  // jid_alt da entrada fundida. Sem re-sincronizar, a thread aberta seguia buscando SÓ metade
+  // do histórico (sem ?alt=) e a resposta do paciente "aparecia no outro contato".
+  if (wvState.jid) {
+    const dono = novos.find(c => c.id === wvState.jid || c.jid_alt === wvState.jid);
+    if (dono) {
+      if (dono.id !== wvState.jid || (dono.jid_alt || null) !== (wvState.alt || null)) {
+        wvState.jid = dono.id;
+        wvState.alt = dono.jid_alt || null;
+        // não zera msgs: o próximo poll da thread já busca com jid+alt e mescla por id
+      }
+      dono.nao_lidas = 0; // preserva o zero da aberta (o servidor demora a refletir o read)
+    }
+  }
   // só re-renderiza quando a lista MUDOU (itens não somem sob o cursor a cada 6s)
   const sig = arr => (arr || []).map(c => c.id + '|' + (c.ultima_em || '') + '|' + (c.nao_lidas || 0) + '|' + (c.nome || '')).join(';');
   const mudou = sig(novos) !== sig(wvState.chats) || !silent;
@@ -19981,6 +20003,13 @@ async function wvCarregarMsgs(scroll) {
   // resposta parcial menor que o que já temos? mantém a maior (nunca encolhe)
   if (r.data.parcial && novas.length < (wvState.msgs || []).length) return;
   wvState.msgs = novas;
+  // Vínculo @lid<->telefone aprendido no servidor: adota o alt e refaz UMA vez pra unir as duas
+  // metades do histórico (na próxima chamada o alt já bate e não refaz).
+  if (r.data.jid_alt && r.data.jid_alt !== wvState.alt && r.data.jid_alt !== jid) {
+    wvState.alt = r.data.jid_alt;
+    wvCarregarMsgs(scroll);
+    return;
+  }
   if (r.data.contato_nome && wvState.contato && !wvState.contato.nome) {
     wvState.contato.nome = r.data.contato_nome;
     wvRenderHead();
@@ -20210,6 +20239,15 @@ function wvNovaBusca(q) {
     wrap.innerHTML = _html;
   }, 300);
 }
+// Abrir por NÚMERO tem que resolver a conversa REAL na lista primeiro (mesmo padrão do popup,
+// cpMostrarConversaWa): o histórico costuma morar sob um @lid opaco que NÃO sai do telefone.
+// Abrir direto com telefone@s.whatsapp.net e jid_alt nulo mostrava só metade das mensagens —
+// e uma resposta do paciente reaparecia "noutro contato".
+function wvConversaDoNumero(num) {
+  const core = cpTelCore(num);
+  if (!core) return null;
+  return (wvState.chats || []).find((x) => x.contato_key === core || cpTelCore(x.numero || x.id) === core) || null;
+}
 function wvNovaAbrir(i) {
   const p = (window._wvNovaPacs || [])[i];
   if (!p) return;
@@ -20217,7 +20255,9 @@ function wvNovaAbrir(i) {
   if (!raw.replace(/\D/g, '')) { if (typeof homeToast === 'function') homeToast('Esse paciente não tem telefone no cadastro.'); return; }
   const num = telWa(raw);   // não pré-limpar: telWa respeita o '+' (internacional)
   wvNovaToggle();
-  wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: p.nome_completo, paciente_id: p.id });
+  const c = wvConversaDoNumero(num);
+  if (c) wvAbrirConversa({ ...c, nome: p.nome_completo || c.nome, paciente_id: p.id });
+  else wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: p.nome_completo, paciente_id: p.id });
 }
 // Abre um chat direto com um NÚMERO (não precisa ser paciente). numWa = dígitos já com DDI (via telWa).
 function wvNovaAbrirNumero(numWa) {
@@ -20227,7 +20267,9 @@ function wvNovaAbrirNumero(numWa) {
   const bi = document.getElementById('wv-busca-input'); if (bi) bi.value = '';   // limpa a busca (senão fica filtrando)
   wvState.filtro = '';
   wvRenderLista();
-  wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: wdFmtTel(num), paciente_id: null });
+  const c = wvConversaDoNumero(num);
+  if (c) wvAbrirConversa(c);
+  else wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: wdFmtTel(num), paciente_id: null });
 }
 function wvIniciarPollThread() {
   if (wvState.poll) clearInterval(wvState.poll);
@@ -20242,6 +20284,12 @@ async function wvPollThread() {
   if (!r || !r.ok || wvState.jid !== jid) return;
   if (r.data.sem_device) { wvComposerAtivo(false); return; }
   wvComposerAtivo(true);
+  // Vínculo aprendido no meio da conversa: adota o alt e puxa o histórico completo unido.
+  if (r.data.jid_alt && r.data.jid_alt !== wvState.alt && r.data.jid_alt !== jid) {
+    wvState.alt = r.data.jid_alt;
+    wvCarregarMsgs(false);
+    return;
+  }
   const serv = r.data.mensagens || [];
   const ids = new Set((wvState.msgs || []).map(m => m.id).filter(Boolean));
   const novas = serv.filter(m => !m.id || !ids.has(m.id));
