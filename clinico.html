@@ -6773,7 +6773,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CO</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CP</b></span></div>
   </div>
 </div>
 
@@ -7046,6 +7046,32 @@
   .tkd-desc{margin:8px 18px 4px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;padding:11px 13px;font-size:13px;color:var(--tx2);white-space:pre-wrap;line-height:1.5}
   .tkd-accept{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 18px 4px;padding:12px 14px;background:rgba(210,153,34,.09);border:1px solid rgba(210,153,34,.25);border-radius:12px}
   .tkd-accept .lbl{font-size:12px;color:var(--tx2);flex:1;min-width:120px}
+  /* Painel de sessões da tarefa única de agendar injetável.
+     min-width:0 nos filhos flex: sem isso o campo de data estoura a linha no Firefox/Safari. */
+  .tkses-box{margin:10px 18px 4px;background:var(--bg2);border:1px solid var(--bd1);border-radius:10px;overflow:hidden}
+  .tkses-head{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;padding:10px 13px;border-bottom:1px solid var(--bd1);font-size:13px;color:var(--tx1)}
+  .tkses-head span{font-size:11px;color:var(--tx3b)}
+  .tkses-recor{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 13px;border-bottom:1px solid var(--bd1);font-size:11px;color:var(--tx2)}
+  .tkses-recor label{display:inline-flex;align-items:center;gap:5px;min-width:0}
+  .tkses-recor .prev{flex:1 1 100%;color:var(--tx3b);font-size:11px}
+  .tkses-box input[type="date"],.tkses-box input[type="time"],.tkses-box select{
+    background:var(--bg1);border:1px solid var(--bd1);color:var(--tx1);border-radius:6px;
+    padding:5px 7px;font-size:12px;font-family:inherit;min-width:0;max-width:100%}
+  .tkses-box input:focus,.tkses-box select:focus{outline:none;border-color:var(--ac)}
+  .tkses-lista{max-height:300px;overflow-y:auto}
+  .tkses-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:7px 13px;border-bottom:1px solid rgba(var(--bd1-rgb),.5);font-size:12px}
+  .tkses-row:last-child{border-bottom:none}
+  .tkses-row .n{flex:0 0 78px;color:var(--tx2);min-width:0}
+  .tkses-row .q{flex:1 1 190px;display:flex;gap:6px;align-items:center;min-width:0;color:var(--tx1)}
+  .tkses-row .a{flex:0 0 auto}
+  .tkses-row .a .tk-btn{padding:4px 9px;font-size:11px}
+  .tkses-row.off{color:var(--tx3b)}
+  .tkses-row.off .q{color:var(--tx3b);font-style:italic}
+  .tkses-row.erro{background:rgba(248,81,73,.08);border-left:2px solid #f85149}
+  .tkses-row .msg{flex:1 1 100%;font-size:11px;color:#f85149}
+  .tkses-rodape{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;padding:9px 13px;border-top:1px solid var(--bd1)}
+  .tkses-rodape #tkses-aviso{flex:1 1 auto;font-size:11px;color:var(--tx3b)}
+
   .tkd-actions{display:flex;flex-wrap:wrap;gap:7px;padding:10px 18px 4px}
   .tkd-actions .tk-btn{padding:7px 12px;font-size:12px}
   .tkd-chat-h{font-size:11px;color:var(--tx4);text-transform:uppercase;letter-spacing:.4px;padding:14px 18px 4px}
@@ -11585,7 +11611,7 @@ function homeMTRow(i) {
 async function homeMTConcluir(id, btnEl) {
   if (btnEl) btnEl.disabled = true;
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
-  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
+  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast((r.data && r.data.erro) || 'Não consegui concluir a tarefa.'); return; }
   homeToast('Tarefa concluída. ✓');
   homeMinhasCarregar();   // recarrega recebidas/deleguei (rotina pode ter gerado a próxima)
 }
@@ -11748,7 +11774,7 @@ async function homeCompAndamento(id, ligar, btn) {
 async function homeCompConcluir(id, btn) {
   if (btn) btn.disabled = true;
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
-  if (!r.ok || !r.data || !r.data.ok) { if (btn) btn.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
+  if (!r.ok || !r.data || !r.data.ok) { if (btn) btn.disabled = false; homeToast((r.data && r.data.erro) || 'Não consegui concluir a tarefa.'); return; }
   homeToast('Tarefa concluída. ✓');
   homeCompCarregar();
   homeConclCarregar();   // sem isto ela saía da fila e não entrava em "Concluídas hoje": evaporava
@@ -11881,6 +11907,11 @@ async function homeTarefaDetalhe(id) {
   if (!document.getElementById('atn-overlay')) return;
   if (!d || !d.ok) { const b = document.querySelector('#atn-overlay .atn-modal-body'); if (b) b.innerHTML = '<div class="atn-empty">Não consegui abrir a tarefa.</div>'; return; }
   homeTkDet = d;
+  // O painel de sessões precisa do tipo "Aplicação de injetável", que vive em agState.tipos —
+  // preenchido por agInit(), que só roda quando a AGENDA abre. Quem vem da home abriria o painel
+  // sem tipo e o salvar falharia no fim, depois de digitar 12 datas.
+  if (d.sessoes) { try { await prGarantirApoioAgenda(); } catch (e) { console.error('[tkses/apoio]', e); } }
+  tkSesState.erroPorSemana = {};
   homeTkRenderDetalhe();
 }
 function homeTkRenderDetalhe() {
@@ -11933,12 +11964,18 @@ function homeTkRenderDetalhe() {
   if (!concl && t.origem_tipo === 'consulta_agendar' && t.patient_id && podeAgir) {
     acts.push(`<button class="tk-btn primary" onclick="homeTarefaAgendarConsulta('${t.id}', '${t.patient_id}', this)"><i class="ti ti-calendar-plus"></i> Agendar consulta</button>`);
   }
-  // recusada "quicou" pro criador: ele resolve via Reatribuir/Cancelar, não Concluir direto.
-  if (!concl && t.aceite !== 'recusada' && podeAgir && t.origem_tipo !== 'inj_contrato') acts.push(`<button class="tk-btn primary" onclick="homeTarefaConcluir('${t.id}', this)"><i class="ti ti-check"></i> Concluir</button>`);
+  // Na tarefa de agendar injetável o "Concluir" solto some ENQUANTO faltar sessão: quem fecha é o
+  // agendamento. Ele volta quando faltam 0 (saída pra tarefa reaberta na mão). O servidor recusa de
+  // qualquer jeito — esconder aqui é pra não oferecer um botão que só dá erro.
+  const injFaltando = t.origem_tipo === 'inj_agendar' && homeTkDet.sessoes && homeTkDet.sessoes.totais.faltam > 0;
+  if (!concl && t.aceite !== 'recusada' && podeAgir && t.origem_tipo !== 'inj_contrato' && !injFaltando) acts.push(`<button class="tk-btn primary" onclick="homeTarefaConcluir('${t.id}', this)"><i class="ti ti-check"></i> Concluir</button>`);
   if (concl && podeAgir) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReabrir('${t.id}')"><i class="ti ti-refresh"></i> Reabrir</button>`);
   acts.push(`<button class="tk-btn ghost" onclick="homeTarefaEditar('${t.id}')"><i class="ti ti-pencil"></i> Editar</button>`);
   if (t.sou_criador) acts.push(`<button class="tk-btn ghost" onclick="homeTarefaReatribuir('${t.id}')"><i class="ti ti-user-plus"></i> Reatribuir</button>`);
-  if (t.sou_criador && !concl) acts.push(`<button class="tk-btn ghost" style="color:#f85149" onclick="homeTarefaCancelar('${t.id}')"><i class="ti ti-trash"></i> Cancelar</button>`);
+  // "Cancelar" fica FORA da tarefa de agendar injetável: quem a cria é a própria recepcionista (o
+  // pagamento passa o uid dela), então ela é `sou_criador` e um clique aqui mataria o tratamento
+  // inteiro sem volta. O servidor também recusa (409).
+  if (t.sou_criador && !concl && t.origem_tipo !== 'inj_agendar') acts.push(`<button class="tk-btn ghost" style="color:#f85149" onclick="homeTarefaCancelar('${t.id}')"><i class="ti ti-trash"></i> Cancelar</button>`);
 
   const metaItems = [
     // Compartilhada não tem responsável: mostra o POSTO (e quem pegou), senão sairia em branco.
@@ -11955,13 +11992,19 @@ function homeTkRenderDetalhe() {
   const meta = metaItems.map(kv => `<div><div class="k">${kv[0]}</div><div class="v">${kv[1]}</div></div>`).join('');
   const desc = t.descricao ? `<div class="tkd-desc">${esc(t.descricao)}</div>` : '';
 
-  ov.innerHTML = `<div class="atn-modal" style="max-width:600px">
+  // Painel de sessões: só na tarefa única de agendar injetável, e só quando o servidor mandou as
+  // sessões (backend antigo no ar = fica o botão de sempre, no `acts`).
+  const temPainel = !!(t.origem_tipo === 'inj_agendar' && homeTkDet.sessoes && podeAgir);
+  const painel = temPainel ? tkSesPainel(homeTkDet.sessoes, concl) : '';
+
+  ov.innerHTML = `<div class="atn-modal" style="max-width:${temPainel ? 700 : 600}px">
     <div class="atn-modal-head"><div class="ttl" style="min-width:0"><button class="tkd-back" onclick="homeTarefasAbrir()" title="Voltar">←</button> <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo)}</span></div><button class="x" onclick="homeAtencaoFechar()">×</button></div>
     <div class="atn-modal-body" id="tkd-scroll">
       <div class="tkd-badges">${badges.join('')}</div>
       <div class="tkd-meta">${meta}</div>
       ${desc}
       ${accept}
+      ${painel}
       <div class="tkd-actions">${acts.join('')}</div>
       <div class="tkd-chat-h">Conversa e atividade</div>
       <div class="tkd-chat" id="tkd-chat">${homeTkChatHtml(coms)}</div>
@@ -12072,6 +12115,228 @@ async function homeTarefaAgendarConsulta(taskId, patientId, btn) {
   homeToast('Agendando a consulta. Ao salvar, a tarefa se conclui sozinha.');
 }
 
+// ============================================================
+// PAINEL DE SESSÕES — a tarefa ÚNICA de agendar aplicações de injetável.
+// Antes cada sessão era uma tarefa compartilhada: a recepção via 12 cartões do mesmo paciente.
+// Agora é uma tarefa só, e as 12 sessões se marcam aqui dentro, numa tela.
+// ============================================================
+let tkSesState = { taskId: null, prescId: null, typeId: null, duracao: 30, erroPorSemana: {} };
+
+const TKSES_PADROES = [
+  ['WEEKLY', 'Semanal'],
+  ['TWICE_WEEKLY', '2x por semana'],
+  ['EVERY_10_DAYS', 'A cada 10 dias'],
+  ['EVERY_15_DAYS', 'A cada 15 dias'],
+  ['MONTHLY', 'Mensal'],
+];
+const tkSesRot = { agendada: 'agendada', sem_data: 'sem data', aguardando_pagamento: 'aguardando pagamento', resolvida: 'já resolvida' };
+
+function tkSesDia(iso) { const d = new Date(iso); return d.toLocaleDateString('en-CA'); }          // yyyy-mm-dd pro <input type=date>
+function tkSesHora(iso) { const d = new Date(iso); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function tkSesBR(iso) { const d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + tkSesHora(iso); }
+
+// Só a sessão liberada e ainda sem data pode receber data aqui. Travada por pagamento e já
+// resolvida aparecem, mas não têm campo — a tela não oferece o que o servidor vai recusar.
+function tkSesEditavel(s) { return s.estado === 'sem_data'; }
+
+function tkSesPainel(dados, concl) {
+  if (!dados) return '';
+  const tt = dados.totais;
+  const vazias = (dados.sessoes || []).filter(tkSesEditavel).length;
+  const linhas = (dados.sessoes || []).map((s) => {
+    const err = tkSesState.erroPorSemana[s.semana];
+    if (s.estado === 'agendada') {
+      return `<div class="tkses-row${err ? ' erro' : ''}" data-semana="${s.semana}" data-agid="${esc(s.agendamento.id)}">
+        <div class="n">Sessão ${s.semana}</div>
+        <div class="q"><i class="ti ti-calendar-check"></i> ${esc(tkSesBR(s.agendamento.start_at))}</div>
+        <div class="a">${concl ? '' : `<button class="tk-btn ghost" onclick="tkSesTirarData('${esc(s.agendamento.id)}', ${s.semana})"><i class="ti ti-calendar-x"></i> Tirar a data</button>`}</div>
+        ${err ? `<div class="msg">${esc(err)}</div>` : ''}
+      </div>`;
+    }
+    if (s.estado === 'sem_data' && !concl) {
+      return `<div class="tkses-row${err ? ' erro' : ''}" data-semana="${s.semana}" data-agid="">
+        <div class="n">Sessão ${s.semana}</div>
+        <div class="q">
+          <input type="date" class="tkses-d" data-semana="${s.semana}">
+          <input type="time" class="tkses-h" data-semana="${s.semana}" value="">
+        </div>
+        <div class="a"></div>
+        ${err ? `<div class="msg">${esc(err)}</div>` : ''}
+      </div>`;
+    }
+    return `<div class="tkses-row off" data-semana="${s.semana}">
+      <div class="n">Sessão ${s.semana}</div>
+      <div class="q">${esc(s.bloqueio || tkSesRot[s.estado] || '')}</div>
+      <div class="a"></div>
+    </div>`;
+  }).join('');
+
+  const cab = `${tt.com_data} de ${tt.sessoes - tt.resolvidas} com data`
+    + (tt.faltam ? ` · faltam ${tt.faltam}` : ' · tudo marcado')
+    + (tt.travadas ? ` · ${tt.travadas} aguardando pagamento` : '');
+
+  // Barra de recorrência: PREENCHE os campos, não grava. A pessoa lê as datas antes de salvar.
+  const barra = (concl || !vazias) ? '' : `<div class="tkses-recor">
+    <label>1ª em <input type="date" id="tkses-ini-d"> às <input type="time" id="tkses-ini-h" value="09:00"></label>
+    <label>repetindo <select id="tkses-padrao" onchange="tkSesPreverTexto()">${TKSES_PADROES.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+    <label id="tkses-2a-wrap" style="display:none">2ª da semana <input type="date" id="tkses-ini2-d"> às <input type="time" id="tkses-ini2-h" value="09:00"></label>
+    <button class="tk-btn ghost" onclick="tkSesPreencher()"><i class="ti ti-wand"></i> Preencher as ${vazias} vazias</button>
+    <div class="prev" id="tkses-prev"></div>
+  </div>`;
+
+  return `<div class="tkses-box">
+    <div class="tkses-head"><strong>Sessões</strong> <span>${esc(cab)}</span></div>
+    ${barra}
+    <div class="tkses-lista">${linhas}</div>
+    ${concl || !vazias ? '' : `<div class="tkses-rodape">
+      <span id="tkses-aviso"></span>
+      <button class="tk-btn primary" id="tkses-salvar" onclick="tkSesSalvar(this)"><i class="ti ti-device-floppy"></i> Salvar as datas</button>
+    </div>`}
+  </div>`;
+}
+
+// Gera as N datas. Delega no MESMO gerador que a agenda usa (agRecorDatas) pros padrões simples —
+// duas implementações da mesma conta divergiriam e a tela prometeria data que a agenda não faz.
+// O bisemanal o agRecorDatas não cobre (o passo fica indefinido e ele devolve só a 1ª), então é
+// feito aqui: duas âncoras, cada uma de 7 em 7, junta, ordena e corta em N.
+function tkSesDatas(padrao, inicio, n, inicio2) {
+  if (!inicio || !n) return [];
+  if (padrao !== 'TWICE_WEEKLY') return agRecorDatas(padrao, inicio, n).slice(0, n);
+  if (!inicio2) return [];
+  const meta = Math.ceil(n / 2);
+  const a = agRecorDatas('WEEKLY', inicio, meta);
+  const b = agRecorDatas('WEEKLY', inicio2, meta);
+  return a.concat(b).sort((x, y) => x - y).slice(0, n);
+}
+
+function tkSesLerInicio(idD, idH) {
+  const d = document.getElementById(idD), h = document.getElementById(idH);
+  if (!d || !d.value) return null;
+  const [Y, M, D] = d.value.split('-').map(Number);
+  const [hh, mm] = String((h && h.value) || '09:00').split(':').map(Number);
+  return new Date(Y, M - 1, D, hh || 0, mm || 0, 0, 0);
+}
+
+function tkSesPreverTexto() {
+  const wrap = document.getElementById('tkses-2a-wrap');
+  const padrao = (document.getElementById('tkses-padrao') || {}).value;
+  if (wrap) wrap.style.display = padrao === 'TWICE_WEEKLY' ? '' : 'none';
+  const prev = document.getElementById('tkses-prev');
+  if (!prev) return;
+  const ini = tkSesLerInicio('tkses-ini-d', 'tkses-ini-h');
+  const n = document.querySelectorAll('#atn-overlay .tkses-d').length;
+  if (!ini || !n) { prev.textContent = ''; return; }
+  const datas = tkSesDatas(padrao, ini, n, tkSesLerInicio('tkses-ini2-d', 'tkses-ini2-h'));
+  if (!datas.length) { prev.textContent = padrao === 'TWICE_WEEKLY' ? 'Informe também a 2ª sessão da semana.' : ''; return; }
+  const fmt = (d) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const amostra = datas.length <= 3 ? datas.map(fmt).join(', ')
+    : `${fmt(datas[0])}, ${fmt(datas[1])}, ${fmt(datas[2])}… a última em ${datas[datas.length - 1].toLocaleDateString('pt-BR')}`;
+  prev.textContent = `Preenche ${datas.length} ${datas.length === 1 ? 'sessão' : 'sessões'}: ${amostra}`;
+}
+
+// Escreve nos campos. NÃO grava — é o passo que deixa a pessoa conferir feriado, fim de semana e
+// horário antes de mandar 12 agendamentos pro sistema.
+function tkSesPreencher() {
+  const padrao = (document.getElementById('tkses-padrao') || {}).value;
+  const ini = tkSesLerInicio('tkses-ini-d', 'tkses-ini-h');
+  if (!ini) { homeToast('Escolha a data da 1ª sessão.'); return; }
+  const ds = [...document.querySelectorAll('#atn-overlay .tkses-d')];
+  const hs = [...document.querySelectorAll('#atn-overlay .tkses-h')];
+  const datas = tkSesDatas(padrao, ini, ds.length, tkSesLerInicio('tkses-ini2-d', 'tkses-ini2-h'));
+  if (!datas.length) { homeToast(padrao === 'TWICE_WEEKLY' ? 'Informe também a 2ª sessão da semana.' : 'Não consegui gerar as datas.'); return; }
+  datas.forEach((d, i) => {
+    if (!ds[i]) return;
+    ds[i].value = d.toLocaleDateString('en-CA');
+    hs[i].value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  });
+  tkSesPreverTexto();
+}
+
+// Monta o payload. Linha VAZIA é "sem opinião" e não vai (é o "pode deixar algum sem data").
+// Linha pela metade é ERRO NOMEADO: salvar só a data sem hora agendaria à meia-noite calado.
+function tkSesColetar() {
+  const out = [];
+  const erros = [];
+  document.querySelectorAll('#atn-overlay .tkses-row[data-agid=""]').forEach((row) => {
+    const semana = Number(row.dataset.semana);
+    const d = row.querySelector('.tkses-d'), h = row.querySelector('.tkses-h');
+    if (!d) return;
+    const temD = !!d.value, temH = !!(h && h.value);
+    if (!temD && !temH) return;                       // deixada em branco de propósito
+    if (!temD || !temH) { erros.push(`Sessão ${semana}: informe a data e a hora, ou deixe a linha vazia.`); return; }
+    const [Y, M, D] = d.value.split('-').map(Number);
+    const [hh, mm] = h.value.split(':').map(Number);
+    out.push({ semana, start_at: new Date(Y, M - 1, D, hh, mm, 0, 0).toISOString(), agendamento_id: null });
+  });
+  return { sessoes: out, erros };
+}
+
+async function tkSesSalvar(btn) {
+  const t = homeTkDet && homeTkDet.tarefa;
+  if (!t || !t.origem_id) return;
+  const { sessoes, erros } = tkSesColetar();
+  if (erros.length) { homeToast(erros[0]); return; }
+  if (!sessoes.length) { homeToast('Preencha ao menos uma data.'); return; }
+  const tipo = agTipoAplicacao();
+  if (!tipo) { homeToast('Não achei o tipo "Aplicação de injetável" no cadastro de tipos de atendimento. Avise a gestão.'); return; }
+
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando…';
+  const corpo = { prescricao_inj_id: t.origem_id, type_id: tipo.id, sessoes };
+  try {
+    // 1º uma simulação: se houver aviso (data no passado, p.ex.) a pessoa confirma antes de gravar.
+    const sim = await pacApi('/api/clinico/appointments/lote-injetavel', { method: 'POST', body: JSON.stringify({ ...corpo, simular: true }) });
+    if (!sim.ok) { homeToast((sim.data && sim.data.erro) || 'Não consegui conferir as datas.'); return; }
+    const problemas = (sim.data.resultado || []).filter((l) => l.erro);
+    const avisos = (sim.data.resultado || []).filter((l) => !l.erro && l.avisos && l.avisos.length);
+    if (problemas.length) {
+      tkSesState.erroPorSemana = {};
+      problemas.forEach((l) => { tkSesState.erroPorSemana[l.semana] = l.erro; });
+      homeTkDet.sessoes = sim.data.estado || homeTkDet.sessoes;
+      homeTkRenderDetalhe();
+      homeToast(problemas.length === 1 ? problemas[0].erro : `${problemas.length} sessões com problema — veja em vermelho.`);
+      return;
+    }
+    if (avisos.length && !confirmar(`${avisos.length === 1 ? 'Uma sessão tem' : avisos.length + ' sessões têm'} aviso: ${avisos[0].avisos[0]}. Salvar mesmo assim?`)) return;
+
+    const r = await pacApi('/api/clinico/appointments/lote-injetavel', { method: 'POST', body: JSON.stringify(corpo) });
+    if (!r.ok) { homeToast((r.data && r.data.erro) || 'Não consegui salvar as datas.'); return; }
+    // Repinta SEMPRE com o estado que o servidor devolveu, nunca com o que a tela torceu que
+    // tivesse acontecido: se 7 entraram e 2 falharam, é isso que tem que aparecer.
+    tkSesState.erroPorSemana = {};
+    (r.data.resultado || []).filter((l) => l.erro).forEach((l) => { tkSesState.erroPorSemana[l.semana] = l.erro; });
+    if (r.data.estado) homeTkDet.sessoes = r.data.estado;
+    const okN = (r.data.resultado || []).filter((l) => l.ok).length;
+    const falhas = (r.data.resultado || []).filter((l) => l.erro).length;
+    if (r.data.tarefa_concluida) {
+      homeToast(`${okN} ${okN === 1 ? 'sessão marcada' : 'sessões marcadas'}. Tudo agendado — a tarefa foi concluída.`);
+      homeAtencaoFechar();
+      homeTarefasSync();
+      return;
+    }
+    homeTkRenderDetalhe();
+    homeTarefasSync();
+    homeToast(falhas ? `${okN} entraram, ${falhas} não. Veja em vermelho.` : `${okN} ${okN === 1 ? 'sessão marcada' : 'sessões marcadas'}.`);
+  } catch (e) {
+    homeToast('Falha de conexão ao salvar as datas.');
+  } finally {
+    const b = document.getElementById('tkses-salvar');
+    if (b) { b.disabled = false; b.innerHTML = orig; }
+  }
+}
+
+// Tirar a data usa o DELETE que já existe (hard delete + auditoria + reabre a tarefa). Não
+// reimplementa: o caminho de apagar agendamento já é auditado e testado.
+async function tkSesTirarData(agId, semana) {
+  if (!confirmar(`Tirar a data da sessão ${semana}? O agendamento sai da agenda e a sessão volta pra lista sem data.`)) return;
+  const r = await pacApi('/api/clinico/appointments/' + agId, { method: 'DELETE' });
+  if (!r.ok) { homeToast((r.data && r.data.erro) || 'Não consegui tirar a data.'); return; }
+  const t = homeTkDet && homeTkDet.tarefa;
+  if (t) await homeTarefaDetalhe(t.id);    // recarrega do servidor: estado fresco, não adivinhado
+  homeTarefasSync();
+  homeToast(`Sessão ${semana} voltou pra lista sem data.`);
+}
+
 // Tarefa de contrato = COBRAR, e só. Leva pra fila de cobrança (gerar orçamento -> registrar
 // pagamento). A tarefa NÃO se conclui aqui: ela fecha sozinha quando o pagamento entra e não
 // sobra item por cobrar — e é aí que nascem as tarefas de agendar, uma por sessão.
@@ -12093,7 +12358,7 @@ function homeTarefaCobrar(prescId) {
 async function homeTarefaConcluir(id, btnEl) {
   if (btnEl) btnEl.disabled = true;
   const r = await pacApi('/api/clinico/tarefas/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'concluida' }) });
-  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast('Não consegui concluir a tarefa.'); return; }
+  if (!r.ok || !r.data || !r.data.ok) { if (btnEl) btnEl.disabled = false; homeToast((r.data && r.data.erro) || 'Não consegui concluir a tarefa.'); return; }
   homeToast('Tarefa concluída. ✓');
   homeTarefasSync();
   if (homeTkDet && homeTkDet.tarefa && homeTkDet.tarefa.id === id) homeTarefaDetalhe(id);
