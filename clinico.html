@@ -6773,7 +6773,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CP</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CQ</b></span></div>
   </div>
 </div>
 
@@ -18131,16 +18131,24 @@ function waExtraOrigem() {
   if (typeof wvState !== 'undefined' && wvState.jid) return 'wv';
   return null;
 }
+// Chave do contato pra anotação/agendada. REGRA ÚNICA: o `contato_key` que o SERVIDOR mandou na
+// lista de conversas manda; o cálculo local só entra quando a conversa ainda não está na lista.
+// Ter duas regras era o bug: num contato @lid que o servidor casou com um telefone, o popup
+// GRAVAVA na chave do telefone e RECARREGAVA pela do @lid — a anotação ficava salva no banco e
+// sumia da tela, com toda a cara de "não salvou".
+function waChaveContato(chats, jid, numero) {
+  const c = (chats || []).find(function (x) { return x.id === jid; });
+  return (c && c.contato_key) || cpContatoKey({ id: jid, numero: numero });
+}
 function waExtraContato() {
   const o = waExtraOrigem();
   if (o === 'cp') {
     const c = (cpState.waChats || []).find(function (x) { return x.id === cpState.waJid; });
-    return { chave: (c && c.contato_key) || cpContatoKey({ id: cpState.waJid, numero: (cpState.waContato || {}).telefone }),
+    return { chave: waChaveContato(cpState.waChats, cpState.waJid, (cpState.waContato || {}).telefone),
              jid: cpState.waJid, numero: (cpState.waContato || {}).telefone || '', paciente_id: (c && c.paciente_id) || null };
   }
   if (o === 'wv') {
-    const c = (wvState.chats || []).find(function (x) { return x.id === wvState.jid; });
-    return { chave: (c && c.contato_key) || cpContatoKey({ id: wvState.jid, numero: (wvState.contato || {}).telefone }),
+    return { chave: waChaveContato(wvState.chats, wvState.jid, (wvState.contato || {}).telefone),
              jid: wvState.jid, numero: (wvState.contato || {}).telefone || '', paciente_id: (wvState.contato || {}).paciente_id || null };
   }
   return null;
@@ -19440,7 +19448,9 @@ async function cpAbrirConversaWa(chave, nome, numero, alt, foto) {
   cpState.waMsgs = [];
   waNotaModo = false;
   waExtra = { chave: null, notas: [], agendadas: [], carregando: true };
-  waExtraCarregar(cpContatoKey({ id: chave, numero: numReal }));
+  // MESMA regra do salvar (waChaveContato): calcular a chave por fora aqui foi o que fez a
+  // anotação de contato @lid gravar numa chave e recarregar por outra.
+  waExtraCarregar(waChaveContato(cpState.waChats, chave, numReal));
   chatPopMostrarConversa();
   const nm = nome || (numReal ? wdFmtTel(numReal) : 'Contato');
   const sub = numReal ? wdFmtTel(numReal) : 'via WhatsApp';
@@ -19903,7 +19913,7 @@ async function wvAbrirConversa(c) {
   // mensagem virar nota (o paciente não receberia) sem ninguém perceber.
   waNotaModo = false; waNotaPintar('wv');
   waExtra = { chave: null, notas: [], agendadas: [], carregando: true };
-  waExtraCarregar((c.contato_key) || cpContatoKey(c));
+  waExtraCarregar(waChaveContato(wvState.chats, c.id, c.numero));
   await wvCarregarMsgs(true);
   wvMarcarLida();
   wvIniciarPollThread();
