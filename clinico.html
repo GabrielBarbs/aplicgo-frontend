@@ -6857,7 +6857,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DB</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DC</b></span></div>
   </div>
 </div>
 
@@ -24269,7 +24269,11 @@ async function movmReverter() {
 
 // ==================== Gestão de Tarefas (painel do gestor) ====================
 const gtState = { pessoas: [], cargos: [], grupos: [], niveis: ['junior', 'pleno', 'senior'], painelDias: 30, novaAlvos: [] };
-const GT_RECORR = { unica: 'Única', diaria: 'Diária', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
+const GT_RECORR = {
+  unica: 'Única', diaria: 'Diária', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal',
+  bimestral: 'Bimestral (2 em 2 meses)', trimestral: 'Trimestral (3 em 3 meses)',
+  semestral: 'Semestral (6 em 6 meses)', anual: 'Anual',
+};
 function gtHojeStr() { try { return new Date().toLocaleDateString('en-CA'); } catch (e) { return new Date().toISOString().slice(0, 10); } }
 function gtNomePessoa(id) { const p = gtState.pessoas.find((x) => x.id === id); return p ? p.nome : '—'; }
 function gtNomeCargo(slug) { const c = gtState.cargos.find((x) => x.slug === slug); return c ? c.nome : slug; }
@@ -24386,7 +24390,7 @@ function gtRotinaNovaForm() {
     </div>
     <label id="gt-nt-forever-wrap" style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--tx2);cursor:pointer;font-weight:400"><input type="checkbox" id="gt-nt-forever" checked onchange="gtForeverChange()"> Repetir <strong style="color:var(--tx1);font-weight:600">pra sempre</strong> — até alguém pausar (ex.: Recepção nível júnior faz isso todo dia, sem data de fim)</label>
     <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--tx2);cursor:pointer;font-weight:400"><input type="checkbox" id="gt-nt-cont"> Mostrar contagem regressiva ("dia X/N") até o prazo</label>
-    <div style="font-size:12px;color:var(--tx3);margin-top:8px;line-height:1.55;background:rgba(255,255,255,0.03);border:1px solid var(--bd1);border-radius:8px;padding:8px 10px"><i class="ti ti-info-circle"></i> A tarefa aparece sozinha pra pessoa no prazo certo: <strong>diária</strong> no próprio dia, <strong>semanal</strong> 7 dias antes, <strong>quinzenal</strong> 15, <strong>mensal</strong> 30. Ao concluir, a próxima é gerada automaticamente — não fica empilhando nem contamina a lista de quem recebeu.</div>
+    <div style="font-size:12px;color:var(--tx3);margin-top:8px;line-height:1.55;background:rgba(255,255,255,0.03);border:1px solid var(--bd1);border-radius:8px;padding:8px 10px"><i class="ti ti-info-circle"></i> A tarefa aparece sozinha pra pessoa no prazo certo: <strong>diária</strong> no próprio dia, <strong>semanal</strong> 7 dias antes, <strong>quinzenal</strong> 15, <strong>mensal</strong> 30. De <strong>bimestral</strong> pra cima (trimestral, semestral, anual) aparece com <strong>30 dias</strong> de antecedência — uma anual avisando com um ano ficaria o ano todo na caixa da pessoa. As de meses caem sempre no <strong>mesmo dia do mês</strong> do início. Ao concluir, a próxima é gerada automaticamente — não fica empilhando nem contamina a lista de quem recebeu.</div>
     <label>Atribuir a</label>
     <div class="gt-row2">
       <select class="pac-search" id="gt-alvo-tipo" onchange="gtAlvoTipoChange()"><option value="pessoa">Pessoa</option><option value="cargo">Cargo</option><option value="nivel">Nível</option><option value="cargo_nivel">Cargo + Nível</option><option value="grupo">Grupo</option></select>
@@ -24478,7 +24482,7 @@ async function gtRotinaCriar() {
   const nOc = r.data.ocorrencias_criadas || 0, nP = r.data.pessoas || 0;
   homeToast(nOc
     ? `Rotina criada — ${nOc} tarefa(s) já na caixa de ${nP} pessoa(s).`
-    : `Rotina criada para ${nP} pessoa(s). As tarefas aparecem sozinhas no prazo (diária no dia; semanal 7 dias antes; quinzenal 15; mensal 30).`);
+    : `Rotina criada para ${nP} pessoa(s). As tarefas aparecem sozinhas no prazo (diária no dia; semanal 7 dias antes; quinzenal 15; mensal 30; de bimestral pra cima, 30).`);
   const w = document.getElementById('gt-nova-wrap'); if (w) w.innerHTML = '';
   gtRotinasCarregar();
 }
