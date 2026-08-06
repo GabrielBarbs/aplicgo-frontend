@@ -6857,7 +6857,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CZ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DA</b></span></div>
   </div>
 </div>
 
@@ -8362,6 +8362,35 @@
     #autg-modal .pac-field label { text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--tx2); }
     #autg-modal textarea { width: 100%; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 9px; padding: 10px 12px; color: var(--tx1); font: inherit; font-size: 13px; resize: vertical; }
     #autg-modal input[type="number"], #autg-modal input[type="time"] { background: var(--bg1); border: 1px solid var(--bd1); border-radius: 9px; padding: 9px 12px; color: var(--tx1); font: inherit; font-size: 13px; }
+    /* Agenda do dia seguinte (equipe): a lista de quem recebe */
+    #ageq-modal .autg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    #ageq-modal .autg-dica { font-size: 11px; color: var(--tx4); margin-top: 6px; line-height: 1.5; }
+    #ageq-modal .pac-field label { text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--tx2); }
+    #ageq-modal textarea { width: 100%; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 9px; padding: 10px 12px; color: var(--tx1); font: inherit; font-size: 13px; resize: vertical; }
+    #ageq-modal input[type="time"] { background: var(--bg1); border: 1px solid var(--bd1); border-radius: 9px; padding: 9px 12px; color: var(--tx1); font: inherit; font-size: 13px; }
+    #ageq-modal .ageq-lista { display: flex; flex-direction: column; gap: 6px; }
+    #ageq-modal .ageq-linha { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bd1); flex-wrap: wrap; }
+    #ageq-modal .ageq-quem { flex: 1; min-width: 150px; }
+    #ageq-modal .ageq-quem .nm { font-size: 13px; color: var(--tx1); }
+    #ageq-modal .ageq-quem .cg { font-size: 10.5px; color: var(--tx4); margin-top: 1px; }
+    #ageq-modal .ageq-titulo { width: 110px; }
+    #ageq-modal .ageq-tel { width: 160px; }
+    #ageq-modal .ageq-linha input[type="text"], #ageq-modal .ageq-linha input[type="tel"] {
+      background: var(--bg1); border: 1px solid var(--bd1); border-radius: 8px;
+      padding: 7px 10px; color: var(--tx1); font: inherit; font-size: 12.5px; min-width: 0;
+    }
+    #ageq-modal .ageq-aplic { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--tx3); cursor: pointer; }
+    #ageq-modal .ageq-prev { flex-shrink: 0; }
+    #ageq-modal .ageq-previa {
+      margin-top: 14px; background: var(--bg1); border: 1px solid var(--bd1);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    #ageq-modal .ageq-previa-tt { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--ac); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    #ageq-modal .ageq-previa-txt {
+      margin: 0; font-family: inherit; font-size: 12.5px; color: var(--tx1);
+      white-space: pre-wrap; word-break: break-word; line-height: 1.55;
+    }
+    #ageq-modal .ageq-previa-pe { font-size: 11px; color: var(--tx4); margin-top: 8px; }
 
     #view-editaveis .ed-voltar { background: none; border: 0; color: var(--tx3); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0; margin-bottom: 14px; }
     #view-editaveis .ed-voltar:hover { color: var(--tx1); }
@@ -32681,6 +32710,7 @@ function edAbrir(id) {
   if (id === 'relacionamento') {
     edState.tela = 'relacionamento'; edRender();
     if (!autgState.carregado || autgState.erro) autgCarregar();
+    if (!ageqState.carregado || ageqState.erro) ageqCarregar();
     return;
   }
   if (id !== 'anamneses') return;
@@ -33211,7 +33241,7 @@ function autgHtml() {
   }
   h += '<div class="ed-bar"><div><div style="font-size:15px;color:var(--tx1);font-weight:600">Automações de mensagem</div>'
     + '<div style="font-size:12px;color:var(--tx3);margin-top:2px">O servidor manda sozinho, na antecedência que você definir.</div></div></div>';
-  h += autgCardHtml('confirmacao') + autgCardHtml('lembrete');
+  h += autgCardHtml('confirmacao') + autgCardHtml('lembrete') + ageqCardHtml();
 
   // O aviso vale pra QUALQUER texto — inclusive um que alguém reescreva amanhã pedindo "responda SIM".
   h += '<div class="autg-aviso"><i class="ti ti-info-circle"></i><div>'
@@ -33390,6 +33420,228 @@ async function autgSalvar(tipo) {
   autgFechar();
   if (typeof homeToast === 'function') homeToast('Automação salva.');
   autgCarregar();
+}
+
+// ---- Agenda do dia seguinte para a equipe ----
+// A terceira automação. Diferente das outras duas, esta precisa saber QUEM recebe e o
+// WhatsApp de cada um — o número de trabalho de quem atende raramente é o mesmo do login,
+// então ele é digitado aqui e não sai do cadastro.
+let ageqState = { carregado: false, erro: null, config: null, pessoas: [], variaveis: [], modelo: '', ultimos: [], previa: null };
+
+async function ageqCarregar() {
+  ageqState.carregado = false; edRender();
+  let r = null;
+  try { r = await pacApi('/api/clinico/automacoes/equipe'); } catch (e) { r = null; }
+  ageqState.carregado = true;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    ageqState.erro = (r && r.data && r.data.erro) || 'Não consegui carregar a agenda da equipe agora.';
+  } else {
+    ageqState.erro = null;
+    ageqState.config = r.data.config;
+    ageqState.pessoas = r.data.pessoas || [];
+    ageqState.variaveis = r.data.variaveis || [];
+    ageqState.modelo = r.data.modelo || '';
+    ageqState.ultimos = r.data.ultimos || [];
+  }
+  edRender();
+}
+
+function ageqCardHtml() {
+  const c = (ageqState.config || {});
+  const quantos = (c.pessoas || []).filter(function (p) { return p.ativo; }).length;
+  const quando = 'na véspera, às ' + esc(c.hora || '19:00');
+  return '<div class="autg-card' + (c.ativo ? '' : ' off') + '">'
+    + '<div class="autg-card-top">'
+    +   '<div class="autg-card-tt"><i class="ti ti-users"></i> Agenda do Dia Seguinte (equipe)</div>'
+    +   '<label class="cfg-sw"><input type="checkbox" ' + (c.ativo ? 'checked' : '')
+    +     ' onchange="ageqToggle(this)"><span class="tr"></span></label>'
+    + '</div>'
+    + '<div class="autg-card-sub">No fim do dia, cada médico, nutricionista e enfermeira recebe no WhatsApp a lista dos pacientes que atende amanhã.</div>'
+    + '<div class="autg-card-quando"><i class="ti ti-send"></i> '
+    +   (c.ativo ? 'Enviando ' + quando + ' para ' + quantos + ' pessoa(s)' : 'Desligada — nada é enviado')
+    + '</div>'
+    + '<button class="pac-btn-secondary" onclick="ageqConfigurar()"><i class="ti ti-settings"></i> Mais configurações</button>'
+    + '</div>';
+}
+
+async function ageqToggle(el) {
+  const ligando = el.checked;
+  el.disabled = true;
+  let r = null;
+  try { r = await pacApi('/api/clinico/automacoes/equipe', { method: 'PUT', body: JSON.stringify({ ativo: ligando }) }); } catch (e) { r = null; }
+  el.disabled = false;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    if (typeof homeToast === 'function') homeToast((r && r.data && r.data.erro) || 'Não consegui salvar. A automação continua como estava.');
+    ageqCarregar();
+    return;
+  }
+  ageqState.config = r.data.config;
+  if (typeof homeToast === 'function') {
+    homeToast(ligando ? 'Automação ligada — começa a valer AMANHÃ à noite.' : 'Automação desligada.');
+  }
+  edRender();
+}
+
+function ageqConfigurar() {
+  const c = ageqState.config || {};
+  ageqFechar();
+  const dias = c.dias_semana;
+  const chips = AUTG_DIAS.map(function (nome, d) {
+    const on = !dias || dias.indexOf(d) >= 0;
+    return '<button type="button" class="cp-tagchip' + (on ? ' ativo' : '') + '" data-dia="' + d + '" onclick="autgDiaToggle(this)">' + nome + '</button>';
+  }).join('');
+  const vars = (ageqState.variaveis || []).map(function (v) {
+    return '<code class="aniv-var" style="cursor:pointer" onclick="ageqInserirVar(\'' + v + '\')">{' + v + '}</code>';
+  }).join(' ');
+
+  const linhas = (ageqState.pessoas || []).map(function (p) {
+    return '<div class="ageq-linha" data-user="' + esc(p.user_id) + '">'
+      + '<label class="cfg-sw" style="flex:0 0 auto"><input type="checkbox" class="ageq-ativo" ' + (p.ativo ? 'checked' : '') + '><span class="tr"></span></label>'
+      + '<div class="ageq-quem"><div class="nm">' + esc(p.nome) + '</div>'
+      +   '<div class="cg">' + esc((p.cargos || []).join(', ')) + (p.unidades && p.unidades.length ? ' · ' + esc(p.unidades.join(', ')) : '') + '</div></div>'
+      + '<input class="ageq-titulo" type="text" value="' + esc(p.titulo || '') + '" placeholder="Título" title="Como ela é chamada na mensagem">'
+      + '<input class="ageq-tel" type="tel" inputmode="tel" value="' + esc(p.telefone || '') + '" placeholder="(DDD) 90000-0000">'
+      + '<label class="ageq-aplic" title="Incluir as aplicações de injetável da unidade dela (que não têm profissional dono)">'
+      +   '<input type="checkbox" class="ageq-inj" ' + (p.incluir_aplicacoes ? 'checked' : '') + '> aplicações'
+      + '</label>'
+      + '<button class="pac-btn-secondary ageq-prev" onclick="ageqPrevia(this)"><i class="ti ti-eye"></i> Prévia</button>'
+      + '</div>';
+  }).join('');
+
+  const ov = document.createElement('div');
+  ov.id = 'ageq-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'ageq-modal') ageqFechar(); };
+  ov.innerHTML = '<div class="pac-modal" style="max-width:900px;">'
+    + '<div class="pac-modal-header"><div class="ttl"><i class="ti ti-users"></i> Agenda do Dia Seguinte</div>'
+    + '<button class="pac-modal-close" onclick="ageqFechar()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body">'
+
+    + '<div class="cfg-linha"><div class="txt"><div class="tt">Enviar automaticamente pelo WhatsApp?</div>'
+    + '<div class="sub">Ao ligar, começa a valer <b>a partir de amanhã</b>. Cada pessoa recebe <b>uma única</b> mensagem por dia.</div></div>'
+    + '<label class="cfg-sw"><input type="checkbox" id="ageq-ativo" ' + (c.ativo ? 'checked' : '') + '><span class="tr"></span></label></div>'
+
+    + '<div class="pac-field" style="margin-top:14px"><label>A que horas enviar (na véspera)?</label>'
+    + '<input type="time" id="ageq-hora" value="' + esc(c.hora || '19:00') + '"></div>'
+
+    + '<div class="pac-field" style="margin-top:12px"><label>Enviar em quais dias?</label>'
+    + '<div class="autg-chips">' + chips + '</div>'
+    + '<div class="autg-dica">É o dia do <b>envio</b> (a véspera). Domingo desmarcado significa que a agenda de segunda não é avisada.</div></div>'
+
+    + '<div class="cfg-grupo">Quem recebe, e em qual WhatsApp</div>'
+    + (linhas
+        ? '<div class="ageq-lista">' + linhas + '</div>'
+        : '<div class="ed-vazio">Ninguém com cargo de médico, nutricionista ou enfermeira está cadastrado ainda.</div>')
+
+    + '<div class="pac-field" style="margin-top:14px"><label>Mensagem</label>'
+    + '<textarea id="ageq-msg" rows="4">' + esc(c.mensagem || ageqState.modelo) + '</textarea>'
+    + '<div class="autg-dica">Clique para inserir: ' + vars + '. A <code class="aniv-var">{agenda}</code> vira uma linha por unidade, com os horários em ordem.</div></div>'
+
+    + '<div id="ageq-previa" class="ageq-previa" style="display:none;"></div>'
+    + '<div id="ageq-erro" style="display:none;color:#f85149;font-size:12px;margin-top:10px;"></div>'
+    + '</div>'
+    + '<div class="pac-modal-footer"><button class="pac-btn-secondary" onclick="ageqFechar()">Cancelar</button>'
+    + '<button class="pac-btn-primary" id="ageq-btn" onclick="ageqSalvar()"><i class="ti ti-check"></i> Salvar</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+}
+function ageqFechar() { const ov = document.getElementById('ageq-modal'); if (ov) ov.remove(); }
+function ageqInserirVar(v) {
+  const ta = document.getElementById('ageq-msg');
+  if (!ta) return;
+  const i = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
+  const f = ta.selectionEnd == null ? ta.value.length : ta.selectionEnd;
+  const t = '{' + v + '}';
+  ta.value = ta.value.slice(0, i) + t + ta.value.slice(f);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = i + t.length;
+}
+
+// Lê a lista de pessoas do modal. Uma função só, usada pelo salvar E pela prévia — se
+// fossem duas, a prévia mostraria uma coisa e o salvo seria outra.
+function ageqLerPessoas() {
+  const out = [];
+  document.querySelectorAll('#ageq-modal .ageq-linha').forEach(function (l) {
+    out.push({
+      user_id: l.getAttribute('data-user'),
+      ativo: l.querySelector('.ageq-ativo').checked,
+      titulo: (l.querySelector('.ageq-titulo').value || '').trim(),
+      telefone: (l.querySelector('.ageq-tel').value || '').trim(),
+      incluir_aplicacoes: l.querySelector('.ageq-inj').checked,
+    });
+  });
+  return out;
+}
+
+// A prévia mostra a mensagem REAL que a pessoa receberia amanhã, com os dados de verdade.
+// É a única forma honesta de conferir um disparo automático antes de ligar a chave.
+async function ageqPrevia(btn) {
+  const linha = btn.closest('.ageq-linha');
+  const cx = document.getElementById('ageq-previa');
+  if (!linha || !cx) return;
+  cx.style.display = 'block';
+  cx.innerHTML = '<div class="ageq-previa-tt">Prévia</div><div>Montando…</div>';
+  let r = null;
+  try {
+    r = await pacApi('/api/clinico/automacoes/equipe/previa', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: linha.getAttribute('data-user'),
+        titulo: (linha.querySelector('.ageq-titulo').value || '').trim(),
+        incluir_aplicacoes: linha.querySelector('.ageq-inj').checked,
+      }),
+    });
+  } catch (e) { r = null; }
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    cx.innerHTML = '<div class="ageq-previa-tt">Prévia</div><div>Não consegui montar a prévia agora.</div>';
+    return;
+  }
+  const d = r.data;
+  cx.innerHTML = '<div class="ageq-previa-tt"><i class="ti ti-eye"></i> Prévia — o que sairia hoje à noite</div>'
+    + (d.texto
+        ? '<pre class="ageq-previa-txt">' + esc(d.texto) + '</pre>'
+          + '<div class="ageq-previa-pe">' + d.pacientes + ' paciente(s) na agenda de ' + esc(d.dia) + '.</div>'
+        : '<div class="ageq-previa-pe">' + esc(d.aviso || 'Sem agenda amanhã.') + '</div>');
+}
+
+async function ageqSalvar() {
+  const erroEl = document.getElementById('ageq-erro');
+  const falha = function (m) { if (erroEl) { erroEl.textContent = m; erroEl.style.display = 'block'; } };
+  if (erroEl) erroEl.style.display = 'none';
+
+  const ativo = document.getElementById('ageq-ativo').checked;
+  const hora = document.getElementById('ageq-hora').value;
+  const msg = (document.getElementById('ageq-msg').value || '').trim();
+  const dias = [];
+  document.querySelectorAll('#ageq-modal .cp-tagchip').forEach(function (b) {
+    if (b.classList.contains('ativo')) dias.push(Number(b.getAttribute('data-dia')));
+  });
+  const pessoas = ageqLerPessoas();
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return falha('Informe o horário no formato HH:MM.');
+  if (msg.length < 10) return falha('A mensagem está curta demais.');
+  if (!dias.length) return falha('Marque pelo menos um dia da semana — senão a mensagem nunca sai.');
+
+  // Erro pego AQUI, com a pessoa olhando a tela: marcada pra receber e sem número é gente
+  // que nunca receberia nada, e ninguém saberia por quê.
+  const semNum = pessoas.filter(function (p) { return p.ativo && String(p.telefone || '').replace(/\D/g, '').length < 10; });
+  if (semNum.length) return falha('Tem gente marcada para receber sem WhatsApp válido. Preencha o número ou desmarque.');
+  if (ativo && !pessoas.some(function (p) { return p.ativo; })) return falha('Ligue pelo menos uma pessoa para receber — senão a automação não faz nada.');
+
+  const btn = document.getElementById('ageq-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando…'; }
+  let r = null;
+  try {
+    r = await pacApi('/api/clinico/automacoes/equipe', {
+      method: 'PUT',
+      body: JSON.stringify({ ativo: ativo, hora: hora, mensagem: msg, dias_semana: dias.length === 7 ? null : dias, pessoas: pessoas }),
+    });
+  } catch (e) { r = null; }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Salvar'; }
+  if (!r || !r.ok || !r.data || !r.data.ok) return falha((r && r.data && r.data.erro) || 'Não consegui salvar.');
+
+  ageqFechar();
+  if (typeof homeToast === 'function') homeToast('Agenda da equipe salva.');
+  ageqCarregar();
 }
 
 // ---- Rastro do que foi enviado + apagar para todos ----
