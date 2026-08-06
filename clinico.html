@@ -4267,6 +4267,29 @@
     .cp-emo { border: 0; background: transparent; font-size: 20px; width: 34px; height: 34px; cursor: pointer; border-radius: 8px; line-height: 1; }
     .cp-emo:hover { background: rgba(124,92,252,0.12); }
 
+    /* ---- Barra do pop-up: um botão só abre todas as ações ---- */
+    .cp-mais i { transition: transform .16s var(--ease, ease); }
+    .cp-mais[aria-expanded="true"] { color: #7c5cfc; background: rgba(124,92,252,0.12); }
+    .cp-mais[aria-expanded="true"] i { transform: rotate(45deg); }   /* + vira × */
+    .cp-acoes {
+      position: absolute; left: 8px; bottom: 56px; z-index: 7;
+      min-width: 216px; max-width: calc(100% - 16px); padding: 6px;
+      background: var(--bg1); border: 1px solid var(--bd1); border-radius: 12px;
+      box-shadow: 0 12px 34px rgba(60,40,140,0.28);
+    }
+    .cp-mais-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 9px 10px; border: 0; border-radius: 9px;
+      background: transparent; color: var(--tx2);
+      font-family: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+    }
+    .cp-mais-item i { font-size: 17px; width: 20px; flex-shrink: 0; color: var(--tx3); text-align: center; }
+    .cp-mais-item span { min-width: 0; }
+    .cp-mais-item small { display: block; font-size: 10px; color: var(--tx4); margin-top: 1px; }
+    .cp-mais-item:hover { background: rgba(124,92,252,0.10); color: var(--tx1); }
+    .cp-mais-item:hover i { color: #7c5cfc; }
+    #cp-nota.cp-mais-item.ativo i { color: #EF9F27; }
+
     /* ===== Visual "Clint" da página de Conversas (WhatsApp) — arejado, adapta ao tema ===== */
     .wv-atend-head { display:flex; align-items:center; justify-content:center; gap:8px; padding:15px 14px; font-size:15px; font-weight:600; color:var(--tx1); background:rgba(var(--ac-rgb),0.06); border-bottom:1px solid var(--bd1); letter-spacing:.2px; }
     .wv-atend-head i { color:var(--ac); font-size:19px; }
@@ -6834,7 +6857,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CV</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CW</b></span></div>
   </div>
 </div>
 
@@ -18905,6 +18928,7 @@ function chatPopRenderLista() {
 
 function chatPopMostrarConversa() {
   cpState.vista = 'conversa';
+  cpAcoesFechar();   // abre a conversa com a barra limpa, não com o painel de ações aberto
   cpPararPollLista();
   document.getElementById('cp-vista-lista').style.display = 'none';
   document.getElementById('cp-vista-conversa').style.display = 'flex';
@@ -18920,6 +18944,8 @@ function chatPopMostrarConversa() {
   waNotaPintar('cp');
 }
 function chatPopVoltar() {
+  cpAcoesFechar();
+  cpEmojiFechar();
   cpMicAbortar();
   chatPopPararPoll();
   cpPararPollWa();
@@ -19706,6 +19732,37 @@ function cpEmojiToggle() {
   pop.style.display = 'flex';
 }
 function cpEmojiFechar() { const p = document.getElementById('cp-emoji-pop'); if (p) p.style.display = 'none'; }
+
+// ---- painel de ações do pop-up (o "+" da barra) ----
+// Emoji, anexo, foto, áudio, anotação e agendamento ficam aqui dentro. Quem
+// decide se áudio/anotação/agendamento aparecem continua sendo chatPopMostrarConversa,
+// que mexe no display DESTES MESMOS botões pelo id — por isso eles seguem com os
+// ids antigos em vez de virarem itens novos.
+function cpAcoesFechar() {
+  const el = document.getElementById('cp-acoes');
+  if (el) el.style.display = 'none';
+  const b = document.getElementById('cp-mais');
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+function cpAcoesToggle(ev) {
+  if (ev) ev.stopPropagation();
+  const el = document.getElementById('cp-acoes');
+  if (!el) return;
+  const abrindo = el.style.display === 'none' || !el.style.display;
+  if (abrindo) cpEmojiFechar();   // os dois popovers ocupam o mesmo lugar
+  el.style.display = abrindo ? 'block' : 'none';
+  const b = document.getElementById('cp-mais');
+  if (b) b.setAttribute('aria-expanded', abrindo ? 'true' : 'false');
+}
+// Clique fora e Esc fecham. O clique nos itens já fecha antes de agir.
+document.addEventListener('click', function (e) {
+  const el = document.getElementById('cp-acoes');
+  if (!el || el.style.display === 'none') return;
+  const b = document.getElementById('cp-mais');
+  if (el.contains(e.target) || (b && b.contains(e.target))) return;
+  cpAcoesFechar();
+});
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cpAcoesFechar(); });
 function cpEmojiInserir(e) {
   const inp = document.getElementById('cp-input');
   if (!inp) return;
@@ -33327,12 +33384,30 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="ci-input-bar" id="cp-input-bar">
       <div class="cp-emoji-pop" id="cp-emoji-pop" style="display:none;"></div>
-      <button class="cp-io" onclick="cpEmojiToggle()" title="Emoji"><i class="ti ti-mood-smile"></i></button>
-      <button class="cp-io" onclick="document.getElementById('cp-file-doc').click()" title="Enviar documento"><i class="ti ti-paperclip"></i></button>
-      <button class="cp-io" onclick="document.getElementById('cp-file-img').click()" title="Enviar foto"><i class="ti ti-photo"></i></button>
-      <button class="cp-mic" id="cp-mic" onclick="cpMicToggle()" title="Gravar áudio" style="display:none;"><i class="ti ti-microphone"></i></button>
-      <button class="cp-io" id="cp-nota" onclick="waNotaToggle('cp')" title="Anotação interna (o paciente não vê)" style="display:none;"><i class="ti ti-notes"></i></button>
-      <button class="cp-io" id="cp-agendar" onclick="waAgendarAbrir('cp')" title="Agendar esta mensagem" style="display:none;"><i class="ti ti-clock"></i></button>
+
+      <!-- Tudo o que não é escrever mora atrás de UM botão. Antes eram seis ícones
+           na barra e sobrava um terço da largura pro campo de texto — no pop-up,
+           que já é estreito, dava pra ler meia frase. Cada ação ganhou nome: os
+           ícones de anotação e de agendar só se explicavam no tooltip. -->
+      <div class="cp-acoes" id="cp-acoes" style="display:none;">
+        <button class="cp-mais-item" onclick="cpAcoesFechar(); cpEmojiToggle();">
+          <i class="ti ti-mood-smile"></i><span>Emoji</span></button>
+        <button class="cp-mais-item" onclick="cpAcoesFechar(); document.getElementById('cp-file-doc').click();">
+          <i class="ti ti-paperclip"></i><span>Documento</span></button>
+        <button class="cp-mais-item" onclick="cpAcoesFechar(); document.getElementById('cp-file-img').click();">
+          <i class="ti ti-photo"></i><span>Foto</span></button>
+        <button class="cp-mais-item" id="cp-mic" onclick="cpAcoesFechar(); cpMicToggle();" style="display:none;">
+          <i class="ti ti-microphone"></i><span>Gravar áudio</span></button>
+        <button class="cp-mais-item" id="cp-nota" onclick="cpAcoesFechar(); waNotaToggle('cp');" style="display:none;">
+          <i class="ti ti-notes"></i><span>Anotação interna<small>o paciente não vê</small></span></button>
+        <button class="cp-mais-item" id="cp-agendar" onclick="cpAcoesFechar(); waAgendarAbrir('cp');" style="display:none;">
+          <i class="ti ti-clock"></i><span>Agendar mensagem</span></button>
+      </div>
+
+      <button class="cp-io cp-mais" id="cp-mais" onclick="cpAcoesToggle(event)"
+              title="Emoji, anexo, áudio e mais" aria-expanded="false" aria-controls="cp-acoes">
+        <i class="ti ti-plus"></i>
+      </button>
       <textarea id="cp-input" placeholder="Mensagem" rows="1" oninput="chatPopInput(this)" onkeydown="chatPopInputKey(event)"></textarea>
       <button class="ci-send" id="cp-send" onclick="chatPopEnviarAtual()" title="Enviar"><i class="ti ti-send"></i></button>
       <input type="file" id="cp-file-doc" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx" style="display:none;" onchange="cpArquivoSelecionar(this)">
