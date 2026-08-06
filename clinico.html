@@ -6857,7 +6857,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CW</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CX</b></span></div>
   </div>
 </div>
 
@@ -8304,6 +8304,48 @@
     #view-editaveis .ed-card.soon { cursor: default; opacity: .45; }
     #view-editaveis .ed-card.soon:hover { border-color: var(--bd1); transform: none; }
     #view-editaveis .ed-card .soon-tag { font-size: 9.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--tx4); }
+    /* ---- Automações de agenda (Relacionamento com o Paciente) ---- */
+    #view-editaveis .autg-card {
+      background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px;
+      padding: 16px 18px; margin-bottom: 12px;
+    }
+    #view-editaveis .autg-card.off { opacity: .72; }
+    #view-editaveis .autg-card-top { display: flex; align-items: center; gap: 12px; }
+    #view-editaveis .autg-card-tt { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; color: var(--tx1); display: flex; align-items: center; gap: 8px; }
+    #view-editaveis .autg-card-tt i { color: var(--ac); font-size: 19px; }
+    #view-editaveis .autg-card-sub { font-size: 12.5px; color: var(--tx3); margin-top: 6px; line-height: 1.45; }
+    #view-editaveis .autg-card-quando { font-size: 11.5px; color: var(--tx4); margin: 10px 0 12px; display: flex; align-items: center; gap: 6px; }
+    #view-editaveis .autg-card-quando i { font-size: 14px; }
+    #view-editaveis .autg-card.off .autg-card-quando { color: var(--tx4); }
+    #view-editaveis .autg-aviso {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: rgba(239,159,39,.08); border: 1px solid rgba(239,159,39,.28);
+      border-radius: 10px; padding: 12px 14px; margin-top: 4px;
+      font-size: 12px; color: var(--tx2); line-height: 1.5;
+    }
+    #view-editaveis .autg-aviso i { color: #EF9F27; font-size: 17px; flex-shrink: 0; }
+    #view-editaveis .autg-log { display: flex; flex-direction: column; gap: 4px; }
+    #view-editaveis .autg-log-linha { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tx3); padding: 6px 0; border-bottom: 1px solid var(--bd1); flex-wrap: wrap; }
+    #view-editaveis .autg-log-linha .tag { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 7px; border-radius: 5px; }
+    #view-editaveis .autg-log-linha .tag.ok { background: rgba(63,185,80,.14); color: #3fb950; }
+    #view-editaveis .autg-log-linha .tag.pulo { background: rgba(239,159,39,.14); color: #EF9F27; }
+    #view-editaveis .autg-log-linha .nm { color: var(--tx1); }
+    #view-editaveis .autg-log-linha .mt { color: var(--tx4); flex: 1; min-width: 0; }
+    #view-editaveis .pt-empty { padding: 40px; text-align: center; color: var(--tx4); font-size: 14px; }
+    /* Do MODAL: ele é criado por JS e vai pro body, então não herda o escopo da view. */
+    #autg-modal .autg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    #autg-modal .autg-dica { font-size: 11px; color: var(--tx4); margin-top: 6px; line-height: 1.5; }
+    /* Botão de texto. NÃO usar .pac-btn-mini aqui: aquele é quadrado de 32px, só pra ícone. */
+    #autg-modal .autg-linkbtn {
+      background: rgba(var(--ac-rgb),0.10); border: 1px solid rgba(var(--ac-rgb),0.30);
+      color: var(--ac); border-radius: 7px; padding: 4px 10px; font: inherit; font-size: 11px;
+      cursor: pointer; white-space: nowrap;
+    }
+    #autg-modal .autg-linkbtn:hover { background: rgba(var(--ac-rgb),0.18); }
+    #autg-modal .pac-field label { text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--tx2); }
+    #autg-modal textarea { width: 100%; background: var(--bg1); border: 1px solid var(--bd1); border-radius: 9px; padding: 10px 12px; color: var(--tx1); font: inherit; font-size: 13px; resize: vertical; }
+    #autg-modal input[type="number"], #autg-modal input[type="time"] { background: var(--bg1); border: 1px solid var(--bd1); border-radius: 9px; padding: 9px 12px; color: var(--tx1); font: inherit; font-size: 13px; }
+
     #view-editaveis .ed-voltar { background: none; border: 0; color: var(--tx3); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0; margin-bottom: 14px; }
     #view-editaveis .ed-voltar:hover { color: var(--tx1); }
     #view-editaveis .ed-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -32617,6 +32659,13 @@ function edInit() { edState.tela = 'hub'; edRender(); if (!edState.carregado) ed
 function edAbrir(id) {
   if (id === 'agenda') { edState.tela = 'agenda'; if (!agcState.carregado) agcCarregar(); else edRender(); return; }
   if (id === 'nomeamento') { edState.tela = 'nomeamento'; edRender(); if (!nmState.carregado) nmCarregar(); return; }
+  // Automações de agenda. Recarrega também quando a última tentativa falhou: sem isso, uma
+  // queda de rede na primeira abertura trava a aba até alguém dar F5.
+  if (id === 'relacionamento') {
+    edState.tela = 'relacionamento'; edRender();
+    if (!autgState.carregado || autgState.erro) autgCarregar();
+    return;
+  }
   if (id !== 'anamneses') return;
   edState.tela = 'anamneses'; edRender();
 }
@@ -32643,6 +32692,7 @@ function edRender() {
   if (!box) return;
   box.innerHTML = edState.tela === 'template' ? edHtmlTemplate()
     : edState.tela === 'agenda' ? edHtmlAgenda()
+    : edState.tela === 'relacionamento' ? autgHtml()
     : edState.tela === 'nomeamento' ? nmHtml()
     : edState.tela === 'anamneses' ? edHtmlAnamneses() : edHtmlHub();
 }
@@ -32657,7 +32707,7 @@ function edHtmlHub() {
     { id: 'financeiro', ico: 'ti-coin', lbl: 'Financeiro' },
     { id: 'agenda', ico: 'ti-calendar-check', lbl: 'Agenda', ativo: true },
     { id: 'estoque', ico: 'ti-box', lbl: 'Estoque' },
-    { id: 'relacionamento', ico: 'ti-heart-handshake', lbl: 'Relacionamento com o Paciente' },
+    { id: 'relacionamento', ico: 'ti-heart-handshake', lbl: 'Relacionamento com o Paciente', ativo: true },
   ];
   return '<div class="ed-hub">' + cards.map(function (c) {
     if (c.ativo) return '<div class="ed-card" onclick="edAbrir(\'' + c.id + '\')"><i class="ti ' + c.ico + '"></i><div class="lbl">' + esc(c.lbl) + '</div></div>';
@@ -33098,6 +33148,229 @@ async function agcSalvar(userId) {
   agcFechar();
   if (typeof homeToast === 'function') homeToast('Horários salvos.');
   agcCarregar();
+}
+
+// ================= AUTOMAÇÕES DE AGENDA (Editáveis > Relacionamento com o Paciente) =================
+// Confirmação e Lembrete de consulta. A tela só configura: quem envia é o servidor, que a cada
+// minuto varre a agenda e coloca a mensagem na MESMA fila das mensagens agendadas à mão.
+// Nada é disparado retroativamente: ligar a chave vale das próximas janelas em diante.
+let autgState = { carregado: false, erro: null, confirmacao: null, lembrete: null, variaveis: [], modelos: {}, ultimos: [] };
+
+const AUTG_TITULO = {
+  confirmacao: 'Confirmação de Consulta',
+  lembrete: 'Lembrete de Consulta',
+};
+const AUTG_SUB = {
+  confirmacao: 'Automatização do processo de confirmação de consultas para os pacientes agendados.',
+  lembrete: 'Envio automático de lembrete da consulta para o paciente no dia do atendimento.',
+};
+const AUTG_DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+async function autgCarregar() {
+  autgState.carregado = false; edRender();
+  let r = null;
+  try { r = await pacApi('/api/clinico/automacoes'); } catch (e) { r = null; }
+  autgState.carregado = true;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    // Falha NÃO vira "automações desligadas": isso faria alguém ligar de novo o que já está ligado.
+    autgState.erro = (r && r.data && r.data.erro) || 'Não consegui carregar as automações agora.';
+  } else {
+    autgState.erro = null;
+    autgState.confirmacao = r.data.confirmacao;
+    autgState.lembrete = r.data.lembrete;
+    autgState.variaveis = r.data.variaveis || [];
+    autgState.modelos = r.data.modelos || {};
+    autgState.ultimos = r.data.ultimos || [];
+  }
+  edRender();
+}
+
+function autgHtml() {
+  let h = '<button class="ed-voltar" onclick="edVoltar()"><i class="ti ti-arrow-left"></i> Voltar</button>';
+  if (!autgState.carregado) return h + '<div class="pt-empty">Carregando…</div>';
+  if (autgState.erro) {
+    return h + '<div class="ed-vazio">' + esc(autgState.erro)
+      + '<div style="margin-top:10px"><button class="pac-btn-secondary" onclick="autgCarregar()">Tentar de novo</button></div></div>';
+  }
+  h += '<div class="ed-bar"><div><div style="font-size:15px;color:var(--tx1);font-weight:600">Automações de mensagem</div>'
+    + '<div style="font-size:12px;color:var(--tx3);margin-top:2px">O servidor manda sozinho, na antecedência que você definir.</div></div></div>';
+  h += autgCardHtml('confirmacao') + autgCardHtml('lembrete');
+
+  // O aviso vale pra QUALQUER texto — inclusive um que alguém reescreva amanhã pedindo "responda SIM".
+  h += '<div class="autg-aviso"><i class="ti ti-info-circle"></i><div>'
+    + '<b>As respostas dos pacientes chegam em Conversas.</b> Elas não mudam o status do agendamento sozinhas — '
+    + 'confirmar ou cancelar continua sendo feito na Agenda, na mão.</div></div>';
+
+  h += autgUltimosHtml();
+  return h;
+}
+
+function autgCardHtml(tipo) {
+  const c = autgState[tipo] || {};
+  const quando = tipo === 'confirmacao'
+    ? (c.dias_antes === 0 ? 'no mesmo dia' : c.dias_antes + (c.dias_antes === 1 ? ' dia antes' : ' dias antes')) + ', às ' + esc(c.hora || '')
+    : 'no dia da consulta, às ' + esc(c.hora || '');
+  return '<div class="autg-card' + (c.ativo ? '' : ' off') + '">'
+    + '<div class="autg-card-top">'
+    +   '<div class="autg-card-tt"><i class="ti ' + (tipo === 'confirmacao' ? 'ti-calendar-check' : 'ti-clock') + '"></i> ' + AUTG_TITULO[tipo] + '</div>'
+    +   '<label class="cfg-sw"><input type="checkbox" ' + (c.ativo ? 'checked' : '')
+    +     ' onchange="autgToggle(\'' + tipo + '\', this)"><span class="tr"></span></label>'
+    + '</div>'
+    + '<div class="autg-card-sub">' + AUTG_SUB[tipo] + '</div>'
+    + '<div class="autg-card-quando"><i class="ti ti-send"></i> ' + (c.ativo ? 'Enviando ' + quando : 'Desligada — nada é enviado') + '</div>'
+    + '<button class="pac-btn-secondary" onclick="autgConfigurar(\'' + tipo + '\')"><i class="ti ti-settings"></i> Mais configurações</button>'
+    + '</div>';
+}
+
+function autgUltimosHtml() {
+  const u = autgState.ultimos || [];
+  if (!u.length) return '';
+  const linha = function (e) {
+    const ok = e.status === 'enfileirado';
+    return '<div class="autg-log-linha">'
+      + '<span class="tag ' + (ok ? 'ok' : 'pulo') + '">' + (ok ? 'enviada' : 'não enviada') + '</span>'
+      + '<span class="nm">' + esc(e.paciente) + '</span>'
+      + '<span class="tp">' + (e.tipo === 'confirmacao' ? 'confirmação' : 'lembrete') + '</span>'
+      + '<span class="mt">' + esc(e.motivo || '') + '</span>'
+      + '</div>';
+  };
+  return '<div class="cfg-grupo">Últimas mensagens automáticas</div>'
+    + '<div class="autg-log">' + u.map(linha).join('') + '</div>';
+}
+
+async function autgToggle(tipo, el) {
+  const ligando = el.checked;
+  el.disabled = true;
+  let r = null;
+  try { r = await pacApi('/api/clinico/automacoes/' + tipo, { method: 'PUT', body: JSON.stringify({ ativo: ligando }) }); } catch (e) { r = null; }
+  el.disabled = false;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    if (typeof homeToast === 'function') homeToast((r && r.data && r.data.erro) || 'Não consegui salvar. A automação continua como estava.');
+    autgCarregar();   // re-render devolve o interruptor ao estado REAL do servidor
+    return;
+  }
+  autgState[tipo] = r.data.config;
+  if (typeof homeToast === 'function') {
+    homeToast(ligando
+      ? 'Automação ligada. Vale para as consultas cuja hora de envio ainda não chegou.'
+      : 'Automação desligada.');
+  }
+  edRender();
+}
+
+function autgConfigurar(tipo) {
+  const c = autgState[tipo] || {};
+  autgFechar();
+  const ehConf = tipo === 'confirmacao';
+  const dias = c.dias_semana;   // null = qualquer dia
+  const chips = AUTG_DIAS.map(function (nome, d) {
+    const on = !dias || dias.indexOf(d) >= 0;
+    return '<button type="button" class="cp-tagchip' + (on ? ' ativo' : '') + '" data-dia="' + d + '"'
+      + ' onclick="autgDiaToggle(this)">' + nome + '</button>';
+  }).join('');
+  const vars = (autgState.variaveis || []).map(function (v) {
+    return '<code class="aniv-var" style="cursor:pointer" onclick="autgInserirVar(\'' + v + '\')">{' + v + '}</code>';
+  }).join(' ');
+
+  const ov = document.createElement('div');
+  ov.id = 'autg-modal'; ov.className = 'ag-modal-overlay aberto';
+  ov.onclick = function (e) { if (e.target.id === 'autg-modal') autgFechar(); };
+  ov.innerHTML = '<div class="pac-modal" style="max-width:680px;">'
+    + '<div class="pac-modal-header"><div class="ttl"><i class="ti ti-settings"></i> ' + AUTG_TITULO[tipo] + '</div>'
+    + '<button class="pac-modal-close" onclick="autgFechar()"><i class="ti ti-x"></i></button></div>'
+    + '<div class="pac-modal-body">'
+
+    + '<div class="cfg-linha"><div class="txt"><div class="tt">Enviar automaticamente pelo WhatsApp?</div>'
+    + '<div class="sub">Desligada, nenhuma mensagem sai.</div></div>'
+    + '<label class="cfg-sw"><input type="checkbox" id="autg-ativo" ' + (c.ativo ? 'checked' : '') + '><span class="tr"></span></label></div>'
+
+    + (ehConf
+        ? '<div class="pac-field" style="margin-top:14px"><label>Enviar a mensagem quantos dias antes?</label>'
+          + '<input type="number" id="autg-dias" min="0" max="30" value="' + (c.dias_antes == null ? 1 : c.dias_antes) + '"></div>'
+        : '<div style="font-size:12px;color:var(--tx3);margin-top:14px">O lembrete sai no <b>próprio dia</b> da consulta.</div>')
+
+    + '<div class="pac-field" style="margin-top:12px"><label>A que horas?</label>'
+    + '<input type="time" id="autg-hora" value="' + esc(c.hora || '09:00') + '"></div>'
+
+    + '<div class="pac-field" style="margin-top:12px"><label>Pode enviar em quais dias?</label>'
+    + '<div class="autg-chips">' + chips + '</div>'
+    + '<div class="autg-dica">Se o dia calculado estiver desmarcado, a mensagem é <b>antecipada</b> — nunca adiada, pra não chegar depois da consulta.</div></div>'
+
+    + '<div class="pac-field" style="margin-top:12px"><label>Mensagem que o paciente vai receber</label>'
+    + '<textarea id="autg-msg" rows="5">' + esc(c.mensagem || '') + '</textarea>'
+    + '<div class="autg-dica">Clique para inserir: ' + vars + '</div>'
+    + (ehConf && autgState.modelos && autgState.modelos.sem_promessa
+        ? '<div class="autg-dica"><button type="button" class="autg-linkbtn" onclick="autgUsarModelo(\'sem_promessa\')">Usar texto que não promete SIM/NÃO</button>'
+          + ' — hoje ninguém lê essa resposta automaticamente.</div>'
+        : '')
+    + '</div>'
+
+    + '<div class="cfg-linha" style="margin-top:8px"><div class="txt"><div class="tt">Incluir aplicações de injetável</div>'
+    + '<div class="sub">Cada sessão vira uma mensagem: uma prescrição de 12 semanas manda 12.</div></div>'
+    + '<label class="cfg-sw"><input type="checkbox" id="autg-aplic" ' + (c.incluir_aplicacoes ? 'checked' : '') + '><span class="tr"></span></label></div>'
+
+    + '<div id="autg-erro" style="display:none;color:#f85149;font-size:12px;margin-top:10px;"></div>'
+    + '</div>'
+    + '<div class="pac-modal-footer"><button class="pac-btn-secondary" onclick="autgFechar()">Cancelar</button>'
+    + '<button class="pac-btn-primary" id="autg-btn" onclick="autgSalvar(\'' + tipo + '\')"><i class="ti ti-check"></i> Salvar</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+}
+function autgFechar() { const ov = document.getElementById('autg-modal'); if (ov) ov.remove(); }
+function autgDiaToggle(el) { el.classList.toggle('ativo'); }
+function autgInserirVar(v) {
+  const ta = document.getElementById('autg-msg');
+  if (!ta) return;
+  const i = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
+  const f = ta.selectionEnd == null ? ta.value.length : ta.selectionEnd;
+  const t = '{' + v + '}';
+  ta.value = ta.value.slice(0, i) + t + ta.value.slice(f);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = i + t.length;
+}
+function autgUsarModelo(qual) {
+  const ta = document.getElementById('autg-msg');
+  if (ta && autgState.modelos && autgState.modelos[qual]) ta.value = autgState.modelos[qual];
+}
+
+async function autgSalvar(tipo) {
+  const erroEl = document.getElementById('autg-erro');
+  const falha = function (m) { if (erroEl) { erroEl.textContent = m; erroEl.style.display = 'block'; } };
+  if (erroEl) erroEl.style.display = 'none';
+
+  const ativo = document.getElementById('autg-ativo').checked;
+  const hora = document.getElementById('autg-hora').value;
+  const msg = (document.getElementById('autg-msg').value || '').trim();
+  const aplic = document.getElementById('autg-aplic').checked;
+  const dias = [];
+  document.querySelectorAll('#autg-modal .cp-tagchip').forEach(function (b) {
+    if (b.classList.contains('ativo')) dias.push(Number(b.getAttribute('data-dia')));
+  });
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) return falha('Informe o horário no formato HH:MM.');
+  if (msg.length < 10) return falha('A mensagem está curta demais.');
+  if (!dias.length) return falha('Marque pelo menos um dia da semana — senão a mensagem nunca sai.');
+
+  const corpo = {
+    ativo: ativo, hora: hora, mensagem: msg, incluir_aplicacoes: aplic,
+    dias_semana: dias.length === 7 ? null : dias,   // todos marcados = "qualquer dia"
+  };
+  if (tipo === 'confirmacao') {
+    const d = Number(document.getElementById('autg-dias').value);
+    if (!Number.isInteger(d) || d < 0 || d > 30) return falha('"Dias antes" precisa ser um número de 0 a 30.');
+    corpo.dias_antes = d;
+  }
+
+  const btn = document.getElementById('autg-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando…'; }
+  let r = null;
+  try { r = await pacApi('/api/clinico/automacoes/' + tipo, { method: 'PUT', body: JSON.stringify(corpo) }); } catch (e) { r = null; }
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Salvar'; }
+  if (!r || !r.ok || !r.data || !r.data.ok) return falha((r && r.data && r.data.erro) || 'Não consegui salvar.');
+
+  autgFechar();
+  if (typeof homeToast === 'function') homeToast('Automação salva.');
+  autgCarregar();
 }
 
 // ---- Editor do TEMPLATE inteiro: renomear campo/seção e arrastar pra reordenar ----
