@@ -176,7 +176,8 @@
       <div><strong>CRM</strong><span>Aplic &amp; Go</span></div>
     </div>
     <nav class="sidebar-nav">
-      <button class="sidebar-item active"><i class="ti ti-user-plus"></i> Leads</button>
+      <button class="sidebar-item active" data-view="leads"><i class="ti ti-user-plus"></i> Leads</button>
+      <button class="sidebar-item" data-view="site"><i class="ti ti-world-www"></i> Site institucional</button>
       <!-- O item "Sistemas" saiu: a raiz do domínio agora é o próprio clínico.
            Quem troca de sistema é o botão do topbar. -->
     </nav>
@@ -205,6 +206,7 @@
   </header>
 
   <main class="app-main">
+   <div id="view-leads">
     <div class="page-head">
       <h1>Leads dos funis</h1>
       <p>Captados pela Avaliação Estratégica do Instagram — Dr. Matheus e Clínica.</p>
@@ -241,6 +243,69 @@
       <div class="loading" id="loading">Carregando leads…</div>
       <div class="empty hidden" id="empty"><i class="ti ti-inbox"></i>Nenhum lead ainda. Assim que o funil capturar (e o backend estiver no ar), eles aparecem aqui.</div>
     </section>
+   </div>
+
+   <!-- ===================== SITE INSTITUCIONAL ===================== -->
+   <div id="view-site" class="hidden">
+    <div class="page-head">
+      <h1>Site institucional</h1>
+      <p>Telemetria anônima de aplicgo.com — sem cookie, sem IP, sem identificar ninguém.</p>
+    </div>
+
+    <section class="filters" style="grid-template-columns:200px 1fr">
+      <select id="sPeriodo">
+        <option value="7">Últimos 7 dias</option>
+        <option value="30" selected>Últimos 30 dias</option>
+        <option value="90">Últimos 90 dias</option>
+        <option value="365">Último ano</option>
+      </select>
+    </section>
+
+    <section class="kpis">
+      <div class="kpi"><div class="k-lab">Acessos</div><div class="k-val" id="sVisitas">—</div><div class="k-sub">visitas únicas</div></div>
+      <div class="kpi"><div class="k-lab">Cliques em agendar</div><div class="k-val" id="sCta">—</div><div class="k-sub" id="sCtaTaxa">—</div></div>
+      <div class="kpi"><div class="k-lab">Contatos deixados</div><div class="k-val" id="sLeads">—</div><div class="k-sub">formulário do site</div></div>
+      <div class="kpi"><div class="k-lab">Leram até o fim</div><div class="k-val" id="sFim">—</div><div class="k-sub" id="sFimTaxa">—</div></div>
+    </section>
+
+    <section class="kpis" style="margin-top:-6px">
+      <div class="kpi"><div class="k-lab">Tempo médio</div><div class="k-val" id="sTempo">—</div><div class="k-sub">por visita</div></div>
+      <div class="kpi"><div class="k-lab">Celular</div><div class="k-val" id="sCelular">—</div><div class="k-sub">dos acessos</div></div>
+      <div class="kpi"><div class="k-lab">Origem principal</div><div class="k-val" id="sOrigemTop" style="font-size:20px">—</div><div class="k-sub" id="sOrigemTopN">—</div></div>
+      <div class="kpi"><div class="k-lab">Melhor CTA</div><div class="k-val" id="sCtaTop" style="font-size:20px">—</div><div class="k-sub" id="sCtaTopN">—</div></div>
+    </section>
+
+    <section class="table-wrap" style="margin-top:16px">
+      <table>
+        <thead><tr><th>De onde vieram</th><th style="width:120px">Acessos</th><th style="width:160px">Participação</th></tr></thead>
+        <tbody id="sOrigens"></tbody>
+      </table>
+    </section>
+
+    <section class="table-wrap" style="margin-top:16px">
+      <table>
+        <thead><tr><th>Onde clicaram para agendar</th><th style="width:120px">Cliques</th></tr></thead>
+        <tbody id="sCtas"></tbody>
+      </table>
+    </section>
+
+    <section class="table-wrap" style="margin-top:16px">
+      <table>
+        <thead><tr><th>Até onde rolaram a página</th><th style="width:120px">Visitas</th><th style="width:160px">Participação</th></tr></thead>
+        <tbody id="sProf"></tbody>
+      </table>
+    </section>
+
+    <section class="table-wrap" style="margin-top:16px" id="sCampanhasWrap">
+      <table>
+        <thead><tr><th>Campanhas (utm_campaign)</th><th style="width:120px">Acessos</th></tr></thead>
+        <tbody id="sCampanhas"></tbody>
+      </table>
+    </section>
+
+    <div class="loading hidden" id="sLoading">Carregando telemetria…</div>
+    <div class="empty hidden" id="sEmpty"><i class="ti ti-chart-dots"></i>Sem dados ainda. Assim que o backend subir e o site receber visitas, os números aparecem aqui.</div>
+   </div>
   </main>
 
   <!-- ===================== MODAL LEAD ===================== -->
@@ -353,6 +418,105 @@
       $("userNm").textContent = nome;
       $("userAv").textContent = (nome.trim()[0]||"·").toUpperCase();
     }
+
+    // ---------- Site institucional ----------
+    let SITE_CARREGADO = false;
+
+    const segundosLegivel = seg => {
+      if(!seg) return "—";
+      const m = Math.floor(seg/60), s2 = seg%60;
+      return m ? `${m}min ${s2}s` : `${s2}s`;
+    };
+    const ORIGEM_ROTULO = {
+      instagram:"Instagram", google:"Google", facebook:"Facebook", whatsapp:"WhatsApp",
+      direto:"Acesso direto", bing:"Bing", linkedin:"LinkedIn", youtube:"YouTube", interno:"Navegação interna"
+    };
+    const origemLabel = o => ORIGEM_ROTULO[o] || o || "—";
+    const CTA_ROTULO = {
+      hero:"Topo da página", flutuante:"Botão flutuante", nav:"Menu do topo",
+      medicacao:"Bloco de medicação", consulta:"Card da consulta", "cta-final":"Chamada final",
+      rodape:"Rodapé", outro:"Outros"
+    };
+    const ctaLabel = c => CTA_ROTULO[c] || (String(c||"").startsWith("rota:") ? "Necessidade · "+String(c).slice(5) : (c||"—"));
+
+    function barra(pct){
+      return `<div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:6px;border-radius:3px;background:var(--bg3);overflow:hidden">
+          <div style="height:100%;width:${Math.min(100,pct)}%;background:var(--ac)"></div>
+        </div><span style="font-size:12px;color:var(--tx3);min-width:38px">${pct.toFixed(0)}%</span></div>`;
+    }
+
+    async function carregarSite(){
+      $("sLoading").classList.remove("hidden");
+      $("sEmpty").classList.add("hidden");
+      const dias = $("sPeriodo").value;
+      const r = await api("/api/site-eventos/resumo?dias="+dias);
+      $("sLoading").classList.add("hidden");
+      if(r.status===401) return;
+      if(!r.ok){
+        $("sEmpty").classList.remove("hidden");
+        $("sEmpty").innerHTML = '<i class="ti ti-plug-connected-x"></i>' + (r.net
+          ? "Sem conexão com o servidor."
+          : "A telemetria ainda não está no ar. Falta rodar site-eventos.sql e publicar o backend.");
+        return;
+      }
+      const d = r.data || {};
+      SITE_CARREGADO = true;
+
+      $("sVisitas").textContent = (d.visitas ?? 0).toLocaleString("pt-BR");
+      $("sCta").textContent     = (d.cliquesCta ?? 0).toLocaleString("pt-BR");
+      $("sCtaTaxa").textContent = (d.taxaConversao ?? 0) + "% dos acessos";
+      $("sLeads").textContent   = (d.leadsDoSite ?? 0).toLocaleString("pt-BR");
+      $("sFim").textContent     = (d.chegaramAoFim ?? 0).toLocaleString("pt-BR");
+      $("sFimTaxa").textContent = (d.taxaAteOFim ?? 0) + "% dos acessos";
+      $("sTempo").textContent   = segundosLegivel(d.tempoMedioSegundos);
+
+      const disp = d.dispositivos || [];
+      const totalDisp = disp.reduce((a,x)=>a+x.visitas,0) || 1;
+      const cel = disp.find(x=>x.dispositivo==="celular");
+      $("sCelular").textContent = Math.round(((cel?cel.visitas:0)/totalDisp)*100) + "%";
+
+      const origens = d.origens || [];
+      const totalOrig = origens.reduce((a,o)=>a+o.visitas,0) || 1;
+      if(origens[0]){ $("sOrigemTop").textContent = origemLabel(origens[0].origem); $("sOrigemTopN").textContent = origens[0].visitas + " acessos"; }
+      $("sOrigens").innerHTML = origens.length
+        ? origens.map(o=>`<tr><td>${esc(origemLabel(o.origem))}</td><td>${o.visitas}</td><td>${barra(o.visitas/totalOrig*100)}</td></tr>`).join("")
+        : '<tr><td colspan="3" style="color:var(--tx4)">Sem acessos no período.</td></tr>';
+
+      const ctas = d.ctas || [];
+      if(ctas[0]){ $("sCtaTop").textContent = ctaLabel(ctas[0].cta); $("sCtaTopN").textContent = ctas[0].cliques + " cliques"; }
+      $("sCtas").innerHTML = ctas.length
+        ? ctas.map(c=>`<tr><td>${esc(ctaLabel(c.cta))}</td><td>${c.cliques}</td></tr>`).join("")
+        : '<tr><td colspan="2" style="color:var(--tx4)">Nenhum clique no período.</td></tr>';
+
+      const prof = d.profundidade || {};
+      const visitas = d.visitas || 1;
+      $("sProf").innerHTML = ["25","50","75","100"].map(m=>{
+        const v = prof[m] || 0;
+        const rot = m==="100" ? "Chegou ao fim da página" : "Passou de "+m+"%";
+        return `<tr><td>${rot}</td><td>${v}</td><td>${barra(v/visitas*100)}</td></tr>`;
+      }).join("");
+
+      const camp = d.campanhas || [];
+      $("sCampanhasWrap").classList.toggle("hidden", camp.length===0);
+      $("sCampanhas").innerHTML = camp.map(c=>`<tr><td>${esc(c.campanha)}</td><td>${c.visitas}</td></tr>`).join("");
+    }
+
+    $("sPeriodo").addEventListener("change", carregarSite);
+
+    // ---------- Troca de view ----------
+    const TITULOS = { leads:"Leads", site:"Site institucional" };
+    function trocarView(nome){
+      document.querySelectorAll(".sidebar-item[data-view]").forEach(b=>b.classList.toggle("active", b.dataset.view===nome));
+      $("view-leads").classList.toggle("hidden", nome!=="leads");
+      $("view-site").classList.toggle("hidden", nome!=="site");
+      document.querySelector(".t-title").textContent = TITULOS[nome] || "";
+      $("search").parentElement.classList.toggle("hidden", nome!=="leads");
+      if(nome==="site" && !SITE_CARREGADO) carregarSite();
+    }
+    document.querySelectorAll(".sidebar-item[data-view]").forEach(b=>{
+      b.addEventListener("click", ()=>trocarView(b.dataset.view));
+    });
 
     // ---------- Carregar + render ----------
     async function boot(){
