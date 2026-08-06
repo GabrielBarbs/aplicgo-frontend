@@ -76,12 +76,79 @@
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
-    .sidebar-context .info { min-width: 0; flex: 1; }
+    .sidebar-context .info { min-width: 0; flex: 1; text-align: left; }
     .sidebar-context .ttl {
       font-size: 11px; font-weight: 500; color: var(--tx1);
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .sidebar-context .sub { font-size: 10px; color: var(--tx3b); margin-top: 2px; }
+    .sidebar-context .sub {
+      font-size: 10px; color: var(--tx3b); margin-top: 2px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* ---- Trocador de sistema ----------------------------------------
+       O card de contexto virou botão: clicou, abre a lista dos outros
+       sistemas. Todos vivem no mesmo domínio e usam a MESMA chave de
+       sessão (aplic_auth_token), então trocar não pede login de novo.
+       O menu fica dentro dos 240px da sidebar de propósito: ela tem
+       overflow-x:hidden e cortaria qualquer coisa que vazasse. -------- */
+    .sidebar-context-wrap { position: relative; }
+    button.sidebar-context {
+      width: calc(100% - 24px);
+      font-family: inherit; cursor: pointer;
+      -webkit-appearance: none; appearance: none;
+    }
+    button.sidebar-context:hover { border-color: rgba(var(--ac-rgb),0.45); }
+    .sidebar-context .chev {
+      font-size: 13px; color: var(--tx3b); flex-shrink: 0;
+      transition: transform .16s ease, color .16s ease;
+    }
+    .sidebar-context-wrap.aberto .chev { transform: rotate(180deg); color: var(--ac); }
+
+    .sis-menu {
+      display: none;
+      position: absolute; top: calc(100% + 4px); left: 12px; right: 12px;
+      background: var(--bg2); border: 1px solid var(--bd1);
+      border-radius: 12px; padding: 6px;
+      box-shadow: 0 18px 44px rgba(0,0,0,0.55);
+      z-index: 300;
+    }
+    .sidebar-context-wrap.aberto .sis-menu { display: block; }
+    .sis-menu-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+      color: var(--tx3b); padding: 6px 8px 6px;
+    }
+    .sis-menu-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px; border-radius: 9px;
+      text-decoration: none; color: var(--tx2);
+    }
+    a.sis-menu-item:hover { background: rgba(var(--bg3-rgb),0.75); }
+    .sis-menu-item .ico {
+      width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: #fff;
+    }
+    .sis-menu-item .ico.clin { background: linear-gradient(135deg,#C56847,#E8945A); }
+    .sis-menu-item .ico.com  { background: linear-gradient(135deg,#0F6E56,#1D9E75); }
+    .sis-menu-item .ico.crm  { background: linear-gradient(135deg,#5B4BC4,#8B7BF0); }
+    .sis-menu-item .txt { min-width: 0; flex: 1; }
+    .sis-menu-item .txt b {
+      display: block; font-size: 11.5px; font-weight: 500; color: var(--tx1);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .sis-menu-item .txt small {
+      display: block; font-size: 9.5px; color: var(--tx3b); margin-top: 1px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .sis-menu-item .marca { font-size: 13px; color: var(--tx4); flex-shrink: 0; }
+    .sis-menu-item.atual { background: rgba(var(--ac-rgb),0.12); }
+    .sis-menu-item.atual .marca { color: var(--ac); }
+    .sis-menu-foot {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 9px; color: var(--tx3b);
+      padding: 7px 8px 3px; margin-top: 4px; border-top: 1px solid var(--hair);
+    }
 
     .sidebar-nav { padding: 8px 0; }
     .sidebar-group { padding: 4px 12px 8px; }
@@ -6596,11 +6663,40 @@
     <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'">
   </div>
 
-  <div class="sidebar-context">
-    <div class="ico"><i class="ti ti-stethoscope"></i></div>
-    <div class="info">
-      <div class="ttl">Sistema Clínico</div>
-      <div class="sub" id="sidebar-unidade-sub">Carregando unidade…</div>
+  <div class="sidebar-context-wrap" id="sis-wrap">
+    <button type="button" class="sidebar-context" id="sis-btn"
+            onclick="sisAlternar(event)" aria-haspopup="true" aria-expanded="false"
+            title="Trocar de sistema">
+      <div class="ico"><i class="ti ti-stethoscope"></i></div>
+      <div class="info">
+        <div class="ttl">Sistema Clínico</div>
+        <div class="sub" id="sidebar-unidade-sub">Carregando unidade…</div>
+      </div>
+      <i class="ti ti-chevron-down chev"></i>
+    </button>
+
+    <div class="sis-menu" id="sis-menu" role="menu" aria-labelledby="sis-btn">
+      <div class="sis-menu-label">Trocar de sistema</div>
+
+      <div class="sis-menu-item atual" role="menuitem" aria-current="true" onclick="sisFechar()">
+        <span class="ico clin"><i class="ti ti-stethoscope"></i></span>
+        <span class="txt"><b>Sistema Clínico</b><small>Você está aqui</small></span>
+        <i class="ti ti-check marca"></i>
+      </div>
+
+      <a class="sis-menu-item" role="menuitem" href="/comercial">
+        <span class="ico com"><i class="ti ti-chart-line"></i></span>
+        <span class="txt"><b>Sistema Comercial</b><small>Vendas, Meta Ads, equipe</small></span>
+        <i class="ti ti-arrow-right marca"></i>
+      </a>
+
+      <a class="sis-menu-item" role="menuitem" href="/crm">
+        <span class="ico crm"><i class="ti ti-filter"></i></span>
+        <span class="txt"><b>Sistema CRM</b><small>Leads dos funis</small></span>
+        <i class="ti ti-arrow-right marca"></i>
+      </a>
+
+      <div class="sis-menu-foot"><i class="ti ti-lock-open"></i> Entra com a mesma sessão</div>
     </div>
   </div>
 
@@ -6728,9 +6824,8 @@
       <span class="dot" id="status-dot"></span>
       <span id="status-text">Conectado</span>
     </div>
-    <a class="topbar-icon-btn topbar-sistemas-btn has-label" href="/" title="Voltar pra escolha de sistemas">
-      <i class="ti ti-apps"></i> Sistemas
-    </a>
+    <!-- O antigo botão "Sistemas" levava pra tela de escolha, que não existe mais:
+         a raiz do domínio agora É o clínico. Quem troca de sistema é o card da sidebar. -->
     <button class="topbar-icon-btn" id="btn-marcacoes" onclick="marcAbrir()" title="Caixa de marcações">
       <i class="ti ti-at"></i>
       <span class="badge-marcacoes" id="badge-marcacoes" style="display:none;">0</span>
@@ -6773,7 +6868,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CT</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CU</b></span></div>
   </div>
 </div>
 
@@ -10645,8 +10740,40 @@ try { if (localStorage.getItem('aplic_tema') === 'claro') aplicarTema('claro'); 
 
 // ===== Menu lateral no mobile (drawer) =====
 function toggleSidebar() { document.body.classList.toggle('sidebar-aberta'); }
-function fecharSidebar() { document.body.classList.remove('sidebar-aberta'); }
+function fecharSidebar() {
+  document.body.classList.remove('sidebar-aberta');
+  // Fecha junto o trocador de sistema: senão ele reaparece aberto na próxima vez
+  // que o menu do mobile for puxado.
+  if (typeof sisFechar === 'function') sisFechar();
+}
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharSidebar(); });
+
+// ===== Trocador de sistema (card da sidebar) =====
+// Os três sistemas moram no mesmo domínio e leem a sessão da MESMA chave
+// (AUTH_TOKEN_KEY). Por isso o item é um link comum: quem chega do outro lado
+// já encontra o token gravado e entra direto, sem pedir e-mail e senha.
+function sisFechar() {
+  const w = document.getElementById('sis-wrap');
+  if (!w || !w.classList.contains('aberto')) return;
+  w.classList.remove('aberto');
+  const b = document.getElementById('sis-btn');
+  if (b) b.setAttribute('aria-expanded', 'false');
+}
+function sisAlternar(ev) {
+  if (ev) ev.stopPropagation();
+  const w = document.getElementById('sis-wrap');
+  if (!w) return;
+  const abrindo = !w.classList.contains('aberto');
+  w.classList.toggle('aberto', abrindo);
+  const b = document.getElementById('sis-btn');
+  if (b) b.setAttribute('aria-expanded', abrindo ? 'true' : 'false');
+}
+// Clique fora e Esc fecham. O clique nos itens é link: deixa navegar.
+document.addEventListener('click', (e) => {
+  const w = document.getElementById('sis-wrap');
+  if (w && !w.contains(e.target)) sisFechar();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') sisFechar(); });
 
 function setToken(t) {
   if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
