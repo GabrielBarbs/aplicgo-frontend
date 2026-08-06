@@ -1,5 +1,8 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/perdas", "destination": "/comercial", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/clinico" }
   ],

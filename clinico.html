@@ -8,7 +8,9 @@
   <title>Aplic &amp; Go · Sistema Clínico</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="/sistemas.css">
   <!-- Sanitizador de HTML (DOMPurify): impede XSS no conteudo rico das evolucoes. -->
+  <script src="/sistemas.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
   <!-- Gerador de QR Code (assinatura verificavel de receita): SVG, leve, sem rede. -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -87,12 +89,8 @@
     }
 
     /* ---- Trocador de sistema ----------------------------------------
-       O card de contexto virou botão: clicou, abre a lista dos outros
-       sistemas. Todos vivem no mesmo domínio e usam a MESMA chave de
-       sessão (aplic_auth_token), então trocar não pede login de novo.
-       O menu fica dentro dos 240px da sidebar de propósito: ela tem
-       overflow-x:hidden e cortaria qualquer coisa que vazasse. -------- */
-    .sidebar-context-wrap { position: relative; }
+       O MENU vem de sistemas.css, compartilhado pelos três painéis. Aqui fica
+       só o gatilho, que aqui é o próprio card de contexto da sidebar. ------ */
     button.sidebar-context {
       width: calc(100% - 24px);
       font-family: inherit; cursor: pointer;
@@ -103,51 +101,29 @@
       font-size: 13px; color: var(--tx3b); flex-shrink: 0;
       transition: transform .16s ease, color .16s ease;
     }
-    .sidebar-context-wrap.aberto .chev { transform: rotate(180deg); color: var(--ac); }
+    .sis-wrap.aberto .chev { transform: rotate(180deg); color: var(--ac); }
 
-    .sis-menu {
-      display: none;
-      position: absolute; top: calc(100% + 4px); left: 12px; right: 12px;
+    /* Cartão pra quem entrou e não é da clínica (a raiz do domínio é o clínico,
+       então um vendedor cai aqui sem ter o que ver). */
+    .sem-acesso-card {
+      display: flex; align-items: center; gap: 14px;
       background: var(--bg2); border: 1px solid var(--bd1);
-      border-radius: 12px; padding: 6px;
-      box-shadow: 0 18px 44px rgba(0,0,0,0.55);
-      z-index: 300;
+      border-radius: 12px; padding: 16px 18px; margin-bottom: 18px;
     }
-    .sidebar-context-wrap.aberto .sis-menu { display: block; }
-    .sis-menu-label {
-      font-size: 9px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
-      color: var(--tx3b); padding: 6px 8px 6px;
-    }
-    .sis-menu-item {
-      display: flex; align-items: center; gap: 9px;
-      padding: 8px; border-radius: 9px;
-      text-decoration: none; color: var(--tx2);
-    }
-    a.sis-menu-item:hover { background: rgba(var(--bg3-rgb),0.75); }
-    .sis-menu-item .ico {
-      width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
+    .sem-acesso-card .ico {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      font-size: 13px; color: #fff;
+      font-size: 20px; color: #fff;
+      background: linear-gradient(135deg,#0F6E56,#1D9E75);
     }
-    .sis-menu-item .ico.clin { background: linear-gradient(135deg,#C56847,#E8945A); }
-    .sis-menu-item .ico.com  { background: linear-gradient(135deg,#0F6E56,#1D9E75); }
-    .sis-menu-item .ico.crm  { background: linear-gradient(135deg,#5B4BC4,#8B7BF0); }
-    .sis-menu-item .txt { min-width: 0; flex: 1; }
-    .sis-menu-item .txt b {
-      display: block; font-size: 11.5px; font-weight: 500; color: var(--tx1);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .sis-menu-item .txt small {
-      display: block; font-size: 9.5px; color: var(--tx3b); margin-top: 1px;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .sis-menu-item .marca { font-size: 13px; color: var(--tx4); flex-shrink: 0; }
-    .sis-menu-item.atual { background: rgba(var(--ac-rgb),0.12); }
-    .sis-menu-item.atual .marca { color: var(--ac); }
-    .sis-menu-foot {
-      display: flex; align-items: center; gap: 5px;
-      font-size: 9px; color: var(--tx3b);
-      padding: 7px 8px 3px; margin-top: 4px; border-top: 1px solid var(--hair);
+    .sem-acesso-card .tt { font-size: 14px; color: var(--tx1); font-weight: 600; }
+    .sem-acesso-card .ds { font-size: 12px; color: var(--tx3); margin-top: 3px; }
+    .sem-acesso-card .ir {
+      margin-left: auto; flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 7px;
+      background: linear-gradient(135deg,#0F6E56,#1D9E75); color: #fff;
+      border-radius: 9px; padding: 9px 15px; font-size: 13px;
+      text-decoration: none; font-weight: 500;
     }
 
     .sidebar-nav { padding: 8px 0; }
@@ -6663,10 +6639,8 @@
     <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'">
   </div>
 
-  <div class="sidebar-context-wrap" id="sis-wrap">
-    <button type="button" class="sidebar-context" id="sis-btn"
-            onclick="sisAlternar(event)" aria-haspopup="true" aria-expanded="false"
-            title="Trocar de sistema">
+  <div class="sidebar-context-wrap sis-wrap na-sidebar" id="sis-wrap">
+    <button type="button" class="sidebar-context" id="sis-btn" title="Trocar de sistema">
       <div class="ico"><i class="ti ti-stethoscope"></i></div>
       <div class="info">
         <div class="ttl">Sistema Clínico</div>
@@ -6674,30 +6648,7 @@
       </div>
       <i class="ti ti-chevron-down chev"></i>
     </button>
-
-    <div class="sis-menu" id="sis-menu" role="menu" aria-labelledby="sis-btn">
-      <div class="sis-menu-label">Trocar de sistema</div>
-
-      <div class="sis-menu-item atual" role="menuitem" aria-current="true" onclick="sisFechar()">
-        <span class="ico clin"><i class="ti ti-stethoscope"></i></span>
-        <span class="txt"><b>Sistema Clínico</b><small>Você está aqui</small></span>
-        <i class="ti ti-check marca"></i>
-      </div>
-
-      <a class="sis-menu-item" role="menuitem" href="/comercial">
-        <span class="ico com"><i class="ti ti-chart-line"></i></span>
-        <span class="txt"><b>Sistema Comercial</b><small>Vendas, Meta Ads, equipe</small></span>
-        <i class="ti ti-arrow-right marca"></i>
-      </a>
-
-      <a class="sis-menu-item" role="menuitem" href="/crm">
-        <span class="ico crm"><i class="ti ti-filter"></i></span>
-        <span class="txt"><b>Sistema CRM</b><small>Leads dos funis</small></span>
-        <i class="ti ti-arrow-right marca"></i>
-      </a>
-
-      <div class="sis-menu-foot"><i class="ti ti-lock-open"></i> Entra com a mesma sessão</div>
-    </div>
+    <!-- o menu é montado por sistemas.js, que é quem sabe a lista dos sistemas -->
   </div>
 
   <nav class="sidebar-nav">
@@ -6843,6 +6794,21 @@
   </div>
 </header>
 
+<!-- ============== SERVIDOR FORA DO AR ==============
+     Tela própria pra "não consegui falar com o servidor". Antes esse caso caía
+     no login: a pessoa digitava senha à toa, porque quem ia recusar o login era
+     o mesmo servidor que estava fora. Aqui a sessão NÃO é apagada. -->
+<div class="auth-overlay" id="recon-overlay">
+  <div class="auth-card" style="text-align:center">
+    <div style="font-size:34px;color:var(--ac);margin-bottom:10px"><i class="ti ti-plug-connected-x"></i></div>
+    <div class="auth-title" style="margin-bottom:6px">Sem resposta do servidor</div>
+    <div id="recon-msg" style="font-size:12.5px;color:var(--tx3);line-height:1.5;margin-top:4px">Sua sessão continua válida — tentando de novo.</div>
+    <button class="auth-btn" style="margin-top:18px" onclick="reconectarAgora()">
+      <i class="ti ti-refresh"></i> Tentar agora
+    </button>
+  </div>
+</div>
+
 <!-- ============== AUTH OVERLAY ============== -->
 <div class="auth-overlay" id="auth-overlay">
   <div class="auth-card">
@@ -6868,7 +6834,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CU</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-CV</b></span></div>
   </div>
 </div>
 
@@ -10738,42 +10704,36 @@ function alternarTema() {
 }
 try { if (localStorage.getItem('aplic_tema') === 'claro') aplicarTema('claro'); } catch (e) {}
 
+// ===== Trocador de sistema =====
+// A lista dos sistemas mora em sistemas.js, num lugar só. A guarda existe porque
+// um 404 no arquivo compartilhado não pode derrubar o painel inteiro.
+// Os sistemas dividem domínio e a MESMA chave de sessão (AUTH_TOKEN_KEY): por isso
+// cada item é um link comum — do outro lado o token já está gravado.
+let trocadorSistemas = null;
+if (window.montarTrocadorDeSistema) {
+  trocadorSistemas = montarTrocadorDeSistema({ atual: 'clinico' });
+}
+
 // ===== Menu lateral no mobile (drawer) =====
 function toggleSidebar() { document.body.classList.toggle('sidebar-aberta'); }
 function fecharSidebar() {
   document.body.classList.remove('sidebar-aberta');
-  // Fecha junto o trocador de sistema: senão ele reaparece aberto na próxima vez
-  // que o menu do mobile for puxado.
-  if (typeof sisFechar === 'function') sisFechar();
+  // Fecha junto o trocador: senão ele reaparece aberto na próxima vez que o
+  // menu do celular for puxado.
+  if (trocadorSistemas) trocadorSistemas.fechar();
 }
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharSidebar(); });
-
-// ===== Trocador de sistema (card da sidebar) =====
-// Os três sistemas moram no mesmo domínio e leem a sessão da MESMA chave
-// (AUTH_TOKEN_KEY). Por isso o item é um link comum: quem chega do outro lado
-// já encontra o token gravado e entra direto, sem pedir e-mail e senha.
-function sisFechar() {
+// Esc na fase de captura, pra rodar ANTES do listener do próprio trocador: com o
+// menu de sistemas aberto, Esc fecha só ele. O menu lateral inteiro fechar junto
+// obrigava a pessoa a reabrir tudo do zero.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
   const w = document.getElementById('sis-wrap');
-  if (!w || !w.classList.contains('aberto')) return;
-  w.classList.remove('aberto');
-  const b = document.getElementById('sis-btn');
-  if (b) b.setAttribute('aria-expanded', 'false');
-}
-function sisAlternar(ev) {
-  if (ev) ev.stopPropagation();
-  const w = document.getElementById('sis-wrap');
-  if (!w) return;
-  const abrindo = !w.classList.contains('aberto');
-  w.classList.toggle('aberto', abrindo);
-  const b = document.getElementById('sis-btn');
-  if (b) b.setAttribute('aria-expanded', abrindo ? 'true' : 'false');
-}
-// Clique fora e Esc fecham. O clique nos itens é link: deixa navegar.
-document.addEventListener('click', (e) => {
-  const w = document.getElementById('sis-wrap');
-  if (w && !w.contains(e.target)) sisFechar();
-});
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') sisFechar(); });
+  if (w && w.classList.contains('aberto')) {
+    if (trocadorSistemas) trocadorSistemas.fechar();
+    return;
+  }
+  fecharSidebar();
+}, true);
 
 function setToken(t) {
   if (t) localStorage.setItem(AUTH_TOKEN_KEY, t);
@@ -10879,6 +10839,15 @@ async function resetTrocarSenha() {
 }
 
 function fazerLogout() {
+  // Encerra a sessão NO SERVIDOR, não só neste navegador: sem isto o token
+  // continuava valendo por horas depois do "Sair" — e como os três sistemas
+  // dividem a mesma chave, sair aqui sai de todos.
+  const t = getToken();
+  if (t) {
+    fetch(API_BASE + '/api/auth/logout', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + t }
+    }).catch(() => {});   // melhor esforço: a limpeza local não espera resposta
+  }
   setToken(null);
   salvarPacienteAtual(null);   // a próxima pessoa na mesma máquina não reabre a ficha de quem saiu
   authUser = null; meData = null;
@@ -10897,41 +10866,121 @@ document.addEventListener('click', () => {
 // ============================================================
 // CARREGAR DADOS DO USER + UNIDADES
 // ============================================================
+// Servidor fora do ar NÃO é sessão expirada.
+// ------------------------------------------------------------------
+// Antes, um 500 do banco ou uma oscilação de wi-fi jogavam a pessoa na tela de
+// login com a sessão intacta — ela digitava e-mail e senha à toa, porque o
+// servidor que ia recusar o login era o mesmo que estava fora. Agora esse caso
+// tem tela própria, que tenta de novo sozinha e não mexe no token.
+let _reconTimer = null;
+let _reconTentativa = 0;
+const RECON_ESPERAS = [2000, 5000, 10000, 30000];
+
+function mostrarReconectando(motivo) {
+  const ov = document.getElementById('recon-overlay');
+  if (!ov) return;
+  const msg = document.getElementById('recon-msg');
+  const espera = RECON_ESPERAS[Math.min(_reconTentativa, RECON_ESPERAS.length - 1)];
+  if (msg) {
+    msg.textContent = (motivo ? motivo + '. ' : '') +
+      'Sua sessão continua válida — tentando de novo em ' + Math.round(espera / 1000) + 's.';
+  }
+  ov.classList.add('aberto');
+  document.getElementById('status-text').textContent = 'Offline';
+  document.getElementById('status-dot').style.background = '#f85149';
+  clearTimeout(_reconTimer);
+  _reconTimer = setTimeout(() => { _reconTentativa++; carregarMe(); }, espera);
+}
+function esconderReconectando() {
+  clearTimeout(_reconTimer);
+  _reconTimer = null;
+  _reconTentativa = 0;
+  const ov = document.getElementById('recon-overlay');
+  if (ov) ov.classList.remove('aberto');
+}
+function reconectarAgora() {
+  clearTimeout(_reconTimer);
+  const msg = document.getElementById('recon-msg');
+  if (msg) msg.textContent = 'Falando com o servidor…';
+  carregarMe();
+}
+// A rede voltou: não faz sentido esperar o próximo tique.
+window.addEventListener('online', () => {
+  const ov = document.getElementById('recon-overlay');
+  if (ov && ov.classList.contains('aberto')) reconectarAgora();
+});
+
 async function carregarMe() {
   const t = getToken();
   if (!t) { mostrarLogin(); return; }
 
+  let resp, data;
+  // O try cobre SÓ a ida ao servidor. Se ele engolisse a renderização também, um
+  // erro de JavaScript na tela viraria "servidor fora do ar" — mentira que manda
+  // procurar o problema no lugar errado.
   try {
-    const resp = await fetch(API_BASE + '/api/clinico/me', {
+    resp = await fetch(API_BASE + '/api/clinico/me', {
       headers: { 'Authorization': 'Bearer ' + t }
     });
-    if (resp.status === 401) {
-      setToken(null);
-      mostrarLogin('Sessão expirada — entre novamente');
-      return;
-    }
-    const data = await resp.json();
-    if (!data.ok) {
-      mostrarLogin(data.erro || 'Erro ao carregar dados');
-      return;
-    }
-
-    authUser = data.user;
-    meData = data;
-    aplicarUI();
-    caTratarRetorno();   // se voltou do Conta Azul (?contaazul=ok|erro), avisa e limpa a URL
-    restaurarViewSalva();  // reabre a última aba (depois das permissões, que o trocarView consulta)
-    dashCarregarSeVisivel();  // a Visão Geral só carrega quando é ELA que está na tela
-    novidadesAutoAbrir();  // mostra a última atualização UMA vez pra quem entrou/recarregou
   } catch (e) {
-    document.getElementById('status-text').textContent = 'Offline';
-    document.getElementById('status-dot').style.background = '#f85149';
-    document.getElementById('hero-saudacao').textContent = 'Erro de conexão';
-    document.getElementById('hero-sub').textContent = e.message;
-    // NÃO deixa o usuário preso numa casca sem permissões (ex.: servidor reiniciando
-    // num deploy): manda pro login pra ele entrar de novo quando o servidor voltar.
-    mostrarLogin('Falha ao falar com o servidor. Entre novamente.');
+    mostrarReconectando('Sem conexão com o servidor');
+    return;
   }
+
+  // 401 é a ÚNICA resposta que significa "esta sessão morreu".
+  if (resp.status === 401) {
+    esconderReconectando();
+    setToken(null);
+    mostrarLogin('Sessão expirada — entre novamente');
+    return;
+  }
+  if (!resp.ok) {
+    // 500 do Prisma, 502/504 do proxy num deploy: a sessão está boa, o servidor é que não está.
+    mostrarReconectando('O servidor respondeu ' + resp.status);
+    return;
+  }
+  data = await resp.json().catch(() => null);
+  if (!data) { mostrarReconectando('Resposta ilegível do servidor'); return; }
+  if (!data.ok) {
+    esconderReconectando();
+    mostrarLogin(data.erro || 'Erro ao carregar dados');
+    return;
+  }
+
+  esconderReconectando();
+  authUser = data.user;
+  meData = data;
+  aplicarUI();
+  caTratarRetorno();   // se voltou do Conta Azul (?contaazul=ok|erro), avisa e limpa a URL
+  restaurarViewSalva();  // reabre a última aba (depois das permissões, que o trocarView consulta)
+  dashCarregarSeVisivel();  // a Visão Geral só carrega quando é ELA que está na tela
+  novidadesAutoAbrir();  // mostra a última atualização UMA vez pra quem entrou/recarregou
+}
+
+// A raiz do domínio virou o clínico. Quem é do comercial (role vendedor) passou a
+// cair aqui: sem unidade, sem permissão, cards no traço. Em vez de deixar a pessoa
+// achando que o sistema quebrou, o painel diz onde ela deve estar e leva.
+// Gate por ROLE, não por "permissões vazias": médico/enfermagem/nutri recém-criados
+// também chegam vazios, e pra eles a mensagem certa é a outra ("peça pra gerência
+// te vincular"), que o card de unidade já dá.
+function avisarSemAcessoClinico() {
+  const existente = document.getElementById('sem-acesso-clinico');
+  if (!authUser || authUser.role !== 'vendedor') {
+    if (existente) existente.remove();
+    return;
+  }
+  if (existente) return;
+  const view = document.getElementById('view-painel');
+  if (!view) return;
+  const card = document.createElement('div');
+  card.className = 'sem-acesso-card';
+  card.id = 'sem-acesso-clinico';
+  card.innerHTML =
+    '<div class="ico"><i class="ti ti-chart-line"></i></div>' +
+    '<div><div class="tt">Seu sistema é o Comercial</div>' +
+    '<div class="ds">Esta é a área clínica, e seu acesso não é dela. Suas vendas, leads e metas estão no Sistema Comercial.</div></div>' +
+    '<a class="ir" href="/comercial">Ir pro Comercial <i class="ti ti-arrow-right"></i></a>';
+  view.insertBefore(card, view.firstChild);
 }
 
 function aplicarUI() {
@@ -10974,6 +11023,9 @@ function aplicarUI() {
 
   // Relógio + data
   tickRelogio();
+
+  // Quem não é da clínica não pode cair num painel vazio sem saída.
+  avisarSemAcessoClinico();
 
   // Sidebar context — primeira unidade ou "sem unidade"
   const subEl = document.getElementById('sidebar-unidade-sub');
@@ -14789,7 +14841,7 @@ function caStatusRender(d) {
     <div style="font-size:11px;color:var(--tx4);margin-bottom:12px">O acesso se renova sozinho. Você só reconecta se ficar ~2 semanas sem uso.</div>
     <button class="tk-btn" style="background:var(--bg3);color:var(--tx2)" onclick="caDesconectar(this)"><i class="ti ti-plug-off"></i> Desconectar</button>`;
 }
-// Redireciona a página inteira pro login do Conta Azul. Volta em aplicgo.com/?contaazul=ok|erro,
+// Redireciona a página inteira pro login do Conta Azul. Volta em /clinico?contaazul=ok|erro,
 // tratado no boot (caTratarRetorno). O state anti-CSRF viaja e é validado no callback.
 async function caConectar(btn) {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Abrindo o Conta Azul…'; }

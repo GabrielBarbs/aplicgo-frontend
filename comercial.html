@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aplic & Go — Comercial</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/tabler-icons.min.css">
+<link rel="stylesheet" href="/sistemas.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/sistemas.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -1094,41 +1096,9 @@
     color: #1D9E75;
   }
 
-  /* ---- Trocador de sistema ------------------------------------------
-     Os três sistemas moram no mesmo domínio e leem a sessão da mesma
-     chave (aplic_auth_token): trocar não pede login de novo. ---------- */
-  .sis-wrap { position: relative; display: inline-flex; }
-  .sis-menu {
-    display: none;
-    position: absolute; top: calc(100% + 8px); right: 0;
-    background: #161b22; border: 1px solid #30363d;
-    border-radius: 12px; padding: 6px; min-width: 232px;
-    box-shadow: 0 18px 44px rgba(0,0,0,0.55);
-    z-index: 300;
-  }
-  .sis-wrap.aberto .sis-menu { display: block; }
-  .sis-menu-label {
-    font-size: 9px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
-    color: #7d8590; padding: 6px 8px;
-  }
-  .sis-menu-item {
-    display: flex; align-items: center; gap: 9px;
-    padding: 8px; border-radius: 9px;
-    text-decoration: none; color: #c9d1d9;
-  }
-  a.sis-menu-item:hover { background: rgba(33,38,45,0.75); }
-  .sis-menu-item .ico {
-    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; color: #fff;
-  }
-  .sis-menu-item .ico.clin { background: linear-gradient(135deg,#C56847,#E8945A); }
-  .sis-menu-item .ico.com  { background: linear-gradient(135deg,#0F6E56,#1D9E75); }
-  .sis-menu-item .ico.crm  { background: linear-gradient(135deg,#5B4BC4,#8B7BF0); }
-  .sis-menu-item .txt { min-width: 0; flex: 1; }
-  .sis-menu-item .txt b { display: block; font-size: 11.5px; font-weight: 500; color: #f0f6fc; }
-  .sis-menu-item .txt small { display: block; font-size: 9.5px; color: #7d8590; margin-top: 1px; }
-  .sis-menu-item .marca { font-size: 13px; color: #6e7681; flex-shrink: 0; }
+  /* ---- Trocador de sistema: o MENU vem de sistemas.css (compartilhado pelos
+     três painéis). Aqui só o que é do comercial. ---- */
+  .sis-wrap { display: inline-flex; }
   .sis-menu-item.atual { background: rgba(29,158,117,0.12); }
   .sis-menu-item.atual .marca { color: #1D9E75; }
   /* Badge de novidades não lidas no botão de changelog */
@@ -3535,28 +3505,10 @@
     </div>
     <div class="sis-wrap" id="sis-wrap">
       <button type="button" class="topbar-icon-btn topbar-sistemas-btn has-label"
-              id="sis-btn" onclick="sisAlternar(event)"
-              aria-haspopup="true" aria-expanded="false" title="Trocar de sistema">
+              id="sis-btn" title="Trocar de sistema">
         <i class="ti ti-apps"></i> Sistemas
       </button>
-      <div class="sis-menu" id="sis-menu" role="menu" aria-labelledby="sis-btn">
-        <div class="sis-menu-label">Trocar de sistema</div>
-        <div class="sis-menu-item atual" role="menuitem" aria-current="true" onclick="sisFechar()">
-          <span class="ico com"><i class="ti ti-chart-line"></i></span>
-          <span class="txt"><b>Sistema Comercial</b><small>Você está aqui</small></span>
-          <i class="ti ti-check marca"></i>
-        </div>
-        <a class="sis-menu-item" role="menuitem" href="/clinico">
-          <span class="ico clin"><i class="ti ti-stethoscope"></i></span>
-          <span class="txt"><b>Sistema Clínico</b><small>Pacientes, agenda, prontuário</small></span>
-          <i class="ti ti-arrow-right marca"></i>
-        </a>
-        <a class="sis-menu-item" role="menuitem" href="/crm">
-          <span class="ico crm"><i class="ti ti-filter"></i></span>
-          <span class="txt"><b>Sistema CRM</b><small>Leads dos funis</small></span>
-          <i class="ti ti-arrow-right marca"></i>
-        </a>
-      </div>
+      <!-- o menu é montado por sistemas.js, que é quem sabe a lista dos sistemas -->
     </div>
     <button class="topbar-icon-btn" id="btn-novidades" onclick="abrirNovidades()" title="Novidades e atualizações">
       <i class="ti ti-sparkles"></i>
@@ -5539,8 +5491,10 @@ let authUser = null;
 
 const AUTH_TOKEN_KEY = 'aplic_auth_token';
 
+// Lê o localStorage SEMPRE. Guardar em variável fazia esta aba continuar usando
+// um token que outra aba (ou outro sistema, que divide a mesma chave) já derrubou.
 function getAuthToken() {
-  if (!authToken) authToken = localStorage.getItem(AUTH_TOKEN_KEY);
+  try { authToken = localStorage.getItem(AUTH_TOKEN_KEY); } catch (e) {}
   return authToken;
 }
 function setAuthToken(t) {
@@ -5549,45 +5503,38 @@ function setAuthToken(t) {
   else localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
-// URLs com token automático.
-// Se a action existe em NODE_ENDPOINTS, roteia pro Node (token via query
-// pra retro-compat; o backend aceita Authorization header também).
-// Caso contrário, vai pro Apps Script como fallback.
-function urlWithToken(action, extraParams) {
+// GET numa rota do Node, com a sessão no CABEÇALHO.
+// ------------------------------------------------------------------
+// O servidor DEIXOU de aceitar a chave em ?token= (ela vazava no log do proxy,
+// no histórico do navegador e no Referer). Enquanto isto aqui montava a URL do
+// jeito antigo, o painel abria sem pedir login e mostrava 401 em tudo: Painel
+// Geral, Perdas, Meta, Histórico, Comissões, Heatmap, CAC.
+// Não lança: devolve a resposta e deixa cada tela tratar o !ok como já trata.
+function nodeGet(action, extraParams) {
   const t = getAuthToken();
   const nodePath = NODE_ENDPOINTS[action];
+  if (!nodePath) return Promise.reject(new Error('action sem rota no Node: ' + action));
 
-  if (nodePath) {
-    let url = API_BASE + nodePath;
-    const params = new URLSearchParams();
-    if (t) params.set('token', t);
-    if (extraParams) {
-      Object.keys(extraParams).forEach(k => params.set(k, extraParams[k]));
+  const params = new URLSearchParams();
+  if (extraParams) Object.keys(extraParams).forEach(k => params.set(k, extraParams[k]));
+  const qs = params.toString();
+
+  return fetch(API_BASE + nodePath + (qs ? '?' + qs : ''), {
+    headers: t ? { 'Authorization': 'Bearer ' + t } : {}
+  }).then(resp => {
+    if (resp.status === 401) {
+      setAuthToken(null);
+      showLogin('Sessão expirada — entre novamente');
     }
-    const qs = params.toString();
-    return qs ? url + '?' + qs : url;
-  }
-
-  // Fallback: Apps Script (endpoints ainda não migrados)
-  let url = APPS_SCRIPT_BASE + '?action=' + encodeURIComponent(action);
-  if (t) url += '&token=' + encodeURIComponent(t);
-  if (extraParams) {
-    Object.keys(extraParams).forEach(k => {
-      url += '&' + k + '=' + encodeURIComponent(extraParams[k]);
-    });
-  }
-  return url;
+    return resp;
+  });
 }
 
-// Wrappers das URLs dinâmicos (getters por função pra incluir token sempre fresco)
-function getApsScriptUrl()       { return urlWithToken('dashboard'); }
-function getApsScriptPerdasUrl() { return urlWithToken('dashboard_perdas', { periodo: 'mes_atual' }); }
-function getApsScriptMetaUrl()   { return urlWithToken('dashboard_meta'); }
-
-// Aliases pra compat com código existente
-const APPS_SCRIPT_URL = APPS_SCRIPT_BASE + "?action=dashboard";          // não use diretamente, use getApsScriptUrl()
-const APPS_SCRIPT_PERDAS_URL = APPS_SCRIPT_BASE + "?action=dashboard_perdas&periodo=mes_atual";
-const APPS_SCRIPT_META_URL = APPS_SCRIPT_BASE + "?action=dashboard_meta";
+// (Removidos) urlWithToken() e os aliases APPS_SCRIPT_*_URL. Todas as telas que os
+// usavam já migraram pro Node e passaram pro nodeGet(); deixá-los aqui era uma
+// armadilha — quem chamasse urlWithToken com uma action já migrada cairia calado
+// no Apps Script. Quem ainda fala com o Apps Script monta a própria URL:
+// apiGet() (GET) e apiPost() (POST), logo abaixo.
 
 // ============================================================
 // AUTH — funções
@@ -5739,15 +5686,16 @@ async function aceitarConvite(tokenConvite, senha) {
 }
 
 async function checarSessao() {
-  // Detecta link de convite na URL
+  // Link de convite na URL. Só vale pra quem NÃO tem sessão: um link antigo
+  // reencaminhado no WhatsApp não pode pedir senha de quem já está logado.
   const params = new URLSearchParams(window.location.search);
   const tokenConvite = params.get('aceitar');
-  if (tokenConvite) {
+  const t = getAuthToken();
+  if (tokenConvite && !t) {
     showConvite(tokenConvite);
     return false;
   }
 
-  const t = getAuthToken();
   if (!t) {
     showLogin();
     return false;
@@ -5757,18 +5705,32 @@ async function checarSessao() {
     const resp = await fetch(API_BASE + '/api/auth/me', {
       headers: { 'Authorization': 'Bearer ' + t }
     });
-    if (!resp.ok) {
+    // 401 é a ÚNICA resposta que significa "esta sessão morreu".
+    if (resp.status === 401) {
       setAuthToken(null);
-      showLogin('Sessão expirada — entre novamente');
+      // Token podre não pode engolir um convite legítimo que veio na mesma URL.
+      if (tokenConvite) showConvite(tokenConvite);
+      else showLogin('Sessão expirada — entre novamente');
       return false;
     }
-    const data = await resp.json();
+    // Servidor reiniciando (deploy) ou erro interno: a sessão continua boa.
+    // Apagar o token aqui deslogava de quebra o Clínico e o CRM, que dividem a
+    // mesma chave — por um 502 de dez segundos.
+    if (!resp.ok) {
+      showLogin('Servidor indisponível — recarregue em instantes');
+      return false;
+    }
+    const data = await resp.json().catch(() => ({}));
     authUser = adaptarUsuarioNode(data.user);
     aplicarUsuarioUI();
     hideLogin();
+    // Convite de uso único já gasto: tira da barra de endereço só depois de
+    // a sessão ter sido confirmada.
+    if (tokenConvite) { try { history.replaceState({}, '', window.location.pathname); } catch (e) {} }
     return true;
   } catch (e) {
-    showLogin('Erro de conexão: ' + e.message);
+    // Falha de rede: token INTOCADO.
+    showLogin('Sem conexão com o servidor — tente de novo em instantes');
     return false;
   }
 }
@@ -5836,29 +5798,9 @@ document.addEventListener('click', () => {
 });
 
 // ===== Trocador de sistema =====
-// Link comum de propósito: os sistemas dividem o mesmo domínio e a mesma chave
-// de sessão (AUTH_TOKEN_KEY), então do outro lado o token já está lá.
-function sisFechar() {
-  const w = document.getElementById('sis-wrap');
-  if (!w || !w.classList.contains('aberto')) return;
-  w.classList.remove('aberto');
-  const b = document.getElementById('sis-btn');
-  if (b) b.setAttribute('aria-expanded', 'false');
-}
-function sisAlternar(ev) {
-  if (ev) ev.stopPropagation();
-  const w = document.getElementById('sis-wrap');
-  if (!w) return;
-  const abrindo = !w.classList.contains('aberto');
-  w.classList.toggle('aberto', abrindo);
-  const b = document.getElementById('sis-btn');
-  if (b) b.setAttribute('aria-expanded', abrindo ? 'true' : 'false');
-}
-document.addEventListener('click', (e) => {
-  const w = document.getElementById('sis-wrap');
-  if (w && !w.contains(e.target)) sisFechar();
-});
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') sisFechar(); });
+// A lista dos sistemas mora em sistemas.js, num lugar só. A guarda existe porque
+// um 404 no arquivo compartilhado não pode derrubar a página inteira.
+if (window.montarTrocadorDeSistema) montarTrocadorDeSistema({ atual: 'comercial' });
 
 function setupAuthForms() {
   document.getElementById('form-login').addEventListener('submit', async (ev) => {
@@ -7257,7 +7199,7 @@ function gerarDestaques() {
 // ============================================================
 async function carregarMetaAds() {
   try {
-    const resp = await fetch(getApsScriptMetaUrl());
+    const resp = await nodeGet('dashboard_meta');
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const d = await resp.json();
     if (!trataRespostaAuth(d)) return;
@@ -7692,7 +7634,7 @@ function setupMetaHandlers() {
 // ============================================================
 async function carregarPainelGeralMes() {
   try {
-    const resp = await fetch(urlWithToken('painel_geral_mes'));
+    const resp = await nodeGet('painel_geral_mes');
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const d = await resp.json();
     if (!trataRespostaAuth(d)) return;
@@ -7879,8 +7821,7 @@ async function pdCarregar(periodo) {
   if (lbl) lbl.textContent = PD_PERIODO_LABEL[periodo] || periodo;
 
   try {
-    const url = urlWithToken('dashboard_perdas', { periodo: periodo });
-    const r = await fetch(url);
+    const r = await nodeGet('dashboard_perdas', { periodo: periodo });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
@@ -8303,8 +8244,7 @@ async function carregarHistorico(meses) {
   });
 
   try {
-    const url = urlWithToken('historico_mes', { meses: histRange });
-    const r = await fetch(url);
+    const r = await nodeGet('historico_mes', { meses: histRange });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
@@ -8963,8 +8903,8 @@ async function carregarEquipe() {
   try {
     // Carrega comissoes_mes (já traz vendedores ordenados por faturamento)
     const [comResp, usuariosResp] = await Promise.all([
-      fetch(urlWithToken('comissoes_mes')).then(r => r.json()),
-      fetch(urlWithToken('listar_usuarios')).then(r => r.json())
+      nodeGet('comissoes_mes').then(r => r.json()),
+      nodeGet('listar_usuarios').then(r => r.json())
     ]);
     if (!trataRespostaAuth(comResp) || !trataRespostaAuth(usuariosResp)) return;
     if (!usuariosResp.ok) {
@@ -9053,8 +8993,7 @@ async function carregarPainelDoVendedor(email) {
 
   try {
     // Reusa a rota painel_vendedor passando email
-    const url = urlWithToken('painel_vendedor', { email: email });
-    const r = await fetch(url);
+    const r = await nodeGet('painel_vendedor', { email: email });
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
 
@@ -9245,7 +9184,7 @@ let perfEquipeCache = null;
 async function carregarPerformanceEquipe() {
   try {
     // Reusa comissoes_mes que já traz vendas+faturamento+comissão+metas dos vendedores
-    const r = await fetch(urlWithToken('comissoes_mes'));
+    const r = await nodeGet('comissoes_mes');
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
     if (!d.ok) {
@@ -9493,7 +9432,7 @@ async function salvarQuickComissao(email) {
 // ============================================================
 async function carregarComissoesMes() {
   try {
-    const r = await fetch(urlWithToken('comissoes_mes'));
+    const r = await nodeGet('comissoes_mes');
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
     if (!d.ok) {
@@ -9565,7 +9504,7 @@ let heatmapTipo = 'leads';
 
 async function carregarHeatmap() {
   try {
-    const r = await fetch(urlWithToken('heatmap_dia_hora'));
+    const r = await nodeGet('heatmap_dia_hora');
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
     if (!d.ok || d.vazio) {
@@ -9638,7 +9577,7 @@ async function carregarVelocidade() {
   const el = document.getElementById('veloc-content');
   if (!el) return;
   try {
-    const r = await fetch(urlWithToken('velocidade_funil'));
+    const r = await nodeGet('velocidade_funil');
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
     if (!d.ok) {
@@ -9707,7 +9646,7 @@ let cacSortDir = 'desc';
 
 async function carregarCacCampanhas() {
   try {
-    const r = await fetch(urlWithToken('cac_campanhas'));
+    const r = await nodeGet('cac_campanhas');
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
     if (!d.ok) {
@@ -9782,7 +9721,7 @@ async function adminAuditoria() {
   const el = document.getElementById('audit-content');
   el.innerHTML = '<div class="meta-loading" style="padding: 20px; text-align: center;">Auditando…</div>';
   try {
-    const r = await fetch(urlWithToken('auditoria_crm'));
+    const r = await nodeGet('auditoria_crm');
     const d = await r.json();
     if (!trataRespostaAuth(d)) return;
     if (!d.ok) {
@@ -9850,7 +9789,7 @@ function audit_toggle(catKey) {
 
 async function carregarPerdasResumo() {
   try {
-    const resp = await fetch(getApsScriptPerdasUrl());
+    const resp = await nodeGet('dashboard_perdas', { periodo: 'mes_atual' });
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const d = await resp.json();
     if (!trataRespostaAuth(d)) return;
@@ -9998,7 +9937,7 @@ async function carregarDados() {
 
   try {
     if (!getAuthToken()) { showLogin(); return; }
-    const resp = await fetch(getApsScriptUrl());
+    const resp = await nodeGet('dashboard');
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const data = await resp.json();
     if (!trataRespostaAuth(data)) return;
@@ -10127,7 +10066,7 @@ async function pollUltimaMudanca() {
 
   pollEmAndamento = true;
   try {
-    const r = await fetch(urlWithToken('ultima_mudanca'));
+    const r = await nodeGet('ultima_mudanca');
     if (!r.ok) { pollEmAndamento = false; return; }
     const d = await r.json();
     pollEmAndamento = false;

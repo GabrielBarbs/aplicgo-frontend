@@ -7,6 +7,7 @@
   <title>Aplic &amp; Go — CRM</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="/sistemas.css">
   <style>
     :root{
       --bg0:#010409; --bg1:#0d1117; --bg2:#161b22; --bg3:#21262d; --bg4:#1c2230;
@@ -142,25 +143,10 @@
     .toast{position:fixed;right:18px;bottom:18px;z-index:120;background:var(--bg3);border:1px solid var(--bd2);color:var(--tx1);padding:12px 15px;border-radius:10px;opacity:0;transform:translateY(10px);transition:.2s;pointer-events:none;font-size:13px}
     .toast.show{opacity:1;transform:none}
 
-    /* ---- Trocador de sistema: os três sistemas dividem domínio e chave de
-       sessão (aplic_auth_token), então trocar não pede login de novo. ---- */
-    .sis-wrap{position:relative;margin-left:auto;display:inline-flex}
+    /* ---- Trocador de sistema: o MENU vem de sistemas.css (compartilhado
+       pelos três painéis). Aqui fica só o gatilho, que é do CRM. ---- */
+    .sis-wrap{margin-left:auto;display:inline-flex}
     .sis-wrap .t-back{margin-left:0;background:none;font-family:inherit;cursor:pointer}
-    .sis-menu{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--bg2);border:1px solid var(--bd1);border-radius:12px;padding:6px;min-width:232px;box-shadow:0 18px 44px rgba(0,0,0,.55);z-index:300}
-    .sis-wrap.aberto .sis-menu{display:block}
-    .sis-menu-label{font-size:9px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3b);padding:6px 8px}
-    .sis-menu-item{display:flex;align-items:center;gap:9px;padding:8px;border-radius:9px;text-decoration:none;color:var(--tx2)}
-    a.sis-menu-item:hover{background:var(--bg3)}
-    .sis-menu-item .ico{width:26px;height:26px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
-    .sis-menu-item .ico.clin{background:linear-gradient(135deg,#C56847,#E8945A)}
-    .sis-menu-item .ico.com{background:linear-gradient(135deg,#0F6E56,#1D9E75)}
-    .sis-menu-item .ico.crm{background:linear-gradient(135deg,#5B4BC4,#8B7BF0)}
-    .sis-menu-item .txt{min-width:0;flex:1}
-    .sis-menu-item .txt b{display:block;font-size:11.5px;font-weight:500;color:var(--tx1)}
-    .sis-menu-item .txt small{display:block;font-size:9.5px;color:var(--tx3b);margin-top:1px}
-    .sis-menu-item .marca{font-size:13px;color:var(--tx4);flex-shrink:0}
-    .sis-menu-item.atual{background:rgba(var(--ac-rgb),.14)}
-    .sis-menu-item.atual .marca{color:var(--ac)}
 
     @media(max-width:860px){
       body{padding-top:0;padding-left:0}
@@ -170,6 +156,11 @@
       .sidebar-item{width:auto}
       .sidebar-foot{flex-basis:100%}
       .app-topbar{position:static;left:0}
+      /* Sem isto o campo de busca tem largura mínima automática e empurra o botão
+         de trocar sistema pra fora da tela em celular estreito. Quem cede é a
+         busca; a abinha nunca sai da tela. */
+      .app-topbar .t-search{min-width:0}
+      .app-topbar .t-search input{min-width:0}
       .app-main{padding:16px 14px 50px}
       .kpis{grid-template-columns:1fr 1fr}
       .filters{grid-template-columns:1fr}
@@ -206,28 +197,10 @@
     </div>
     <span class="dot" title="Conectado"></span>
     <div class="sis-wrap" id="sis-wrap">
-      <button type="button" class="t-back" id="sis-btn" onclick="sisAlternar(event)"
-              aria-haspopup="true" aria-expanded="false" title="Trocar de sistema">
+      <button type="button" class="t-back" id="sis-btn" title="Trocar de sistema">
         <i class="ti ti-apps"></i> Sistemas
       </button>
-      <div class="sis-menu" id="sis-menu" role="menu" aria-labelledby="sis-btn">
-        <div class="sis-menu-label">Trocar de sistema</div>
-        <div class="sis-menu-item atual" role="menuitem" aria-current="true" onclick="sisFechar()">
-          <span class="ico crm"><i class="ti ti-filter"></i></span>
-          <span class="txt"><b>Sistema CRM</b><small>Você está aqui</small></span>
-          <i class="ti ti-check marca"></i>
-        </div>
-        <a class="sis-menu-item" role="menuitem" href="/clinico">
-          <span class="ico clin"><i class="ti ti-stethoscope"></i></span>
-          <span class="txt"><b>Sistema Clínico</b><small>Pacientes, agenda, prontuário</small></span>
-          <i class="ti ti-arrow-right marca"></i>
-        </a>
-        <a class="sis-menu-item" role="menuitem" href="/comercial">
-          <span class="ico com"><i class="ti ti-chart-line"></i></span>
-          <span class="txt"><b>Sistema Comercial</b><small>Vendas, Meta Ads, equipe</small></span>
-          <i class="ti ti-arrow-right marca"></i>
-        </a>
-      </div>
+      <!-- o menu é montado por sistemas.js, que é quem sabe a lista dos sistemas -->
     </div>
   </header>
 
@@ -281,8 +254,11 @@
     </div>
   </div>
 
-  <!-- ===================== AUTH ===================== -->
-  <div class="auth" id="auth">
+  <!-- ===================== AUTH =====================
+       Nasce ESCONDIDO: quem chega com sessão (trocando de sistema pela abinha)
+       não pode ver formulário de login por cima dos leads. Quem não tem sessão
+       vê a tela pelo showAuth() do boot. -->
+  <div class="auth hidden" id="auth">
     <div class="auth-card">
       <div class="mark"><i class="ti ti-filter"></i></div>
       <h2>CRM · Aplic &amp; Go</h2>
@@ -300,6 +276,7 @@
 
   <div class="toast" id="toast"></div>
 
+  <script src="/sistemas.js"></script>
   <script>
     const API_BASE = "https://srv.aplicgo.com";
     const TOKEN_KEY = "aplic_auth_token";
@@ -335,26 +312,9 @@
     }
 
     // ---------- Trocador de sistema ----------
-    // Link comum: os sistemas dividem domínio e a chave TOKEN_KEY, então do
-    // outro lado a sessão já está gravada e não pede login de novo.
-    function sisFechar(){
-      const w = $("sis-wrap");
-      if(!w || !w.classList.contains("aberto")) return;
-      w.classList.remove("aberto");
-      const b = $("sis-btn"); if(b) b.setAttribute("aria-expanded","false");
-    }
-    function sisAlternar(ev){
-      if(ev) ev.stopPropagation();
-      const w = $("sis-wrap"); if(!w) return;
-      const abrindo = !w.classList.contains("aberto");
-      w.classList.toggle("aberto", abrindo);
-      const b = $("sis-btn"); if(b) b.setAttribute("aria-expanded", abrindo ? "true" : "false");
-    }
-    document.addEventListener("click", e => {
-      const w = $("sis-wrap");
-      if(w && !w.contains(e.target)) sisFechar();
-    });
-    document.addEventListener("keydown", e => { if(e.key === "Escape") sisFechar(); });
+    // A lista dos sistemas mora em sistemas.js, num lugar só. A guarda existe
+    // porque um 404 no arquivo compartilhado não pode derrubar a página inteira.
+    if (window.montarTrocadorDeSistema) montarTrocadorDeSistema({ atual: 'crm' });
 
     // ---------- Auth ----------
     function showAuth(){ $("auth").classList.remove("hidden"); }
@@ -372,7 +332,22 @@
       }catch(err){ $("authErr").textContent="Falha de conexão. Tente de novo."; }
       finally{ $("loginBtn").textContent="Entrar"; }
     });
-    $("logoutBtn").addEventListener("click",()=>{ setToken(null); location.reload(); });
+    // Sair encerra a sessão NO SERVIDOR, não só neste navegador — senão o token
+    // continua valendo por horas. keepalive porque o reload logo abaixo cancelaria
+    // uma requisição em voo. Limpar o localStorage NÃO depende da resposta: token
+    // já expirado devolve 401 e a pessoa ficaria presa.
+    $("logoutBtn").addEventListener("click",()=>{
+      const t = getToken();
+      if(t){
+        fetch(API_BASE+"/api/auth/logout",{
+          method:"POST",
+          headers:{"Authorization":"Bearer "+t},
+          keepalive:true
+        }).catch(()=>{});
+      }
+      setToken(null);
+      location.reload();
+    });
     function setUser(u){
       const nome = u.nome || u.name || u.email || "Equipe";
       $("userNm").textContent = nome;
@@ -382,6 +357,13 @@
     // ---------- Carregar + render ----------
     async function boot(){
       if(!getToken()){ showAuth(); return; }
+      hideAuth();   // chegou com sessão: nada de formulário por cima dos leads
+      // Quem entra pela abinha nunca passou pelo formulário, então o nome e o
+      // avatar do canto ficariam no travessão pra sempre. Pergunta ao servidor
+      // quem é — e de quebra valida a sessão no arranque.
+      api("/api/auth/me").then(me => {
+        if(me && me.ok && me.data && me.data.user) setUser(me.data.user);
+      }).catch(()=>{});
       $("loading").classList.remove("hidden"); $("empty").classList.add("hidden");
       const r = await api("/api/leads");
       if(r.status===401) return;
