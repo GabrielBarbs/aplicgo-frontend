@@ -6857,7 +6857,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DA</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DB</b></span></div>
   </div>
 </div>
 
@@ -7225,6 +7225,16 @@
         <div class="txt">
           <div class="ttl">Nova tarefa</div>
           <div class="sub">criar e atribuir</div>
+        </div>
+      </button>
+      <!-- Atalho da RECEPÇÃO: é ela que sabe quando um profissional entrou de férias ou
+           trocou de número. Abre SÓ a agenda do dia seguinte — não dá acesso às automações
+           que falam com o paciente. Aparece por cargo (ageqPodeMexer). -->
+      <button class="quick-btn" id="quick-ageq" style="display:none" onclick="ageqAbrirDireto(this)">
+        <div class="ico"><i class="ti ti-users"></i></div>
+        <div class="txt">
+          <div class="ttl">Agenda de amanhã da equipe</div>
+          <div class="sub">quem recebe e em qual WhatsApp</div>
         </div>
       </button>
     </div>
@@ -11137,6 +11147,9 @@ function aplicarUI() {
 
   // Quem não é da clínica não pode cair num painel vazio sem saída.
   avisarSemAcessoClinico();
+
+  // Atalho da agenda da equipe na home: só pra quem o servidor deixa mexer.
+  { const b = document.getElementById('quick-ageq'); if (b) b.style.display = ageqPodeMexer() ? '' : 'none'; }
 
   // Sidebar context — primeira unidade ou "sem unidade"
   const subEl = document.getElementById('sidebar-unidade-sub');
@@ -33427,6 +33440,29 @@ async function autgSalvar(tipo) {
 // WhatsApp de cada um — o número de trabalho de quem atende raramente é o mesmo do login,
 // então ele é digitado aqui e não sai do cadastro.
 let ageqState = { carregado: false, erro: null, config: null, pessoas: [], variaveis: [], modelo: '', ultimos: [], previa: null };
+
+// Quem pode mexer na agenda da equipe. MESMA lista do servidor — se divergir, a tela mostra
+// um botão que devolve 403, que é pior do que não ter botão. O servidor continua sendo quem
+// decide de verdade: isto aqui só evita oferecer o que não vai funcionar.
+const AGEQ_CARGOS_OK = ['gestor', 'desenvolvedor', 'gerencia', 'medico', 'recepcao'];
+function ageqPodeMexer() {
+  return !!authUser && AGEQ_CARGOS_OK.indexOf(String(authUser.role || '')) >= 0;
+}
+
+// Abre SÓ a agenda da equipe, direto da home — sem passar por Editáveis, que a recepção
+// não usa. Carrega antes de abrir: o modal é montado a partir da configuração salva, e
+// abrir vazio faria a pessoa achar que a lista de gente sumiu.
+async function ageqAbrirDireto(btn) {
+  const antes = btn ? btn.innerHTML : null;
+  if (btn) { btn.disabled = true; }
+  await ageqCarregar();
+  if (btn) { btn.disabled = false; if (antes) btn.innerHTML = antes; }
+  if (ageqState.erro) {
+    if (typeof homeToast === 'function') homeToast(ageqState.erro);
+    return;
+  }
+  ageqConfigurar();
+}
 
 async function ageqCarregar() {
   ageqState.carregado = false; edRender();
