@@ -237,7 +237,7 @@
     <section class="table-wrap">
       <table>
         <thead><tr>
-          <th>Lead</th><th>Origem</th><th>Objetivo</th><th>Classe</th><th>Impacto</th><th>Prazo</th><th>Status</th><th>Responsável</th><th>Entrada</th>
+          <th>Lead</th><th>Origem</th><th>Protocolo indicado</th><th>Classe e prioridade</th><th>Impacto</th><th>Prazo</th><th>Status</th><th>Responsável</th><th>Entrada</th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -621,7 +621,7 @@
           <td><div class="nm">${esc(l.name)}</div><div class="sub">${esc(l.instagram||"—")} · ${esc(l.city||"—")}</div></td>
           <td><span class="src"><i class="ti ${srcIcon}"></i>${esc(sourceLabel(l.source))}</span></td>
           <td>${afp?`${esc(protoLabel(afp))}${l.afinidade.integrada?' <span class="st" style="font-size:9px">integrada</span>':''}`:esc(LABELS.goal[goal]||"—")}</td>
-          <td>${l.class?`<span class="pill ${esc(l.class)}">${esc(l.class)}</span>`:"—"}</td>
+          <td>${l.class?`<span class="pill ${esc(l.class)}">${esc(l.class)}</span>`:"—"}${(l.internalPriority||l.score!=null)?`<div class="sub">${esc([l.internalPriority,(l.score!=null?("nota "+l.score):"")].filter(Boolean).join(" · "))}</div>`:""}</td>
           <td>${impact!=null?esc(impact)+"/10":"—"}</td>
           <td>${esc(startLabel(start))}</td>
           <td><span class="st">${esc(l.status||"Novo")}</span>${clintAviso(l)}</td>
