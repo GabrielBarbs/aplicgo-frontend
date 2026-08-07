@@ -2459,14 +2459,6 @@
     /* linha que abre a edição da medicação (é onde se informa a DOSE) */
     .pr-h2-meds .med-linha.med-editavel { cursor: pointer; }
     .pr-h2-meds .med-linha.med-editavel:hover { border-color: var(--ac); background: var(--bg2); }
-    .pr-h2-meds .med-linha .med-add {
-      flex-shrink: 0; margin-left: auto;
-      background: transparent; border: 1px solid var(--bg3); color: var(--tx3b);
-      width: 20px; height: 20px; border-radius: 5px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; padding: 0;
-    }
-    .pr-h2-meds .med-linha .med-add i { font-size: 12px; margin: 0; }
-    .pr-h2-meds .med-linha .med-add:hover { border-color: var(--ac); color: var(--ac); }
 
     .pr-h2-dir { min-width: 0; }
     /* O gráfico dentro da coluna direita não precisa de margem extra */
@@ -6880,7 +6872,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DF</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DG</b></span></div>
   </div>
 </div>
 
@@ -22957,18 +22949,15 @@ function prRenderHeaderRico() {
 
   // ===== Medicações (do card clínico) =====
   //
-  // ESTE BLOCO É O ÚNICO CAMINHO ATÉ O CADASTRO DE MEDICAÇÃO. O CRUD com dose
-  // (modal #med-modal -> medSalvar -> POST/PUT /medicacoes) só era alcançável pelos botões de
-  // prRenderCardClinico(), e essa função está definida e NUNCA é chamada — prRenderTimeline não
-  // a inclui. Resultado: a equipe via a medicação mas não tinha botão nenhum pra informar a
-  // dose, e o app do paciente mostrava "—" porque clin_medicacoes_atuais.dose ficava NULL
-  // (o write-back da evolução cria o ORAL sem dose: só patientId/tipo/nome/via/ativa).
-  // Por isso cada linha aqui abre a edição e cada tipo ganha um "+".
+  // ESTE CARD É VITRINE, NÃO PORTA DE ENTRADA. Medicação entra por dois lugares e só:
+  //   - EVOLUÇÃO: aplicarWriteBack (clinico-prontuario.ts) lê as respostas e grava
+  //     injetável (nome+dose), oral e suplemento em clin_medicacoes_atuais;
+  //   - APLICAÇÃO: o injetável exibido aqui já vem do MEDICAMENTO BASE + dose da ÚLTIMA
+  //     aplicação (baseInjChip, clinico-prontuario.ts:263) — a fonte de verdade da enfermagem.
+  // O "+" que cadastrava medicação direto daqui saiu a pedido do dono: era um terceiro caminho
+  // de entrada, e o que fosse digitado nele concorria com a dose realmente aplicada.
   const meds = h.medicacoes || { injetaveis: [], orais: [], suplementos: [] };
   const medLinhas = [];
-  const medPid = h.id || prState.pacienteAtual?.id || '';
-  const btnAdd = (tipo, titulo) =>
-    `<button class="med-add" title="${titulo}" onclick="event.stopPropagation(); medAbrirNovo('${tipo}', '${esc(medPid)}')"><i class="ti ti-plus"></i></button>`;
   // só vira clicável quando existe id — linha vinda do medicamento-base (baseInjChip) não tem
   const abrir = (m) => (m && m.id ? ` onclick="medAbrirEdit('${esc(m.id)}')" title="Editar medicação"` : '');
   const clicavel = (m) => (m && m.id ? ' med-editavel' : '');
@@ -22978,10 +22967,10 @@ function prRenderHeaderRico() {
     meds.injetaveis.forEach(m => {
       const dose = m.dose ? ` <strong class="med-dose">${esc(fmtDoseUnidade(m.dose))}</strong>` : '';
       const freq = m.frequencia ? ` · ${esc(m.frequencia)}` : '';
-      medLinhas.push(`<div class="med-linha${clicavel(m)}"${abrir(m)}><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span>${btnAdd('INJETAVEL', 'Adicionar injetável')}</div>`);
+      medLinhas.push(`<div class="med-linha${clicavel(m)}"${abrir(m)}><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
     });
   } else {
-    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-vaccine"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">--</span>${btnAdd('INJETAVEL', 'Adicionar injetável')}</div>`);
+    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-vaccine"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">--</span></div>`);
   }
 
   // Orais: uma linha por medicação (era tudo junto numa string, e aí não dava pra abrir
@@ -22990,10 +22979,10 @@ function prRenderHeaderRico() {
     meds.orais.forEach((m, i) => {
       const dose = m.dose ? ` <strong class="med-dose">${esc(m.dose)}</strong>` : '';
       const freq = m.frequencia ? ` · ${esc(m.frequencia)}` : '';
-      medLinhas.push(`<div class="med-linha${clicavel(m)}"${abrir(m)}><i class="ti ti-pill" style="color:#4A90E2;"></i> <span class="med-tipo">${i === 0 ? 'Oral:' : ''}</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span>${i === 0 ? btnAdd('ORAL', 'Adicionar medicação oral') : ''}</div>`);
+      medLinhas.push(`<div class="med-linha${clicavel(m)}"${abrir(m)}><i class="ti ti-pill" style="color:#4A90E2;"></i> <span class="med-tipo">${i === 0 ? 'Oral:' : ''}</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
     });
   } else {
-    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-pill"></i> <span class="med-tipo">Oral:</span> <span class="med-val">--</span>${btnAdd('ORAL', 'Adicionar medicação oral')}</div>`);
+    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-pill"></i> <span class="med-tipo">Oral:</span> <span class="med-val">--</span></div>`);
   }
 
   // Suplementos: TODOS numa linha só (um card de suplemento)
@@ -23002,9 +22991,9 @@ function prRenderHeaderRico() {
       const cat = m.categoria ? ` (${m.categoria === 'APLIC_PLUS' ? 'Aplic PLUS' : esc(m.categoria)})` : '';
       return `${esc(m.nome)}${cat}`;
     }).join(', ');
-    medLinhas.push(`<div class="med-linha"><i class="ti ti-capsule" style="color:var(--ac);"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">${nomesSup}</span>${btnAdd('SUPLEMENTO', 'Adicionar suplemento')}</div>`);
+    medLinhas.push(`<div class="med-linha"><i class="ti ti-capsule" style="color:var(--ac);"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">${nomesSup}</span></div>`);
   } else {
-    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-capsule"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">--</span>${btnAdd('SUPLEMENTO', 'Adicionar suplemento')}</div>`);
+    medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-capsule"></i> <span class="med-tipo">Suplemento:</span> <span class="med-val">--</span></div>`);
   }
 
   // Atividade física
@@ -23108,6 +23097,9 @@ function prRenderHeaderRico() {
 }
 
 // ===== CARD CLÍNICO FIXO (PRD §3 blocos A/B/C) =====
+// CÓDIGO MORTO: nada chama esta função (prRenderTimeline não a inclui). Se um dia for revivida,
+// os botões "Adicionar" abaixo NÃO podem voltar: por decisão do dono, medicação entra só pela
+// evolução ou pela aplicação (ver o comentário em prRenderHeaderRico).
 function prRenderCardClinico(h) {
   const meds = h.medicacoes || { injetaveis: [], orais: [], suplementos: [] };
 
