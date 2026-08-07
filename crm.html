@@ -209,7 +209,7 @@
    <div id="view-leads">
     <div class="page-head">
       <h1>Leads dos funis</h1>
-      <p>Captados pela Avaliação Estratégica do Instagram — Dr. Matheus e Clínica.</p>
+      <p>Captados pelos quizzes do Instagram — Mapa Aplic (clínica) e Avaliação Estratégica (Dr. Matheus).</p>
     </div>
 
     <section class="kpis">
@@ -223,8 +223,9 @@
       <input id="fSearch" type="text" placeholder="Buscar nome, WhatsApp, Instagram ou cidade">
       <select id="fSource">
         <option value="">Todas as origens</option>
-        <option value="instagram_aplic">Instagram · Clínica</option>
-        <option value="instagram_matheus">Instagram · Dr. Matheus</option>
+        <option value="mapa_aplic">Mapa Aplic · Clínica</option>
+        <option value="instagram_matheus">Avaliação Estratégica · Dr. Matheus</option>
+        <option value="instagram_aplic">Clínica · funil antigo</option>
       </select>
       <select id="fClass"><option value="">Todas as classes</option><option value="A">Classe A</option><option value="B">Classe B</option><option value="C">Classe C</option></select>
       <select id="fStatus">
@@ -356,14 +357,67 @@
       goal:{body:"Corpo e metabolismo",performance:"Energia e performance",longevity:"Longevidade e prevenção",integrated:"Transformação integrada",
         corpo:"Corpo e composição",energia:"Energia e performance",saude:"Saúde e longevidade",inchaco:"Inchaço e alterações corporais",estetica:"Cabelo, pele e aparência",mental:"Sono, foco e mente",integrada:"Várias áreas (integrada)"},
       protocolo:{burn_build:"Burn&Build",performa:"Performa+",longevity:"Longevity+",lipedema:"Lipedema",hairglow:"Hair&Glow",neurorecovery:"NeuroRecovery",club:"Club"},
-      source:{instagram_aplic:"Instagram · Clínica",instagram_matheus:"Instagram · Dr. Matheus"},
-      start:{asap:"Imediato","15d":"Até 15 dias","30to60":"30–60 dias",exploring:"Conhecendo"}
+      source:{mapa_aplic:"Mapa Aplic · Clínica",instagram_matheus:"Avaliação Estratégica · Dr. Matheus",
+        instagram_aplic:"Clínica (funil antigo)"},
+      start:{asap:"Imediato","15d":"Até 15 dias","30to60":"30–60 dias",exploring:"Conhecendo"},
+      // Expectativa de cuidado. O Mapa Aplic manda código; o funil do Dr. Matheus
+      // manda a frase inteira — por isso o rótulo cai no texto cru quando não acha.
+      expectativa:{evaluation:"Avaliação completa",plan:"Plano personalizado",integrated:"Programa integrado",
+        management:"Gestão contínua",unsure:"Ainda não sabe"},
+      unidade:{udi:"Uberlândia",itb:"Ituiutaba",remote:"Remoto",unsure:"Ainda não sei"},
+      clint:{enviado:"No Clint",erro:"Falhou",pendente:"A caminho",sem_webhook:"Sem integração",
+        anterior_a_integracao:"Anterior à integração"}
     };
     const startLabel = v => LABELS.start[v] || v || "—";
     const protoLabel = k => (LABELS.protocolo[k]||k||"—");
     const sourceLabel = v => LABELS.source[v] || v || "—";
+    const expectLabel = v => LABELS.expectativa[v] || v || "—";
+    const unidadeLabel = v => LABELS.unidade[v] || v || "—";
 
     function showToast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400);}
+
+    // ---------- Blocos da ficha ----------
+    // De onde o lead veio. Só aparece quando existe algo de campanha: em lead
+    // orgânico um bloco cheio de travessão só ocupa espaço.
+    function campanhaBloco(l){
+      const u = l.utm || {};
+      const linhas = [
+        ["Tipo de tráfego", {paid:"Pago",organic:"Orgânico",referral:"Indicação",direct:"Direto"}[u.traffic_type]||u.traffic_type],
+        ["Campanha", u.utm_campaign], ["Conjunto", u.utm_term], ["Criativo", u.utm_content],
+        ["Posicionamento", u.placement],
+        ["IDs (campanha / conjunto / anúncio)", [u.campaign_id,u.adset_id,u.ad_id].filter(Boolean).join(" / ")],
+        ["Primeira origem", u.first_touch_source && (u.first_touch_source + (u.first_touch_campaign?(" · "+u.first_touch_campaign):""))],
+      ].filter(([,v]) => v);
+      if(!linhas.length) return "";
+      return `<div class="sec">De onde veio</div><div>${linhas.map(([q,v])=>`<div class="ans"><span class="q">${esc(q)}</span><span class="a">${esc(v)}</span></div>`).join("")}</div>`;
+    }
+
+    // Marcador na lista: lead que não chegou no Clint precisa saltar aos olhos
+    // já na tabela. Se só aparecesse dentro da ficha, ninguém ia descobrir uma
+    // integração quebrada antes de perder uma semana de lead.
+    function clintAviso(l){
+      if(l.clintStatus === "erro")     return ' <i class="ti ti-alert-triangle" style="color:var(--err);font-size:14px;vertical-align:-2px" title="Não chegou no Clint"></i>';
+      if(l.clintStatus === "pendente") return ' <i class="ti ti-clock" style="color:var(--warn);font-size:14px;vertical-align:-2px" title="A caminho do Clint"></i>';
+      return "";
+    }
+
+    // "Esse lead chegou no Clint?" — a primeira pergunta quando alguém some.
+    // Sem isto, a equipe não sabe se o lead nunca saiu daqui ou se o Clint recusou.
+    function clintBloco(l){
+      const st = l.clintStatus;
+      if(!st || st === "anterior_a_integracao") return "";
+      const cor = {enviado:"var(--ok)", erro:"var(--err)", pendente:"var(--warn)"}[st] || "var(--tx3)";
+      const quando = l.clintAt ? (" · " + fmtDate(l.clintAt)) : "";
+      return `<div class="sec">Entrega no Clint</div>
+        <div class="fld">
+          <div class="l">Status</div>
+          <div class="v" style="color:${cor}">${esc(LABELS.clint[st]||st)}${esc(quando)}</div>
+          ${l.clintErro?`<div class="v" style="color:var(--tx3);font-size:12px;margin-top:6px">${esc(l.clintErro)}</div>`:""}
+        </div>
+        ${st!=="sem_webhook"?`<div class="row-actions" style="margin-top:10px">
+          <button class="btn ghost" id="edClint"><i class="ti ti-refresh"></i> ${st==="enviado"?"Enviar de novo":"Reenviar pro Clint"}</button>
+        </div>`:""}`;
+    }
 
     // ---------- API helper (padrão pacApi → {ok,data}) ----------
     async function api(path, opts={}){
@@ -570,7 +624,7 @@
           <td>${l.class?`<span class="pill ${esc(l.class)}">${esc(l.class)}</span>`:"—"}</td>
           <td>${impact!=null?esc(impact)+"/10":"—"}</td>
           <td>${esc(startLabel(start))}</td>
-          <td><span class="st">${esc(l.status||"Novo")}</span></td>
+          <td><span class="st">${esc(l.status||"Novo")}</span>${clintAviso(l)}</td>
           <td>${esc(l.owner||"—")}</td>
           <td style="color:var(--tx4);font-size:12px">${fmtDate(l.createdAt)}</td>`;
         tr.addEventListener("click",()=>openLead(l.id));
@@ -614,10 +668,19 @@
           ${(l.labels&&l.labels.principal)?ans("Queixa principal", l.labels.principal):""}
           ${ans("Impacto na vida", a.impact!=null?a.impact+"/10":"—")}
           ${ans("Prazo p/ começar", startLabel(a.prazo||a.start))}
-          ${(a.unidade)?ans("Unidade", ({udi:"Uberlândia",itb:"Ituiutaba",remote:"Remoto",unsure:"Ainda não sei"}[a.unidade]||a.unidade)):""}
+          ${(a.unidade)?ans("Unidade", unidadeLabel(a.unidade)):""}
           ${ans("Tentativas", Array.isArray(a.attempts)?a.attempts.join(", "):"—")}
+          ${(a.barrier||(l.labels&&l.labels.barreira))?ans("O que travou até hoje", (l.labels&&l.labels.barreira)||a.barrier):""}
+          ${(a.expectation)?ans("Expectativa de cuidado", expectLabel(a.expectation)):""}
           ${ans("Score interno", (l.score!=null?l.score:"—")+(l.class?(" · Classe "+l.class):""))}
         </div>
+        ${a.suggestedMessage?`<div class="sec">Como abordar</div>
+        <div class="fld"><div class="l">Mensagem sugerida pelo funil</div><div class="v" style="line-height:1.55">${esc(a.suggestedMessage)}</div></div>
+        <div class="row-actions" style="margin-top:10px">
+          <button class="btn ghost" id="edCopiar"><i class="ti ti-copy"></i> Copiar mensagem</button>
+        </div>`:""}
+        ${campanhaBloco(l)}
+        ${clintBloco(l)}
         <div class="sec">Gestão</div>
         <div class="mgrid">
           <div><label>Status</label><select id="edStatus">${["Novo","Em contato","Qualificado","Agendado","Convertido","Sem resposta","Perdido"].map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("")}</select></div>
@@ -633,7 +696,30 @@
         </div>`;
       $("edSave").addEventListener("click",()=>saveLead(l.id));
       $("edClose").addEventListener("click",closeModal);
+      if($("edCopiar")) $("edCopiar").addEventListener("click",()=>{
+        navigator.clipboard.writeText(a.suggestedMessage||"").then(
+          ()=>showToast("Mensagem copiada."),
+          ()=>showToast("Não consegui copiar."));
+      });
+      if($("edClint")) $("edClint").addEventListener("click",()=>reenviarClint(l.id));
       $("leadModal").classList.add("open");
+    }
+
+    // Reenvio manual pro Clint. O servidor guarda o resultado no próprio lead,
+    // então a ficha se atualiza com a resposta e a equipe vê se resolveu.
+    async function reenviarClint(id){
+      const btn = $("edClint");
+      if(btn){ btn.disabled = true; btn.textContent = "Enviando…"; }
+      const r = await api("/api/leads/"+id+"/clint",{method:"POST"});
+      if(!r.ok){
+        showToast((r.data && (r.data.erro||r.data.error)) || "Não foi possível reenviar.");
+        if(btn){ btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh"></i> Reenviar pro Clint'; }
+        return;
+      }
+      const i = LEADS.findIndex(x=>x.id===id);
+      if(i>=0 && r.data && r.data.lead) LEADS[i] = r.data.lead;
+      showToast(r.data && r.data.lead && r.data.lead.clintStatus === "enviado" ? "Lead entrou no Clint." : "Tentei, mas o Clint não aceitou. Veja o erro na ficha.");
+      openLead(id);
     }
     function closeModal(){ $("leadModal").classList.remove("open"); }
     $("mdClose").addEventListener("click",closeModal);
