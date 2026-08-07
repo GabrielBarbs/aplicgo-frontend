@@ -6857,7 +6857,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DC</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DD</b></span></div>
   </div>
 </div>
 
@@ -18443,8 +18443,11 @@ function waChaveContato(chats, jid, numero) {
   const c = (chats || []).find(function (x) { return x.id === jid; });
   return (c && c.contato_key) || cpContatoKey({ id: jid, numero: numero });
 }
-function waExtraContato() {
-  const o = waExtraOrigem();
+// A ORIGEM DO CLIQUE decide o contato. Antes, waExtraOrigem() adivinhava: com o popup aberto
+// no paciente B e a página Conversas no paciente A, a nota escrita NA PÁGINA era salva em B —
+// dado clínico no prontuário errado, o pior defeito possível deste módulo.
+function waExtraContato(origem) {
+  const o = origem === 'cp' || origem === 'wv' ? origem : waExtraOrigem();
   if (o === 'cp') {
     const c = (cpState.waChats || []).find(function (x) { return x.id === cpState.waJid; });
     return { chave: waChaveContato(cpState.waChats, cpState.waJid, (cpState.waContato || {}).telefone),
@@ -18457,9 +18460,12 @@ function waExtraContato() {
   return null;
 }
 function waExtraRerender() {
-  const o = waExtraOrigem();
-  if (o === 'cp' && typeof cpRenderMsgsWa === 'function') cpRenderMsgsWa(false);
-  else if (o === 'wv' && typeof wvRenderMsgs === 'function') wvRenderMsgs(false);
+  // Redesenha TODA thread visível: com o waExtrasDo conferindo a chave da própria tela,
+  // redesenhar a outra é inofensivo (ela mostra as extras dela, ou nenhuma) — e escolher
+  // "a" tela era exatamente o que fazia nota aparecer na conversa errada.
+  if (typeof cpState !== 'undefined' && cpState.aberto && cpState.vista === 'conversa' && cpState.waJid
+      && typeof cpRenderMsgsWa === 'function') cpRenderMsgsWa(false);
+  if (typeof wvState !== 'undefined' && wvState.jid && typeof wvRenderMsgs === 'function') wvRenderMsgs(false);
 }
 // Carrega notas + agendadas do contato. Falha de rede NÃO vira "não tem": zera só quando o
 // servidor respondeu de verdade, senão uma anotação existente sumiria da tela e alguém
@@ -18508,9 +18514,12 @@ async function waAgendadaCancelar(id) {
 // Toggle em vez de modal: o estado do campo fica visível o tempo todo (fundo âmbar + aviso),
 // então não dá pra achar que está escrevendo pro paciente. E o pior erro possível na direção
 // contrária — salvar como nota o que era pra ser mensagem — não vaza nada.
-let waNotaModo = false;
+// POR TELA de propósito: com o modo ligado só na página, um Enter no popup tem que ENVIAR —
+// antes o flag era global e a mensagem virava nota em silêncio (o paciente nunca recebia).
+let waNotaModo = { cp: false, wv: false };
 function waNotaToggle(origem) {
-  waNotaModo = !waNotaModo;
+  const o = origem === 'cp' ? 'cp' : 'wv';
+  waNotaModo[o] = !waNotaModo[o];
   waNotaPintar(origem);
   const inp = document.getElementById(origem === 'cp' ? 'cp-input' : 'wv-input');
   if (inp) inp.focus();
@@ -18521,18 +18530,19 @@ function waNotaPintar(origem) {
   const barra = document.getElementById(pre === 'cp' ? 'cp-input-bar' : 'wv-composer');
   const btn = document.getElementById(pre + '-nota');
   const aviso = document.getElementById(pre + '-nota-aviso');
-  if (barra) barra.classList.toggle('nota-on', waNotaModo);
-  if (btn) btn.classList.toggle('ativo', waNotaModo);
-  if (aviso) aviso.style.display = waNotaModo ? 'flex' : 'none';
+  const notaOn = !!waNotaModo[pre];
+  if (barra) barra.classList.toggle('nota-on', notaOn);
+  if (btn) btn.classList.toggle('ativo', notaOn);
+  if (aviso) aviso.style.display = notaOn ? 'flex' : 'none';
   // Anotação NÃO depende do WhatsApp — e é justamente quando o canal cai que a equipe precisa
   // deixar recado uma pra outra. Então o modo anotação REABRE o campo que wvComposerAtivo
   // tinha fechado, e sair do modo devolve o estado real do canal.
   const send = document.getElementById(pre === 'cp' ? 'cp-send' : 'wv-send');
   const canalVivo = pre === 'cp' ? !cpState.waSemDevice : !wvState.semDevice;
-  if (inp) inp.disabled = waNotaModo ? false : !canalVivo;
-  if (send) send.disabled = waNotaModo ? false : !canalVivo;
+  if (inp) inp.disabled = notaOn ? false : !canalVivo;
+  if (send) send.disabled = notaOn ? false : !canalVivo;
   if (inp) {
-    inp.placeholder = waNotaModo
+    inp.placeholder = notaOn
       ? 'Anotação para a equipe — NÃO vai para o paciente'
       : (canalVivo
           ? (pre === 'cp' ? 'Mensagem' : 'Escreva uma mensagem… (Enter envia, Shift+Enter quebra linha)')
@@ -18540,7 +18550,7 @@ function waNotaPintar(origem) {
   }
 }
 async function waNotaSalvar(origem) {
-  const ct = waExtraContato();
+  const ct = waExtraContato(origem);
   const inp = document.getElementById(origem === 'cp' ? 'cp-input' : 'wv-input');
   if (!ct || !ct.chave || !inp) return;
   const texto = (inp.value || '').trim();
@@ -18557,17 +18567,20 @@ async function waNotaSalvar(origem) {
 
 // ---- agendar mensagem ----
 function waAgendarAbrir(origem) {
-  const ct = waExtraContato();
+  const ct = waExtraContato(origem);
   // NÃO exige telefone: contato @lid (id opaco do WhatsApp) conversa normalmente pelo jid, e
   // é pra ele que o envio ao vivo já manda. O destino do agendamento sai da MESMA regra no
   // servidor (destinoWa): telefone quando existe, senão o jid da conversa. Exigir telefone
   // aqui tirava o recurso justamente de quem usa o chat todo dia.
   if (!ct || !ct.chave || !(ct.numero || ct.jid)) return;
   const inp = document.getElementById(origem === 'cp' ? 'cp-input' : 'wv-input');
-  const rascunho = (inp && !waNotaModo) ? (inp.value || '') : '';
+  const rascunho = (inp && !waNotaModo[origem === 'cp' ? 'cp' : 'wv']) ? (inp.value || '') : '';
   let ov = document.getElementById('wa-agendar-modal'); if (ov) ov.remove();
   ov = document.createElement('div');
   ov.id = 'wa-agendar-modal'; ov.className = 'ag-modal-overlay aberto';
+  // A origem fica NO MODAL: entre abrir e clicar em "Agendar", a pessoa pode mexer na outra
+  // tela — recalcular a origem no clique agendaria pro contato errado.
+  ov.dataset.origem = origem === 'cp' ? 'cp' : 'wv';
   ov.onclick = function (e) { if (e.target.id === 'wa-agendar-modal') ov.remove(); };
   ov.innerHTML = '<div class="pac-modal" style="max-width:480px;"><div class="pac-modal-head"><div class="ttl"><i class="ti ti-clock"></i> Agendar mensagem</div></div>'
     + '<div class="pac-modal-body">'
@@ -18609,7 +18622,8 @@ function waAgSegunda() {
   waAgSet(d);
 }
 async function waAgendarSalvar(btn) {
-  const ct = waExtraContato();
+  const ovOrigem = (document.getElementById('wa-agendar-modal') || { dataset: {} }).dataset.origem;
+  const ct = waExtraContato(ovOrigem);
   const t = document.getElementById('wa-ag-txt');
   const q = document.getElementById('wa-ag-quando');
   const err = document.getElementById('wa-ag-erro');
@@ -18632,7 +18646,8 @@ async function waAgendarSalvar(btn) {
   const ov = document.getElementById('wa-agendar-modal'); if (ov) ov.remove();
   if (waExtra.chave === ct.chave) { waExtra.agendadas = (waExtra.agendadas || []).concat([r.data.agendada]); waExtraRerender(); }
   // Se o texto veio do composer, limpa — senão a pessoa agenda e manda a mesma coisa na hora.
-  const inp = document.getElementById(document.getElementById('cp-input-bar') && waExtraOrigem() === 'cp' ? 'cp-input' : 'wv-input');
+  // MESMA origem do modal: o composer a limpar é o da tela onde a pessoa clicou em agendar.
+  const inp = document.getElementById(ovOrigem === 'cp' ? 'cp-input' : 'wv-input');
   if (inp && (inp.value || '').trim() === texto) { inp.value = ''; inp.style.height = 'auto'; }
   if (typeof homeToast === 'function') homeToast('Mensagem agendada para ' + waQuandoLabel(r.data.agendada.enviar_em) + '. ✓');
 }
@@ -18921,13 +18936,29 @@ async function chatPopCarregarLista(silent) {
       pacApi('/api/clinico/whatsapp/chats'),
       pacApi('/api/clinico/whatsapp/tags'),
     ]);
-    cpState.waSemDevice = !r.ok || r.data.sem_device || r.data.configurado === false;
-    cpState.waChats = (r.ok && r.data.chats) ? r.data.chats : [];
-    cpState.waDeviceId = r.ok ? (r.data.device_id || null) : null;
-    // Índice contato_key -> [texto]. Tag falha não derruba a lista (segue sem tags livres).
-    const idx = {};
-    if (rt.ok && rt.data.tags) rt.data.tags.forEach(t => { (idx[t.contato_key] = idx[t.contato_key] || []).push(t.texto); });
-    cpState.waTags = idx;
+    // Erro TRANSITÓRIO (502/timeout do Evolution) não é "sem WhatsApp": antes ele apagava a
+    // lista e acendia o banner vermelho de desconectado — a página já tratava, o popup não.
+    if (!r.ok) {
+      if (!silent && !(cpState.waChats || []).length && wrap) wrap.innerHTML = '<div class="ci-loading">Falha ao carregar — tentando de novo…</div>';
+      return;
+    }
+    cpState.waSemDevice = r.data.sem_device || r.data.configurado === false;
+    cpState.waChats = r.data.chats || [];
+    cpState.waDeviceId = r.data.device_id || null;
+    // Badge da conversa que ACABOU de ser lida: o unread do servidor demora a refletir o
+    // /read; sem esta janela o badge ressuscitava na lista logo depois de responder.
+    const ul = cpState.waUltimoLido;
+    if (ul && Date.now() - ul.em < 30000) {
+      const chLido = cpState.waChats.find(c => c.id === ul.jid);
+      if (chLido) chLido.nao_lidas = 0;
+    }
+    // Índice contato_key -> [texto]. Só sobrescreve com resposta OK: falha transitória das
+    // tags não pode apagar as que já estavam na tela.
+    if (rt.ok && rt.data.tags) {
+      const idx = {};
+      rt.data.tags.forEach(t => { (idx[t.contato_key] = idx[t.contato_key] || []).push(t.texto); });
+      cpState.waTags = idx;
+    }
   } else {
     const [ru, rc] = await Promise.all([
       pacApi('/api/clinico/chat/usuarios'),
@@ -18960,8 +18991,9 @@ function chatPopRenderLista() {
     }
     if (banner) banner.style.display = 'none';
     cpTagbarRender();
+    const fNum = f.replace(/\D/g, '') || f;   // "+55 (34) 9..." também acha (espelho da página)
     const lista = (cpState.waChats || []).filter(c =>
-      (!f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(f)) && cpTagMatch(c));
+      (!f || (c.nome || '').toLowerCase().includes(f) || String(c.numero || '').includes(fNum)) && cpTagMatch(c));
     if (!lista.length) {
       const vazioTag = cpState.tagFiltro ? 'Nenhum contato com essa tag.' : 'Nenhuma conversa ainda. Abra um paciente (na aba Pacientes) e mande a primeira mensagem.';
       wrap.innerHTML = '<div class="ci-loading">' + vazioTag + '</div>'; return;
@@ -19041,7 +19073,7 @@ function chatPopMostrarConversa() {
   const soWa = cpState.modo === 'whatsapp';
   const bn = document.getElementById('cp-nota'); if (bn) bn.style.display = soWa ? 'flex' : 'none';
   const ba = document.getElementById('cp-agendar'); if (ba) ba.style.display = soWa ? 'flex' : 'none';
-  if (!soWa && waNotaModo) { waNotaModo = false; }   // sair do WhatsApp desliga o modo anotação
+  if (!soWa && waNotaModo.cp) { waNotaModo.cp = false; }   // sair do WhatsApp desliga o modo anotação (só do popup)
   waNotaPintar('cp');
 }
 function chatPopVoltar() {
@@ -19723,7 +19755,9 @@ function iaMicToggle() {
 async function cpMostrarConversaWa(nome, telefone) {
   const raw = String(telefone || '').trim();
   if (!raw.replace(/\D/g, '')) { alert('Paciente sem telefone.'); return; }
-  const num = telWa(raw);   // telWa respeita o '+' (internacional); não pré-limpar antes (perderia o marcador)
+  // Internacional viaja COM o '+': telWa devolve só dígitos, e '12025550123' sem marcador
+  // parece BR de 11 dígitos — o servidor colava 55 e a mensagem ia pra número que não existe.
+  const num = raw.trim().startsWith('+') ? ('+' + raw.replace(/\D/g, '')) : telWa(raw);
   // Puxar o histórico: ele costuma ficar guardado sob um @lid OPACO, que NÃO sai do telefone. Abrir só
   // pelo número cru (sem o jid_alt) não acha essas mensagens -> conversa vazia. A lista (/chats) já
   // pareia @lid<->telefone e traz o jid_alt, então resolvemos a conversa REAL pelo número e abrimos com
@@ -19732,8 +19766,12 @@ async function cpMostrarConversaWa(nome, telefone) {
   const achar = () => (cpState.waChats || []).find((x) => cpTelCore(x.numero || x.id) === core);
   let c = achar();
   if (!c) {
-    try { const r = await pacApi('/api/clinico/whatsapp/chats'); if (r.ok && r.data.chats) cpState.waChats = r.data.chats; } catch (e) {}
+    let falhou = false;
+    try { const r = await pacApi('/api/clinico/whatsapp/chats'); if (r.ok && r.data.chats) cpState.waChats = r.data.chats; else falhou = true; } catch (e) { falhou = true; }
     c = achar();
+    // Falha de rede ≠ contato novo: sem a lista não dá pra saber se existe um @lid com o
+    // histórico. Abre mesmo assim (enviar funciona), mas AVISA em vez de fingir chat vazio.
+    if (!c && falhou && typeof homeToast === 'function') homeToast('Não consegui carregar as conversas — o histórico pode aparecer incompleto.');
   }
   if (c) cpAbrirConversaWa(c.id, c.nome || nome, c.numero || num, c.jid_alt, c.foto);
   else cpAbrirConversaWa(num, nome, num); // contato ainda sem conversa: novo chat, sem histórico a puxar
@@ -19748,11 +19786,13 @@ async function cpAbrirConversaWa(chave, nome, numero, alt, foto) {
   document.getElementById('cp-tab-int').classList.remove('ativo');
   cpState.waJid = chave;
   cpState.waAlt = (alt && String(alt).includes('@')) ? alt : null;
-  let numReal = (numero && String(numero).replace(/\D/g, '')) || (String(chave).includes('@') ? '' : String(chave).replace(/\D/g, ''));
-  if (!(numReal.length >= 10 && numReal.length <= 13)) numReal = ''; // descarta @lid (14+ digitos)
+  // Preserva o '+' (internacional): limpar com \D perdia o marcador e o servidor colava 55.
+  let numReal = (numero && String(numero).replace(/[^0-9+]/g, '')) || (String(chave).includes('@') ? '' : String(chave).replace(/[^0-9+]/g, ''));
+  const dReal = numReal.replace(/\D/g, '');
+  if (!(dReal.length >= 10 && dReal.length <= (numReal.startsWith('+') ? 15 : 13))) numReal = ''; // descarta @lid (14+ digitos)
   cpState.waContato = { nome: nome || null, telefone: numReal || null };
   cpState.waMsgs = [];
-  waNotaModo = false;
+  waNotaModo.cp = false;
   waExtra = { chave: null, notas: [], agendadas: [], carregando: true };
   // MESMA regra do salvar (waChaveContato): calcular a chave por fora aqui foi o que fez a
   // anotação de contato @lid gravar numa chave e recarregar por outra.
@@ -19789,7 +19829,19 @@ async function cpCarregarMsgsWa(scroll) {
   try { r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages?full=1' + alt); } catch (e) { r = null; }
   if (cpState.waJid !== jid) return; // trocou de conversa durante o fetch
   if (!r || !r.ok) { if (!(cpState.waMsgs || []).length) document.getElementById('cp-msgs').innerHTML = '<div class="ci-loading">Falha ao carregar — tentando de novo…</div>'; return; }
-  cpState.waMsgs = r.data.mensagens || [];
+  // Canal caído NÃO é conversa vazia: substituir por [] mostrava "Sem mensagens ainda.
+  // Mande a primeira!" em cima de um histórico que existe. A página já tratava; o popup não.
+  if (r.data.sem_device) {
+    cpState.waSemDevice = true; waNotaPintar('cp');
+    if (!(cpState.waMsgs || []).length) document.getElementById('cp-msgs').innerHTML = '<div class="ci-loading">WhatsApp desconectado — reconecte na aba Aparelhos.</div>';
+    return;
+  }
+  if (cpState.waSemDevice) { cpState.waSemDevice = false; waNotaPintar('cp'); }   // reconectou: composer volta
+  const servFull = r.data.mensagens || [];
+  // Resposta PARCIAL (o Evolution falhou numa das metades do histórico) menor que o que já
+  // está na tela: manter a maior — espelho da guarda que a página Conversas já roda.
+  if (r.data.parcial && servFull.length < (cpState.waMsgs || []).length) return;
+  cpState.waMsgs = servFull;
   // O servidor aprendeu o vínculo @lid<->telefone desta conversa: adota o alt e refaz a busca UMA
   // vez pra unir as duas metades do histórico (na próxima chamada o alt já bate e não refaz).
   if (r.data.jid_alt && r.data.jid_alt !== cpState.waAlt && r.data.jid_alt !== jid) {
@@ -19813,6 +19865,9 @@ async function cpCarregarMsgsWa(scroll) {
 async function cpMarcarLido(chave) {
   const ch = (cpState.waChats || []).find(c => c.id === chave);
   if (ch) ch.nao_lidas = 0;
+  // O unread do servidor vem do Evolution e demora a refletir o /read: por uma janela curta,
+  // a lista recarregada não pode ressuscitar o badge da conversa que acabou de ser lida.
+  cpState.waUltimoLido = { jid: chave, em: Date.now() };
   try { await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(chave) + '/read', { method: 'POST', body: JSON.stringify({ alt: cpState.waAlt || null }) }); } catch (e) {}
 }
 function cpRenderMsgsWa(scroll) {
@@ -19820,8 +19875,13 @@ function cpRenderMsgsWa(scroll) {
   if (!wrap) return;
   const msgs = cpState.waMsgs || [];
   if (!msgs.length) { wrap.innerHTML = '<div class="ci-loading">Sem mensagens ainda. Mande a primeira!</div>'; return; }
-  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, cpState.waJid, waExtrasDo(waExtra.chave)));
-  if (scroll) wrap.scrollTop = wrap.scrollHeight;
+  // Medido ANTES do innerHTML (depois a conta se distorce): quem está no fim acompanha,
+  // quem rolou pra cima relendo não é puxado pro fundo — espelho do wvRenderMsgs.
+  const noFim = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 60;
+  // A chave esperada vem do PRÓPRIO estado desta tela. Passar waExtra.chave era tautologia:
+  // sempre batia, e as notas do contato aberto na OUTRA tela vazavam pra esta thread.
+  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, cpState.waJid, waExtrasDo(waChaveContato(cpState.waChats, cpState.waJid, (cpState.waContato || {}).telefone))));
+  if (scroll || noFim) wrap.scrollTop = wrap.scrollHeight;
 }
 // ---- Anexos (documento/foto) + emoji do popup de WhatsApp ----
 const CP_EMOJIS = ['😀','😁','😂','🤣','😊','😍','😘','😉','😎','🤗','🤔','😅','🙂','🙃','😴','😌','😔','😢','😭','😤','😡','👍','👎','👏','🙏','💪','🙌','👋','🤝','❤️','🔥','✨','🎉','✅','❌','⚠️','💊','🩺','📅','⏰','😷','🥰','😇','💜'];
@@ -19907,7 +19967,7 @@ async function cpEnviarMidia(file) {
 }
 
 async function cpEnviarWa() {
-  if (waNotaModo) { await waNotaSalvar('cp'); return; }   // modo anotação: não vai pro paciente
+  if (waNotaModo.cp) { await waNotaSalvar('cp'); return; }   // modo anotação: não vai pro paciente
   if (cpState.waEnviando) return; // guarda anti-duplo-envio (Enter repetido / clique + Enter)
   cpEmojiFechar();
   const inp = document.getElementById('cp-input');
@@ -19946,20 +20006,32 @@ async function cpPollWa() {
   let r = null;
   try { r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(jid) + '/messages?full=1' + alt); } catch (e) { return; }
   if (!(r && r.ok && r.data.mensagens) || cpState.waJid !== jid) return; // ignora resposta tardia de outra conversa
+  // Canal caído no meio da conversa: NÃO substituir a thread por vazio (espelho da página).
+  if (r.data.sem_device) { cpState.waSemDevice = true; waNotaPintar('cp'); return; }
+  if (cpState.waSemDevice) { cpState.waSemDevice = false; waNotaPintar('cp'); }
   // Vínculo aprendido no meio da conversa: adota o alt; o próximo tick (full=1) já une o histórico.
   if (r.data.jid_alt && r.data.jid_alt !== cpState.waAlt && r.data.jid_alt !== jid) cpState.waAlt = r.data.jid_alt;
   const serv = r.data.mensagens;
+  // Resposta parcial menor que a tela: manter a maior (nunca encolher a thread no poll).
+  if (r.data.parcial && serv.length < (cpState.waMsgs || []).length) return;
+  // Mensagem NOVA do contato com a conversa aberta: marca lida (badge da lista + visto azul
+  // no celular do paciente). Diff por id, NUNCA "tem !de_mim no merge" — o full traz antigas.
+  const idsAntes = new Set((cpState.waMsgs || []).map(m => m.id).filter(Boolean));
   // mantem mensagens otimistas locais (sem id) que ainda nao apareceram no servidor
   const pendentes = (cpState.waMsgs || []).filter(m => !m.id && m.de_mim && !serv.some(s => s.de_mim && s.texto === m.texto));
   const merged = serv.concat(pendentes).sort((a, b) => new Date(a.data) - new Date(b.data));
   // Assinatura inclui o STATUS de cada mensagem (id:status): senão uma leitura (entregue->lido) não
   // muda a contagem nem o id da última, o poll achava que "nada mudou" e o azul nunca atualizava.
   const sig = arr => (arr || []).map(m => (m.id || m.data || '') + ':' + (m.status || '')).join('|');
-  if (sig(merged) !== sig(cpState.waMsgs)) { cpState.waMsgs = merged; cpRenderMsgsWa(true); }
+  // scroll false: quem rolou pra cima pra reler não pode ser jogado pro fundo por uma
+  // mudança de ack — o noFim do render decide (espelho da página).
+  if (sig(merged) !== sig(cpState.waMsgs)) { cpState.waMsgs = merged; cpRenderMsgsWa(false); }
+  const novasReais = serv.filter(m => m.id && !idsAntes.has(m.id));
+  if (novasReais.some(m => !m.de_mim)) cpMarcarLido(jid);
   // mantem o item da lista atualizado e a conversa aberta como lida
   const last = merged[merged.length - 1];
   const ch = (cpState.waChats || []).find(c => c.id === jid);
-  if (ch && last) { ch.ultima = last.texto; ch.ultima_em = last.data; ch.ultima_de_mim = last.de_mim; ch.nao_lidas = 0; }
+  if (ch && last) { ch.ultima = waPreviewDeMsg(last); ch.ultima_em = last.data; ch.ultima_de_mim = last.de_mim; ch.nao_lidas = 0; }
 }
 // poll da LISTA (atualiza conversas/preview/nao-lidas enquanto o painel esta na lista do WhatsApp)
 function cpIniciarPollLista() { cpPararPollLista(); cpState.waListaPoll = setInterval(cpPollLista, 6000); }
@@ -19980,9 +20052,10 @@ function cpHora(iso) {
 function cpLigar() {
   const t = cpState.waContato && cpState.waContato.telefone;
   if (!t) return;
-  const l = String(t).replace(/\D/g, '');
-  if (!l) return;
-  window.location.href = 'tel:+' + telWa(l);
+  if (!String(t).replace(/\D/g, '')) return;
+  // O valor vai DIRETO pro telWa: pré-limpar com \D destruía o '+' do internacional e o
+  // discador recebia tel:+55 na frente de um número dos EUA.
+  window.location.href = 'tel:+' + telWa(String(t));
 }
 function cpWaWeb() {
   const c = cpState.waContato;
@@ -20255,8 +20328,10 @@ async function wvAbrirConversa(c) {
   if (wvRec.rec) { wvRec.enviar = false; try { wvRec.rec.stop(); } catch (e) {} wvMicLimpar(); if (typeof homeToast === 'function') homeToast('Gravação descartada — você trocou de conversa.'); }
   wvState.jid = c.id;
   wvState.alt = c.jid_alt || null; // jid alternativo (@lid <-> telefone): une o histórico
-  let num = String(c.numero || '').replace(/\D/g, '');
-  if (!(num.length >= 10 && num.length <= 13)) num = '';
+  // Preserva o '+' (internacional) — espelho do popup; sem ele o servidor cola 55.
+  let num = String(c.numero || '').replace(/[^0-9+]/g, '');
+  const dNum = num.replace(/\D/g, '');
+  if (!(dNum.length >= 10 && dNum.length <= (num.startsWith('+') ? 15 : 13))) num = '';
   wvState.contato = { nome: c.nome || null, telefone: num || null, paciente_id: c.paciente_id || null };
   wvState.msgs = [];
   c.nao_lidas = 0;
@@ -20270,7 +20345,7 @@ async function wvAbrirConversa(c) {
   document.getElementById('wv-msgs').innerHTML = '<div class="wv-vazio"><i class="ti ti-loader"></i> Carregando conversa…</div>';
   // Modo anotação NÃO atravessa a troca de conversa: ficar ligado sem querer faria a próxima
   // mensagem virar nota (o paciente não receberia) sem ninguém perceber.
-  waNotaModo = false; waNotaPintar('wv');
+  waNotaModo.wv = false; waNotaPintar('wv');
   waExtra = { chave: null, notas: [], agendadas: [], carregando: true };
   waExtraCarregar(waChaveContato(wvState.chats, c.id, c.numero));
   await wvCarregarMsgs(true);
@@ -20293,7 +20368,7 @@ function wvComposerAtivo(ativo) {
   // precisa deixar recado uma pra outra.
   const ag = document.getElementById('wv-agendar'); if (ag) ag.disabled = !ativo;
   const nt = document.getElementById('wv-nota'); if (nt) nt.disabled = false;
-  if (!ativo && waNotaModo) { /* nota segue permitida: não desliga o modo */ }
+  if (!ativo && waNotaModo.wv) { /* nota segue permitida: não desliga o modo */ }
   waNotaPintar('wv');
 }
 function wvRenderHead() {
@@ -20361,8 +20436,23 @@ function wvRenderMsgs(scroll) {
   const msgs = wvState.msgs || [];
   if (!msgs.length) { wrap.innerHTML = '<div class="wv-vazio">Sem mensagens ainda. Mande a primeira!</div>'; return; }
   const noFim = wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 60;
-  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, wvState.jid, waExtrasDo(waExtra.chave)));
+  // Mesmo espelho do popup: a chave esperada é a DESTA tela, nunca a global.
+  waRenderPreservandoMidia(wrap, waThreadHtml(msgs, wvState.jid, waExtrasDo(waChaveContato(wvState.chats, wvState.jid, (wvState.contato || {}).telefone))));
   if (scroll || noFim) wrap.scrollTop = wrap.scrollHeight;
+}
+// Prévia de UMA mensagem no formato MAPEADO do servidor (tipo/texto/arquivo) — espelho do
+// textoDaMsg do backend. Os polls usavam last.texto cru: foto sem legenda tem texto vazio,
+// e a prévia da lista virava o telefone em cinza até o próximo poll da lista.
+function waPreviewDeMsg(m) {
+  if (!m) return '';
+  if (m.tipo === 'imagem') return m.texto ? '\ud83d\uddbc ' + m.texto : '\ud83d\uddbc Imagem';
+  if (m.tipo === 'video') return m.texto ? '\ud83c\udfac ' + m.texto : '\ud83c\udfac V\u00eddeo';
+  if (m.tipo === 'audio') return '\ud83c\udf99 \u00c1udio';
+  if (m.tipo === 'sticker') return 'Figurinha';
+  if (m.tipo === 'documento') return '\ud83d\udcc4 ' + (m.arquivo || 'Documento');
+  if (m.tipo === 'local') return '\ud83d\udccd Localiza\u00e7\u00e3o';
+  if (m.tipo === 'contato') return '\ud83d\udc64 Contato';
+  return m.texto || '';
 }
 function wvInputKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (e.repeat) return; wvEnviar(); }
@@ -20388,7 +20478,7 @@ function wvEmojiInserir(e) {
 }
 function wvAutoGrow(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; }
 async function wvEnviar() {
-  if (waNotaModo) { await waNotaSalvar('wv'); return; }   // modo anotação: não vai pro paciente
+  if (waNotaModo.wv) { await waNotaSalvar('wv'); return; }   // modo anotação: não vai pro paciente
   if (wvState.enviando) return; // anti-duplo-envio
   const inp = document.getElementById('wv-input');
   const texto = (inp.value || '').trim();
@@ -20402,7 +20492,7 @@ async function wvEnviar() {
   try {
     const numeroReal = (wvState.contato && wvState.contato.telefone) || '';
     const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(wvState.jid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto, numero: numeroReal }) });
-    if (!r.ok) { if (typeof homeToast === 'function') homeToast('Falha ao enviar — verifique a conexão do WhatsApp.'); restaurar(); return; }
+    if (!r.ok) { if (typeof homeToast === 'function') homeToast('Falha ao enviar — ' + ((r.data && r.data.erro) || 'verifique a conexão do WhatsApp.')); restaurar(); return; }
     wvState.msgs.push(Object.assign({ tipo: 'texto' }, r.data.mensagem));
     wvRenderMsgs(true);
     const ch = (wvState.chats || []).find(c => c.id === wvState.jid);
@@ -20594,7 +20684,9 @@ function wvNovaAbrir(i) {
   wvNovaToggle();
   const c = wvConversaDoNumero(num);
   if (c) wvAbrirConversa({ ...c, nome: p.nome_completo || c.nome, paciente_id: p.id });
-  else wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: p.nome_completo, paciente_id: p.id });
+  // Número CRU, nunca num+'@s.whatsapp.net': fabricar o jid no cliente matava a expansão das
+  // variantes do 9 no servidor — cadastro sem o 9 abria thread vazia e o envio mirava jid morto.
+  else wvAbrirConversa({ id: num, jid_alt: null, numero: num, nome: p.nome_completo, paciente_id: p.id });
 }
 // Abre um chat direto com um NÚMERO (não precisa ser paciente). numWa = dígitos já com DDI (via telWa).
 function wvNovaAbrirNumero(numWa) {
@@ -20606,7 +20698,8 @@ function wvNovaAbrirNumero(numWa) {
   wvRenderLista();
   const c = wvConversaDoNumero(num);
   if (c) wvAbrirConversa(c);
-  else wvAbrirConversa({ id: num + '@s.whatsapp.net', jid_alt: null, numero: num, nome: wdFmtTel(num), paciente_id: null });
+  // Mesmo motivo da wvNovaAbrir: o servidor é quem resolve número -> jid (variantes do 9).
+  else wvAbrirConversa({ id: num, jid_alt: null, numero: num, nome: wdFmtTel(num), paciente_id: null });
 }
 function wvIniciarPollThread() {
   if (wvState.poll) clearInterval(wvState.poll);
@@ -20630,12 +20723,22 @@ async function wvPollThread() {
   const serv = r.data.mensagens || [];
   const ids = new Set((wvState.msgs || []).map(m => m.id).filter(Boolean));
   const novas = serv.filter(m => !m.id || !ids.has(m.id));
-  if (!novas.length) return;
-  wvState.msgs = (wvState.msgs || []).concat(novas).sort((a, b) => new Date(a.data) - new Date(b.data));
+  // ATUALIZA status (e texto) das que já estão na tela: sem isso o check azul da página só
+  // aparecia fechando e reabrindo a conversa — o popup já fazia, a página não. NÃO substitui
+  // o array (rapido=1 é só a página mais recente; substituir apagaria o histórico).
+  const porId = new Map(serv.filter(m => m.id).map(m => [m.id, m]));
+  let ackMudou = false;
+  (wvState.msgs || []).forEach(m => {
+    const nova = m.id && porId.get(m.id);
+    if (nova && (nova.status !== m.status || nova.texto !== m.texto)) { m.status = nova.status; m.texto = nova.texto; ackMudou = true; }
+  });
+  if (!novas.length && !ackMudou) return;
+  if (novas.length) wvState.msgs = (wvState.msgs || []).concat(novas).sort((a, b) => new Date(a.data) - new Date(b.data));
   wvRenderMsgs(false);
+  if (!novas.length) return;   // só ack mudou: lista/badge/lida não têm o que atualizar
   const last = wvState.msgs[wvState.msgs.length - 1];
   const ch = (wvState.chats || []).find(c => c.id === jid);
-  if (ch && last) { ch.ultima = last.texto; ch.ultima_em = last.data; ch.ultima_de_mim = last.de_mim; ch.nao_lidas = 0; wvRenderLista(); }
+  if (ch && last) { ch.ultima = waPreviewDeMsg(last); ch.ultima_em = last.data; ch.ultima_de_mim = last.de_mim; ch.nao_lidas = 0; wvRenderLista(); }
   // chegou mensagem do contato com a conversa aberta -> marca lida no aparelho também
   if (novas.some(m => !m.de_mim)) wvMarcarLida();
 }
