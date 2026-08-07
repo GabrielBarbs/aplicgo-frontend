@@ -6880,7 +6880,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DE</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DF</b></span></div>
   </div>
 </div>
 
@@ -31769,12 +31769,22 @@ async function esConsCarregar(meuTurno) {
     esCarregarUnidades().catch(() => {}),
   ]);
   const f = esState.filtros.consumo;
+  // O catálogo pode ter mudado desde a última carga (apresentação nova entrando no grupo,
+  // rename que reordena os ids): um valor que não é mais NENHUMA opção do seletor deixaria o
+  // navegador exibindo a primeira opção ("todas as apresentações") enquanto os números somam
+  // o conjunto velho. Valor órfão volta pro padrão, recalculado sobre o catálogo atual.
+  if (f.product && !esConsSelProdutos().some(([v]) => v === f.product)) f.product = '';
   if (!f.product) {
-    // Padrão: tirzepatida pelo nome/princípio; senão o primeiro produto em mg; senão o 1º ativo.
-    const ativos = (esState.produtosTodos || []).filter((p) => p.ativo);
-    const alvo = ativos.find((p) => /tirzep/i.test(p.nome || '') || /tirzep/i.test(p.principio_ativo || ''))
-      || ativos.find((p) => p.conta_em_mg) || ativos[0];
-    if (alvo) f.product = alvo.id;
+    // Padrão: a tirzepatida GERAL (agregado 60+90) quando existe; senão a avulsa pelo
+    // nome/princípio; senão o primeiro produto em mg; senão o 1º ativo.
+    const grupo = esConsGrupos().find((g) => /tirzep/i.test(g.principio));
+    if (grupo) { f.product = grupo.ids.join(','); }
+    else {
+      const ativos = (esState.produtosTodos || []).filter((p) => p.ativo);
+      const alvo = ativos.find((p) => /tirzep/i.test(p.nome || '') || /tirzep/i.test(p.principio_ativo || ''))
+        || ativos.find((p) => p.conta_em_mg) || ativos[0];
+      if (alvo) f.product = alvo.id;
+    }
   }
   const wrap = document.getElementById('es-conteudo');
   if (!f.product) {
@@ -31796,12 +31806,37 @@ async function esConsCarregar(meuTurno) {
   esConsRender();
 }
 
+// Itens AGREGADOS do seletor: produtos que dividem o mesmo princípio ativo (ex.: tirzepatida
+// 60 e 90) ganham um item "— todas as apresentações" cujo valor é a lista de ids ("id1,id2") —
+// o servidor soma o conjunto. Só agrupa CONTAGEM IGUAL (mg com mg): somar mg com ampola mentiria.
+// Inativos entram no grupo de propósito: a apresentação aposentada carrega histórico real de
+// consumo, e deixá-la de fora subestimaria o "geral". Precisa de 2+ produtos e 1+ ativo.
+function esConsGrupos() {
+  const mapa = new Map();
+  (esState.produtosTodos || []).forEach((p) => {
+    const princ = String(p.principio_ativo || '').trim();
+    if (!princ) return;
+    const chave = princ.toLowerCase() + '|' + (p.conta_em_mg ? 'mg' : 'un');
+    if (!mapa.has(chave)) mapa.set(chave, { principio: princ, ids: [], ativos: 0 });
+    const g = mapa.get(chave);
+    g.ids.push(p.id);
+    if (p.ativo) g.ativos++;
+  });
+  // O teto de 20 espelha o limite da rota /consumo: oferecer um agregado que o servidor
+  // recusaria abriria a aba direto numa tela de erro.
+  return [...mapa.values()].filter((g) => g.ids.length >= 2 && g.ids.length <= 20 && g.ativos > 0);
+}
+function esConsSelProdutos() {
+  const grupos = esConsGrupos().map((g) => [g.ids.join(','), g.principio + ' — todas as apresentações']);
+  return grupos.concat(esSelProdutos());
+}
+
 function esConsFiltrosHtml() {
   const f = esState.filtros.consumo;
   const chips = ES_CONS_CHIPS.map(([v, l]) =>
     `<button class="ia-rg${f.dias === v ? ' active' : ''}" onclick="esSetFiltro('consumo','dias','${v}')">${l}</button>`).join('');
   return `<div class="es-filtros">
-    <select onchange="esSetFiltro('consumo','product',this.value)">${esOpts(esSelProdutos(), f.product)}</select>
+    <select onchange="esSetFiltro('consumo','product',this.value)">${esOpts(esConsSelProdutos(), f.product)}</select>
     <select onchange="esSetFiltro('consumo','unit',this.value)"><option value="">Todas as unidades</option>${esOpts(esSelUnidades(), f.unit)}</select>
     <span class="ia-range">${chips}</span>
   </div>`;
