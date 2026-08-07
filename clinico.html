@@ -5653,6 +5653,29 @@
     .es-table tbody tr:hover { background: rgba(var(--bg3-rgb),0.4); }
     .es-table tbody tr:last-child td { border-bottom: 0; }
 
+    .es-cons-card {
+      background: var(--bg2); border: 1px solid var(--bd1); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 14px;
+    }
+    .es-cons-tt {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; color: var(--tx1); margin-bottom: 10px;
+    }
+    .es-cons-tt i { color: var(--ac); }
+    .es-cons-un { font-size: 11px; font-weight: 500; color: var(--tx3); }
+    .es-cons-graf { overflow-x: auto; }
+    .es-cons-total td { background: rgba(var(--bg3-rgb),0.5); }
+    .es-cons-proj {
+      display: flex; flex-wrap: wrap; gap: 8px 22px;
+      font-size: 12.5px; color: var(--tx2);
+    }
+    .es-cons-proj b { color: var(--tx1); }
+    .es-cons-aviso {
+      display: flex; align-items: center; gap: 7px; margin-top: 10px;
+      font-size: 11px; color: #EF9F27;
+    }
+    .es-cons-nota { font-size: 11px; color: var(--tx3); margin-top: 8px; line-height: 1.5; }
+
     .es-status-tag {
       font-size: 9px; padding: 2px 7px; border-radius: 4px;
       font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
@@ -6857,7 +6880,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DD</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DE</b></span></div>
   </div>
 </div>
 
@@ -7702,6 +7725,9 @@
       </button>
       <button class="ap-tab" onclick="esTrocarTab('movimentacoes')" data-estab="movimentacoes">
         <i class="ti ti-history"></i> Movimentações
+      </button>
+      <button class="ap-tab" onclick="esTrocarTab('consumo')" data-estab="consumo">
+        <i class="ti ti-chart-bar"></i> Consumo
       </button>
     </div>
 
@@ -31534,6 +31560,7 @@ let esState = {
     lotes: { q: '', unit: '', product: '', situacao: '', com_estoque: '' },
     produtos: { q: '', ativo: '', controle: '', refrig: '' },
     movimentos: { q: '', unit: '', product: '', tipo: '', de: '', ate: '' },
+    consumo: { product: '', dias: '7', unit: '' },
   },
   truncado: false,
   limite: 0,
@@ -31636,6 +31663,9 @@ async function esCarregarTab(opts) {
   const wrap = document.getElementById('es-conteudo');
   wrap.innerHTML = '<div class="pac-empty"><i class="ti ti-loader"></i>Carregando…</div>';
   esState.truncado = false; esState.limite = 0;
+  // Consumo tem fluxo próprio: precisa do CATÁLOGO carregado antes do fetch (o produto
+  // padrão — tirzepatida — é resolvido dele) e a resposta não é lista com teto.
+  if (esState.tab === 'consumo') { await esConsCarregar(meuTurno); return; }
   // Produtos e unidades alimentam os seletores das outras abas. Carrega uma vez, e uma falha
   // aqui só esvazia o seletor — a tabela continua carregando normalmente.
   // `produtosTodos` é lista SEPARADA de propósito: `esState.produtos` é o resultado FILTRADO da
@@ -31709,6 +31739,174 @@ function esFiltrosHtml(aba) {
   const limpar = esTemFiltro(aba) ? `<button class="es-f-limpar" onclick="esLimparFiltros('${aba}')"><i class="ti ti-x"></i> Limpar filtros</button>` : '';
   return `<div class="es-filtros">${busca}${campos}${limpar}</div>`;
 }
+// ==================== CONSUMO (aba do estoque) ====================
+// Quanto sai por dia, quem usou, e quanto tempo o estoque atual dura.
+// Os números vêm PRONTOS do servidor (fuso BRT, estornos fora, mg convertido) — a tela só
+// desenha. O produto padrão é a tirzepatida, achada pelo NOME no catálogo (nunca UUID fixo).
+let esConsDados = null;
+const ES_CONS_CHIPS = [['hoje', 'Hoje'], ['ontem', 'Ontem'], ['7', '7 dias'], ['14', '14 dias'], ['30', '30 dias']];
+
+function esConsDiaBRT(offset) {
+  const d = new Date(Date.now() - 3 * 3600 * 1000);
+  d.setUTCDate(d.getUTCDate() + (offset || 0));
+  return d.toISOString().slice(0, 10);
+}
+// Janela do fetch. Pra "hoje"/"ontem" o gráfico mostra a SEMANA (1 barra sozinha é um número,
+// não um gráfico — sem os vizinhos ninguém sabe se é muito ou pouco); o dia escolhido sai em
+// destaque e a TABELA/totais respondem só por ele (`foco`).
+function esConsJanela(dias) {
+  if (dias === 'hoje') { const fim = esConsDiaBRT(0); return { de: esConsDiaBRT(-6), ate: fim, foco: fim }; }
+  if (dias === 'ontem') { const fim = esConsDiaBRT(-1); return { de: esConsDiaBRT(-7), ate: fim, foco: fim }; }
+  const n = parseInt(dias, 10) || 7;
+  return { de: esConsDiaBRT(-(n - 1)), ate: esConsDiaBRT(0), foco: null };
+}
+
+async function esConsCarregar(meuTurno) {
+  await Promise.all([
+    (!esState.produtosTodos.length)
+      ? pacApi('/api/clinico/estoque/products').then((rp) => { if (rp.ok) esState.produtosTodos = rp.data.produtos || []; }).catch(() => {})
+      : Promise.resolve(),
+    esCarregarUnidades().catch(() => {}),
+  ]);
+  const f = esState.filtros.consumo;
+  if (!f.product) {
+    // Padrão: tirzepatida pelo nome/princípio; senão o primeiro produto em mg; senão o 1º ativo.
+    const ativos = (esState.produtosTodos || []).filter((p) => p.ativo);
+    const alvo = ativos.find((p) => /tirzep/i.test(p.nome || '') || /tirzep/i.test(p.principio_ativo || ''))
+      || ativos.find((p) => p.conta_em_mg) || ativos[0];
+    if (alvo) f.product = alvo.id;
+  }
+  const wrap = document.getElementById('es-conteudo');
+  if (!f.product) {
+    if (meuTurno === esState.carga) wrap.innerHTML = esConsFiltrosHtml() + '<div class="pac-empty"><i class="ti ti-flask"></i>Cadastre um produto pra ver o consumo.</div>';
+    return;
+  }
+  const j = esConsJanela(f.dias);
+  let r = null;
+  try {
+    r = await pacApi('/api/clinico/estoque/consumo?product=' + encodeURIComponent(f.product)
+      + '&de=' + j.de + '&ate=' + j.ate + (f.unit ? '&unit=' + encodeURIComponent(f.unit) : ''));
+  } catch (e) { r = null; }
+  if (meuTurno !== esState.carga) return;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    wrap.innerHTML = esConsFiltrosHtml() + '<div class="pac-empty" style="color:#f85149"><i class="ti ti-alert-triangle"></i>' + esc((r && r.data && r.data.erro) || 'Não consegui carregar o consumo agora.') + '</div>';
+    return;
+  }
+  esConsDados = r.data;
+  esConsRender();
+}
+
+function esConsFiltrosHtml() {
+  const f = esState.filtros.consumo;
+  const chips = ES_CONS_CHIPS.map(([v, l]) =>
+    `<button class="ia-rg${f.dias === v ? ' active' : ''}" onclick="esSetFiltro('consumo','dias','${v}')">${l}</button>`).join('');
+  return `<div class="es-filtros">
+    <select onchange="esSetFiltro('consumo','product',this.value)">${esOpts(esSelProdutos(), f.product)}</select>
+    <select onchange="esSetFiltro('consumo','unit',this.value)"><option value="">Todas as unidades</option>${esOpts(esSelUnidades(), f.unit)}</select>
+    <span class="ia-range">${chips}</span>
+  </div>`;
+}
+
+function esConsFmt(v, unidade) {
+  const n = Number(v || 0);
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: unidade === 'mg' ? 1 : 0 });
+}
+function esConsDiaLbl(iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); }
+
+// Gráfico de BARRAS em SVG (o grafSerie da casa é de linhas). Rolagem própria quando não cabe.
+function esConsGrafHtml(serie, unidade, foco) {
+  const H = 190, TOPO = 22, BASE = 26;
+  const bw = 30, gap = 12;
+  const W = serie.length * (bw + gap) + gap;
+  const maxV = Math.max.apply(null, serie.map((x) => x.total).concat([1]));
+  const barras = serie.map((x, i) => {
+    const h = Math.round((x.total / maxV) * (H - TOPO - BASE));
+    const xPos = gap + i * (bw + gap);
+    const yPos = H - BASE - h;
+    const esmaecida = foco && x.dia !== foco;
+    const cor = esmaecida ? 'rgba(var(--ac-rgb),0.25)' : 'var(--ac)';
+    const valor = (serie.length <= 16 && x.total > 0)
+      ? `<text x="${xPos + bw / 2}" y="${yPos - 5}" text-anchor="middle" font-size="10" fill="var(--tx3)">${esConsFmt(x.total, unidade)}</text>` : '';
+    return `<g><title>${esConsDiaLbl(x.dia)} — ${esConsFmt(x.total, unidade)} ${unidade} · ${x.aplicacoes} aplicação(ões) · ${x.pacientes} paciente(s)</title>
+      <rect x="${xPos}" y="${yPos}" width="${bw}" height="${Math.max(h, x.total > 0 ? 2 : 0)}" rx="3" fill="${cor}"></rect>${valor}
+      <text x="${xPos + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="10" fill="${esmaecida ? 'var(--tx4)' : 'var(--tx3)'}">${esConsDiaLbl(x.dia)}</text></g>`;
+  }).join('');
+  return `<div class="es-cons-graf"><svg width="${Math.max(W, 320)}" height="${H}" role="img">
+    <line x1="0" y1="${H - BASE}" x2="${Math.max(W, 320)}" y2="${H - BASE}" stroke="var(--bd1)"></line>${barras}</svg></div>`;
+}
+
+function esConsRender() {
+  const wrap = document.getElementById('es-conteudo');
+  const d = esConsDados;
+  if (!d) { wrap.innerHTML = esConsFiltrosHtml(); return; }
+  const f = esState.filtros.consumo;
+  const j = esConsJanela(f.dias);
+  const un = d.unidade;
+  const serie = d.serie || [];
+
+  // "Hoje"/"Ontem": a tabela e os totais respondem SÓ pelo dia; a média do dia usa os
+  // pacientes distintos DO DIA. Nos períodos, os totais vêm da consulta do período inteiro
+  // (paciente que veio 2x conta 1 — nunca somar os distintos diários).
+  let linhas, tot;
+  if (j.foco) {
+    const dia = serie.find((x) => x.dia === j.foco) || { dia: j.foco, total: 0, aplicacoes: 0, pacientes: 0 };
+    linhas = [dia];
+    tot = { total: dia.total, aplicacoes: dia.aplicacoes, pacientes: dia.pacientes,
+            media: dia.pacientes > 0 ? dia.total / dia.pacientes : null };
+  } else {
+    linhas = serie.slice().reverse();
+    tot = { total: d.periodo.total, aplicacoes: d.periodo.aplicacoes, pacientes: d.periodo.pacientes,
+            media: d.periodo.media_por_paciente };
+  }
+
+  const linhasHtml = linhas.map((x) => `<tr>
+      <td style="white-space:nowrap;">${esConsDiaLbl(x.dia)}</td>
+      <td class="num">${x.aplicacoes}</td>
+      <td class="num">${x.pacientes}</td>
+      <td class="num">${esConsFmt(x.total, un)} ${un}</td>
+      <td class="num">${x.pacientes > 0 ? esConsFmt(x.total / x.pacientes, un) + ' ' + un : '—'}</td>
+    </tr>`).join('');
+
+  const pr = d.projecao || {};
+  let duracao;
+  if (pr.dias_restantes != null && pr.ate_data) {
+    duracao = `Dura <b>~${pr.dias_restantes} dia${pr.dias_restantes === 1 ? '' : 's'}</b> (até ${esConsDiaLbl(pr.ate_data)}/${pr.ate_data.slice(0, 4)})`;
+  } else if (!pr.saldo_atual) {
+    duracao = '<b>Sem estoque utilizável</b> (lotes válidos zerados).';
+  } else {
+    duracao = 'Sem consumo nos últimos 30 dias — <b>não dá pra estimar a duração</b>.';
+  }
+  const aviso = (d.avisos && d.avisos.movimentos_unidade_antiga)
+    ? `<div class="es-cons-aviso"><i class="ti ti-alert-triangle"></i> ${d.avisos.movimentos_unidade_antiga} movimento(s) antigo(s) em outra unidade de contagem foram ignorados nas somas.</div>` : '';
+
+  wrap.innerHTML = esConsFiltrosHtml()
+    + `<div class="es-cons-card">
+        <div class="es-cons-tt"><i class="ti ti-chart-bar"></i> Consumo diário — ${esc(d.produto.nome)} <span class="es-cons-un">(${un})</span></div>
+        ${esConsGrafHtml(serie, un, j.foco)}
+      </div>`
+    + `<table class="es-table">
+        <thead><tr><th>Dia</th><th class="num">Aplicações</th><th class="num">Pacientes</th><th class="num">Total</th><th class="num">Média por paciente</th></tr></thead>
+        <tbody>${linhasHtml}
+          <tr class="es-cons-total"><td><strong>${j.foco ? 'Total do dia' : 'Total do período'}</strong></td>
+            <td class="num"><strong>${tot.aplicacoes}</strong></td>
+            <td class="num"><strong>${tot.pacientes}</strong></td>
+            <td class="num"><strong>${esConsFmt(tot.total, un)} ${un}</strong></td>
+            <td class="num"><strong>${tot.media != null ? esConsFmt(tot.media, un) + ' ' + un : '—'}</strong></td></tr>
+        </tbody>
+      </table>`
+    + `<div class="es-cons-card" style="margin-top:14px;">
+        <div class="es-cons-tt"><i class="ti ti-hourglass"></i> Projeção do estoque</div>
+        <div class="es-cons-proj">
+          <span>Estoque utilizável hoje: <b>${esConsFmt(pr.saldo_atual, un)} ${un}</b></span>
+          <span>Uso nos últimos 30 dias: <b>${esConsFmt(pr.consumo_30d, un)} ${un}</b> (média ${esConsFmt(pr.media_diaria, un)} ${un}/dia)</span>
+          <span>${duracao}</span>
+        </div>
+        ${aviso}
+        <div class="es-cons-nota">Projeção linear pela média dos 30 dias encerrados ontem — não considera vencimento futuro de lotes.
+          Consumo = baixas de estoque por aplicação; perdas, vendas e transferências ficam de fora.</div>
+      </div>`;
+}
+
 // Aviso de lista CORTADA. Sem isso a tela parece completa e alguém conclui que o lote sumiu.
 function esAvisoTruncado() {
   if (!esState.truncado) return '';
