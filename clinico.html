@@ -6872,7 +6872,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DG</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DH</b></span></div>
   </div>
 </div>
 
@@ -15788,6 +15788,21 @@ async function pacCarregarApoio() {
 function pacTemCargo(p, arr) { return Array.isArray(p.cargos) && p.cargos.some(c => arr.includes(String(c).toLowerCase())); }
 function pacEhMedico(p) { return pacTemCargo(p, ['medico', 'médico', 'doutor']) || p.role === 'medico'; }
 function pacEhNutri(p) { return pacTemCargo(p, ['nutricionista', 'nutri']) || p.role === 'nutricionista'; }
+// As três grafias de enfermagem porque o slug do cargo varia por instalação — o servidor aceita
+// as três também (CARGO_ENFERMAGEM em tarefas-injetaveis.ts, AGEQ_CARGOS em automacoes-equipe.ts).
+function pacEhEnfermagem(p) { return pacTemCargo(p, ['enfermeira', 'enfermagem', 'enfermeiro']) || p.role === 'enfermagem'; }
+// Quem ATENDE, e por isso tem agenda própria. Gestor entra porque é quem toca a clínica e
+// sempre apareceu aqui — tirá-lo sumiria com a agenda do dono.
+function pacEhProfissional(p) { return pacEhMedico(p) || pacEhNutri(p) || pacEhEnfermagem(p) || p.role === 'gestor'; }
+// Prefixo do nome do profissional. Vem do CARGO primeiro: quem é nutri com papel 'usuario'
+// aparecia sem prefixo nenhum, como se não fosse da equipe clínica.
+function pacPrefixoProf(p) {
+  if (!p) return '';
+  if (pacEhMedico(p)) return 'Dr.';
+  if (pacEhNutri(p)) return 'Nutri';
+  if (pacEhEnfermagem(p)) return 'Enf.';
+  return '';
+}
 
 function pacPopularResponsaveis(unitId, forceMedId, forceNutId) {
   const selMed = document.getElementById('pac-medico');
@@ -16784,7 +16799,10 @@ async function agInit() {
 
 // Selects do MODAL (mantém os antigos pro form de criar/editar)
 function agPreencherSelects() {
-  const profs = pacState.profissionais.filter(p => ['medico','nutricionista','enfermagem','gestor'].includes(p.role));
+  // Quem é profissional é o CARGO CLÍNICO (pacEhProfissional), não o papel no sistema. Filtrar
+  // por `role` escondia a nutri cadastrada como 'usuario' e a enfermeira como 'recepcao' — com
+  // um nome só na lista, não dava nem pra marcar dois e ver a agenda lado a lado.
+  const profs = pacState.profissionais.filter(pacEhProfissional);
   const mUnit = document.getElementById('ag-unit');
   mUnit.innerHTML = '<option value="">—</option>' +
     pacState.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
@@ -16804,7 +16822,10 @@ function agPreencherSelectsCustom() {
   popUnit.innerHTML = `<div class="ag-select-popup-item ${!agState.unidade ? 'selecionado' : ''}" onclick="agSelectUnit('', 'Todas Unidades')">Todas Unidades</div>` +
     pacState.unidades.map(u => `<div class="ag-select-popup-item ${agState.unidade === u.id ? 'selecionado' : ''}" onclick="agSelectUnit('${u.id}', '${(u.nome||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,"\\'")}')">${esc(u.nome)}</div>`).join('');
 
-  const profs = pacState.profissionais.filter(p => ['medico','nutricionista','enfermagem','gestor'].includes(p.role));
+  // Quem é profissional é o CARGO CLÍNICO (pacEhProfissional), não o papel no sistema. Filtrar
+  // por `role` escondia a nutri cadastrada como 'usuario' e a enfermeira como 'recepcao' — com
+  // um nome só na lista, não dava nem pra marcar dois e ver a agenda lado a lado.
+  const profs = pacState.profissionais.filter(pacEhProfissional);
   const popProf = document.getElementById('ag-sel-prof-popup');
   const addBtn = temPermissao('admin.gerenciar_usuarios')
     ? `<div class="ag-select-popup-item ag-select-popup-add" onclick="event.stopPropagation(); admAbrirNovoUser('agenda')"><i class="ti ti-user-plus"></i> Adicionar usuário</div>`
@@ -16817,7 +16838,7 @@ function agPreencherSelectsCustom() {
     </div>` +
     profs.map(p => {
       const marcado = agState.profs.includes(p.id);
-      const role = ({ medico: 'Dr.', nutricionista: 'Nutri', enfermagem: 'Enf.', gestor: '' })[p.role] || '';
+      const role = pacPrefixoProf(p);
       const lblFull = role ? `${role} ${p.nome || p.email}` : (p.nome || p.email);
       return `<div class="ag-select-popup-item ${marcado ? 'selecionado' : ''}" onclick="agToggleProf(event, '${p.id}')">
         <span class="ag-prof-check">${marcado ? '<i class="ti ti-check"></i>' : ''}</span> ${esc(lblFull)}
@@ -16835,7 +16856,7 @@ function agProfLabelSync() {
   if (n === 0) { el.textContent = 'Todos profissionais'; return; }
   if (n === 1) {
     const p = (pacState.profissionais || []).find(x => x.id === agState.profs[0]);
-    const role = p ? (({ medico: 'Dr.', nutricionista: 'Nutri', enfermagem: 'Enf.', gestor: '' })[p.role] || '') : '';
+    const role = pacPrefixoProf(p);
     el.textContent = p ? (role ? `${role} ${p.nome || p.email}` : (p.nome || p.email)) : '1 profissional';
     return;
   }
@@ -17135,7 +17156,7 @@ function agEscAttr(s) { return esc(String(s || '')).replace(/"/g, '&quot;'); }
 function agProfNomeCurto(id) {
   const p = (pacState.profissionais || []).find((x) => x.id === id);
   if (!p) return 'Profissional';
-  const role = ({ medico: 'Dr.', nutricionista: 'Nutri', enfermagem: 'Enf.', gestor: '' })[p.role] || '';
+  const role = pacPrefixoProf(p);
   return (role ? role + ' ' : '') + (p.nome || p.email || 'Profissional');
 }
 function agProfDe(x) { return (x && ((x.professional && x.professional.id) || x.professional_id)) || null; }
@@ -21131,7 +21152,7 @@ function agAbrirBlockModal(isoLocal) {
   const profSel = document.getElementById('ag-block-prof');
   profSel.innerHTML = '<option value="">--</option>';
   (pacState.profissionais || [])
-    .filter(p => ['medico','nutricionista','enfermagem','gestor','medico_gerente'].includes(p.role))
+    .filter(pacEhProfissional)   // cargo clínico, não papel no sistema — senão não dá pra bloquear a agenda da nutri
     .forEach(p => {
       profSel.innerHTML += `<option value="${p.id}">${p.nome || p.name || p.email}</option>`;
     });
@@ -21315,7 +21336,7 @@ function agPopularSelectsBloqueio() {
   const profSel = document.getElementById('ag-bloq-prof');
   profSel.innerHTML = '<option value="">--</option>' +
     (pacState.profissionais || [])
-      .filter(p => ['medico','nutricionista','enfermagem','gestor','medico_gerente'].includes(p.role))
+      .filter(pacEhProfissional)   // idem: quem tem agenda pode ter bloqueio
       .map(p => `<option value="${p.id}">${p.nome || p.name || p.email}</option>`)
       .join('');
   // Unidades
