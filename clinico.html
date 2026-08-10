@@ -6872,7 +6872,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DI</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DJ</b></span></div>
   </div>
 </div>
 
@@ -16088,6 +16088,19 @@ function telIntlSet(inputId, selId, valor) {
   }
 }
 // Número pro wa.me/jid: com '+' usa os dígitos (tem DDI); senão <=11 cola 55 (BR).
+// ============================================================
+// "NÃO DEU PRA SABER SE SAIU" É DIFERENTE DE "NÃO SAIU".
+// ------------------------------------------------------------
+// Quando o WhatsApp demora e o servidor corta a espera (ou a internet da recepção oscila e a
+// RESPOSTA se perde), a mensagem pode ter sido entregue do mesmo jeito. Se a tela disser
+// "falhou" e ainda oferecer mandar de novo, a pessoa manda — e o paciente recebe duas.
+// Mesma régua do servidor (envioAmbiguo, wa-agendadas.ts).
+// ============================================================
+function envioIncerto(erro) {
+  return /\b(408|425|429|500|502|503|504|522|524)\b|timeout|abort|socket|network|failed to fetch|load failed|networkerror|ECONN/i.test(String(erro || ""));
+}
+const AVISO_ENVIO_INCERTO = 'Não deu pra confirmar se a mensagem saiu — o WhatsApp demorou demais para responder.\n\nCONFIRA A CONVERSA do paciente antes de mandar de novo: é bem possível que ela tenha chegado.';
+
 function telWa(num) {
   const s = String(num || '').trim();
   if (s.startsWith('+')) return s.replace(/\D/g, '');
@@ -20021,7 +20034,13 @@ async function cpEnviarWa() {
   try {
     const numeroReal = (cpState.waContato && cpState.waContato.telefone) || '';
     const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(cpState.waJid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto, numero: numeroReal }) });
-    if (!r.ok) { alert('Falha ao enviar — verifique a conexão do WhatsApp. (' + ((r.data && r.data.erro) || 'sem resposta') + ')'); restaurar(); return; }
+    if (!r.ok) {
+      const e1 = (r.data && r.data.erro) || 'sem resposta';
+      // Incerto: NÃO devolve o texto pra caixa. Texto de volta é convite pra apertar Enter
+      // de novo — e a mensagem pode já ter chegado.
+      if (envioIncerto(e1) || r.status >= 500) { alert(AVISO_ENVIO_INCERTO); return; }
+      alert('Falha ao enviar — verifique a conexão do WhatsApp. (' + e1 + ')'); restaurar(); return;
+    }
     cpState.waMsgs.push(Object.assign({ tipo: 'texto' }, r.data.mensagem));
     cpRenderMsgsWa(true);
     // reflete no item da lista
@@ -20531,7 +20550,11 @@ async function wvEnviar() {
   try {
     const numeroReal = (wvState.contato && wvState.contato.telefone) || '';
     const r = await pacApi('/api/clinico/whatsapp/chats/' + encodeURIComponent(wvState.jid) + '/send', { method: 'POST', body: JSON.stringify({ text: texto, numero: numeroReal }) });
-    if (!r.ok) { if (typeof homeToast === 'function') homeToast('Falha ao enviar — ' + ((r.data && r.data.erro) || 'verifique a conexão do WhatsApp.')); restaurar(); return; }
+    if (!r.ok) {
+      const e2 = (r.data && r.data.erro) || 'verifique a conexão do WhatsApp.';
+      if (envioIncerto(e2) || r.status >= 500) { alert(AVISO_ENVIO_INCERTO); return; }
+      if (typeof homeToast === 'function') homeToast('Falha ao enviar — ' + e2); restaurar(); return;
+    }
     wvState.msgs.push(Object.assign({ tipo: 'texto' }, r.data.mensagem));
     wvRenderMsgs(true);
     const ch = (wvState.chats || []).find(c => c.id === wvState.jid);
@@ -26635,6 +26658,7 @@ async function prProdutoAvisar(sku) {
   if (r && r.ok && r.data && r.data.ok) { homeToast('Aviso de recompra enviado no WhatsApp.'); return; }
   const erro = (r && r.data && r.data.erro) || 'falha';
   const msg = (r && r.data && r.data.mensagem) || prProdutoMsgRecompra(nome, primeiro);
+  if (envioIncerto(erro)) { alert(AVISO_ENVIO_INCERTO); return; }
   if (confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
     const full = telWa(escolhido);
     window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
@@ -29597,13 +29621,15 @@ async function prPlanoWhatsapp(btn) {
     const msg = (prState.planoData && prState.planoData.whatsapp) || '';
     const link = msg ? ('https://wa.me/' + full + '?text=' + encodeURIComponent(msg)) : null;
     if (link) {
+      if (envioIncerto(erro)) { alert(AVISO_ENVIO_INCERTO); return; }
       if (confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) window.open(link, '_blank');
     } else {
       alert('Não foi possível enviar: ' + erro);
     }
   } catch (e) {
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
-    alert('Erro ao enviar no WhatsApp.');
+    // O fetch morreu, mas o servidor pode ter mandado assim mesmo — a resposta é que se perdeu.
+    alert(AVISO_ENVIO_INCERTO);
   }
 }
 // "Abrir no WhatsApp" (link wa.me) — também confere o número antes.
@@ -30561,6 +30587,7 @@ async function rxEnviarWhatsappPresc(id, btn) {
       else { alert('Não foi possível enviar: ' + ((r2.data && r2.data.erro) || 'falha')); }
       return;
     }
+    if (envioIncerto(erro)) { alert(AVISO_ENVIO_INCERTO); return; }
     if (msg && confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
       window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
     } else if (!msg) {
@@ -30568,7 +30595,8 @@ async function rxEnviarWhatsappPresc(id, btn) {
     }
   } catch (e) {
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
-    alert('Erro ao enviar no WhatsApp.');
+    // O fetch morreu, mas o servidor pode ter mandado assim mesmo — a resposta é que se perdeu.
+    alert(AVISO_ENVIO_INCERTO);
   }
 }
 
@@ -31181,6 +31209,7 @@ async function prEnviarWhatsappExame(id, btn) {
     const erro = (r.data && r.data.erro) || 'falha';
     const msg = (r.data && r.data.mensagem) || '';
     const full = telWa(numero);
+    if (envioIncerto(erro)) { alert(AVISO_ENVIO_INCERTO); return; }
     if (msg && confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
       window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
     } else if (!msg) {
@@ -31188,7 +31217,8 @@ async function prEnviarWhatsappExame(id, btn) {
     }
   } catch (e) {
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
-    alert('Erro ao enviar no WhatsApp.');
+    // O fetch morreu, mas o servidor pode ter mandado assim mesmo — a resposta é que se perdeu.
+    alert(AVISO_ENVIO_INCERTO);
   }
 }
 
