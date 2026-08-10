@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://srv.aplicgo.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline'">
+  <!-- fonts.googleapis/gstatic liberados porque a identidade usa Sora nos números,
+       igual ao clínico. Sem isto no CSP a fonte é bloqueada em silêncio e a tela
+       volta pra fonte de sistema sem nenhum erro visível. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://srv.aplicgo.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'">
   <title>Aplic &amp; Go — CRM</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
@@ -216,6 +219,200 @@
       .filters{grid-template-columns:1fr}
       .grid2,.mgrid{grid-template-columns:1fr}
     }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap">
+  <style id="glowup">
+  /* ================================================================
+     IDENTIDADE VISUAL — a mesma do clínico, portada pro CRM.
+     Grafite-espresso quente + terracota (primário) + sage da marca
+     (secundário) + Sora nos números + luz ambiente + micro-animações.
+
+     É o mesmo bloco que existe no clinico.html, adaptado só nos nomes
+     de classe (lá é .stat-card, aqui é .kpi; lá .pac-table-card, aqui
+     .table-wrap). Aditivo e reversível: apague este bloco e o <link>
+     das fontes pra voltar ao anterior. Vem por último no <head>, então
+     ganha na cascata.
+     ================================================================ */
+  :root {
+    /* paleta espresso: o grafite azulado virou terra */
+    --bg0:#0F0D0A; --bg1:#171411; --bg2:#1E1B17; --bg3:#2A2620; --bg4:#221E19;
+    --bd1:#332E27; --bd2:#463F35;
+    --tx1:#F8F5F0; --tx1b:#EDE9E2; --tx2:#CFC9BF; --tx3:#968F82; --tx3b:#847D71; --tx4:#6B6459;
+    --bg1-rgb:23,20,17; --bg2-rgb:30,27,23; --bg3-rgb:42,38,32; --bd1-rgb:51,46,39; --tx3b-rgb:132,125,113;
+    --sage:#8FAF8C; --sage-rgb:143,175,140;
+    --hair: rgba(255,240,220,.07);
+    --hair-2: rgba(255,240,220,.11);
+    --card-bd: rgba(255,240,220,.09);
+    --card-hi: inset 0 1px 0 rgba(255,255,255,.045);
+    --sh-1: 0 1px 2px rgba(0,0,0,.30);
+    --sh-2: 0 2px 6px rgba(0,0,0,.22), 0 1px 2px rgba(0,0,0,.30);
+    --sh-3: 0 10px 30px rgba(0,0,0,.34), 0 3px 8px rgba(0,0,0,.24);
+    --ease: cubic-bezier(.4,0,.2,1);
+    --radius:16px;
+    --font-display:'Sora','Inter',system-ui,sans-serif;
+    --overlay: rgba(10,8,6,.68);
+  }
+  body, input, button, select, textarea {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  }
+  body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; letter-spacing: -.05px; }
+  ::selection { background: rgba(var(--ac-rgb),.32); color: var(--tx1); }
+
+  /* ---- Luz ambiente: terracota no alto, sage embaixo ---- */
+  body:not(.tema-claro) {
+    background:
+      radial-gradient(1000px 540px at 88% -12%, rgba(var(--ac-rgb),.055), transparent 62%),
+      radial-gradient(900px 620px at -12% 112%, rgba(var(--sage-rgb),.05), transparent 62%),
+      var(--bg0);
+    background-attachment: fixed;
+  }
+  html { background: var(--bg0); }
+
+  /* ---- Scrollbars finas e arredondadas ---- */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 8px; border: 3px solid var(--bg0); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--bd2); }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .app-sidebar::-webkit-scrollbar { width: 4px; }
+  .app-sidebar::-webkit-scrollbar-thumb { border: 0; }
+
+  /* ---- Tipografia display: números e títulos ---- */
+  .kpi .k-val, .page-head h1, .modal-head h2, .auth-card h2, .sidebar-brand strong {
+    font-family: var(--font-display) !important; font-weight: 700; letter-spacing: -.5px;
+  }
+  .kpi .k-val { font-size: 25px; }
+  .page-head h1 { font-size: 21px; }
+  .kpi .k-lab, th, .sec, .sidebar-brand span { letter-spacing: .7px; }
+
+  /* ---- Superfícies: cantos generosos + brilho de topo ---- */
+  .kpi, .filters, .table-wrap { border-radius: var(--radius); }
+  .modal-card, .auth-card { border-radius: 18px; }
+  .kpi, .filters, .table-wrap {
+    background-image: linear-gradient(180deg, rgba(255,244,230,.025), transparent 42%);
+    border-color: var(--card-bd);
+    box-shadow: var(--card-hi), var(--sh-1);
+  }
+  /* Fita de acento na lateral do KPI — o mesmo detalhe do .stat-card do clínico. */
+  .kpi { position: relative; overflow: hidden; }
+  .kpi::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--ac), rgba(var(--ac-rgb),.25));
+  }
+  .kpi { transition: transform .16s var(--ease), box-shadow .16s var(--ease), border-color .16s var(--ease); }
+  .kpi:hover { transform: translateY(-1px); box-shadow: var(--card-hi), var(--sh-2); border-color: rgba(var(--ac-rgb),.18); }
+
+  /* ---- Entrada de view: fade + subida ---- */
+  @keyframes viewIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+  #view-leads:not(.hidden), #view-site:not(.hidden) { animation: viewIn .26s var(--ease); }
+
+  /* ---- Topbar: vidro de verdade ---- */
+  .app-topbar {
+    background: rgba(var(--bg1-rgb), .82);
+    backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px);
+    border-bottom: 1px solid var(--hair);
+  }
+
+  /* ---- Sidebar: painel com respiro + item ativo em PILL terracota ---- */
+  .app-sidebar {
+    background: linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 100%);
+    border-right: 1px solid var(--hair);
+  }
+  .sidebar-brand { background: transparent; border-bottom: 1px solid var(--hair); }
+  .sidebar-brand .mark { border-radius: 12px; box-shadow: 0 6px 18px rgba(var(--ac-rgb),.28), inset 0 1px 0 rgba(255,255,255,.18); }
+  .sidebar-item { border-radius: 10px; transition: background .16s var(--ease), color .16s var(--ease), box-shadow .16s var(--ease), transform .16s var(--ease); }
+  .sidebar-item:hover { box-shadow: inset 0 0 0 1px var(--hair-2); transform: translateX(2px); }
+  .sidebar-item.active {
+    background: linear-gradient(120deg, var(--ac-d) 0%, var(--ac) 100%);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(var(--ac-rgb),.28), inset 0 1px 0 rgba(255,255,255,.18);
+  }
+  .sidebar-item.active i { color: #fff; }
+  .sidebar-item.active:hover { transform: none; }
+  .sidebar-foot { border-top: 1px solid var(--hair); }
+  .sidebar-user .av { box-shadow: inset 0 0 0 1px rgba(var(--ac-rgb),.22); }
+
+  /* ---- Botões ---- */
+  .btn { border-radius: 10px; transition: transform .12s var(--ease), box-shadow .16s var(--ease), border-color .16s var(--ease); }
+  .btn.primary { background-image: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0)); box-shadow: 0 6px 18px rgba(var(--ac-rgb),.24); }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: scale(.985); }
+  .topbar-icon-btn { border-radius: 10px; }
+
+  /* ---- Tabela: cabeçalho discreto, linha reage ---- */
+  th { color: var(--tx3b); background: transparent; border-bottom: 1px solid var(--hair-2); }
+  tbody tr { transition: background .12s var(--ease); }
+  tbody tr:hover td { background: rgba(var(--ac-rgb),.055); }
+  td, th { border-bottom-color: var(--hair); }
+
+  /* ---- Campos mais macios ---- */
+  .filters input, .filters select, .mgrid input, .mgrid select, .mgrid textarea,
+  .auth-card input, .app-topbar .t-search { border-radius: 9px; }
+  .fld { border-radius: 12px; border-color: var(--card-bd); }
+
+  /* ---- Modal: fundo com blur ---- */
+  .modal { backdrop-filter: blur(7px) saturate(1.15); -webkit-backdrop-filter: blur(7px) saturate(1.15); }
+  .modal-card { box-shadow: var(--sh-3); border-color: var(--card-bd); }
+
+  /* ---- Login: cartão com anel e brilho da marca ---- */
+  .auth-card {
+    border-color: rgba(var(--ac-rgb),.20);
+    box-shadow: 0 24px 80px rgba(0,0,0,.6), 0 0 0 1px var(--hair), 0 0 90px rgba(var(--ac-rgb),.08);
+  }
+  .auth-card .mark { border-radius: 14px; }
+
+  /* ---- Toast com cara de produto ---- */
+  .toast {
+    background: linear-gradient(180deg, rgba(255,244,230,.04), transparent 50%), var(--bg2);
+    border: 1px solid rgba(var(--ac-rgb),.32);
+    border-radius: 12px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.55), 0 0 24px rgba(var(--ac-rgb),.10);
+  }
+
+  /* ---- Chips e badges arredondados ---- */
+  .pill, .st { border-radius: 999px; }
+  .st { border-color: var(--hair-2); }
+
+  /* ---- Estado vazio com um toque de cor ---- */
+  .empty i { color: rgba(var(--ac-rgb),.55); }
+
+  /* ---- Legibilidade: --tx4 é o tom mais apagado da paleta e serve pra
+         decoração, não pra informação. Estas duas linhas carregam dado que a
+         equipe precisa LER — o Instagram e a cidade embaixo do nome do lead, e
+         o que cada número de KPI significa. Em --tx4 davam 2,9 de contraste.
+         A paleta continua idêntica à do clínico; muda só onde é aplicada. ---- */
+  td .sub, .kpi .k-sub { color: var(--tx3); }
+
+  /* ---- Foco visível global ---- */
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid rgba(var(--ac-rgb),.5); outline-offset: 2px;
+  }
+
+  /* ---- Tema claro: as variáveis já vêm do bloco de cima; aqui só o que
+         é textura (fios, sombras, sage) e o que precisa de tom mais escuro. ---- */
+  body.tema-claro {
+    --hair: rgba(16,24,40,.07); --hair-2: rgba(16,24,40,.11); --card-bd: rgba(16,24,40,.10);
+    --sage:#5F8F6B; --sage-rgb:95,143,107;
+    --card-hi: inset 0 1px 0 rgba(255,255,255,.6);
+    --sh-1: 0 1px 2px rgba(16,24,40,.06);
+    --sh-2: 0 1px 3px rgba(16,24,40,.08), 0 1px 2px rgba(16,24,40,.05);
+    --sh-3: 0 8px 24px rgba(16,24,40,.10), 0 2px 6px rgba(16,24,40,.06);
+    --overlay: rgba(48,58,72,.42);
+  }
+  body.tema-claro .sidebar-item.active { color: #fff; box-shadow: 0 6px 18px rgba(var(--ac-rgb),.30); }
+  body.tema-claro .app-sidebar { background: linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%); }
+  body.tema-claro .toast { color: var(--tx1); }
+  body.tema-claro .auth-card { box-shadow: 0 24px 60px rgba(16,24,40,.14), 0 0 0 1px var(--hair); }
+
+  @media (prefers-reduced-motion: reduce) {
+    #view-leads:not(.hidden), #view-site:not(.hidden) { animation: none; }
+    .sidebar-item, .kpi, .btn, tbody tr { transition: none; }
+  }
+  /* Mobile: background fixo causa jank de repaint — rola junto */
+  @media (max-width: 768px) {
+    body:not(.tema-claro) { background-attachment: scroll; }
+  }
   </style>
 </head>
 <body>
