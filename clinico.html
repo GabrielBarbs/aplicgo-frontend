@@ -6872,7 +6872,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DJ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DK</b></span></div>
   </div>
 </div>
 
@@ -10348,11 +10348,12 @@
           </label>
         </div>
         <div class="pac-field" id="es-prod-mgamp-wrap" style="display:none; grid-column:1/-1">
-          <label>Mg por ampola <span class="req">*</span></label>
-          <input type="number" id="es-prod-mgamp" min="1" step="1" placeholder="ex: 90">
+          <label>Mg por ampola <span style="color:var(--tx4); font-weight:400; text-transform:none; letter-spacing:0;">(sugestão)</span></label>
+          <input type="number" id="es-prod-mgamp" min="1" step="1" placeholder="ex: 90 — opcional">
           <div style="font-size:11px;color:var(--tx3b);margin-top:4px">
-            Quanto tem em UMA ampola. Ex.: 90 mg em 3,6 ml → 10 ampolas entram como 900 mg de saldo.
-            Só dá pra mudar isso com o estoque do produto zerado.
+            Só um valor sugerido pra agilizar a entrada. <strong>Quem manda é cada lote</strong>: na
+            entrada você diz de quantos mg é o frasco que chegou. Deixe em branco quando o produto
+            tem mais de uma apresentação (ex.: tirzepatida de 60 e de 90).
           </div>
         </div>
       </div>
@@ -10394,6 +10395,23 @@
         <div class="pac-field">
           <label>Validade <span class="req">*</span></label>
           <input type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" class="inp-data" data-alvo="es-lote-validade" oninput="mascararData(this, event)"><input type="hidden" id="es-lote-validade">
+        </div>
+        <!-- Produto contado em mg (tirzepatida): a apresentação é DESTE lote, não do produto.
+             Existe uma "Tirzepatida" só, e cada entrada registra o frasco que chegou. -->
+        <div class="pac-field" id="es-lote-mg-wrap" style="display:none">
+          <label>Como está entrando</label>
+          <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+            <label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; text-transform:none; letter-spacing:0;">
+              <input type="radio" name="es-lote-modo" value="ampolas" checked onchange="esLoteModoChange()"> Por ampolas
+            </label>
+            <label class="es-lote-modo-mg" style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer; text-transform:none; letter-spacing:0;">
+              <input type="radio" name="es-lote-modo" value="mg" onchange="esLoteModoChange()"> Direto em mg
+            </label>
+          </div>
+          <label>Mg por ampola deste lote</label>
+          <input type="number" id="es-lote-mg" min="1" step="1" placeholder="ex: 60 ou 90" list="es-lote-mg-sug" oninput="esLoteQtdPreview()">
+          <datalist id="es-lote-mg-sug"><option value="60"></option><option value="90"></option></datalist>
+          <div style="font-size:11px;color:var(--tx3b);margin-top:4px">É o tamanho do frasco que chegou. Cada lote pode ser de um tamanho.</div>
         </div>
         <div class="pac-field">
           <label id="es-lote-qtd-label">Quantidade inicial <span class="req">*</span></label>
@@ -31748,6 +31766,7 @@ async function esCarregarTab(opts) {
   } else if (esState.tab === 'lotes') {
     if (meuTurno !== esState.carga) return;
     esState.lotes = r.ok ? r.data.lotes : [];
+    esDetectarBackMg(esState.lotes);
     esState.truncado = !!(r.ok && r.data.truncado); esState.limite = (r.ok && r.data.limite) || 0;
     esRenderLotes();
   } else {
@@ -32064,28 +32083,79 @@ function esLoteProdChange() {
   const p = esProdSelecionado();
   const lab = document.getElementById('es-lote-qtd-label');
   const inp = document.getElementById('es-lote-qtd');
-  const emMg = !!(p && p.conta_em_mg && p.mg_por_ampola);
-  if (lab) lab.innerHTML = (emMg ? 'Quantidade inicial em ampolas' : 'Quantidade inicial') + ' <span class="req">*</span>';
-  if (inp) inp.placeholder = emMg ? 'ex: 10 ampolas' : 'ex: 30';
+  const wrap = document.getElementById('es-lote-mg-wrap');
+  const contaMg = !!(p && p.conta_em_mg);
+  // O bloco "ampolas de quantos mg" só existe pra produto contado em mg.
+  if (wrap) wrap.style.display = contaMg ? '' : 'none';
+  // Enquanto o servidor novo não estiver no ar, "direto em mg" fica fora: lá ele seria lido
+  // como ampolas e o estoque entraria multiplicado.
+  const optMg = document.querySelector('.es-lote-modo-mg');
+  if (optMg) optMg.style.display = esBackAceitaMg ? '' : 'none';
+  if (!esBackAceitaMg) { const rAmp = document.querySelector('input[name="es-lote-modo"][value="ampolas"]'); if (rAmp) rAmp.checked = true; }
+  if (contaMg && p && p.mg_por_ampola) {
+    // Sugestão do cadastro, pra não digitar sempre. A pessoa troca se o frasco for outro.
+    const mgIn = document.getElementById('es-lote-mg');
+    if (mgIn && !mgIn.value) mgIn.value = p.mg_por_ampola;
+  }
+  const porAmpola = contaMg && esLoteModo() === 'ampolas';
+  if (lab) lab.innerHTML = (porAmpola ? 'Quantas ampolas' : (contaMg ? 'Quantidade em mg' : 'Quantidade inicial')) + ' <span class="req">*</span>';
+  if (inp) inp.placeholder = porAmpola ? 'ex: 10 ampolas' : (contaMg ? 'ex: 900 mg' : 'ex: 30');
   esLoteQtdPreview();
 }
+// Modo de entrada escolhido no formulário: por ampolas (padrão) ou direto em mg.
+function esLoteModo() {
+  const el = document.querySelector('input[name="es-lote-modo"]:checked');
+  return el ? el.value : 'ampolas';
+}
+// Trocar o modo redesenha o rótulo e a prévia.
+function esLoteModoChange() { esLoteProdChange(); }
 // Mostra o equivalente em mg enquanto digita (10 ampolas = 900 mg), pra conferir na hora.
 function esLoteQtdPreview() {
   const dica = document.getElementById('es-lote-qtd-dica');
   if (!dica) return;
   const p = esProdSelecionado();
   const n = parseInt((document.getElementById('es-lote-qtd') || {}).value, 10);
-  if (!p || !p.conta_em_mg || !p.mg_por_ampola || !isFinite(n) || n < 1) { dica.textContent = ''; return; }
-  dica.textContent = `${esFmtNum(n)} ampola(s) × ${esFmtNum(p.mg_por_ampola)} mg = ${esFmtNum(n * p.mg_por_ampola)} mg em estoque.`;
+  if (!p || !p.conta_em_mg || !isFinite(n) || n < 1) { dica.textContent = ''; return; }
+  if (esLoteModo() === 'mg') { dica.textContent = `${esFmtNum(n)} mg em estoque.`; return; }
+  // É esta linha que a recepção usa pra pegar o erro de 60 vs 90 ANTES de salvar.
+  const mg = parseInt((document.getElementById('es-lote-mg') || {}).value, 10);
+  if (!isFinite(mg) || mg < 1) { dica.textContent = 'Diga de quantos mg é a ampola deste lote.'; return; }
+  dica.textContent = `${esFmtNum(n)} ampola(s) × ${esFmtNum(mg)} mg = ${esFmtNum(n * mg)} mg em estoque.`;
 }
 // Número no padrão BR sem casa sobrando (0,5 · 897,5 · 10).
 function esFmtNum(x, casas) { return Number(x).toLocaleString('pt-BR', { maximumFractionDigits: casas == null ? 3 : casas }); }
 // "0,5" / "0.5" -> 0.5. A vírgula é o decimal de quem digita; parseInt truncaria 0,5 pra 0 (transferir nada).
 function esParseNum(v) { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : NaN; }
-// Lote de produto contado em mg? (saldo guardado em MICROGRAMAS)
-function esLoteEmMg(l) { return !!(l && l.produto && l.produto.conta_em_mg && l.produto.mg_por_ampola); }
+// Lote de produto contado em mg? (saldo guardado em MICROGRAMAS). Agora basta o produto
+// contar em mg: a apresentação é do LOTE e pode nem existir (entrada feita direto em mg).
+function esLoteEmMg(l) { return !!(l && l.produto && l.produto.conta_em_mg); }
+// Quantos mg tem a ampola DESTE lote. null = entrou em mg, não há ampola.
+function esMgAmpDoLote(l) { return (l && l.mg_por_ampola) || null; }
 // Saldo do lote em AMPOLAS — pode ser fração: 45.000 mcg de uma ampola de 90mg = 0,5 ampola.
-function esAmpolasDoLote(l) { return esLoteEmMg(l) ? l.qtd_atual / (l.produto.mg_por_ampola * 1000) : null; }
+// null quando o lote não tem apresentação: aí o número honesto é só o mg.
+function esAmpolasDoLote(l) { const mg = esMgAmpDoLote(l); return (esLoteEmMg(l) && mg) ? l.qtd_atual / (mg * 1000) : null; }
+// ============================================================
+// O "direto em mg" só aparece com o BACKEND NOVO no ar.
+// ------------------------------------------------------------
+// Com o servidor antigo, o campo `entrada_modo` é ignorado em silêncio e a quantidade é
+// multiplicada pelo mg do PRODUTO: quem digitasse "500 mg" entraria com 45.000 mg no estoque.
+// A entrada por AMPOLA é segura nos dois (o servidor antigo usa o mg do produto, que hoje é o
+// mesmo que a tela manda), então só a opção nova fica escondida.
+// Detecção: só o servidor novo devolve `mg_por_ampola` na RAIZ do lote — o antigo devolve
+// dentro de `produto`. Basta um lote na lista pra saber.
+let esBackAceitaMg = false;
+function esDetectarBackMg(lotes) {
+  if (esBackAceitaMg || !Array.isArray(lotes)) return;
+  if (lotes.some((l) => l && Object.prototype.hasOwnProperty.call(l, 'mg_por_ampola'))) esBackAceitaMg = true;
+}
+// Saldo do lote em texto honesto: mg sempre; ampolas só quando o lote tem apresentação.
+// Com 60 e 90 no mesmo produto, dividir por um tamanho qualquer seria mentira.
+function esSaldoLoteTxt(l) {
+  if (!esLoteEmMg(l)) return String(l.qtd_atual);
+  const mgAmp = esMgAmpDoLote(l);
+  const mg = esFmtQtd(l.qtd_atual, l.produto);
+  return mgAmp ? `${mg} (${esFmtNum(esAmpolasDoLote(l))} ampola(s) de ${esFmtNum(mgAmp)} mg)` : mg;
+}
 // Ampolas (com fração) -> microgramas. Round fecha o float: 0,1*90*1000 dá 9000.000000000002.
 function esAmpolasParaMcg(ampolas, mgPorAmpola) { return Math.round(ampolas * mgPorAmpola * 1000); }
 function esRenderLotes() {
@@ -32112,11 +32182,11 @@ function esRenderLotes() {
         else if (!l.valido) tag = '<span class="es-status-tag danger">vencido</span>';
         else if (l.vencendo_em_30d) tag = '<span class="es-status-tag warn">vence ≤ 30d</span>';
         return `<tr>
-          <td style="color:var(--tx1);">${esc(l.produto.nome)}${l.produto.requer_refrigeracao ? ' <i class="ti ti-snowflake" style="color:#4A90E2; font-size:11px;"></i>' : ''}</td>
+          <td style="color:var(--tx1);">${esc(l.produto.nome)}${l.produto.requer_refrigeracao ? ' <i class="ti ti-snowflake" style="color:#4A90E2; font-size:11px;"></i>' : ''}${esMgAmpDoLote(l) ? ` <span style="font-size:10px;color:var(--tx3b);white-space:nowrap;">· ampolas de ${esFmtNum(esMgAmpDoLote(l))} mg</span>` : ''}</td>
           <td><strong style="color:var(--ac); font-family:monospace; font-size:11px;">${l.lote}</strong></td>
           <td>${l.validade}</td>
           <td>${l.unidade.nome}</td>
-          <td style="text-align:right;"><strong style="color:${l.esgotado ? '#f85149' : (!l.produto.conta_em_mg && l.qtd_atual < 5 ? '#EF9F27' : 'var(--tx1)')};">${esFmtQtd(l.qtd_atual, l.produto)}</strong></td>
+          <td style="text-align:right;" title="${esc(esSaldoLoteTxt(l))}"><strong style="color:${l.esgotado ? '#f85149' : (!l.produto.conta_em_mg && l.qtd_atual < 5 ? '#EF9F27' : 'var(--tx1)')};">${esFmtQtd(l.qtd_atual, l.produto)}</strong></td>
           <td style="text-align:right; color:var(--tx3b);">${esFmtQtd(l.qtd_inicial, l.produto)}</td>
           <td>${tag}</td>
           <td style="text-align:right;"><button class="pac-btn-secondary ex-mini" style="color:#f85149;border-color:rgba(248,81,73,.35);" title="Remover este lote da tela" onclick="esExcluirLote('${l.id}', '${cpEnc(l.lote)}', ${l.qtd_atual}, ${l.qtd_inicial})"><i class="ti ti-trash"></i></button></td>
@@ -32230,9 +32300,6 @@ async function esSalvarProd() {
     mg_por_ampola: parseInt(document.getElementById('es-prod-mgamp').value, 10) || null,
   };
   if (!body.nome) { erroEl.textContent = 'Nome obrigatório'; erroEl.style.display = 'block'; return; }
-  if (body.conta_em_mg && !(body.mg_por_ampola > 0)) {
-    erroEl.textContent = 'Informe quantos mg tem em uma ampola (ex.: 90).'; erroEl.style.display = 'block'; return;
-  }
   const r = await pacApi(
     id ? '/api/clinico/estoque/products/' + id : '/api/clinico/estoque/products',
     { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }
@@ -32257,6 +32324,12 @@ async function esAbrirNovoLote() {
     alert('Cadastra pelo menos 1 produto antes de dar entrada em lote.');
     return;
   }
+  // Reabrir o modal tem que voltar ao padrão: sem isto, quem acabou de lançar "direto em mg"
+  // lança o próximo lote em mg sem perceber — e 10 ampolas viram 10 mg no estoque.
+  const modoPadrao = document.querySelector('input[name="es-lote-modo"][value="ampolas"]');
+  if (modoPadrao) modoPadrao.checked = true;
+  const mgIn0 = document.getElementById('es-lote-mg');
+  if (mgIn0) mgIn0.value = '';
   const selProd = document.getElementById('es-lote-produto');
   selProd.innerHTML = '<option value="">—</option>' +
     ativos.map(p => `<option value="${p.id}">${esc(p.nome)}${p.principio_ativo ? ' — ' + esc(p.principio_ativo) : ''}</option>`).join('');
@@ -32294,6 +32367,19 @@ async function esSalvarLote() {
     fornecedor: document.getElementById('es-lote-fornecedor').value.trim() || null,
     nota_fiscal: document.getElementById('es-lote-nf').value.trim() || null,
   };
+  // Produto contado em mg: manda o MODO e, quando é por ampola, o tamanho do frasco DESTE lote.
+  const prodSel = esProdSelecionado();
+  if (prodSel && prodSel.conta_em_mg) {
+    const modo = esLoteModo();
+    body.entrada_modo = modo;
+    if (modo === 'ampolas') {
+      const mg = parseInt((document.getElementById('es-lote-mg') || {}).value, 10);
+      if (!isFinite(mg) || mg < 1) { erroEl.textContent = 'Diga de quantos mg é a ampola deste lote (ou marque "Direto em mg").'; erroEl.style.display = 'block'; return; }
+      body.mg_por_ampola = mg;
+    } else {
+      body.mg_por_ampola = null;
+    }
+  }
   if (!body.product_id) { erroEl.textContent = 'Selecione o produto'; erroEl.style.display = 'block'; return; }
   if (!body.unit_id) { erroEl.textContent = 'Selecione a unidade'; erroEl.style.display = 'block'; return; }
   if (!body.lote) { erroEl.textContent = 'Informe o número do lote'; erroEl.style.display = 'block'; return; }
@@ -32347,7 +32433,7 @@ async function esAbrirTransf() {
   esTransfLotes = (r.data.lotes || []).filter(l => l.qtd_atual > 0);
   if (!esTransfLotes.length) { sel.innerHTML = '<option value="">Nenhum lote com saldo disponível</option>'; return; }
   sel.innerHTML = '<option value="">—</option>' + esTransfLotes.map(l =>
-    `<option value="${esc(l.id)}">${esc(l.produto.nome)} · lote ${esc(l.lote)} · ${esc(l.unidade.nome)} (saldo ${esLoteEmMg(l) ? esFmtNum(esAmpolasDoLote(l)) + ' ampola(s) / ' + esFmtQtd(l.qtd_atual, l.produto) : l.qtd_atual})</option>`).join('');
+    `<option value="${esc(l.id)}">${esc(l.produto.nome)} · lote ${esc(l.lote)} · ${esc(l.unidade.nome)} (saldo ${esSaldoLoteTxt(l)})</option>`).join('');
 }
 function esFecharTransf() { document.getElementById('es-transf-modal').classList.remove('aberto'); }
 function esTransfLoteChange() {
@@ -32366,11 +32452,21 @@ function esTransfLoteChange() {
   // Produto em mg: a pessoa move AMPOLAS (podendo ser fração — sobrou meia ampola, transfere 0,5).
   // O saldo é guardado em microgramas, então mostra os dois: ampolas e mg.
   if (esLoteEmMg(l)) {
+    const mgAmp = esMgAmpDoLote(l);
     const amp = esAmpolasDoLote(l);
-    info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${esFmtNum(amp)} ampola(s)</strong> (${esFmtQtd(l.qtd_atual, l.produto)}) · validade ${esc(l.validade)}`;
-    if (lab) lab.innerHTML = 'Quantidade em ampolas <span class="req">*</span>';
-    if (dica) dica.textContent = `1 ampola = ${esFmtNum(l.produto.mg_por_ampola)} mg. Pode ser fração: 0,5 = ${esFmtNum(l.produto.mg_por_ampola / 2)} mg.`;
-    qtd.value = esFmtNum(amp);   // padrão = mover tudo (editável)
+    info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${esSaldoLoteTxt(l)}</strong> · validade ${esc(l.validade)}`;
+    if (mgAmp) {
+      if (lab) lab.innerHTML = 'Quantidade em ampolas <span class="req">*</span>';
+      // Com 60 e 90 no mesmo produto, esta frase é a ÚNICA que diz qual ampola está sendo movida.
+      if (dica) dica.textContent = `Este lote é de ampolas de ${esFmtNum(mgAmp)} mg. Pode ser fração: 0,5 = ${esFmtNum(mgAmp / 2)} mg.`;
+      qtd.value = esFmtNum(amp);   // padrão = mover tudo (editável)
+    } else {
+      // Lote sem apresentação (entrou direto em mg): move em MG. Sem este ramo o campo vinha
+      // preenchido com o saldo CRU em microgramas e a transferência mandaria 1000x demais.
+      if (lab) lab.innerHTML = 'Quantidade em mg <span class="req">*</span>';
+      if (dica) dica.textContent = 'Este lote entrou direto em mg — não tem ampola.';
+      qtd.value = esFmtNum(l.qtd_atual / 1000);
+    }
   } else {
     info.innerHTML = `Origem: <strong>${esc(l.unidade.nome)}</strong> · saldo <strong>${l.qtd_atual}</strong> · validade ${esc(l.validade)}`;
     if (lab) lab.innerHTML = 'Quantidade <span class="req">*</span>';
@@ -32397,9 +32493,11 @@ async function esSalvarTransf() {
   if (esLoteEmMg(l)) {
     // Compara em MICROGRAMAS, não no número exibido: o saldo pode ser 44.999 mcg e aparecer como
     // "0,5 ampola" — arredondar pra comparar deixaria passar uma transferência maior que o saldo.
-    const mcg = esAmpolasParaMcg(qtd, l.produto.mg_por_ampola);
+    const mgAmp = esMgAmpDoLote(l);
+    // Sem apresentação a pessoa digita MG; com apresentação, ampolas. O back usa a mesma regra.
+    const mcg = mgAmp ? esAmpolasParaMcg(qtd, mgAmp) : Math.round(qtd * 1000);
     if (mcg < 1) return show('Quantidade pequena demais pra transferir.');
-    if (mcg > l.qtd_atual) return show(`Máximo disponível nesse lote: ${esFmtNum(esAmpolasDoLote(l))} ampola(s) (${esFmtQtd(l.qtd_atual, l.produto)}).`);
+    if (mcg > l.qtd_atual) return show(`Máximo disponível nesse lote: ${esSaldoLoteTxt(l)}.`);
   } else {
     if (!Number.isInteger(qtd)) return show('Esse produto é contado por unidade — use um número inteiro (sem vírgula).');
     if (qtd > l.qtd_atual) return show(`Máximo disponível nesse lote: ${l.qtd_atual}.`);
