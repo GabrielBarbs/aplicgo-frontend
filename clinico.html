@@ -6872,7 +6872,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DH</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DI</b></span></div>
   </div>
 </div>
 
@@ -30549,6 +30549,18 @@ async function rxEnviarWhatsappPresc(id, btn) {
     const erro = (r.data && r.data.erro) || 'falha';
     const msg = (r.data && r.data.mensagem) || '';
     const full = telWa(numero);
+    // O servidor barrou porque ESTA receita já foi pra ESTE número. Não reenvia calado:
+    // pergunta dizendo QUANDO foi. Três botões mandam a mesma receita e nenhum sabe do outro.
+    if (erro === 'ja_enviado') {
+      const q = (r.data && r.data.enviado_em) ? new Date(r.data.enviado_em).toLocaleString('pt-BR') : 'há pouco';
+      if (!confirm('Esta receita já foi enviada para este número em ' + q + '.\n\nMandar de novo mesmo assim?')) return;
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Enviando...'; }
+      const r2 = await pacApi('/api/clinico/prontuario/prescricoes/' + id + '/whatsapp', { method: 'POST', body: JSON.stringify({ numero, forcar: true }) });
+      if (btn) { btn.disabled = false; btn.innerHTML = original; }
+      if (r2.ok && r2.data && r2.data.ok) { if (typeof homeToast === 'function') homeToast('Receita enviada no WhatsApp ✓'); }
+      else { alert('Não foi possível enviar: ' + ((r2.data && r2.data.erro) || 'falha')); }
+      return;
+    }
     if (msg && confirm('Envio automático indisponível (' + erro + '). Abrir o WhatsApp com a mensagem pronta?')) {
       window.open('https://wa.me/' + full + '?text=' + encodeURIComponent(msg), '_blank', 'noopener,noreferrer');
     } else if (!msg) {
