@@ -9,12 +9,41 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
   <link rel="stylesheet" href="/sistemas.css">
   <style>
+    /* ================================================================
+       Paleta: a MESMA do sistema clínico — dark UpGestão com accent
+       terracota. Antes o CRM era roxo, o que fazia os três painéis
+       parecerem produtos de empresas diferentes na hora de trocar de um
+       pro outro pela abinha.
+       ================================================================ */
     :root{
       --bg0:#010409; --bg1:#0d1117; --bg2:#161b22; --bg3:#21262d; --bg4:#1c2230;
       --bd1:#30363d; --bd2:#444c56;
-      --tx1:#f0f6fc; --tx2:#c9d1d9; --tx3:#8b949e; --tx3b:#7d8590; --tx4:#6e7681;
-      --ac:#8B7BF0; --ac-d:#5B4BC4; --ac-rgb:123,104,238;
+      --tx1:#f0f6fc; --tx1b:#e6edf3; --tx2:#c9d1d9; --tx3:#8b949e; --tx3b:#7d8590; --tx4:#6e7681;
+      --ac:#E8945A; --ac-d:#C56847; --ac-rgb:232,148,90;
+      --bg1-rgb:13,17,23; --bg2-rgb:22,27,34; --bg3-rgb:33,38,45; --bd1-rgb:48,54,61; --tx3b-rgb:125,133,144; --ac-d-rgb:197,104,71;
       --ok:#1D9E75; --warn:#EF9F27; --err:#f85149;
+      --ok-rgb:29,158,117; --warn-rgb:239,159,39; --err-rgb:248,81,73;
+      --pill-a:#3fd39c; --pill-b:#f0b24d; --pill-c:#ff7b73;
+      --overlay:rgba(1,4,9,.66);
+    }
+    /* =========================================================
+       MODO CLARO — troca só as variáveis, igualzinho ao clínico
+       (inclusive o accent, que no claro vira verde). Nenhuma regra
+       de layout muda: quem não usa variável não muda de tema.
+       ========================================================= */
+    body.tema-claro{
+      --bg0:#dfe4ea; --bg1:#ffffff; --bg2:#f4f7fa; --bg3:#eaeff4; --bg4:#eef2f7;
+      --bd1:#d7dee5; --bd2:#c6cdd5;
+      --tx1:#1f2328; --tx1b:#24292f; --tx2:#39424b; --tx3:#5a636d; --tx3b:#586069; --tx4:#818b95;
+      --ac:#1D9E75; --ac-d:#15805a; --ac-rgb:29,158,117;
+      --bg1-rgb:255,255,255; --bg2-rgb:244,247,250; --bg3-rgb:234,239,244; --bd1-rgb:215,222,229; --tx3b-rgb:88,96,105; --ac-d-rgb:21,128,90;
+      /* Os tons de status escurecem: o verde-claro e o vermelho-claro do
+         tema escuro somem no branco. */
+      --ok:#15805a; --warn:#9a6206; --err:#c9302c;
+      --ok-rgb:21,128,90; --warn-rgb:154,98,6; --err-rgb:201,48,44;
+      --pill-a:#0f6b4a; --pill-b:#8a5e0f; --pill-c:#b02a26;
+      --overlay:rgba(48,58,72,.42);
+      background:var(--bg0)!important; color:var(--tx1);
     }
     *{box-sizing:border-box}
     html,body{margin:0;padding:0}
@@ -54,7 +83,7 @@
     /* ---------- Topbar ---------- */
     .app-topbar{
       position:fixed; top:0; left:240px; right:0; height:48px; z-index:15;
-      background:rgba(13,17,23,.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--bd1);
+      background:rgba(var(--bg1-rgb),.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--bd1);
       display:flex; align-items:center; gap:14px; padding:0 20px;
     }
     .app-topbar .t-title{font-size:14px;color:var(--tx1);font-weight:600}
@@ -93,9 +122,9 @@
     td .nm{color:var(--tx1);font-weight:600}
     td .sub{color:var(--tx4);font-size:11px}
     .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
-    .pill.A{background:rgba(29,158,117,.16);color:#3fd39c}
-    .pill.B{background:rgba(239,159,39,.15);color:#f0b24d}
-    .pill.C{background:rgba(248,81,73,.13);color:#ff7b73}
+    .pill.A{background:rgba(var(--ok-rgb),.16);color:var(--pill-a)}
+    .pill.B{background:rgba(var(--warn-rgb),.15);color:var(--pill-b)}
+    .pill.C{background:rgba(var(--err-rgb),.13);color:var(--pill-c)}
     .src{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2)}
     .src i{color:var(--ac)}
     .st{font-size:11px;padding:3px 9px;border-radius:6px;background:var(--bg4);color:var(--tx2);border:1px solid var(--bd1)}
@@ -103,7 +132,7 @@
     .empty i{font-size:34px;color:var(--tx4);display:block;margin-bottom:10px}
 
     /* Modal */
-    .modal{position:fixed;inset:0;z-index:60;background:rgba(1,4,9,.66);display:none;align-items:center;justify-content:center;padding:18px}
+    .modal{position:fixed;inset:0;z-index:60;background:var(--overlay);display:none;align-items:center;justify-content:center;padding:18px}
     .modal.open{display:flex}
     .modal-card{width:min(720px,100%);max-height:92vh;overflow:auto;background:var(--bg2);border:1px solid var(--bd1);border-radius:14px}
     .modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--bd1);position:sticky;top:0;background:var(--bg2)}
@@ -116,6 +145,9 @@
     .fld .l{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3b);font-weight:700;margin-bottom:4px}
     .fld .v{font-size:13px;color:var(--tx1);word-break:break-word}
     .sec{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--ac);margin:20px 0 9px;font-weight:700}
+    /* No claro o accent é verde-médio e some no fundo quase branco: 3,1 de
+       contraste em texto de 10px. Usa o tom escuro do mesmo verde. */
+    body.tema-claro .sec{color:var(--ac-d)}
     .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .mgrid label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3b);font-weight:700;margin-bottom:5px}
     .mgrid input,.mgrid select,.mgrid textarea{width:100%;background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:9px 11px;color:var(--tx1);font:inherit;font-size:13px;outline:none}
@@ -127,7 +159,7 @@
     .btn.wa{background:#1f8a4c;color:#fff}
     /* Excluir nasce apagado e só fica vermelho depois do primeiro clique: quem
        está só passando o mouse não apaga lead sem querer. */
-    .btn.danger{background:transparent;color:var(--err);border:1px solid rgba(248,81,73,.32)}
+    .btn.danger{background:transparent;color:var(--err);border:1px solid rgba(var(--err-rgb),.32)}
     .btn.danger:hover{border-color:var(--err)}
     .btn.danger.armado{background:var(--err);color:#fff;border-color:var(--err)}
     .aviso-excluir{flex-basis:100%;font-size:12px;color:var(--tx3);margin-top:-2px;line-height:1.5}
@@ -152,8 +184,19 @@
 
     /* ---- Trocador de sistema: o MENU vem de sistemas.css (compartilhado
        pelos três painéis). Aqui fica só o gatilho, que é do CRM. ---- */
-    .sis-wrap{margin-left:auto;display:inline-flex}
+    .sis-wrap{margin-left:0;display:inline-flex}
     .sis-wrap .t-back{margin-left:0;background:none;font-family:inherit;cursor:pointer}
+
+    /* Botão de ícone da topbar — mesmo do clínico, pra abinha e tema
+       ficarem idênticos nos dois painéis. */
+    .topbar-icon-btn{
+      background:transparent;border:1px solid transparent;color:var(--tx3b);
+      padding:6px 10px;border-radius:8px;cursor:pointer;font-size:14px;
+      display:inline-flex;align-items:center;gap:6px;transition:all .12s;
+      font-family:inherit;text-decoration:none;position:relative;
+    }
+    .topbar-icon-btn:hover{background:rgba(var(--bg3-rgb),.6);color:var(--tx1);border-color:var(--bd1)}
+    .topbar-acoes{margin-left:auto;display:inline-flex;align-items:center;gap:6px}
 
     @media(max-width:860px){
       body{padding-top:0;padding-left:0}
@@ -176,6 +219,11 @@
   </style>
 </head>
 <body>
+  <!-- Tema aplicado ANTES de desenhar qualquer coisa. Se ficasse só lá no
+       script do rodapé, quem usa o modo claro veria a tela escura piscar a
+       cada carregamento. -->
+  <script>try{if(localStorage.getItem('aplic_tema')==='claro')document.body.classList.add('tema-claro')}catch(e){}</script>
+
   <!-- ===================== APP ===================== -->
   <aside class="app-sidebar">
     <div class="sidebar-brand">
@@ -204,11 +252,16 @@
       <input id="search" type="text" placeholder="Buscar nome, WhatsApp, Instagram, cidade…">
     </div>
     <span class="dot" title="Conectado"></span>
-    <div class="sis-wrap" id="sis-wrap">
-      <button type="button" class="t-back" id="sis-btn" title="Trocar de sistema">
-        <i class="ti ti-apps"></i> Sistemas
+    <div class="topbar-acoes">
+      <button class="topbar-icon-btn" id="btn-tema" onclick="alternarTema()" title="Alternar modo claro / escuro">
+        <i class="ti ti-sun"></i>
       </button>
-      <!-- o menu é montado por sistemas.js, que é quem sabe a lista dos sistemas -->
+      <div class="sis-wrap" id="sis-wrap">
+        <button type="button" class="t-back" id="sis-btn" title="Trocar de sistema">
+          <i class="ti ti-apps"></i> Sistemas
+        </button>
+        <!-- o menu é montado por sistemas.js, que é quem sabe a lista dos sistemas -->
+      </div>
     </div>
   </header>
 
@@ -382,6 +435,24 @@
     const unidadeLabel = v => LABELS.unidade[v] || v || "—";
 
     function showToast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400);}
+
+    // ---------- Tema (claro / escuro) ----------
+    // Mesma chave do clínico e do comercial (aplic_tema), e os três painéis
+    // vivem na mesma origem — então quem escolhe claro no clínico e troca de
+    // sistema pela abinha continua no claro aqui. Aplicado antes de qualquer
+    // desenho pra não piscar branco na cara de quem usa escuro.
+    function aplicarTema(tema){
+      const claro = tema === "claro";
+      document.body.classList.toggle("tema-claro", claro);
+      const ic = document.querySelector("#btn-tema i");
+      if(ic) ic.className = claro ? "ti ti-moon" : "ti ti-sun";
+    }
+    function alternarTema(){
+      const claro = !document.body.classList.contains("tema-claro");
+      aplicarTema(claro ? "claro" : "escuro");
+      try{ localStorage.setItem("aplic_tema", claro ? "claro" : "escuro"); }catch(e){}
+    }
+    try{ if(localStorage.getItem("aplic_tema") === "claro") aplicarTema("claro"); }catch(e){}
 
     // ---------- Blocos da ficha ----------
     // De onde o lead veio. Só aparece quando existe algo de campanha: em lead
