@@ -6872,7 +6872,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DK</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DL</b></span></div>
   </div>
 </div>
 
@@ -10412,6 +10412,10 @@
           <input type="number" id="es-lote-mg" min="1" step="1" placeholder="ex: 60 ou 90" list="es-lote-mg-sug" oninput="esLoteQtdPreview()">
           <datalist id="es-lote-mg-sug"><option value="60"></option><option value="90"></option></datalist>
           <div style="font-size:11px;color:var(--tx3b);margin-top:4px">É o tamanho do frasco que chegou. Cada lote pode ser de um tamanho.</div>
+          <div id="es-lote-mg-aviso" style="display:none; font-size:11px; color:#EF9F27; margin-top:4px">
+            <i class="ti ti-alert-triangle"></i> Ainda vale o valor do cadastro do produto. Pra registrar
+            o frasco por lote, o servidor precisa ser atualizado — escolha o produto da apresentação certa.
+          </div>
         </div>
         <div class="pac-field">
           <label id="es-lote-qtd-label">Quantidade inicial <span class="req">*</span></label>
@@ -32092,10 +32096,22 @@ function esLoteProdChange() {
   const optMg = document.querySelector('.es-lote-modo-mg');
   if (optMg) optMg.style.display = esBackAceitaMg ? '' : 'none';
   if (!esBackAceitaMg) { const rAmp = document.querySelector('input[name="es-lote-modo"][value="ampolas"]'); if (rAmp) rAmp.checked = true; }
-  if (contaMg && p && p.mg_por_ampola) {
-    // Sugestão do cadastro, pra não digitar sempre. A pessoa troca se o frasco for outro.
-    const mgIn = document.getElementById('es-lote-mg');
-    if (mgIn && !mgIn.value) mgIn.value = p.mg_por_ampola;
+  const mgIn = document.getElementById('es-lote-mg');
+  // TROCOU DE PRODUTO = reprograma o campo. Antes só preenchia se estivesse vazio: quem
+  // escolhia a de 90 (campo vira 90), via que o frasco era de 60 e trocava o produto,
+  // ficava com o 90 preso — 10 ampolas de 60 entravam como 900 mg. Estoque fantasma.
+  if (mgIn && esLoteUltimoProd !== ((p && p.id) || '')) {
+    esLoteUltimoProd = (p && p.id) || '';
+    mgIn.value = (contaMg && p && p.mg_por_ampola) ? p.mg_por_ampola : '';
+  }
+  // Servidor ANTIGO: ele ignora o mg que a tela manda e usa o do PRODUTO. Deixar digitar aqui
+  // seria prometer 600 mg e gravar 900. Enquanto não subir o servidor novo, o campo mostra o
+  // valor do cadastro e não aceita edição.
+  if (mgIn) {
+    mgIn.readOnly = !esBackAceitaMg;
+    mgIn.style.opacity = esBackAceitaMg ? '' : '.6';
+    const av = document.getElementById('es-lote-mg-aviso');
+    if (av) av.style.display = (contaMg && !esBackAceitaMg) ? '' : 'none';
   }
   const porAmpola = contaMg && esLoteModo() === 'ampolas';
   if (lab) lab.innerHTML = (porAmpola ? 'Quantas ampolas' : (contaMg ? 'Quantidade em mg' : 'Quantidade inicial')) + ' <span class="req">*</span>';
@@ -32148,6 +32164,8 @@ function esAmpolasDoLote(l) { const mg = esMgAmpDoLote(l); return (esLoteEmMg(l)
 // Detecção: só o servidor novo devolve `mg_por_ampola` na RAIZ do lote — o antigo devolve
 // dentro de `produto`. Basta um lote na lista pra saber.
 let esBackAceitaMg = false;
+// Último produto escolhido na entrada de lote — é o que dispara a reprogramação do mg.
+let esLoteUltimoProd = null;
 function esDetectarBackMg(lotes) {
   if (esBackAceitaMg || !Array.isArray(lotes)) return;
   if (lotes.some((l) => l && Object.prototype.hasOwnProperty.call(l, 'mg_por_ampola'))) esBackAceitaMg = true;
@@ -32304,6 +32322,11 @@ async function esSalvarProd() {
     mg_por_ampola: parseInt(document.getElementById('es-prod-mgamp').value, 10) || null,
   };
   if (!body.nome) { erroEl.textContent = 'Nome obrigatório'; erroEl.style.display = 'block'; return; }
+  // O servidor antigo ainda EXIGE o mg no produto contado em mg — sem esta checagem ele
+  // devolve "Dados inválidos" seco e ninguém entende o que faltou.
+  if (!esBackAceitaMg && body.conta_em_mg && !(body.mg_por_ampola > 0)) {
+    erroEl.textContent = 'Informe quantos mg tem em uma ampola (ex.: 90).'; erroEl.style.display = 'block'; return;
+  }
   const r = await pacApi(
     id ? '/api/clinico/estoque/products/' + id : '/api/clinico/estoque/products',
     { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) }
@@ -32334,6 +32357,7 @@ async function esAbrirNovoLote() {
   if (modoPadrao) modoPadrao.checked = true;
   const mgIn0 = document.getElementById('es-lote-mg');
   if (mgIn0) mgIn0.value = '';
+  esLoteUltimoProd = null;
   const selProd = document.getElementById('es-lote-produto');
   selProd.innerHTML = '<option value="">—</option>' +
     ativos.map(p => `<option value="${p.id}">${esc(p.nome)}${p.principio_ativo ? ' — ' + esc(p.principio_ativo) : ''}</option>`).join('');
