@@ -6869,7 +6869,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DP</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DQ</b></span></div>
   </div>
 </div>
 
@@ -12596,8 +12596,30 @@ async function tkSesSalvar(btn) {
   const { sessoes, erros } = tkSesColetar();
   if (erros.length) { homeToast(erros[0]); return; }
   if (!sessoes.length) { homeToast('Preencha ao menos uma data.'); return; }
+  // A lista de tipos é carregada por agInit(), que SÓ roda quando a Agenda abre. Esta tela é
+  // aberta pela HOME (detalhe da tarefa): quem vem direto pra cá tinha a lista vazia e o
+  // salvamento parava com "avise a gestão" — culpando o cadastro por um dado que nunca foi
+  // buscado. O prontuário já resolvia isso em prGarantirApoioAgenda; aqui faltava.
+  let tiposOk = true;
+  if (!(agState.tipos || []).length) {
+    try {
+      const tp = await pacApi('/api/clinico/appointments/types');
+      if (tp.ok && tp.data && tp.data.tipos) agState.tipos = tp.data.tipos; else tiposOk = false;
+    } catch (e) { tiposOk = false; }
+  }
   const tipo = agTipoAplicacao();
-  if (!tipo) { homeToast('Não achei o tipo "Aplicação de injetável" no cadastro de tipos de atendimento. Avise a gestão.'); return; }
+  if (!tipo) {
+    // Separa "não consegui buscar" de "não existe no cadastro": são problemas diferentes e
+    // mandam a pessoa fazer coisas diferentes.
+    if (!tiposOk) homeToast('Não consegui carregar os tipos de atendimento agora. Tente de novo em instantes.');
+    else {
+      const candidatos = (agState.tipos || []).filter((t) => /aplic/i.test(String(t.slug) + ' ' + String(t.nome)) && /inje/i.test(String(t.slug) + ' ' + String(t.nome)));
+      homeToast(candidatos.length > 1
+        ? 'Há mais de um tipo de atendimento parecido com "Aplicação de injetável" — a gestão precisa deixar só um.'
+        : 'Não achei o tipo "Aplicação de injetável" no cadastro de tipos de atendimento. Avise a gestão.');
+    }
+    return;
+  }
 
   const orig = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando…';
