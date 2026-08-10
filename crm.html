@@ -664,9 +664,18 @@
       </table>
     </section>
 
+    <!-- Portas do Google Empresas: as quatro fichas aparecem SEMPRE, mesmo
+         zeradas — a tabela também é de onde a equipe copia o link de cada uma. -->
+    <section class="table-wrap" style="margin-top:16px">
+      <table>
+        <thead><tr><th>Portas do Google Empresas</th><th style="width:90px">Acessos</th><th style="width:150px">Agendar</th><th style="width:110px">Formulários</th><th style="width:100px">Contatos</th></tr></thead>
+        <tbody id="sFichas"></tbody>
+      </table>
+    </section>
+
     <section class="table-wrap" style="margin-top:16px" id="sCampanhasWrap">
       <table>
-        <thead><tr><th>Campanhas (utm_campaign)</th><th style="width:90px">Acessos</th><th style="width:90px">Agendar</th><th style="width:110px">Formulários</th></tr></thead>
+        <thead><tr><th>Outras campanhas (utm_campaign)</th><th style="width:90px">Acessos</th><th style="width:90px">Agendar</th><th style="width:110px">Formulários</th><th style="width:100px">Contatos</th></tr></thead>
         <tbody id="sCampanhas"></tbody>
       </table>
     </section>
@@ -885,6 +894,42 @@
         </div><span style="font-size:12px;color:var(--tx3);min-width:38px">${pct.toFixed(0)}%</span></div>`;
     }
 
+    // As quatro fichas do Google Empresas. Cada uma tem um atalho próprio no
+    // site (/GG...) que gruda a utm_campaign — é assim que dá pra separar quem
+    // veio de qual perfil. Lista fixa de propósito: ficha sem acesso no
+    // período precisa aparecer ZERADA, senão some da tela e parece que não existe.
+    const FICHAS_GOOGLE = [
+      { slug:"GGdrmatheusudia", nome:"Dr. Matheus · Uberlândia" },
+      { slug:"GGdrmatheusitba", nome:"Dr. Matheus · Ituiutaba" },
+      { slug:"GGaplicudia",     nome:"Aplic&Go · Uberlândia" },
+      { slug:"GGaplicitba",     nome:"Aplic&Go · Ituiutaba" },
+    ];
+    const ehFicha = c => FICHAS_GOOGLE.some(f => f.slug.toLowerCase() === String(c||"").toLowerCase());
+    const linhaSub = t => `<div style="font-size:11px;color:var(--tx4);margin-top:2px;white-space:nowrap">${t}</div>`;
+
+    // camp = null quando a telemetria ainda não respondeu: mostra traço, nunca
+    // zero — zero é informação ("ninguém veio"), traço é ausência de dado.
+    function renderFichas(camp){
+      const num = v => camp ? (v ?? 0) : "—";
+      const linhas = FICHAS_GOOGLE.map(f=>{
+        const c = (camp || []).find(x => String(x.campanha||"").toLowerCase() === f.slug.toLowerCase()) || {};
+        const v = c.visitas || 0;
+        const taxa = (camp && v) ? linhaSub(Math.round((c.ctas||0)/v*100) + "% dos acessos") : "";
+        return `<tr>
+          <td>${esc(f.nome)}${linhaSub("aplicgo.com/"+f.slug)}</td>
+          <td>${num(c.visitas)}</td>
+          <td>${num(c.ctas)}${taxa}</td>
+          <td>${num(c.formularios)}</td>
+          <td>${num(c.leads)}</td>
+        </tr>`;
+      }).join("");
+      const soma = ch => (camp||[]).filter(x=>ehFicha(x.campanha)).reduce((s,x)=>s+(x[ch]||0),0);
+      const total = camp
+        ? `<tr style="font-weight:600"><td>Todas as fichas</td><td>${soma("visitas")}</td><td>${soma("ctas")}</td><td>${soma("formularios")}</td><td>${soma("leads")}</td></tr>`
+        : "";
+      $("sFichas").innerHTML = linhas + total;
+    }
+
     async function carregarSite(){
       $("sLoading").classList.remove("hidden");
       $("sEmpty").classList.add("hidden");
@@ -893,6 +938,7 @@
       $("sLoading").classList.add("hidden");
       if(r.status===401) return;
       if(!r.ok){
+        renderFichas(null); // sem dado, mas os quatro links seguem à vista
         $("sEmpty").classList.remove("hidden");
         $("sEmpty").innerHTML = '<i class="ti ti-plug-connected-x"></i>' + (r.net
           ? "Sem conexão com o servidor."
@@ -937,8 +983,11 @@
       }).join("");
 
       const camp = d.campanhas || [];
-      $("sCampanhasWrap").classList.toggle("hidden", camp.length===0);
-      $("sCampanhas").innerHTML = camp.map(c=>`<tr><td>${esc(c.campanha)}</td><td>${c.visitas}</td><td>${c.ctas ?? "—"}</td><td>${c.formularios ?? "—"}</td></tr>`).join("");
+      renderFichas(camp);
+      // as fichas têm tabela própria; aqui fica o resto (bio, anúncio, parceiro...)
+      const outras = camp.filter(c => !ehFicha(c.campanha));
+      $("sCampanhasWrap").classList.toggle("hidden", outras.length===0);
+      $("sCampanhas").innerHTML = outras.map(c=>`<tr><td>${esc(c.campanha)}</td><td>${c.visitas}</td><td>${c.ctas ?? "—"}</td><td>${c.formularios ?? "—"}</td><td>${c.leads ?? "—"}</td></tr>`).join("");
     }
 
     $("sPeriodo").addEventListener("change", carregarSite);
