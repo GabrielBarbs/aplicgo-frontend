@@ -64,10 +64,37 @@
       background:var(--bg2); border-right:1px solid var(--bd1);
       display:flex; flex-direction:column; padding:14px 12px;
     }
-    .sidebar-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 14px;border-bottom:1px solid var(--bd1);margin-bottom:10px}
-    .sidebar-brand .mark{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:#fff;font-size:19px;background:linear-gradient(135deg,var(--ac-d),var(--ac));box-shadow:0 0 20px rgba(var(--ac-rgb),.35)}
-    .sidebar-brand strong{display:block;font-size:14px;color:var(--tx1);font-weight:600;letter-spacing:.2px}
-    .sidebar-brand span{font-size:10px;color:var(--tx3b);text-transform:uppercase;letter-spacing:.8px}
+    /* Marca: só a logo, igual ao clínico. Quem diz em que sistema você está é
+       o card logo abaixo — que também é o botão de trocar de sistema. */
+    .sidebar-brand{padding:18px 18px 14px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--bd1)}
+    .sidebar-brand img{height:36px;width:auto;object-fit:contain;filter:brightness(1.1)}
+
+    /* ---- Card de contexto = gatilho do trocador de sistema ----------------
+       Mesmo componente do clínico. O MENU vem de sistemas.css, compartilhado
+       pelos três painéis; aqui fica só o gatilho. ---- */
+    .sidebar-context{
+      margin:14px 12px; padding:10px 12px;
+      background:linear-gradient(135deg, rgba(var(--ac-d-rgb),0.14) 0%, rgba(var(--ac-rgb),0.04) 100%);
+      border:1px solid rgba(var(--ac-rgb),0.25);
+      border-radius:10px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .sidebar-context .ico{
+      width:30px;height:30px;border-radius:8px;
+      background:rgba(var(--ac-rgb),0.18); color:var(--ac); font-size:14px;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    }
+    .sidebar-context .info{min-width:0;flex:1;text-align:left}
+    .sidebar-context .ttl{font-size:11px;font-weight:500;color:var(--tx1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sidebar-context .sub{font-size:10px;color:var(--tx3b);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    button.sidebar-context{
+      width:calc(100% - 24px);
+      font-family:inherit;cursor:pointer;
+      -webkit-appearance:none;appearance:none;
+    }
+    button.sidebar-context:hover{border-color:rgba(var(--ac-rgb),0.45)}
+    .sidebar-context .chev{font-size:13px;color:var(--tx3b);flex-shrink:0;transition:transform .16s ease,color .16s ease}
+    .sis-wrap.aberto .chev{transform:rotate(180deg);color:var(--ac)}
     .sidebar-nav{display:flex;flex-direction:column;gap:2px;flex:1}
     .sidebar-item{
       display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:8px;
@@ -93,8 +120,6 @@
     .app-topbar .t-search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--bd1);border-radius:8px;padding:6px 11px}
     .app-topbar .t-search i{color:var(--tx4);font-size:15px}
     .app-topbar .t-search input{flex:1;background:transparent;border:0;outline:none;color:var(--tx1);font:inherit;font-size:13px}
-    .app-topbar .t-back{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--tx3);text-decoration:none;padding:6px 11px;border:1px solid var(--bd1);border-radius:8px}
-    .app-topbar .t-back:hover{color:var(--tx1);border-color:var(--bd2)}
     .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
 
     /* ---------- Main ---------- */
@@ -187,9 +212,6 @@
 
     /* ---- Trocador de sistema: o MENU vem de sistemas.css (compartilhado
        pelos três painéis). Aqui fica só o gatilho, que é do CRM. ---- */
-    .sis-wrap{margin-left:0;display:inline-flex}
-    .sis-wrap .t-back{margin-left:0;background:none;font-family:inherit;cursor:pointer}
-
     /* Botão de ícone da topbar — mesmo do clínico, pra abinha e tema
        ficarem idênticos nos dois painéis. */
     .topbar-icon-btn{
@@ -204,14 +226,16 @@
     @media(max-width:860px){
       body{padding-top:0;padding-left:0}
       .app-sidebar{position:static;width:100%;flex-direction:row;flex-wrap:wrap;height:auto;border-right:0;border-bottom:1px solid var(--bd1)}
-      .sidebar-brand{border-bottom:0;margin:0;padding-right:16px}
+      .sidebar-brand{border-bottom:0;margin:0;padding:10px 16px 10px 0}
+      /* No celular a sidebar vira uma faixa horizontal: o card de contexto
+         divide a primeira linha com a logo em vez de ocupar a largura toda. */
+      .sidebar-context-wrap{flex:1;min-width:0}
+      button.sidebar-context{width:100%;margin:8px 0}
+      .sis-wrap.na-sidebar .sis-menu{left:0;right:0}
       .sidebar-nav{flex-direction:row;flex-wrap:wrap;flex:1 1 100%}
       .sidebar-item{width:auto}
       .sidebar-foot{flex-basis:100%}
       .app-topbar{position:static;left:0}
-      /* Sem isto o campo de busca tem largura mínima automática e empurra o botão
-         de trocar sistema pra fora da tela em celular estreito. Quem cede é a
-         busca; a abinha nunca sai da tela. */
       .app-topbar .t-search{min-width:0}
       .app-topbar .t-search input{min-width:0}
       .app-main{padding:16px 14px 50px}
@@ -279,12 +303,12 @@
   .app-sidebar::-webkit-scrollbar-thumb { border: 0; }
 
   /* ---- Tipografia display: números e títulos ---- */
-  .kpi .k-val, .page-head h1, .modal-head h2, .auth-card h2, .sidebar-brand strong {
+  .kpi .k-val, .page-head h1, .modal-head h2, .auth-card h2 {
     font-family: var(--font-display) !important; font-weight: 700; letter-spacing: -.5px;
   }
   .kpi .k-val { font-size: 25px; }
   .page-head h1 { font-size: 21px; }
-  .kpi .k-lab, th, .sec, .sidebar-brand span { letter-spacing: .7px; }
+  .kpi .k-lab, th, .sec { letter-spacing: .7px; }
 
   /* ---- Superfícies: cantos generosos + brilho de topo ---- */
   .kpi, .filters, .table-wrap { border-radius: var(--radius); }
@@ -320,7 +344,11 @@
     border-right: 1px solid var(--hair);
   }
   .sidebar-brand { background: transparent; border-bottom: 1px solid var(--hair); }
-  .sidebar-brand .mark { border-radius: 12px; box-shadow: 0 6px 18px rgba(var(--ac-rgb),.28), inset 0 1px 0 rgba(255,255,255,.18); }
+  .sidebar-brand img { filter: brightness(1.12) drop-shadow(0 2px 10px rgba(var(--ac-rgb),.25)); }
+  .sidebar-context {
+    background: linear-gradient(135deg, rgba(var(--ac-rgb),.13) 0%, rgba(var(--sage-rgb),.06) 100%);
+    border-color: rgba(var(--ac-rgb),.22);
+  }
   .sidebar-item { border-radius: 10px; transition: background .16s var(--ease), color .16s var(--ease), box-shadow .16s var(--ease), transform .16s var(--ease); }
   .sidebar-item:hover { box-shadow: inset 0 0 0 1px var(--hair-2); transform: translateX(2px); }
   .sidebar-item.active {
@@ -424,9 +452,21 @@
   <!-- ===================== APP ===================== -->
   <aside class="app-sidebar">
     <div class="sidebar-brand">
-      <div class="mark"><i class="ti ti-filter"></i></div>
-      <div><strong>CRM</strong><span>Aplic &amp; Go</span></div>
+      <img src="logo.png" alt="aplic&amp;go" onerror="this.style.display='none'">
     </div>
+
+    <div class="sidebar-context-wrap sis-wrap na-sidebar" id="sis-wrap">
+      <button type="button" class="sidebar-context" id="sis-btn" title="Trocar de sistema">
+        <div class="ico"><i class="ti ti-filter"></i></div>
+        <div class="info">
+          <div class="ttl">Sistema CRM</div>
+          <div class="sub">Leads dos funis</div>
+        </div>
+        <i class="ti ti-chevron-down chev"></i>
+      </button>
+      <!-- o menu é montado por sistemas.js, que é quem sabe a lista dos sistemas -->
+    </div>
+
     <nav class="sidebar-nav">
       <button class="sidebar-item active" data-view="leads"><i class="ti ti-user-plus"></i> Leads</button>
       <button class="sidebar-item" data-view="site"><i class="ti ti-world-www"></i> Site institucional</button>
@@ -453,12 +493,6 @@
       <button class="topbar-icon-btn" id="btn-tema" onclick="alternarTema()" title="Alternar modo claro / escuro">
         <i class="ti ti-sun"></i>
       </button>
-      <div class="sis-wrap" id="sis-wrap">
-        <button type="button" class="t-back" id="sis-btn" title="Trocar de sistema">
-          <i class="ti ti-apps"></i> Sistemas
-        </button>
-        <!-- o menu é montado por sistemas.js, que é quem sabe a lista dos sistemas -->
-      </div>
     </div>
   </header>
 
