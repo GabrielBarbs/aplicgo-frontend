@@ -2456,9 +2456,6 @@
     }
     .pr-h2-meds .med-linha .med-val { color: var(--tx1); flex: 1; }
     .pr-h2-meds .med-linha.vazio .med-val { color: var(--tx4); }
-    /* linha que abre a edição da medicação (é onde se informa a DOSE) */
-    .pr-h2-meds .med-linha.med-editavel { cursor: pointer; }
-    .pr-h2-meds .med-linha.med-editavel:hover { border-color: var(--ac); background: var(--bg2); }
 
     .pr-h2-dir { min-width: 0; }
     /* O gráfico dentro da coluna direita não precisa de margem extra */
@@ -6872,7 +6869,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DO</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DP</b></span></div>
   </div>
 </div>
 
@@ -22997,7 +22994,8 @@ function prRenderHeaderRico() {
 
   // ===== Medicações (do card clínico) =====
   //
-  // ESTE CARD É VITRINE, NÃO PORTA DE ENTRADA. Medicação entra por dois lugares e só:
+  // ESTE CARD É SÓ LEITURA. Não clica, não edita, não cadastra — nem a linha, nem botão.
+  // Medicação entra por dois lugares e só:
   //   - EVOLUÇÃO: aplicarWriteBack (clinico-prontuario.ts) lê as respostas e grava
   //     injetável (nome+dose), oral e suplemento em clin_medicacoes_atuais;
   //   - APLICAÇÃO: o injetável exibido aqui já vem do MEDICAMENTO BASE + dose da ÚLTIMA
@@ -23006,16 +23004,13 @@ function prRenderHeaderRico() {
   // de entrada, e o que fosse digitado nele concorria com a dose realmente aplicada.
   const meds = h.medicacoes || { injetaveis: [], orais: [], suplementos: [] };
   const medLinhas = [];
-  // só vira clicável quando existe id — linha vinda do medicamento-base (baseInjChip) não tem
-  const abrir = (m) => (m && m.id ? ` onclick="medAbrirEdit('${esc(m.id)}')" title="Editar medicação"` : '');
-  const clicavel = (m) => (m && m.id ? ' med-editavel' : '');
 
   // Injetável: nome + DOSE logo após (em destaque) + frequência
   if (meds.injetaveis && meds.injetaveis.length) {
     meds.injetaveis.forEach(m => {
       const dose = m.dose ? ` <strong class="med-dose">${esc(fmtDoseUnidade(m.dose))}</strong>` : '';
       const freq = m.frequencia ? ` · ${esc(m.frequencia)}` : '';
-      medLinhas.push(`<div class="med-linha${clicavel(m)}"${abrir(m)}><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
+      medLinhas.push(`<div class="med-linha"><i class="ti ti-vaccine" style="color:#6FD89A;"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
     });
   } else {
     medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-vaccine"></i> <span class="med-tipo">Injetável:</span> <span class="med-val">--</span></div>`);
@@ -23027,7 +23022,7 @@ function prRenderHeaderRico() {
     meds.orais.forEach((m, i) => {
       const dose = m.dose ? ` <strong class="med-dose">${esc(m.dose)}</strong>` : '';
       const freq = m.frequencia ? ` · ${esc(m.frequencia)}` : '';
-      medLinhas.push(`<div class="med-linha${clicavel(m)}"${abrir(m)}><i class="ti ti-pill" style="color:#4A90E2;"></i> <span class="med-tipo">${i === 0 ? 'Oral:' : ''}</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
+      medLinhas.push(`<div class="med-linha"><i class="ti ti-pill" style="color:#4A90E2;"></i> <span class="med-tipo">${i === 0 ? 'Oral:' : ''}</span> <span class="med-val">${esc(m.nome)}${dose}${freq}</span></div>`);
     });
   } else {
     medLinhas.push(`<div class="med-linha vazio"><i class="ti ti-pill"></i> <span class="med-tipo">Oral:</span> <span class="med-val">--</span></div>`);
@@ -23219,6 +23214,10 @@ function prRenderCardClinico(h) {
 }
 
 // ===== MEDICAÇÃO ATUAL (CRUD do card clínico) =====
+// CÓDIGO MORTO. Nada mais chama medAbrirNovo nem medAbrirEdit: por decisão do dono o card do
+// prontuário é só leitura, e medicação entra apenas pela evolução ou pela aplicação.
+// Se for reviver, leia antes o comentário em prRenderHeaderRico — o "+" e o clique-para-editar
+// saíram de propósito, não por esquecimento.
 let medState = { editandoId: null, patientId: null, todas: [] };
 
 function medAtualizarCategoria() {
