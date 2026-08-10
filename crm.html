@@ -6,7 +6,16 @@
   <!-- fonts.googleapis/gstatic liberados porque a identidade usa Sora nos números,
        igual ao clínico. Sem isto no CSP a fonte é bloqueada em silêncio e a tela
        volta pra fonte de sistema sem nenhum erro visível. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://srv.aplicgo.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'">
+  <!-- object-src, base-uri e form-action estavam faltando aqui (o clínico já os tem).
+       O que cada um barra, se um dia entrar HTML de fora nesta tela:
+         base-uri 'self'   — um <base> injetado repontaria TODO caminho relativo,
+                             inclusive /sistemas.js, pra um servidor de terceiro;
+         form-action 'self'— um <form> injetado postaria o que a pessoa digitar
+                             (inclusive a senha da tela de login) pra fora;
+         object-src 'none' — mata <object>/<embed>, vetor legado de execução.
+       frame-ancestors não entra em CSP de <meta> (só como cabeçalho) — quem
+       cobre clickjacking aqui é o X-Frame-Options: DENY do vercel.json. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://srv.aplicgo.com; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Aplic &amp; Go — CRM</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
