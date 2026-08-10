@@ -32130,7 +32130,11 @@ function esParseNum(v) { const n = parseFloat(String(v == null ? '' : v).replace
 // contar em mg: a apresentação é do LOTE e pode nem existir (entrada feita direto em mg).
 function esLoteEmMg(l) { return !!(l && l.produto && l.produto.conta_em_mg); }
 // Quantos mg tem a ampola DESTE lote. null = entrou em mg, não há ampola.
-function esMgAmpDoLote(l) { return (l && l.mg_por_ampola) || null; }
+// O fallback no produto NÃO é enfeite: o servidor antigo devolve a apresentação só dentro de
+// `produto`, e sem ele a tela tratava todo lote como "entrou em mg" — o campo da transferência
+// vinha em mg e o servidor antigo multiplicava pelo mg do produto. Quem digitasse 6 pensando
+// em miligramas moveria o lote inteiro.
+function esMgAmpDoLote(l) { return (l && (l.mg_por_ampola || (l.produto && l.produto.mg_por_ampola))) || null; }
 // Saldo do lote em AMPOLAS — pode ser fração: 45.000 mcg de uma ampola de 90mg = 0,5 ampola.
 // null quando o lote não tem apresentação: aí o número honesto é só o mg.
 function esAmpolasDoLote(l) { const mg = esMgAmpDoLote(l); return (esLoteEmMg(l) && mg) ? l.qtd_atual / (mg * 1000) : null; }
