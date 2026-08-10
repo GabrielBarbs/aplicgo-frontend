@@ -666,7 +666,7 @@
 
     <section class="table-wrap" style="margin-top:16px" id="sCampanhasWrap">
       <table>
-        <thead><tr><th>Campanhas (utm_campaign)</th><th style="width:120px">Acessos</th></tr></thead>
+        <thead><tr><th>Campanhas (utm_campaign)</th><th style="width:90px">Acessos</th><th style="width:90px">Agendar</th><th style="width:110px">Formulários</th></tr></thead>
         <tbody id="sCampanhas"></tbody>
       </table>
     </section>
@@ -938,7 +938,7 @@
 
       const camp = d.campanhas || [];
       $("sCampanhasWrap").classList.toggle("hidden", camp.length===0);
-      $("sCampanhas").innerHTML = camp.map(c=>`<tr><td>${esc(c.campanha)}</td><td>${c.visitas}</td></tr>`).join("");
+      $("sCampanhas").innerHTML = camp.map(c=>`<tr><td>${esc(c.campanha)}</td><td>${c.visitas}</td><td>${c.ctas ?? "—"}</td><td>${c.formularios ?? "—"}</td></tr>`).join("");
     }
 
     $("sPeriodo").addEventListener("change", carregarSite);
