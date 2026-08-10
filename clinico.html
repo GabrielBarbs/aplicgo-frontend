@@ -32290,7 +32290,13 @@ async function esAbrirNovoLote() {
   if (modoPadrao) modoPadrao.checked = true;
   const selProd = document.getElementById('es-lote-produto');
   selProd.innerHTML = '<option value="">—</option>' +
-    ativos.map(p => `<option value="${p.id}">${esc(p.nome)}${p.principio_ativo ? ' — ' + esc(p.principio_ativo) : ''}</option>`).join('');
+    // Não repete o princípio quando ele é o próprio nome: depois da unificação a tirzepatida
+    // sairia como "Tirzepatida — Tirzepatida".
+    ativos.map(p => {
+      const pa = String(p.principio_ativo || '').trim();
+      const mostraPa = pa && pa.toLowerCase() !== String(p.nome || '').trim().toLowerCase();
+      return `<option value="${p.id}">${esc(p.nome)}${mostraPa ? ' — ' + esc(pa) : ''}</option>`;
+    }).join('');
   const selUnit = document.getElementById('es-lote-unit');
   selUnit.innerHTML = '<option value="">—</option>' +
     pacState.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
