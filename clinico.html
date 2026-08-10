@@ -21852,7 +21852,10 @@ async function agPanoCarregar() {
   if (!body) return;
   const unitId = document.getElementById('ag-unit').value || '';
   const unitNome = (pacState.unidades.find((u) => u.id === unitId) || {}).nome || 'todas as unidades';
-  const enfs = (pacState.profissionais || []).filter((p) => p.role === 'enfermagem');
+  // Cargo clínico, não papel no sistema (pacEhEnfermagem). Aqui a régua errada não só escondia:
+  // a enfermeira de fora não entrava no total N nem contava como OCUPADA, então o horário em que
+  // ela já estava atendendo aparecia VERDE e clicável — a recepção marcava por cima.
+  const enfs = (pacState.profissionais || []).filter(pacEhEnfermagem);
   if (!enfs.length) { body.innerHTML = '<div class="atn-empty" style="padding:30px">Nenhuma enfermeira cadastrada como profissional.</div>'; return; }
   const enfsSet = new Set(enfs.map((p) => p.id));
   const N = enfs.length;
