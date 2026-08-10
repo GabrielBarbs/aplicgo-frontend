@@ -223,6 +223,50 @@
     .topbar-icon-btn:hover{background:rgba(var(--bg3-rgb),.6);color:var(--tx1);border-color:var(--bd1)}
     .topbar-acoes{margin-left:auto;display:inline-flex;align-items:center;gap:6px}
 
+    /* ===================== ABA GESTOR ===================== */
+    .gs-grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr);margin-top:14px}
+    .gs-card{background:var(--bg2);border:1px solid var(--bd1);border-radius:14px;padding:16px 18px;grid-column:span 6;min-width:0;overflow:hidden}
+    .gs-card.full{grid-column:span 12}
+    .gs-card.terco{grid-column:span 4}
+    .gs-card h3{margin:0;font-size:12px;color:var(--tx1);font-weight:600;letter-spacing:.3px}
+    .gs-card .gs-sub{font-size:11px;color:var(--tx3);margin-top:3px}
+    .gs-card .gs-corpo{margin-top:14px}
+    /* Barra horizontal: rótulo, trilho e número. O trilho é sempre a largura
+       total, então dá pra comparar duas linhas batendo o olho. */
+    /* minmax(0,1fr) + min-width:0 nos filhos: sem isso a coluna "1fr" se recusa
+       a encolher abaixo do texto do rótulo, o card estoura a largura da tela e
+       a página inteira ganha rolagem horizontal. Já aconteceu antes em outra
+       tela — é a mesma armadilha. */
+    .gs-lin{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:10px;align-items:center;padding:5px 0}
+    .gs-lin > *{min-width:0}
+    .gs-lin + .gs-lin{border-top:1px solid var(--hair,rgba(255,255,255,.06))}
+    .gs-rot{font-size:12px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gs-rot.vazio{color:var(--tx4);font-style:italic}
+    .gs-trilho{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-top:5px}
+    .gs-trilho i{display:block;height:100%;background:var(--ac);border-radius:3px}
+    .gs-trilho i.boa{background:var(--ok)}
+    .gs-num{text-align:right;font-size:12px;color:var(--tx1);font-variant-numeric:tabular-nums}
+    .gs-num b{font-family:var(--font-display,inherit);font-weight:700}
+    .gs-num small{display:block;color:var(--tx3);font-size:10px;margin-top:2px}
+    .gs-vazio{color:var(--tx3);font-size:12px;padding:14px 0;text-align:center}
+    /* Cabeçalho de tabela de campanha: 3 números por linha (volume, classe A, convertidos) */
+    /* table-layout:fixed é o que faz o max-width:0 da primeira coluna virar
+       reticências de verdade em vez de empurrar a tabela pra fora do card. */
+    .gs-tab{width:100%;border-collapse:collapse;min-width:0;table-layout:fixed}
+    .gs-tab th{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3b);text-align:right;padding:0 0 8px;background:none;border:0;position:static}
+    .gs-tab th:first-child{text-align:left}
+    .gs-tab td{padding:7px 0;border-bottom:1px solid var(--hair,rgba(255,255,255,.06));font-size:12px;text-align:right;color:var(--tx1);font-variant-numeric:tabular-nums}
+    .gs-tab td:first-child{text-align:left;color:var(--tx2);max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .gs-tab tr:last-child td{border-bottom:0}
+    .gs-tab .fraco{color:var(--tx4)}
+    .gs-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+    .gs-var{font-size:11px;font-weight:600}
+    .gs-var.sobe{color:var(--ok)} .gs-var.desce{color:var(--err)} .gs-var.igual{color:var(--tx3)}
+    .gs-nota{font-size:11px;color:var(--tx3);margin-top:12px;line-height:1.5;padding-top:10px;border-top:1px solid var(--hair,rgba(255,255,255,.06))}
+    .gs-svg{width:100%;height:auto;display:block;overflow:visible}
+    @media(max-width:1100px){ .gs-card{grid-column:span 12} .gs-card.terco{grid-column:span 6} }
+    @media(max-width:700px){ .gs-card.terco{grid-column:span 12} }
+
     @media(max-width:860px){
       body{padding-top:0;padding-left:0}
       .app-sidebar{position:static;width:100%;flex-direction:row;flex-wrap:wrap;height:auto;border-right:0;border-bottom:1px solid var(--bd1)}
@@ -469,6 +513,7 @@
 
     <nav class="sidebar-nav">
       <button class="sidebar-item active" data-view="leads"><i class="ti ti-user-plus"></i> Leads</button>
+      <button class="sidebar-item" data-view="gestor"><i class="ti ti-chart-histogram"></i> Gestor</button>
       <button class="sidebar-item" data-view="site"><i class="ti ti-world-www"></i> Site institucional</button>
       <!-- O item "Sistemas" saiu: a raiz do domínio agora é o próprio clínico.
            Quem troca de sistema é o botão do topbar. -->
@@ -535,6 +580,28 @@
       <div class="loading" id="loading">Carregando leads…</div>
       <div class="empty hidden" id="empty"><i class="ti ti-inbox"></i>Nenhum lead ainda. Assim que o funil capturar (e o backend estiver no ar), eles aparecem aqui.</div>
     </section>
+   </div>
+
+   <!-- ===================== GESTOR ===================== -->
+   <div id="view-gestor" class="hidden">
+    <div class="page-head">
+      <h1>Gestor</h1>
+      <p>Tudo que dá pra medir com o que os leads respondem. Nada aqui é estimado.</p>
+    </div>
+
+    <section class="filters" style="grid-template-columns:200px 1fr">
+      <select id="gsPeriodo">
+        <option value="7">Últimos 7 dias</option>
+        <option value="30" selected>Últimos 30 dias</option>
+        <option value="90">Últimos 90 dias</option>
+        <option value="180">Últimos 6 meses</option>
+        <option value="365">Último ano</option>
+      </select>
+    </section>
+
+    <div class="loading hidden" id="gsLoading">Somando os leads…</div>
+    <div class="empty hidden" id="gsErro"></div>
+    <div id="gsConteudo"></div>
    </div>
 
    <!-- ===================== SITE INSTITUCIONAL ===================== -->
@@ -867,15 +934,217 @@
 
     $("sPeriodo").addEventListener("change", carregarSite);
 
+    // ---------- Aba Gestor ----------
+    // Quem soma é o SERVIDOR, não esta tela: a lista de leads vem limitada a 500
+    // e somar em cima dela daria certo hoje e passaria a mentir calado quando a
+    // clínica crescer. Aqui só desenhamos o que já veio contado.
+    let GESTOR_CARREGADO = false;
+    const nfmt = n => (n ?? 0).toLocaleString("pt-BR");
+    const pctTxt = (n, d) => d > 0 ? Math.round(n / d * 100) + "%" : "—";
+
+    // Lista de barras. `destaque` pinta de verde a fatia com melhor
+    // aproveitamento de classe A — é o que responde "qual campanha traz lead bom".
+    function gsBarras(fatias, opts){
+      opts = opts || {};
+      if(!fatias || !fatias.length) return '<div class="gs-vazio">Nenhum lead no período.</div>';
+      const total = fatias.reduce((s,f)=>s+f.total,0);
+      const maior = Math.max(...fatias.map(f=>f.total)) || 1;
+      return fatias.map(f=>{
+        const vazio = f.rotulo === "sem informação";
+        return `<div class="gs-lin">
+          <div>
+            <div class="gs-rot ${vazio?"vazio":""}" title="${esc(f.rotulo)}">${esc(f.rotulo)}</div>
+            <div class="gs-trilho"><i style="width:${Math.max(2, f.total/maior*100)}%"></i></div>
+          </div>
+          <div class="gs-num"><b>${nfmt(f.total)}</b><small>${pctTxt(f.total,total)}</small></div>
+        </div>`;
+      }).join("");
+    }
+
+    // Tabela de origem: volume NÃO é a resposta sozinha. Uma campanha pode trazer
+    // o dobro de lead e nenhum prestar — por isso classe A e convertidos vêm ao lado.
+    function gsTabela(fatias, rotuloCol){
+      if(!fatias || !fatias.length) return '<div class="gs-vazio">Nada registrado no período.</div>';
+      return `<table class="gs-tab">
+        <thead><tr><th>${esc(rotuloCol)}</th><th>Leads</th><th>Classe A</th><th>Convertidos</th></tr></thead>
+        <tbody>${fatias.map(f=>`<tr>
+          <td class="${f.rotulo==="sem informação"?"fraco":""}" title="${esc(f.rotulo)}">${esc(f.rotulo)}</td>
+          <td>${nfmt(f.total)}</td>
+          <td class="${f.classeA?"":"fraco"}">${f.classeA ? nfmt(f.classeA)+" <small style='color:var(--tx3)'>("+pctTxt(f.classeA,f.total)+")</small>" : "—"}</td>
+          <td class="${f.convertidos?"":"fraco"}">${f.convertidos ? nfmt(f.convertidos) : "—"}</td>
+        </tr>`).join("")}</tbody></table>`;
+    }
+
+    // Série diária em área. Os dias sem lead vêm com zero do servidor de
+    // propósito: pular o dia vazio faria um fim de semana morto virar uma linha subindo.
+    function gsLinha(serie){
+      if(!serie || serie.length < 2) return '<div class="gs-vazio">Período curto demais para desenhar a série.</div>';
+      const W = 720, H = 160, P = 6;
+      const maior = Math.max(1, ...serie.map(d=>d.total));
+      const x = i => P + i * (W - P*2) / (serie.length - 1);
+      const y = v => H - P - (v / maior) * (H - P*2);
+      const pontos = serie.map((d,i)=>`${x(i).toFixed(1)},${y(d.total).toFixed(1)}`).join(" ");
+      const area = `M ${x(0).toFixed(1)},${(H-P).toFixed(1)} L ${pontos.split(" ").join(" L ")} L ${x(serie.length-1).toFixed(1)},${(H-P).toFixed(1)} Z`;
+      const grade = [0,.25,.5,.75,1].map(f=>`<line x1="${P}" x2="${W-P}" y1="${y(maior*f).toFixed(1)}" y2="${y(maior*f).toFixed(1)}" stroke="var(--hair,rgba(255,255,255,.06))" stroke-width="1"/>`).join("");
+      const dia = s => { const [,m,d] = s.split("-"); return d+"/"+m; };
+      return `<svg class="gs-svg" viewBox="0 0 ${W} ${H+18}" preserveAspectRatio="none" role="img" aria-label="Leads por dia">
+        <defs><linearGradient id="gsFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--ac)" stop-opacity=".28"/><stop offset="100%" stop-color="var(--ac)" stop-opacity="0"/>
+        </linearGradient></defs>
+        ${grade}
+        <path d="${area}" fill="url(#gsFill)"/>
+        <polyline points="${pontos}" fill="none" stroke="var(--ac)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <text x="${P}" y="${H+13}" font-size="10" fill="var(--tx3)">${esc(dia(serie[0].dia))}</text>
+        <text x="${W-P}" y="${H+13}" font-size="10" fill="var(--tx3)" text-anchor="end">${esc(dia(serie[serie.length-1].dia))}</text>
+        <text x="${W/2}" y="${H+13}" font-size="10" fill="var(--tx3)" text-anchor="middle">pico de ${maior} num dia</text>
+      </svg>`;
+    }
+
+    // Colunas (hora do dia, dia da semana, impacto). Sem eixo Y: o número exato
+    // fica na dica do mouse; aqui o que interessa é a forma.
+    function gsColunas(dados, rotulos, titulo){
+      const maior = Math.max(1, ...dados);
+      const total = dados.reduce((a,b)=>a+b,0);
+      if(!total) return '<div class="gs-vazio">Sem dados no período.</div>';
+      const W = 720, H = 120, n = dados.length, gap = 3;
+      const larg = (W - gap*(n-1)) / n;
+      return `<svg class="gs-svg" viewBox="0 0 ${W} ${H+16}" preserveAspectRatio="none" role="img" aria-label="${esc(titulo)}">
+        ${dados.map((v,i)=>{
+          const h = v ? Math.max(2, v/maior*(H-8)) : 1;
+          return `<rect x="${(i*(larg+gap)).toFixed(1)}" y="${(H-h).toFixed(1)}" width="${larg.toFixed(1)}" height="${h.toFixed(1)}" rx="2"
+                    fill="${v ? "var(--ac)" : "var(--bg3)"}" opacity="${v? (0.45 + 0.55*v/maior).toFixed(2) : 1}"><title>${esc(rotulos[i])}: ${v} lead(s)</title></rect>`;
+        }).join("")}
+        ${rotulos.map((r,i)=> (n<=12 || i%Math.ceil(n/12)===0)
+          ? `<text x="${(i*(larg+gap)+larg/2).toFixed(1)}" y="${H+12}" font-size="9" fill="var(--tx3)" text-anchor="middle">${esc(r)}</text>` : "").join("")}
+      </svg>`;
+    }
+
+    // Funil comercial: vem acumulado do servidor (quem foi agendado já passou
+    // por "em contato"), então a barra só pode descer.
+    function gsFunil(etapas){
+      if(!etapas || !etapas.length) return '<div class="gs-vazio">Sem leads no período.</div>';
+      const topo = Math.max(1, etapas[0].total);
+      return etapas.map((e,i)=>{
+        const anterior = i > 0 ? etapas[i-1].total : null;
+        const queda = anterior ? anterior - e.total : 0;
+        return `<div class="gs-lin">
+          <div>
+            <div class="gs-rot">${esc(e.etapa)}${queda>0?` <span style="color:var(--tx4);font-size:11px">− ${nfmt(queda)} aqui</span>`:""}</div>
+            <div class="gs-trilho"><i style="width:${Math.max(2, e.total/topo*100)}%"></i></div>
+          </div>
+          <div class="gs-num"><b>${nfmt(e.total)}</b><small>${pctTxt(e.total, topo)} do topo</small></div>
+        </div>`;
+      }).join("");
+    }
+
+    function gsCard(titulo, sub, corpo, classe){
+      return `<section class="gs-card ${classe||""}">
+        <h3>${esc(titulo)}</h3>${sub?`<div class="gs-sub">${esc(sub)}</div>`:""}
+        <div class="gs-corpo">${corpo}</div>
+      </section>`;
+    }
+
+    async function carregarGestor(){
+      $("gsLoading").classList.remove("hidden");
+      $("gsErro").classList.add("hidden");
+      $("gsConteudo").innerHTML = "";
+      const dias = $("gsPeriodo").value;
+      const r = await api("/api/leads/analytics?dias=" + dias);
+      $("gsLoading").classList.add("hidden");
+      if(r.status === 401) return;
+      if(!r.ok){
+        // Nada de cair pra uma conta local em cima dos 500 leads da lista: seria
+        // um número menor com cara de certo. Melhor dizer que não dá pra medir.
+        $("gsErro").classList.remove("hidden");
+        $("gsErro").innerHTML = '<i class="ti ti-plug-connected-x"></i>' + (r.net
+          ? "Sem conexão com o servidor."
+          : "Esta aba precisa da versão nova do servidor. Publique o backend no EasyPanel e recarregue.");
+        return;
+      }
+      GESTOR_CARREGADO = true;
+      const d = r.data, m = d.resumo;
+      const varClasse = m.variacao == null ? "igual" : (m.variacao > 0 ? "sobe" : (m.variacao < 0 ? "desce" : "igual"));
+      const varTxt = m.variacao == null
+        ? "sem base anterior para comparar"
+        : `${m.variacao > 0 ? "▲" : m.variacao < 0 ? "▼" : "="} ${Math.abs(m.variacao)}% vs. os ${d.periodo.dias} dias anteriores (${nfmt(m.totalAnterior)})`;
+
+      const kpi = (lab, val, sub) => `<div class="kpi"><div class="k-lab">${esc(lab)}</div><div class="k-val">${val}</div><div class="k-sub">${sub||""}</div></div>`;
+
+      $("gsConteudo").innerHTML = `
+        <section class="gs-kpis">
+          ${kpi("Leads no período", nfmt(m.total), `<span class="gs-var ${varClasse}">${esc(varTxt)}</span>`)}
+          ${kpi("Classe A", nfmt(m.classeA), m.pctClasseA + "% do total")}
+          ${kpi("Convertidos", nfmt(m.convertidos), m.taxaConversao + "% viraram paciente")}
+          ${kpi("Perdidos", nfmt(m.perdidos), m.taxaPerda + "% perdido ou sem resposta")}
+          ${kpi("Score médio", m.scoreMedio == null ? "—" : m.scoreMedio, m.scoreMedio == null ? "nenhum lead pontuado" : "de 0 a 100")}
+          ${kpi("Em aberto", nfmt(m.emAberto), m.semDono ? nfmt(m.semDono) + " sem responsável" : "todos com responsável")}
+        </section>
+
+        <div class="gs-grid">
+          ${gsCard("Leads por dia", `Base: ${nfmt(m.total)} leads. Total no sistema desde sempre: ${nfmt(m.totalGeral)}.`, gsLinha(d.serie), "full")}
+
+          ${gsCard("Funil comercial", "Acumulado: quem chegou numa etapa já passou pelas anteriores. Perdido e sem resposta ficam fora.", gsFunil(d.funilComercial))}
+          ${gsCard("Status atual", "Onde cada lead está parado agora.", gsBarras(d.porStatus))}
+
+          ${gsCard("Campanhas", "Volume não é a resposta sozinha — olhe a coluna de classe A.", gsTabela(d.porCampanha, "Campanha"), "full")}
+          ${gsCard("Criativos", "utm_content: qual peça trouxe.", gsTabela(d.porCriativo, "Criativo"))}
+          ${gsCard("Conjuntos de anúncio", "utm_term: qual público.", gsTabela(d.porConjunto, "Conjunto"))}
+
+          ${gsCard("Tipo de tráfego", "Pago, orgânico, indicação ou direto.", gsBarras(d.porTrafego), "terco")}
+          ${gsCard("Origem", "De onde veio o clique.", gsBarras(d.porOrigem), "terco")}
+          ${gsCard("Posicionamento", "Onde o anúncio apareceu.", gsBarras(d.porPosicionamento), "terco")}
+
+          ${gsCard("Primeira origem", "Onde a pessoa conheceu a clínica, mesmo que tenha voltado por outro caminho depois.", gsBarras(d.porPrimeiraOrigem))}
+          ${gsCard("Por funil", "Mapa Aplic (clínica) e Avaliação Estratégica (Dr. Matheus).", gsTabela(d.porFunil, "Funil"))}
+
+          ${gsCard("Classe", "A partir de 70 pontos é A; de 45 a 69 é B.", gsBarras(d.porClasse), "terco")}
+          ${gsCard("Prioridade interna", "Alta = score alto, pressa ou impacto severo.", gsBarras(d.porPrioridade), "terco")}
+          ${gsCard("Impacto na vida", `Quanto a queixa atrapalha, de 0 a 10.${m.semImpactoInformado ? " " + nfmt(m.semImpactoInformado) + " não informaram." : ""}`,
+            gsColunas(d.impacto.map(i=>i.total), d.impacto.map(i=>String(i.nota)), "Impacto"), "terco")}
+
+          ${gsCard("Direção principal", "A área que a pessoa escolheu no começo do quiz.", gsBarras(d.porDirecao))}
+          ${gsCard("Protocolo indicado", "Calculado pelo motor de afinidade. " + nfmt(m.jornadaIntegrada) + " leads (" + m.pctIntegrada + "%) deram jornada integrada.", gsBarras(d.porProtocolo))}
+
+          ${gsCard("O que mais incomoda", "A queixa que a pessoa marcou como principal. É o melhor gancho para a primeira mensagem.", gsBarras(d.porQueixa), "full")}
+
+          ${gsCard("Expectativa de cuidado", "O nível de acompanhamento que a pessoa procura.", gsBarras(d.porExpectativa))}
+          ${gsCard("O que travou até hoje", "Por que o resultado não veio ou não ficou.", gsBarras(d.porBarreira))}
+          ${gsCard("O que já tentaram", "Antes de procurar a clínica.", gsBarras(d.porTentativa))}
+          ${gsCard("Prazo para começar", "Urgência declarada.", gsBarras(d.porPrazo))}
+
+          ${gsCard("Unidade preferida", "Onde querem ser atendidos.", gsBarras(d.porUnidade), "terco")}
+          ${gsCard("Faixa etária", "Idade informada no formulário.", gsBarras(d.porFaixaEtaria), "terco")}
+          ${gsCard("Instagram", "Quantos deixaram o perfil (campo opcional).",
+            `<div class="gs-lin"><div><div class="gs-rot">Informaram</div><div class="gs-trilho"><i style="width:${m.pctComInstagram}%"></i></div></div>
+             <div class="gs-num"><b>${nfmt(m.comInstagram)}</b><small>${m.pctComInstagram}%</small></div></div>`, "terco")}
+
+          ${gsCard("Por responsável", "Quem está com os leads e o que fez com eles.", gsTabela(d.porResponsavel, "Responsável"), "full")}
+
+          ${gsCard("Hora que chegam", "Horário de Brasília. Ajuda a saber quando ter alguém pronto para responder.",
+            gsColunas(d.porHora.map(h=>h.total), d.porHora.map(h=>String(h.hora).padStart(2,"0")), "Leads por hora"))}
+          ${gsCard("Dia da semana", "Horário de Brasília.",
+            gsColunas(d.porDiaSemana.map(x=>x.total), ["dom","seg","ter","qua","qui","sex","sáb"], "Leads por dia da semana"))}
+
+          ${gsCard("Entrega no Clint", "Se o contato chegou no CRM comercial.", gsBarras(d.porClint), "full")}
+        </div>
+
+        <p class="gs-nota">Período: ${new Date(d.periodo.de).toLocaleDateString("pt-BR")} a ${new Date(d.periodo.ate).toLocaleDateString("pt-BR")}.
+        Todos os números saem de campos que o lead realmente preencheu — quem não respondeu aparece como “sem informação” em vez de sumir da conta.
+        O que o sistema não registra hoje (tempo até o primeiro contato, por exemplo, que exigiria guardar histórico de status) não aparece aqui em vez de aparecer estimado.</p>`;
+    }
+    $("gsPeriodo").addEventListener("change", carregarGestor);
+
     // ---------- Troca de view ----------
-    const TITULOS = { leads:"Leads", site:"Site institucional" };
+    const TITULOS = { leads:"Leads", gestor:"Gestor", site:"Site institucional" };
     function trocarView(nome){
       document.querySelectorAll(".sidebar-item[data-view]").forEach(b=>b.classList.toggle("active", b.dataset.view===nome));
-      $("view-leads").classList.toggle("hidden", nome!=="leads");
-      $("view-site").classList.toggle("hidden", nome!=="site");
+      // Percorre os TÍTULOS em vez de listar cada view na mão: view nova só
+      // precisa entrar ali em cima e no menu, sem alguém lembrar de mexer aqui.
+      Object.keys(TITULOS).forEach(v => { const el = $("view-"+v); if(el) el.classList.toggle("hidden", v!==nome); });
       document.querySelector(".t-title").textContent = TITULOS[nome] || "";
       $("search").parentElement.classList.toggle("hidden", nome!=="leads");
       if(nome==="site" && !SITE_CARREGADO) carregarSite();
+      if(nome==="gestor" && !GESTOR_CARREGADO) carregarGestor();
     }
     document.querySelectorAll(".sidebar-item[data-view]").forEach(b=>{
       b.addEventListener("click", ()=>trocarView(b.dataset.view));
