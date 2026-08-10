@@ -125,6 +125,13 @@
     .btn.primary{background:linear-gradient(135deg,var(--ac-d),var(--ac));color:#fff}
     .btn.ghost{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd1)}
     .btn.wa{background:#1f8a4c;color:#fff}
+    /* Excluir nasce apagado e só fica vermelho depois do primeiro clique: quem
+       está só passando o mouse não apaga lead sem querer. */
+    .btn.danger{background:transparent;color:var(--err);border:1px solid rgba(248,81,73,.32)}
+    .btn.danger:hover{border-color:var(--err)}
+    .btn.danger.armado{background:var(--err);color:#fff;border-color:var(--err)}
+    .aviso-excluir{flex-basis:100%;font-size:12px;color:var(--tx3);margin-top:-2px;line-height:1.5}
+    .aviso-excluir b{color:var(--err)}
     .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
     .ans{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--bd1);font-size:12px}
     .ans .q{color:var(--tx3)} .ans .a{color:var(--tx1);text-align:right}
@@ -693,6 +700,8 @@
           <button class="btn primary" id="edSave"><i class="ti ti-device-floppy"></i> Salvar</button>
           ${wa?`<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>`:""}
           <button class="btn ghost" id="edClose">Fechar</button>
+          <button class="btn danger" id="edExcluir" style="margin-left:auto"><i class="ti ti-trash"></i> Excluir lead</button>
+          <div class="aviso-excluir hidden" id="edExcluirAviso"></div>
         </div>`;
       $("edSave").addEventListener("click",()=>saveLead(l.id));
       $("edClose").addEventListener("click",closeModal);
@@ -702,7 +711,52 @@
           ()=>showToast("Não consegui copiar."));
       });
       if($("edClint")) $("edClint").addEventListener("click",()=>reenviarClint(l.id));
+      armarExclusao(l);
       $("leadModal").classList.add("open");
+    }
+
+    // ---------- Excluir lead ----------
+    // Não tem lixeira: o que sai daqui não volta. Por isso são dois cliques, e
+    // o segundo só vale nos 6 segundos seguintes — passou disso, desarma
+    // sozinho. Assim ninguém apaga um lead por reflexo.
+    function armarExclusao(l){
+      const btn = $("edExcluir"), aviso = $("edExcluirAviso");
+      if(!btn) return;
+      let armado = false, timer = null;
+      const desarmar = () => {
+        armado = false; clearTimeout(timer);
+        btn.classList.remove("armado");
+        btn.innerHTML = '<i class="ti ti-trash"></i> Excluir lead';
+        aviso.classList.add("hidden");
+      };
+      btn.addEventListener("click", async () => {
+        if(!armado){
+          armado = true;
+          btn.classList.add("armado");
+          btn.innerHTML = '<i class="ti ti-alert-triangle"></i> Confirmar exclusão';
+          aviso.classList.remove("hidden");
+          aviso.innerHTML = `<b>Isto não tem volta.</b> Apaga <b>${esc(l.name)}</b> e todas as respostas do quiz daqui.`
+            + (l.clintStatus === "enviado" ? " Este lead já foi pro Clint — <b>apague lá também</b>, senão o dado continua existindo." : "")
+            + " Clique de novo para confirmar.";
+          timer = setTimeout(desarmar, 6000);
+          return;
+        }
+        clearTimeout(timer);
+        btn.disabled = true; btn.innerHTML = "Excluindo…";
+        const r = await api("/api/leads/"+l.id, {method:"DELETE"});
+        if(!r.ok){
+          btn.disabled = false; desarmar();
+          showToast(r.status === 403
+            ? "Só gestor pode excluir lead."
+            : ((r.data && (r.data.erro||r.data.error)) || "Não foi possível excluir."));
+          return;
+        }
+        LEADS = LEADS.filter(x => x.id !== l.id);
+        renderMetrics(); renderRows(); closeModal();
+        showToast(r.data && r.data.foiParaClint
+          ? "Lead excluído aqui. Lembre de apagar no Clint também."
+          : "Lead excluído.");
+      });
     }
 
     // Reenvio manual pro Clint. O servidor guarda o resultado no próprio lead,
