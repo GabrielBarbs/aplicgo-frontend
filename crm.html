@@ -203,7 +203,10 @@
     .aviso-excluir b{color:var(--err)}
     .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
     .ans{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--bd1);font-size:12px}
-    .ans .q{color:var(--tx3)} .ans .a{color:var(--tx1);text-align:right}
+    /* min-width:0 + quebra em qualquer ponto porque o identificador de clique
+       é uma tira de ~100 caracteres SEM espaço: sem isto ele empurra a coluna
+       da esquerda pra fora e some com o rótulo. */
+    .ans .q{color:var(--tx3)} .ans .a{color:var(--tx1);text-align:right;min-width:0;overflow-wrap:anywhere}
 
     /* Auth overlay */
     .auth{position:fixed;inset:0;z-index:100;background:var(--bg1);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -272,6 +275,13 @@
     .gs-var{font-size:11px;font-weight:600}
     .gs-var.sobe{color:var(--ok)} .gs-var.desce{color:var(--err)} .gs-var.igual{color:var(--tx3)}
     .gs-nota{font-size:11px;color:var(--tx3);margin-top:12px;line-height:1.5;padding-top:10px;border-top:1px solid var(--hair,rgba(255,255,255,.06))}
+    /* Exportação pro Google Ads. min-width:0 nos filhos porque o wrap encolhe
+       abaixo do conteúdo em Firefox e Safari se não disser. */
+    .ga-linha{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .ga-linha>*{min-width:0}
+    .ga-box input{flex:1 1 200px;background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:9px 12px;color:var(--tx1);font:inherit;font-size:13px;outline:none}
+    .ga-box input:focus{border-color:var(--ac)}
+    .ga-fora{font-size:11px;color:var(--tx3);margin-top:10px;line-height:1.6}
     .gs-svg{width:100%;height:auto;display:block;overflow:visible}
     @media(max-width:1100px){ .gs-card{grid-column:span 12} .gs-card.terco{grid-column:span 6} }
     @media(max-width:700px){ .gs-card.terco{grid-column:span 12} }
@@ -773,6 +783,17 @@
     // ---------- Blocos da ficha ----------
     // De onde o lead veio. Só aparece quando existe algo de campanha: em lead
     // orgânico um bloco cheio de travessão só ocupa espaço.
+    // O identificador do clique. É a etiqueta que o Google (ou o Meta) põe no
+    // anúncio e que permite devolver a conversão pra plataforma depois. Mostrar
+    // aqui não é enfeite: quando um lead não aparece na exportação, esta linha
+    // responde na hora se ele veio sem identificador ou se o problema é outro.
+    // gclid/wbraid/gbraid são do Google; cada clique traz UM. fbclid é do Meta.
+    function cliqueId(u){
+      const achado = [["gclid","gclid"],["wbraid","wbraid (iOS)"],["gbraid","gbraid (iOS)"],["fbclid","fbclid"]]
+        .find(([k]) => (u[k]||"").trim());
+      return achado ? achado[1] + ": " + u[achado[0]] : "";
+    }
+
     function campanhaBloco(l){
       const u = l.utm || {};
       const linhas = [
@@ -780,6 +801,7 @@
         ["Campanha", u.utm_campaign], ["Conjunto", u.utm_term], ["Criativo", u.utm_content],
         ["Posicionamento", u.placement],
         ["IDs (campanha / conjunto / anúncio)", [u.campaign_id,u.adset_id,u.ad_id].filter(Boolean).join(" / ")],
+        ["Identificador do clique", cliqueId(u)],
         ["Primeira origem", u.first_touch_source && (u.first_touch_source + (u.first_touch_campaign?(" · "+u.first_touch_campaign):""))],
       ].filter(([,v]) => v);
       if(!linhas.length) return "";
@@ -1184,13 +1206,114 @@
             gsColunas(d.porDiaSemana.map(x=>x.total), ["dom","seg","ter","qua","qui","sex","sáb"], "Leads por dia da semana"))}
 
           ${gsCard("Entrega no Clint", "Se o contato chegou no CRM comercial.", gsBarras(d.porClint), "full")}
+
+          ${gsCard("Conversões para o Google Ads",
+            "Devolver ao Google quais cliques viraram lead. É assim que ele aprende qual anúncio traz gente de verdade — sem isso ele só sabe quem clicou.",
+            `<div id="gaCorpo" class="ga-box"><div class="gs-vazio">Carregando…</div></div>`, "full")}
         </div>
 
         <p class="gs-nota">Período: ${new Date(d.periodo.de).toLocaleDateString("pt-BR")} a ${new Date(d.periodo.ate).toLocaleDateString("pt-BR")}.
         Todos os números saem de campos que o lead realmente preencheu — quem não respondeu aparece como “sem informação” em vez de sumir da conta.
         O que o sistema não registra hoje (tempo até o primeiro contato, por exemplo, que exigiria guardar histórico de status) não aparece aqui em vez de aparecer estimado.</p>`;
+
+      // Chamada à parte: a exportação sempre olha 90 dias (teto do Google) e
+      // não o período escolhido acima, então não sai do mesmo /analytics.
+      carregarGoogleAds();
     }
     $("gsPeriodo").addEventListener("change", carregarGestor);
+
+    // ---------- Conversões para o Google Ads ----------
+    // O caminho de volta da mídia paga. O funil já guarda o identificador do
+    // clique (gclid, ou wbraid/gbraid no iPhone); aqui ele volta pro Google
+    // como "este clique virou lead", que é o que faz o algoritmo entregar mais
+    // dos anúncios que trazem paciente em vez dos que trazem clique.
+    //
+    // O arquivo vem PRONTO do servidor: o formato é o que o Google recusa
+    // quando está errado, e lá ele está coberto por teste. Aqui só se baixa.
+    //
+    // 90 dias é o teto do próprio Google — conversão mais velha que isso ele
+    // não aceita, então nem oferecemos período maior.
+    const GA_PRAZO_DIAS = 90;
+    const GA_ROTULOS = { gclid:"gclid", wbraid:"wbraid (iPhone)", gbraid:"gbraid (iPhone)" };
+
+    function baixarArquivo(nomeArquivo, conteudo){
+      // O CSV vai com BOM: sem ele o Excel do Matheus abre acento quebrado.
+      // O Google Ads ignora o BOM, então não atrapalha o upload.
+      const url = URL.createObjectURL(new Blob(["﻿"+conteudo], {type:"text/csv;charset=utf-8"}));
+      const a = document.createElement("a");
+      a.href = url; a.download = nomeArquivo;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+
+    async function baixarConversoesGoogle(tipo, botao){
+      const nome = ($("gaNome").value || "").trim() || "Lead do site";
+      const antes = botao.innerHTML;
+      botao.disabled = true; botao.innerHTML = '<i class="ti ti-loader"></i> Gerando…';
+      const r = await api("/api/leads/google-ads?dias="+GA_PRAZO_DIAS+"&nome="+encodeURIComponent(nome));
+      botao.disabled = false; botao.innerHTML = antes;
+      if(!r.ok || !r.data || !r.data.csv){
+        alert(r.status===403 ? "Só gestor pode exportar conversões." : "Não foi possível gerar o arquivo.");
+        return;
+      }
+      const hoje = new Date().toISOString().slice(0,10);
+      baixarArquivo(`google-ads-${tipo}-${hoje}.csv`, r.data.csv[tipo]);
+    }
+
+    async function carregarGoogleAds(){
+      const box = $("gaCorpo");
+      if(!box) return;
+      const r = await api("/api/leads/google-ads?dias="+GA_PRAZO_DIAS);
+      if(r.status===403){
+        box.innerHTML = '<div class="gs-vazio">Só gestor e desenvolvedor podem exportar conversões.</div>';
+        return;
+      }
+      if(r.status===404){
+        // O CRM sobe pela Vercel sozinho; o servidor é deploy manual. Entre um
+        // e outro esta rota ainda não existe — dizer isso evita alguém abrir
+        // chamado de bug pra uma janela de dez minutos.
+        box.innerHTML = '<div class="gs-vazio">Disponível assim que o servidor for atualizado.</div>';
+        return;
+      }
+      if(!r.ok || !r.data){
+        box.innerHTML = '<div class="gs-vazio">Não foi possível carregar as conversões.</div>';
+        return;
+      }
+      const d = r.data;
+      // Um botão por identificador que TEM linha. Botão de arquivo vazio só
+      // gera upload recusado e a impressão de que a integração quebrou.
+      const botoes = Object.keys(GA_ROTULOS)
+        .filter(t => (d.porTipo[t]||[]).length)
+        .map(t => `<button class="btn ghost" data-ga="${t}"><i class="ti ti-download"></i> ${d.porTipo[t].length} ${esc(GA_ROTULOS[t])}</button>`)
+        .join("");
+
+      if(!botoes){
+        box.innerHTML = `<div class="gs-vazio">Nenhum lead com identificador de clique do Google nos últimos ${GA_PRAZO_DIAS} dias.
+          Aparece aqui quando o primeiro anúncio do Google Ads começar a rodar.</div>`;
+        return;
+      }
+
+      // Quem ficou de fora sai CONTADO. Arquivo que encolhe calado é a forma
+      // mais fácil de otimizar campanha em cima de meia amostra sem perceber.
+      const fora = [];
+      if(d.semIdentificador) fora.push(`${d.semIdentificador} sem identificador do Google (orgânico, Meta ou acesso direto)`);
+      if(d.foraDoPrazo) fora.push(`${d.foraDoPrazo} com clique de mais de ${GA_PRAZO_DIAS} dias, que o Google não aceita`);
+
+      box.innerHTML = `
+        <div class="ga-linha">
+          <input id="gaNome" value="Lead do site" maxlength="80" aria-label="Nome da conversão no Google Ads">
+          ${botoes}
+        </div>
+        <div class="ga-fora">
+          O nome tem que ser <b>igual</b> ao da conversão criada no Google Ads (Ferramentas › Conversões › nova conversão › Importar › de cliques). Depois é lá que o arquivo sobe, em Uploads.<br>
+          Dos ${d.totalNoPeriodo} leads dos últimos ${GA_PRAZO_DIAS} dias${fora.length ? ", ficaram de fora " + fora.join(" e ") : ", nenhum ficou de fora"}.
+          A hora de cada conversão é a do envio do formulário — nada estimado. O valor vai vazio de propósito: um lead não tem preço conhecido, e quem define isso é você no Google Ads.
+        </div>`;
+
+      box.querySelectorAll("[data-ga]").forEach(b=>{
+        b.addEventListener("click", ()=>baixarConversoesGoogle(b.dataset.ga, b));
+      });
+    }
 
     // ---------- Troca de view ----------
     const TITULOS = { leads:"Leads", gestor:"Gestor", site:"Site institucional" };
