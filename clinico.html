@@ -6869,7 +6869,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DR</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DS</b></span></div>
   </div>
 </div>
 
@@ -12668,27 +12668,27 @@ async function tkSesSalvar(btn) {
   // aberta pela HOME (detalhe da tarefa): quem vem direto pra cá tinha a lista vazia e o
   // salvamento parava com "avise a gestão" — culpando o cadastro por um dado que nunca foi
   // buscado. O prontuário já resolvia isso em prGarantirApoioAgenda; aqui faltava.
-  const tiposOk = await tkSesGarantirTipos();
-  let tipo = tkSesTipoEscolhido();
-  if (!tipo) {
-    // Três becos DIFERENTES, três saídas diferentes. O antigo "avise a gestão" era o mesmo texto
-    // pra todos — inclusive pra quem É a gestão, e sem dizer o que fazer.
-    if (!tiposOk) { homeToast('Não consegui carregar os tipos de atendimento agora. Tente de novo em instantes.'); return; }
-    if (!(agState.tipos || []).length) { homeToast('Não há nenhum tipo de atendimento cadastrado. Cadastre um em Editáveis → Tipos de atendimento.'); return; }
-    // Tem tipo cadastrado e nenhum foi escolhido: o seletor ainda não estava na tela (rede lenta,
-    // painel recém-aberto). Monta agora e pede pra confirmar, em vez de acusar o cadastro.
-    await tkSesTiposRender();
-    tipo = tkSesTipoEscolhido();
-    if (!tipo) { homeToast('Escolha o tipo de atendimento acima e salve de novo.'); return; }
-  }
+  // O tipo NÃO barra mais o salvamento. Quem resolve o cadastro é o SERVIDOR: sem `type_id` ele
+  // procura o tipo de aplicação e, se o catálogo não tiver nenhum, cria o canônico. A tela ainda
+  // descobre um tipo quando dá — pra respeitar quem escolheu no seletor —, mas nunca mais trava
+  // por não conseguir adivinhar o nome que a clínica usou.
+  await tkSesGarantirTipos();
+  const tipo = tkSesTipoEscolhido();
 
   const orig = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Salvando…';
-  const corpo = { prescricao_inj_id: t.origem_id, type_id: tipo.id, sessoes };
+  const corpo = { prescricao_inj_id: t.origem_id, sessoes };
+  if (tipo) corpo.type_id = tipo.id;   // sem tipo, o servidor escolhe (e cria, se precisar)
   try {
     // 1º uma simulação: se houver aviso (data no passado, p.ex.) a pessoa confirma antes de gravar.
     const sim = await pacApi('/api/clinico/appointments/lote-injetavel', { method: 'POST', body: JSON.stringify({ ...corpo, simular: true }) });
-    if (!sim.ok) { homeToast((sim.data && sim.data.erro) || 'Não consegui conferir as datas.'); return; }
+    if (!sim.ok) {
+      const msg = (sim.data && sim.data.erro) || 'Não consegui conferir as datas.';
+      // Servidor ANTIGO ainda exige o type_id e responde "Dados inválidos" quando ele falta. Sem
+      // este desvio a pessoa levaria uma mensagem genérica sem nenhuma pista do que fazer.
+      homeToast(!tipo && /dados inv/i.test(msg) ? 'Escolha o tipo de atendimento acima e salve de novo.' : msg);
+      return;
+    }
     const problemas = (sim.data.resultado || []).filter((l) => l.erro);
     const avisos = (sim.data.resultado || []).filter((l) => !l.erro && l.avisos && l.avisos.length);
     if (problemas.length) {
