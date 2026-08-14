@@ -6869,7 +6869,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DS</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DT</b></span></div>
   </div>
 </div>
 
@@ -12720,7 +12720,24 @@ async function tkSesSalvar(btn) {
     homeTarefasSync();
     homeToast(falhas ? `${okN} entraram, ${falhas} não. Veja em vermelho.` : `${okN} ${okN === 1 ? 'sessão marcada' : 'sessões marcadas'}.`);
   } catch (e) {
-    homeToast('Falha de conexão ao salvar as datas.');
+    // Este catch chamava TUDO de "falha de conexão" — e com isso escondia duas coisas bem
+    // diferentes da pessoa que está na tela:
+    //
+    //  1) SESSÃO VENCIDA. O login dura 8h; quando vence, o pacApi já manda pro login e joga
+    //     '401'. Dizer "falha de conexão" em cima disso manda a pessoa conferir o wi-fi
+    //     enquanto o problema era só refazer o login. (mesmo desvio de outras telas)
+    //  2) BUG NOSSO. Qualquer erro de código aqui virava "problema de internet" — o jeito mais
+    //     eficiente que existe de um defeito nunca ser reportado como defeito.
+    if (String(e && e.message) === '401') return;
+    console.error('[tkSesSalvar]', e);
+    // fetch só rejeita quando a requisição NÃO CHEGOU. O teste é pela MENSAGEM, não por
+    // `instanceof TypeError`: erro de código também é TypeError e seria rotulado de rede.
+    const semRede = /failed to fetch|networkerror|load failed|network request failed|connection was lost|aborted/i.test(String((e && e.message) || ''));
+    homeToast(semRede
+      // NÃO afirmar que não salvou: a requisição pode ter chegado e só a resposta ter se perdido.
+      // Prometer "não deu certo" faria a pessoa refazer em cima de algo que já entrou.
+      ? 'Não consegui falar com o servidor. As datas PODEM ter sido salvas mesmo assim — feche e abra a tarefa pra conferir antes de tentar de novo.'
+      : `Deu um erro inesperado ao salvar. Feche e abra a tarefa pra ver como ficou. (${String((e && e.message) || e).slice(0, 70)})`);
   } finally {
     const b = document.getElementById('tkses-salvar');
     if (b) { b.disabled = false; b.innerHTML = orig; }
