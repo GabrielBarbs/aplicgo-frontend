@@ -6869,7 +6869,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DT</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DU</b></span></div>
   </div>
 </div>
 
@@ -15027,7 +15027,24 @@ function gstFocoRender(d) {
 function homeCardClick(tipo) {
   homeToast('Esse bloco entra no roadmap: regras de atenção, renovações e tarefas com prazo/dono ainda não têm evento no sistema (Sprint 1–3 do briefing).');
 }
+// Carimbo do último 401. Ver homeToast logo abaixo — é o conserto de um problema de SISTEMA,
+// não de uma tela: varredura de ago/2026 achou 36 de 37 avisos de erro sem desvio pro 401.
+let sessaoExpirouEm = 0;
+let sessaoJaAvisou = false;
+function marcarSessaoExpirada() { sessaoExpirouEm = Date.now(); sessaoJaAvisou = false; }
+
 function homeToast(msg) {
+  // O login dura 8h. Quando vence, o pacApi manda pro login e joga '401' — e o catch de quem
+  // estava no meio de uma ação anuncia "sem conexão" / "não consegui" / "não salvou". A pessoa
+  // vai conferir a internet enquanto o problema era só refazer o login.
+  // Consertar isso em 36 lugares seria 36 chances de errar; a correção certa é no ÚNICO ponto por
+  // onde todos esses avisos passam: aqui. Os avisos que chegam logo depois de um 401 são todos
+  // rescaldo da mesma coisa — o primeiro vira a verdade, os seguintes somem.
+  if (Date.now() - sessaoExpirouEm < 6000) {
+    if (sessaoJaAvisou) return;
+    sessaoJaAvisou = true;
+    msg = 'Sua sessão expirou. Entre de novo para continuar — nada do que você já salvou se perdeu.';
+  }
   let t = document.getElementById('home-toast');
   if (!t) {
     t = document.createElement('div');
@@ -15751,6 +15768,9 @@ async function pacApi(path, opts = {}) {
   catch (e) { data = { error: 'Resposta inválida do servidor (HTTP ' + resp.status + ')', erro: 'Resposta inválida do servidor (HTTP ' + resp.status + ')' }; }
   if (resp.status === 401) {
     setToken(null);
+    // Carimba ANTES de jogar o erro: quem chamou vai cair no próprio catch e anunciar "sem
+    // conexão"/"não consegui", e é o carimbo que faz o homeToast trocar isso pela verdade.
+    if (typeof marcarSessaoExpirada === 'function') marcarSessaoExpirada();
     mostrarLogin('Sessão expirada');
     throw new Error('401');
   }
