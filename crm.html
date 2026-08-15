@@ -282,6 +282,56 @@
     .ga-box input{flex:1 1 200px;background:var(--bg1);border:1px solid var(--bd1);border-radius:8px;padding:9px 12px;color:var(--tx1);font:inherit;font-size:13px;outline:none}
     .ga-box input:focus{border-color:var(--ac)}
     .ga-fora{font-size:11px;color:var(--tx3);margin-top:10px;line-height:1.6}
+
+    /* ---------- Base completa ----------
+       Sessenta colunas só servem se der pra andar por elas sem esquecer de
+       quem é a linha. Duas coisas resolvem isso: o cabeçalho gruda no topo
+       (já vinha de .table-wrap) e a coluna do nome gruda na esquerda. */
+    .bs-barra{grid-template-columns:1fr auto auto;align-items:center}
+    .bs-barra>*{min-width:0}
+    .bs-check{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx3);white-space:nowrap;cursor:pointer}
+    .bs-check input{accent-color:var(--ac);width:15px;height:15px;cursor:pointer}
+
+    .bs-grupos{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px}
+    .bs-grupo{background:var(--bg2);border:1px solid var(--bd1);color:var(--tx3);border-radius:999px;
+      padding:6px 13px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;transition:.14s var(--ease)}
+    .bs-grupo:hover{color:var(--tx2);border-color:var(--bd2,var(--bd1))}
+    .bs-grupo[aria-pressed="true"]{background:rgba(var(--ac-rgb),.14);border-color:rgba(var(--ac-rgb),.42);color:var(--ac)}
+    .bs-grupo small{opacity:.62;font-weight:500;margin-left:5px}
+
+    /* max-height + overflow no wrapper: sem altura limitada o position:sticky
+       do cabeçalho não tem contra o que grudar e a rolagem vertical é a da
+       página inteira — aí o cabeçalho some assim que a lista passa da dobra. */
+    /* O piso de 320px não é enfeite: com calc(100vh - 300px) sozinho, numa
+       janela baixa (notebook pequeno, celular deitado) a conta dá quase zero e
+       a tabela vira uma fresta de 2px — encontrado medindo, não no papel. */
+    .bs-wrap{max-height:max(320px, calc(100vh - 300px));overflow:auto}
+    .bs-tabela{min-width:100%;width:max-content}
+    .bs-tabela th,.bs-tabela td{white-space:nowrap;font-size:12px;padding:9px 12px}
+    .bs-tabela td{max-width:280px;overflow:hidden;text-overflow:ellipsis}
+    .bs-tabela th{cursor:pointer;user-select:none;z-index:2}
+    .bs-tabela th:hover{color:var(--tx2)}
+    .bs-tabela th i{font-size:12px;vertical-align:-1px;margin-left:3px;opacity:.9}
+
+    /* A coluna fixa precisa de fundo OPACO: como ela passa por cima das
+       outras, qualquer transparência deixa o texto de baixo aparecer atrás. */
+    .bs-tabela th:first-child,.bs-tabela td:first-child{position:sticky;left:0;box-shadow:1px 0 0 var(--bd1)}
+    .bs-tabela td:first-child{background:var(--bg2);z-index:1;font-weight:600;color:var(--tx1)}
+    .bs-tabela th:first-child{background:var(--bg3);z-index:3}
+    .bs-tabela tbody tr:hover td:first-child{background:var(--bg3)}
+
+    /* Travessão de "não respondeu" fica mais apagado que dado de verdade —
+       mas só até onde ainda se lê. Ele tinha opacity:.55 sobre --tx4 e no tema
+       claro o contraste caía pra ~1.8:1, quase invisível. E este travessão NÃO
+       é enfeite: ele é a resposta "essa pessoa não respondeu". Sumir com ele é
+       transformar uma informação em espaço em branco. */
+    .bs-nulo{color:var(--tx3)}
+    .bs-num{font-variant-numeric:tabular-nums}
+    @media(max-width:900px){
+      .bs-barra{grid-template-columns:1fr}
+      .bs-wrap{max-height:calc(100vh - 340px)}
+      .bs-tabela td{max-width:200px}
+    }
     .gs-svg{width:100%;height:auto;display:block;overflow:visible}
     @media(max-width:1100px){ .gs-card{grid-column:span 12} .gs-card.terco{grid-column:span 6} }
     @media(max-width:700px){ .gs-card.terco{grid-column:span 12} }
@@ -532,6 +582,7 @@
 
     <nav class="sidebar-nav">
       <button class="sidebar-item active" data-view="leads"><i class="ti ti-user-plus"></i> Leads</button>
+      <button class="sidebar-item" data-view="base"><i class="ti ti-table"></i> Base completa</button>
       <button class="sidebar-item" data-view="gestor"><i class="ti ti-chart-histogram"></i> Gestor</button>
       <button class="sidebar-item" data-view="site"><i class="ti ti-world-www"></i> Site institucional</button>
       <!-- O item "Sistemas" saiu: a raiz do domínio agora é o próprio clínico.
@@ -599,6 +650,38 @@
       <div class="loading" id="loading">Carregando leads…</div>
       <div class="empty hidden" id="empty"><i class="ti ti-inbox"></i>Nenhum lead ainda. Assim que o funil capturar (e o backend estiver no ar), eles aparecem aqui.</div>
     </section>
+   </div>
+
+   <!-- ===================== BASE COMPLETA =====================
+        Uma linha por lead, uma coluna por campo que o sistema realmente
+        recebeu. É a aba de quem quer VER o dado cru, sem passar de ficha em
+        ficha — e é de onde sai o CSV pra abrir no Excel.
+
+        Campo que a pessoa não respondeu aparece como travessão. Nada aqui é
+        preenchido por dedução: coluna vazia é resposta que não veio. -->
+   <div id="view-base" class="hidden">
+    <div class="page-head">
+      <h1>Base completa</h1>
+      <p>Todo mundo que entrou pelos funis, com cada campo que chegou. Clique numa linha para abrir a ficha.</p>
+    </div>
+
+    <section class="filters bs-barra">
+      <input id="bsBusca" placeholder="Buscar em qualquer campo da tabela…" aria-label="Buscar na base completa">
+      <label class="bs-check"><input type="checkbox" id="bsVazias"> Esconder colunas sem nenhum dado</label>
+      <button class="btn ghost" id="bsCsv"><i class="ti ti-file-spreadsheet"></i> Baixar CSV</button>
+    </section>
+
+    <div class="bs-grupos" id="bsGrupos"></div>
+
+    <section class="table-wrap bs-wrap">
+      <table id="bsTabela" class="bs-tabela">
+        <thead><tr id="bsCab"></tr></thead>
+        <tbody id="bsLinhas"></tbody>
+      </table>
+      <div class="loading hidden" id="bsLoading">Carregando…</div>
+      <div class="empty hidden" id="bsVazio"></div>
+    </section>
+    <p class="gs-nota" id="bsRodape"></p>
    </div>
 
    <!-- ===================== GESTOR ===================== -->
@@ -1315,8 +1398,342 @@
       });
     }
 
+    // ============================================================
+    // BASE COMPLETA — uma linha por lead, uma coluna por campo.
+    //
+    // O que esta aba resolve: a ficha mostra tudo de UM lead; a lista mostra
+    // pouco de TODOS. Quem quer cruzar "quem veio da campanha X respondeu o
+    // quê" tinha que abrir ficha por ficha.
+    //
+    // TRÊS REGRAS QUE ELA NÃO QUEBRA:
+    //
+    // 1. Campo sem resposta vira travessão apagado, nunca some e nunca é
+    //    preenchido por dedução. Se a pessoa não respondeu, a célula diz isso.
+    // 2. `labels` (o texto que a pessoa escolheu) vence `answers` (o código).
+    //    Quando só existe o código, ele é traduzido pelo mesmo dicionário do
+    //    resto do CRM; quando o código é desconhecido, aparece cru em vez de
+    //    virar travessão — dado estranho tem que ser VISTO, não escondido.
+    // 3. O rodapé diz quantos leads existem no servidor, não só quantos estão
+    //    na tela. Uma aba chamada "Base completa" mostrando 500 de 1.240 sem
+    //    avisar seria a mentira mais fácil de cometer aqui.
+    // ============================================================
+    const bsA = l => l.answers   || {};
+    const bsL = l => l.labels    || {};
+    const bsU = l => l.utm       || {};
+    const bsF = l => l.afinidade || {};
+
+    // Traduz pelo dicionário, mas devolve o valor CRU quando não conhece o
+    // código — e null quando não há valor. Os *Label() de cima devolvem "—",
+    // que aqui viraria texto e faria "vazio" e "não sei traduzir" se
+    // confundirem na hora de esconder coluna vazia.
+    const bsMapa = (mapa, v) => (v === 0 || v) ? (mapa[v] || v) : null;
+    const bsPrim = (...vs) => { for(const v of vs){ if(v === 0 || (v && String(v).trim())) return v; } return null; };
+
+    // Junta lista. Se o campo não for lista (banco antigo, importação manual, um
+    // funil futuro mandando texto), mostra o valor COMO ESTÁ em vez de estourar
+    // e virar travessão — dado num formato inesperado tem que ser visto, senão
+    // ele parece dado que nunca chegou.
+    const bsLista = (v, de = 0) => Array.isArray(v) ? (v.slice(de).join(" · ") || null) : bsPrim(v);
+
+    // Sim/Não só faz sentido se o motor de afinidade rodou. Sem afinidade
+    // nenhuma, "Não" seria uma afirmação que ninguém fez.
+    const bsBool = (l, v) => bsF(l).principal || bsF(l).secundaria ? (v ? "Sim" : "Não") : null;
+
+    // WhatsApp: o banco guarda só dígitos com o 55 na frente. Formatar ajuda a
+    // ler, mas SÓ quando o número tem cara de brasileiro — número de fora fica
+    // como está, em vez de ser espremido num formato que não é o dele.
+    function bsFone(v){
+      const d = String(v || "").replace(/\D/g, "");
+      if(!d) return null;
+      if(d.startsWith("55") && (d.length === 12 || d.length === 13)){
+        const ddd = d.slice(2,4), resto = d.slice(4);
+        return `+55 (${ddd}) ${resto.slice(0, resto.length-4)}-${resto.slice(-4)}`;
+      }
+      return d;
+    }
+
+    const BS_TRAFEGO = {paid:"Pago", organic:"Orgânico", referral:"Indicação", direct:"Direto"};
+
+    const BS_GRUPOS = [
+      { id:"ident",    nome:"Identificação" },
+      { id:"quiz",     nome:"Respostas do quiz" },
+      { id:"proto",    nome:"Protocolo" },
+      { id:"com",      nome:"Comercial" },
+      { id:"origem",   nome:"Origem e campanha" },
+      { id:"primeira", nome:"Primeira origem" },
+      { id:"clint",    nome:"Clint" },
+      { id:"sis",      nome:"Sistema" },
+    ];
+
+    // g = grupo · t = título da coluna · v = de onde o valor sai · tipo = como
+    // formatar e como ordenar. A ordem daqui é a ordem na tela e no CSV.
+    const BS_COLS = [
+      { g:"ident", t:"Lead",            v:l => l.name },
+      { g:"ident", t:"Idade",           v:l => l.age, tipo:"num" },
+      { g:"ident", t:"WhatsApp",        v:l => bsFone(l.whatsapp) },
+      { g:"ident", t:"Instagram",       v:l => l.instagram },
+      { g:"ident", t:"E-mail",          v:l => l.email },
+      { g:"ident", t:"Cidade",          v:l => l.city },
+      { g:"ident", t:"Melhor horário",  v:l => l.contactTime },
+
+      { g:"quiz", t:"Direção principal",  v:l => bsPrim(bsL(l).transformacao, bsMapa(LABELS.goal, bsA(l).goal), bsMapa(LABELS.goal, l.goal)) },
+      { g:"quiz", t:"Queixa principal",   v:l => bsPrim(bsL(l).principal, bsA(l).complaint) },
+      // A partir da segunda: a primeira já é a "Queixa principal" ao lado.
+      { g:"quiz", t:"Outras queixas",     v:l => Array.isArray(bsL(l).queixas) ? bsLista(bsL(l).queixas, 1) : null },
+      { g:"quiz", t:"O que já tentou",    v:l => bsPrim(bsL(l).tentativa, bsLista(bsA(l).attempts)) },
+      { g:"quiz", t:"O que travou",       v:l => bsPrim(bsL(l).barreira, bsA(l).barrier) },
+      { g:"quiz", t:"Expectativa",        v:l => bsPrim(bsL(l).expectativa, bsMapa(LABELS.expectativa, bsA(l).expectation)) },
+      { g:"quiz", t:"Impacto (0–10)",     v:l => bsA(l).impact, tipo:"num" },
+      { g:"quiz", t:"Nível de impacto",   v:l => bsA(l).impactLevel },
+      { g:"quiz", t:"Prazo p/ começar",   v:l => bsPrim(bsL(l).prazo, bsMapa(LABELS.start, bsA(l).start)) },
+      { g:"quiz", t:"Unidade",            v:l => bsPrim(bsL(l).unidade, bsMapa(LABELS.unidade, bsA(l).unidade)) },
+      { g:"quiz", t:"Mensagem sugerida",  v:l => bsA(l).suggestedMessage },
+
+      { g:"proto", t:"Protocolo principal",     v:l => bsMapa(LABELS.protocolo, bsF(l).principal) },
+      { g:"proto", t:"Protocolo secundário",    v:l => bsMapa(LABELS.protocolo, bsF(l).secundaria) },
+      { g:"proto", t:"Protocolo complementar",  v:l => bsMapa(LABELS.protocolo, bsF(l).complementar) },
+      { g:"proto", t:"Jornada integrada",       v:l => bsBool(l, bsF(l).integrada) },
+      { g:"proto", t:"Club",                    v:l => bsBool(l, bsF(l).club) },
+      // O funil do Dr. Matheus manda afinidade SEM notas de propósito (lá a
+      // regra dá ordem de intenção, não nota). Coluna vazia ali é correta.
+      { g:"proto", t:"Notas de afinidade",      v:l => {
+          const s = bsF(l).scores;
+          if(!s || typeof s !== "object" || Array.isArray(s)) return null;
+          const linhas = Object.entries(s).filter(([,n]) => typeof n === "number" && n > 0).sort((a,b) => b[1]-a[1]);
+          return linhas.length ? linhas.map(([k,n]) => `${LABELS.protocolo[k]||k} ${n}`).join(" · ") : null;
+        } },
+
+      { g:"com", t:"Score",         v:l => l.score, tipo:"num" },
+      { g:"com", t:"Classe",        v:l => l.class },
+      { g:"com", t:"Prioridade",    v:l => l.internalPriority },
+      { g:"com", t:"Status",        v:l => l.status },
+      { g:"com", t:"Responsável",   v:l => l.owner },
+      { g:"com", t:"Próxima ação",  v:l => l.nextAction },
+      { g:"com", t:"Observações",   v:l => l.notes },
+
+      { g:"origem", t:"Funil",             v:l => l.funnel },
+      { g:"origem", t:"Fonte",             v:l => bsMapa(LABELS.source, l.source) },
+      { g:"origem", t:"Tipo de tráfego",   v:l => bsMapa(BS_TRAFEGO, bsU(l).traffic_type) },
+      { g:"origem", t:"Origem do clique",  v:l => bsU(l).traffic_source },
+      { g:"origem", t:"utm_source",        v:l => bsU(l).utm_source },
+      { g:"origem", t:"utm_medium",        v:l => bsU(l).utm_medium },
+      { g:"origem", t:"Campanha",          v:l => bsU(l).utm_campaign },
+      { g:"origem", t:"Criativo",          v:l => bsU(l).utm_content },
+      { g:"origem", t:"Conjunto / palavra",v:l => bsU(l).utm_term },
+      { g:"origem", t:"ID da campanha",    v:l => bsU(l).campaign_id },
+      { g:"origem", t:"ID do conjunto",    v:l => bsU(l).adset_id },
+      { g:"origem", t:"ID do anúncio",     v:l => bsU(l).ad_id },
+      { g:"origem", t:"Posicionamento",    v:l => bsU(l).placement },
+      { g:"origem", t:"Rede",              v:l => bsU(l).site_source_name },
+      { g:"origem", t:"gclid",             v:l => bsU(l).gclid },
+      { g:"origem", t:"wbraid",            v:l => bsU(l).wbraid },
+      { g:"origem", t:"gbraid",            v:l => bsU(l).gbraid },
+      { g:"origem", t:"fbclid",            v:l => bsU(l).fbclid },
+      { g:"origem", t:"Hora do clique",    v:l => bsU(l).click_at, tipo:"data" },
+      { g:"origem", t:"Veio de (referrer)",v:l => bsU(l).referrer },
+      { g:"origem", t:"Página de entrada", v:l => bsU(l).landing_url },
+      { g:"origem", t:"Página do envio",   v:l => bsU(l).origin_url },
+
+      { g:"primeira", t:"1ª — tipo",     v:l => bsMapa(BS_TRAFEGO, bsU(l).first_touch_source_type) },
+      { g:"primeira", t:"1ª — origem",   v:l => bsU(l).first_touch_source },
+      { g:"primeira", t:"1ª — campanha", v:l => bsU(l).first_touch_campaign },
+      { g:"primeira", t:"1ª — criativo", v:l => bsU(l).first_touch_content },
+      { g:"primeira", t:"1ª — quando",   v:l => bsU(l).first_touch_at, tipo:"data" },
+      { g:"primeira", t:"1ª — página",   v:l => bsU(l).first_touch_url },
+
+      { g:"clint", t:"Entrega no Clint", v:l => bsMapa(LABELS.clint, l.clintStatus) },
+      { g:"clint", t:"Quando foi",       v:l => l.clintAt, tipo:"data" },
+      { g:"clint", t:"Tentativas",       v:l => l.clintTentativas, tipo:"num" },
+      { g:"clint", t:"Erro do Clint",    v:l => l.clintErro },
+
+      { g:"sis", t:"Entrada",           v:l => l.createdAt, tipo:"data" },
+      { g:"sis", t:"Última alteração",  v:l => l.updatedAt, tipo:"data" },
+      { g:"sis", t:"Consentimento",     v:l => l.consentAt, tipo:"data" },
+      { g:"sis", t:"ID do lead",        v:l => l.id },
+    ];
+
+    let BS_ATIVOS = new Set(BS_GRUPOS.map(g => g.id));
+    let BS_ORDEM = { i:BS_COLS.findIndex(c => c.t === "Entrada"), dir:-1 };
+    let BASE_TOTAL = null;      // quantos existem no servidor (null = não sei)
+    let BASE_MONTADA = false;
+
+    // O valor já formatado pra leitura. Uma função só, usada pela tela E pelo
+    // CSV — se fossem duas, um dia elas discordariam e o arquivo passaria a
+    // dizer coisa diferente do que a pessoa viu.
+    //
+    // CACHE, e por que ele precisou existir: cada render percorre a tabela três
+    // vezes (filtrar a busca, descobrir coluna vazia, desenhar). Com 1000 leads
+    // e 67 colunas isso dava 200 mil chamadas e MEDI 761ms por tecla digitada —
+    // a busca travava a cada letra. Com o cache, cada célula é calculada uma vez.
+    //
+    // WeakMap com o próprio lead como chave: quando saveLead troca o objeto por
+    // um novo vindo do servidor, o novo simplesmente não tem cache e recalcula.
+    // Não existe cache velho pra invalidar na mão — que é onde esse tipo de
+    // otimização costuma virar bug de dado desatualizado na tela.
+    let BS_CACHE = new WeakMap();
+    function bsTexto(col, l){
+      let linha = BS_CACHE.get(l);
+      if(!linha){ linha = []; BS_CACHE.set(l, linha); }
+      const i = BS_COLS.indexOf(col);
+      if(i >= 0 && linha[i] !== undefined) return linha[i];
+
+      let v;
+      try { v = col.v(l); } catch { v = null; }
+      const txt = (v === null || v === undefined || v === "") ? ""
+        : (col.tipo === "data" ? fmtDate(v) : String(v));
+      if(i >= 0) linha[i] = txt;
+      return txt;
+    }
+
+    function bsColunasVisiveis(linhas){
+      let cols = BS_COLS.filter(c => BS_ATIVOS.has(c.g));
+      if($("bsVazias").checked){
+        // Some só a coluna em que NINGUÉM respondeu. Coluna com um único
+        // preenchido continua: é exatamente esse lead que se quer achar.
+        cols = cols.filter(c => linhas.some(l => bsTexto(c, l) !== ""));
+      }
+      // A primeira coluna é a que gruda na esquerda. Se o grupo Identificação
+      // for desligado, quem gruda passa a ser outra — e sem nome na linha a
+      // tabela fica ilegível. Por isso o Lead é reinserido na marra.
+      if(!cols.length || cols[0].t !== "Lead") cols = [BS_COLS[0], ...cols.filter(c => c.t !== "Lead")];
+      return cols;
+    }
+
+    function bsFiltradas(){
+      const q = ($("bsBusca").value || "").toLowerCase().trim();
+      const cols = BS_COLS.filter(c => BS_ATIVOS.has(c.g));
+      let linhas = LEADS;
+      if(q){
+        // Busca no que está VISÍVEL. Achar um lead por um campo que a tela não
+        // mostra deixaria a linha parecendo não corresponder à busca.
+        linhas = linhas.filter(l => cols.some(c => bsTexto(c, l).toLowerCase().includes(q)));
+      }
+      const col = BS_COLS[BS_ORDEM.i];
+      if(col){
+        // Mesmo try/catch do bsTexto: um lead com JSON estranho não pode
+        // derrubar a ordenação da tabela inteira.
+        const bruto = l => { try { return col.v(l); } catch { return null; } };
+        linhas = linhas.slice().sort((a,b) => {
+          const va = bruto(a), vb = bruto(b);
+          const na = va === null || va === undefined || va === "";
+          const nb = vb === null || vb === undefined || vb === "";
+          // Vazio afunda SEMPRE, nos dois sentidos: ordenar por uma coluna não
+          // pode encher a primeira tela de travessão.
+          if(na || nb) return na && nb ? 0 : (na ? 1 : -1);
+          if(col.tipo === "num")  return (va - vb) * BS_ORDEM.dir;
+          if(col.tipo === "data") return (new Date(va) - new Date(vb)) * BS_ORDEM.dir;
+          return String(va).localeCompare(String(vb), "pt-BR", {numeric:true}) * BS_ORDEM.dir;
+        });
+      }
+      return linhas;
+    }
+
+    function renderBase(){
+      const linhas = bsFiltradas();
+      const cols = bsColunasVisiveis(linhas);
+
+      $("bsCab").innerHTML = cols.map((c) => {
+        const i = BS_COLS.indexOf(c);
+        const seta = BS_ORDEM.i === i ? `<i class="ti ti-arrow-${BS_ORDEM.dir === 1 ? "up" : "down"}"></i>` : "";
+        return `<th data-i="${i}" title="Ordenar por ${esc(c.t)}">${esc(c.t)}${seta}</th>`;
+      }).join("");
+
+      $("bsLinhas").innerHTML = linhas.map(l => "<tr data-id=\"" + esc(l.id) + "\">" + cols.map(c => {
+        const txt = bsTexto(c, l);
+        if(txt === "") return '<td class="bs-nulo">—</td>';
+        // title guarda o valor inteiro: a célula corta com reticências pra
+        // tabela não virar um campo de 2000px por causa de uma observação.
+        return `<td class="${c.tipo === "num" ? "bs-num" : ""}" title="${esc(txt)}">${esc(txt)}</td>`;
+      }).join("") + "</tr>").join("");
+
+      $("bsVazio").classList.toggle("hidden", linhas.length > 0);
+      if(!linhas.length){
+        $("bsVazio").innerHTML = LEADS.length
+          ? '<i class="ti ti-search-off"></i>Nenhum lead bate com essa busca.'
+          : '<i class="ti ti-inbox"></i>Nenhum lead ainda.';
+      }
+
+      $("bsGrupos").innerHTML = BS_GRUPOS.map(g => {
+        const n = BS_COLS.filter(c => c.g === g.id).length;
+        return `<button class="bs-grupo" data-g="${g.id}" aria-pressed="${BS_ATIVOS.has(g.id)}">${esc(g.nome)}<small>${n}</small></button>`;
+      }).join("");
+
+      // Rodapé: o que está na tela, o que existe no servidor, e a diferença.
+      const naTela = linhas.length === LEADS.length
+        ? `${LEADS.length} leads`
+        : `${linhas.length} de ${LEADS.length} leads carregados`;
+      const noServidor = BASE_TOTAL === null
+        ? "O servidor ainda não informa o total — atualize o servidor para esta aba saber se falta alguém."
+        : (BASE_TOTAL > LEADS.length
+            ? `<b>Existem ${BASE_TOTAL} no total; ${BASE_TOTAL - LEADS.length} ainda não foram carregados.</b> <button class="btn ghost" id="bsMais" style="padding:4px 10px;font-size:11px;margin-left:4px"><i class="ti ti-plus"></i> Carregar o resto</button>`
+            : "É a base inteira — não falta ninguém.");
+      $("bsRodape").innerHTML = `${naTela} · ${cols.length} de ${BS_COLS.length} colunas. ${noServidor}<br>
+        Travessão é campo que a pessoa não respondeu, não dado perdido. Nada nesta tabela é calculado ou deduzido: é o que chegou.`;
+      if($("bsMais")) $("bsMais").addEventListener("click", carregarRestoDaBase);
+    }
+
+    async function carregarRestoDaBase(){
+      const btn = $("bsMais");
+      if(btn){ btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Carregando…'; }
+      const r = await api("/api/leads?take=1000&skip=" + LEADS.length);
+      if(!r.ok || !r.data || !r.data.leads){
+        if(btn){ btn.disabled = false; btn.innerHTML = 'Não deu — tentar de novo'; }
+        return;
+      }
+      // Concatena sem duplicar: se alguém cadastrar um lead entre uma página e
+      // outra, o `skip` desliza e o mesmo registro voltaria duas vezes.
+      const jaTem = new Set(LEADS.map(l => l.id));
+      LEADS = LEADS.concat(r.data.leads.filter(l => !jaTem.has(l.id)));
+      if(typeof r.data.total === "number") BASE_TOTAL = r.data.total;
+      renderMetrics(); renderRows(); renderBase();
+    }
+
+    function bsCsv(){
+      const linhas = bsFiltradas(), cols = bsColunasVisiveis(linhas);
+      const campo = s => /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      // Ponto e vírgula: no Excel em português a vírgula é separador DECIMAL, e
+      // um arquivo com vírgula abre com tudo empilhado numa coluna só.
+      const csv = [cols.map(c => campo(c.t)).join(";")]
+        .concat(linhas.map(l => cols.map(c => campo(bsTexto(c, l))).join(";")))
+        .join("\r\n");
+      baixarArquivo(`leads-${new Date().toISOString().slice(0,10)}.csv`, csv);
+      showToast(`${linhas.length} leads e ${cols.length} colunas no arquivo.`);
+    }
+
+    function montarBase(){
+      BASE_MONTADA = true;
+      $("bsGrupos").addEventListener("click", e => {
+        const b = e.target.closest("[data-g]"); if(!b) return;
+        const g = b.dataset.g;
+        // Desligar o último grupo deixaria a tela em branco sem explicar por quê.
+        if(BS_ATIVOS.has(g) && BS_ATIVOS.size > 1) BS_ATIVOS.delete(g);
+        else BS_ATIVOS.add(g);
+        renderBase();
+      });
+      $("bsCab").addEventListener("click", e => {
+        const th = e.target.closest("th"); if(!th) return;
+        const i = Number(th.dataset.i);
+        BS_ORDEM = BS_ORDEM.i === i ? { i, dir:-BS_ORDEM.dir } : { i, dir:1 };
+        renderBase();
+      });
+      $("bsLinhas").addEventListener("click", e => {
+        const tr = e.target.closest("tr[data-id]"); if(tr) openLead(tr.dataset.id);
+      });
+      // Espera a pessoa parar de digitar. Sem isso, cada letra dispara um
+      // render inteiro — e mesmo com o cache, montar 67 mil células a cada
+      // tecla engasga a digitação em base grande.
+      let timerBusca;
+      $("bsBusca").addEventListener("input", () => {
+        clearTimeout(timerBusca);
+        timerBusca = setTimeout(renderBase, 180);
+      });
+      $("bsVazias").addEventListener("change", renderBase);
+      $("bsCsv").addEventListener("click", bsCsv);
+      renderBase();
+    }
+
     // ---------- Troca de view ----------
-    const TITULOS = { leads:"Leads", gestor:"Gestor", site:"Site institucional" };
+    const TITULOS = { leads:"Leads", base:"Base completa", gestor:"Gestor", site:"Site institucional" };
     function trocarView(nome){
       document.querySelectorAll(".sidebar-item[data-view]").forEach(b=>b.classList.toggle("active", b.dataset.view===nome));
       // Percorre os TÍTULOS em vez de listar cada view na mão: view nova só
@@ -1326,6 +1743,7 @@
       $("search").parentElement.classList.toggle("hidden", nome!=="leads");
       if(nome==="site" && !SITE_CARREGADO) carregarSite();
       if(nome==="gestor" && !GESTOR_CARREGADO) carregarGestor();
+      if(nome==="base"){ BASE_MONTADA ? renderBase() : montarBase(); }
     }
     document.querySelectorAll(".sidebar-item[data-view]").forEach(b=>{
       b.addEventListener("click", ()=>trocarView(b.dataset.view));
@@ -1346,8 +1764,13 @@
       if(r.status===401) return;
       if(!r.ok){ $("loading").textContent = r.net ? "Sem conexão com o servidor." : "Não foi possível carregar os leads."; return; }
       LEADS = (r.data && r.data.leads) || [];
+      // `total` é do servidor novo. Servidor antigo não manda, e aí a Base
+      // completa diz que NÃO SABE se falta gente — em vez de afirmar que está
+      // completa contando as linhas que ela mesma carregou.
+      BASE_TOTAL = typeof (r.data && r.data.total) === "number" ? r.data.total : null;
       $("loading").classList.add("hidden");
       renderMetrics(); renderRows();
+      if(BASE_MONTADA) renderBase();
     }
 
     function filtered(){
@@ -1536,7 +1959,12 @@
       const r=await api("/api/leads/"+id,{method:"PATCH",body:JSON.stringify(body)});
       if(!r.ok){ showToast("Não foi possível salvar."); return; }
       const i=LEADS.findIndex(x=>x.id===id); if(i>=0 && r.data && r.data.lead) LEADS[i]=r.data.lead;
-      renderMetrics(); renderRows(); closeModal(); showToast("Lead atualizado.");
+      renderMetrics(); renderRows();
+      // A Base completa também mostra status, responsável e observações. Sem
+      // este redesenho ela continuaria exibindo o valor antigo do lead que
+      // acabou de ser editado — dado velho na tela é pior que tela vazia.
+      if(BASE_MONTADA) renderBase();
+      closeModal(); showToast("Lead atualizado.");
     }
 
     // ---------- Boot ----------
