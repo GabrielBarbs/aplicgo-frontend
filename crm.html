@@ -275,6 +275,30 @@
     .gs-var{font-size:11px;font-weight:600}
     .gs-var.sobe{color:var(--ok)} .gs-var.desce{color:var(--err)} .gs-var.igual{color:var(--tx3)}
     .gs-nota{font-size:11px;color:var(--tx3);margin-top:12px;line-height:1.5;padding-top:10px;border-top:1px solid var(--hair,rgba(255,255,255,.06))}
+
+    /* ---------- Mapa da semana ---------- */
+    .gs-mapa-rolo{overflow-x:auto}
+    .gs-mapa{width:100%;border-collapse:separate;border-spacing:3px;min-width:340px}
+    .gs-mapa th{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3b);
+      background:none;border:0;position:static;padding:0 0 4px;text-align:center;font-weight:700}
+    /* No celular o mapa rola na horizontal. Sem grudar, o nome do dia sai da
+       tela junto com a rolagem e as casas viram números sem linha — o mesmo
+       erro que a Base completa já tinha corrigido na coluna do nome.
+       Fundo opaco porque ela passa por cima das casas coloridas. */
+    .gs-mapa-dia{font-size:11px;color:var(--tx3);white-space:nowrap;padding:0 8px 0 0;border:0;text-align:right;width:1%;
+      position:sticky;left:0;background:var(--bg2);z-index:1}
+    .gs-mapa-cel{border:0;border-radius:6px;padding:9px 4px;text-align:center;font-size:12px;font-weight:600;
+      color:var(--tx1);font-variant-numeric:tabular-nums}
+    /* Zero fica com o fundo do painel e um contorno pontilhado: "ninguém veio"
+       tem que se ler diferente de "veio pouca gente", e não como a cor mais
+       fraca da mesma escala. */
+    .gs-mapa-cel.vazia{background:transparent;box-shadow:inset 0 0 0 1px var(--hair,rgba(255,255,255,.06))}
+
+    /* Destaque do melhor horário (ou da recusa em eleger um) */
+    .gs-destaque{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+    .gs-destaque b{font-size:22px;font-weight:800;color:var(--ac);letter-spacing:-.4px}
+    .gs-destaque span{font-size:12px;color:var(--tx3);line-height:1.55}
+    .gs-recusa{font-size:12px;color:var(--tx3);line-height:1.6}
     /* Exportação pro Google Ads. min-width:0 nos filhos porque o wrap encolhe
        abaixo do conteúdo em Firefox e Safari se não disser. */
     .ga-linha{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -1128,18 +1152,95 @@
       }).join("");
     }
 
-    // Tabela de origem: volume NÃO é a resposta sozinha. Uma campanha pode trazer
-    // o dobro de lead e nenhum prestar — por isso classe A e convertidos vêm ao lado.
+    // ---------- Mapa da semana (dia × turno) ----------
+    // Onde a semana concentra os leads. É CONTAGEM, sem percentual: 28 casas
+    // divididas por poucos leads não sustentam proporção nenhuma, mas "chegam
+    // 40 na noite de terça" é fato desde o primeiro dia.
+    //
+    // A escala é relativa ao maior valor do próprio mapa, e a casa com zero fica
+    // visivelmente vazia em vez de receber a cor mais clara da escala — senão
+    // "ninguém" e "quase ninguém" viram a mesma cor.
+    function gsMapa(mapa, faixas){
+      if(!mapa || !mapa.length) return '<div class="gs-vazio">Nada registrado no período.</div>';
+      const maior = Math.max(1, ...mapa.flatMap(d => d.faixas));
+      const cabecalho = faixas.map(f => `<th>${esc(f)}</th>`).join("");
+      const linhas = mapa.map(d => `<tr>
+        <td class="gs-mapa-dia">${esc(d.rotulo)}</td>
+        ${d.faixas.map((n, i) => {
+          const forca = n / maior;
+          const estilo = n ? `background:rgba(var(--ac-rgb),${(0.10 + forca * 0.72).toFixed(3)})` : "";
+          return `<td class="gs-mapa-cel ${n ? "" : "vazia"}" style="${estilo}"
+            title="${esc(d.rotulo)} · ${esc(faixas[i])}: ${nfmt(n)} lead${n===1?"":"s"}">${n ? nfmt(n) : ""}</td>`;
+        }).join("")}
+      </tr>`).join("");
+      return `<div class="gs-mapa-rolo"><table class="gs-mapa">
+        <thead><tr><th></th>${cabecalho}</tr></thead><tbody>${linhas}</tbody>
+      </table></div>`;
+    }
+
+    // ---------- Melhor horário ----------
+    // Este é o card mais fácil de transformar em decisão errada, então ele tem
+    // duas saídas: ou afirma com o número na mão, ou explica por que não dá pra
+    // afirmar ainda. Nunca elege um vencedor tirado de três leads.
+    function melhorHorarioBloco(d){
+      const m = d.melhorHorario;
+      const pico = d.resumo.horaDePico, picoDia = d.resumo.diaDePico;
+      const volume = pico
+        ? `Onde chega <b style="color:var(--tx1);font-size:12px">mais gente</b>: ${String(pico.hora).padStart(2,"0")}h (${nfmt(pico.total)} leads)${picoDia ? `, e ${esc(picoDia.rotulo.toLowerCase())} (${nfmt(picoDia.total)})` : ""}.`
+        : "";
+      if(!m){
+        return `<div class="gs-recusa"><b style="color:var(--tx2)">Ainda não dá para afirmar qual é o melhor horário.</b><br>
+          ${esc(d.motivoSemMelhorHorario || "")}<br>${volume}</div>`;
+      }
+      return `<div class="gs-destaque">
+        <b>${esc(m.rotulo)}</b>
+        <span>${m.pctClasseA}% dos ${nfmt(m.total)} leads desse turno são classe A — a maior proporção do dia.
+        ${m.empatada ? "<b style='color:var(--warn)'>Há empate com outro turno</b>, então não é uma vantagem clara." : ""}<br>${volume}</span>
+      </div>`;
+    }
+
+    function cicloSub(d){
+      const m = d.resumo;
+      if(m.medianaCicloDias === null) return "Quanto tempo entre a pessoa ver a clínica pela primeira vez e preencher o formulário.";
+      const meta = m.medianaCicloDias === 0 ? "no mesmo dia" : `${String(m.medianaCicloDias).replace(".", ",")} dia(s)`;
+      // O denominador aparece: a mediana descreve só quem TEM a data gravada, e
+      // esconder isso faria o número parecer valer para a base inteira.
+      return `Metade decide em até ${meta}. Calculado sobre ${nfmt(m.cicloComData)} leads que têm a data do primeiro acesso`
+        + (m.cicloDescartadoPorData ? `; ${nfmt(m.cicloDescartadoPorData)} ficaram de fora porque a data do aparelho estava adiantada.` : ".");
+    }
+
+    /*
+      Tabela de origem: volume NÃO é a resposta sozinha. Uma campanha pode trazer
+      o dobro de lead e nenhum prestar — por isso classe A e convertidos vêm ao lado.
+
+      O PISO DO PERCENTUAL. A coluna "Classe A" mostra uma TAXA, e taxa sobre
+      pouca gente é ruído com cara de descoberta: uma campanha com 3 leads e 1
+      classe A vira "33%" e ganha de uma com 200 leads e 25%. A contagem (que é
+      fato) continua sempre; o percentual só aparece quando há base para ele.
+
+      Vale pra tabela inteira do Gestor, não só pros cards de horário — o erro
+      era o mesmo em campanha, criativo e responsável.
+    */
+    let GS_MINIMO_PCT = 10;
     function gsTabela(fatias, rotuloCol){
       if(!fatias || !fatias.length) return '<div class="gs-vazio">Nada registrado no período.</div>';
+      const poucos = fatias.some(f => f.total > 0 && f.total < GS_MINIMO_PCT && f.classeA);
       return `<table class="gs-tab">
         <thead><tr><th>${esc(rotuloCol)}</th><th>Leads</th><th>Classe A</th><th>Convertidos</th></tr></thead>
-        <tbody>${fatias.map(f=>`<tr>
+        <tbody>${fatias.map(f=>{
+          const temBase = f.total >= GS_MINIMO_PCT;
+          const classeA = !f.classeA ? "—"
+            : nfmt(f.classeA) + (temBase
+                ? " <small style='color:var(--tx3)'>(" + pctTxt(f.classeA, f.total) + ")</small>"
+                : " <small style='color:var(--tx4)' title='Menos de " + GS_MINIMO_PCT + " leads: a proporção oscilaria demais para comparar'>(sem base p/ %)</small>");
+          return `<tr>
           <td class="${f.rotulo==="sem informação"?"fraco":""}" title="${esc(f.rotulo)}">${esc(f.rotulo)}</td>
           <td>${nfmt(f.total)}</td>
-          <td class="${f.classeA?"":"fraco"}">${f.classeA ? nfmt(f.classeA)+" <small style='color:var(--tx3)'>("+pctTxt(f.classeA,f.total)+")</small>" : "—"}</td>
+          <td class="${f.classeA?"":"fraco"}">${classeA}</td>
           <td class="${f.convertidos?"":"fraco"}">${f.convertidos ? nfmt(f.convertidos) : "—"}</td>
-        </tr>`).join("")}</tbody></table>`;
+        </tr>`;}).join("")}</tbody>
+        ${poucos ? `<tfoot><tr><td colspan="4" style="padding-top:8px;font-size:10px;color:var(--tx4);text-align:left;border:0">Linhas com menos de ${GS_MINIMO_PCT} leads saem sem percentual: a contagem é fato, a proporção ainda não é.</td></tr></tfoot>` : ""}
+      </table>`;
     }
 
     // Série diária em área. Os dias sem lead vêm com zero do servidor de
@@ -1230,6 +1331,10 @@
       }
       GESTOR_CARREGADO = true;
       const d = r.data, m = d.resumo;
+      // O piso vem do servidor, que é quem define a regra — o front não escolhe
+      // sozinho a partir de que número um percentual passa a valer. Servidor
+      // antigo não manda; aí fica o padrão daqui.
+      if(typeof d.minimoParaPercentual === "number") GS_MINIMO_PCT = d.minimoParaPercentual;
       const varClasse = m.variacao == null ? "igual" : (m.variacao > 0 ? "sobe" : (m.variacao < 0 ? "desce" : "igual"));
       const varTxt = m.variacao == null
         ? "sem base anterior para comparar"
@@ -1287,10 +1392,24 @@
 
           ${gsCard("Por responsável", "Quem está com os leads e o que fez com eles.", gsTabela(d.porResponsavel, "Responsável"), "full")}
 
-          ${gsCard("Hora que chegam", "Horário de Brasília. Ajuda a saber quando ter alguém pronto para responder.",
+          ${gsCard("Melhor horário", "Não é quando chega MAIS gente — é quando chega a gente melhor. As duas respostas costumam ser horários diferentes.",
+            melhorHorarioBloco(d), "full")}
+
+          ${gsCard("Hora que chegam", "Horário de Brasília. Contagem por hora cheia — é volume, ajuda a saber quando ter alguém pronto para responder.",
             gsColunas(d.porHora.map(h=>h.total), d.porHora.map(h=>String(h.hora).padStart(2,"0")), "Leads por hora"))}
-          ${gsCard("Dia da semana", "Horário de Brasília.",
-            gsColunas(d.porDiaSemana.map(x=>x.total), ["dom","seg","ter","qua","qui","sex","sáb"], "Leads por dia da semana"))}
+          ${gsCard("Turno do dia", `Os mesmos leads em blocos grandes o bastante para comparar qualidade. Abaixo de ${d.minimoParaPercentual} leads o percentual não é calculado.`,
+            gsTabela(d.porFaixaHoraria, "Turno"))}
+
+          ${gsCard("Mapa da semana", "Onde a semana concentra os leads. Só contagem: 28 casas divididas por poucos leads não sustentam percentual.",
+            gsMapa(d.mapaSemana, ["Madrugada","Manhã","Tarde","Noite"]), "full")}
+
+          ${gsCard("Dia da semana", "Horário de Brasília, agora com a qualidade ao lado do volume.",
+            gsTabela(d.porDiaSemanaQualidade, "Dia"))}
+          ${gsCard("Ciclo de decisão", cicloSub(d),
+            d.cicloDecisao && d.cicloDecisao.length ? gsBarras(d.cicloDecisao) : '<div class="gs-vazio">Nenhum lead do período tem a data do primeiro acesso gravada.</div>')}
+
+          ${gsCard("Impacto declarado × resultado", "O quanto a queixa atrapalha a vida, contra o que aconteceu com o lead. Serve para saber se sofrimento declarado prevê fechamento.",
+            gsTabela(d.porFaixaImpacto, "O quanto incomoda"), "full")}
 
           ${gsCard("Entrega no Clint", "Se o contato chegou no CRM comercial.", gsBarras(d.porClint), "full")}
 
@@ -1362,7 +1481,11 @@
         box.innerHTML = '<div class="gs-vazio">Disponível assim que o servidor for atualizado.</div>';
         return;
       }
-      if(!r.ok || !r.data){
+      // `porTipo` entra na checagem junto do resto: sem ele o `Object.keys`
+      // logo abaixo estoura, e como esta função é chamada solta no fim do
+      // render do Gestor, a exceção é engolida e o card fica preso em
+      // "Carregando…" pra sempre. Travar em silêncio é pior que dizer que falhou.
+      if(!r.ok || !r.data || !r.data.porTipo){
         box.innerHTML = '<div class="gs-vazio">Não foi possível carregar as conversões.</div>';
         return;
       }
