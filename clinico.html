@@ -6869,7 +6869,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DV</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DW</b></span></div>
   </div>
 </div>
 
@@ -8352,6 +8352,37 @@
       font-size: 12px; color: var(--tx2); line-height: 1.5;
     }
     #view-editaveis .autg-aviso i { color: #EF9F27; font-size: 17px; flex-shrink: 0; }
+    /* Diário da confirmação: um dia por cartão, cada pessoa numa linha, o desfecho à esquerda. */
+    #view-editaveis .autg-di-vazio { padding: 16px 0; font-size: 12.5px; color: var(--tx3); }
+    #view-editaveis .autg-di-barra { display: flex; gap: 6px; margin: 4px 0 12px; flex-wrap: wrap; }
+    #view-editaveis .autg-di-jan { background: var(--bg2); border: 1px solid var(--bd1); color: var(--tx2); border-radius: 7px; padding: 5px 11px; font-size: 11.5px; font-family: inherit; cursor: pointer; }
+    #view-editaveis .autg-di-jan.on { background: var(--bg3); color: var(--tx1); border-color: var(--bd2); }
+    #view-editaveis .autg-di-aviso { display: flex; gap: 10px; align-items: flex-start; background: rgba(224,164,88,.10); border: 1px solid rgba(224,164,88,.3); border-radius: 10px; padding: 11px 13px; font-size: 12px; color: var(--tx2); line-height: 1.5; margin-bottom: 12px; }
+    #view-editaveis .autg-di-aviso i { color: #e0a458; font-size: 16px; flex-shrink: 0; }
+    #view-editaveis .autg-di-dia { border: 1px solid var(--bd1); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+    #view-editaveis .autg-di-cab { display: flex; align-items: center; gap: 9px; padding: 10px 13px; cursor: pointer; font-size: 13px; color: var(--tx1); flex-wrap: wrap; }
+    #view-editaveis .autg-di-cab:hover { background: var(--bg2); }
+    #view-editaveis .autg-di-dia.aberto .autg-di-cab { border-bottom: 1px solid var(--bd1); }
+    #view-editaveis .autg-di-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-left: auto; }
+    #view-editaveis .autg-di-chip { font-size: 10.5px; padding: 2px 7px; border-radius: 5px; background: var(--bg3); color: var(--tx3); white-space: nowrap; }
+    #view-editaveis .autg-di-chip.ok, #view-editaveis .autg-di-chip.sim { background: rgba(63,185,80,.13); color: #3fb950; }
+    #view-editaveis .autg-di-chip.pulo, #view-editaveis .autg-di-chip.nao { background: rgba(248,81,73,.14); color: #f85149; }
+    #view-editaveis .autg-di-chip.outra { background: rgba(224,164,88,.16); color: #e0a458; }
+    #view-editaveis .autg-di-chip.mudo { background: var(--bg3); color: var(--tx4); }
+    #view-editaveis .autg-di-chip.feito { background: rgba(88,166,255,.14); color: #58a6ff; }
+    #view-editaveis .autg-di-linhas { padding: 2px 0; }
+    #view-editaveis .autg-di-linha { display: flex; align-items: center; gap: 9px; padding: 7px 13px; border-bottom: 1px solid rgba(var(--bd1-rgb),.5); font-size: 12px; flex-wrap: wrap; }
+    #view-editaveis .autg-di-linha:last-child { border-bottom: none; }
+    #view-editaveis .autg-di-tag { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 7px; border-radius: 5px; white-space: nowrap; flex: 0 0 auto; min-width: 86px; text-align: center; }
+    #view-editaveis .autg-di-tag.sim { background: rgba(63,185,80,.14); color: #3fb950; }
+    #view-editaveis .autg-di-tag.nao { background: rgba(248,81,73,.16); color: #f85149; }
+    #view-editaveis .autg-di-tag.pulo { background: rgba(239,159,39,.14); color: #EF9F27; }
+    #view-editaveis .autg-di-tag.outra { background: rgba(224,164,88,.18); color: #e0a458; }
+    #view-editaveis .autg-di-tag.mudo { background: var(--bg3); color: var(--tx4); }
+    #view-editaveis .autg-di-linha .nm { color: var(--tx1); min-width: 0; }
+    #view-editaveis .autg-di-linha .cs { color: var(--tx4); font-size: 11px; }
+    #view-editaveis .autg-di-linha .dt { color: var(--tx3); flex: 1 1 220px; min-width: 0; }
+    #view-editaveis .autg-di-extra { flex: 1 1 100%; display: flex; gap: 10px; flex-wrap: wrap; padding-left: 95px; color: var(--tx4); font-size: 11px; }
     #view-editaveis .pt-empty { padding: 40px; text-align: center; color: var(--tx4); font-size: 14px; }
     /* Rastro do que foi enviado + apagar para todos */
     /* Do MODAL: ele é criado por JS e vai pro body, então não herda o escopo da view. */
@@ -15751,7 +15782,10 @@ async function pacApi(path, opts = {}) {
     mostrarLogin('Sessão expirada');
     throw new Error('401');
   }
-  return { ok: resp.ok, data };
+  // `status` junto: sem ele não dá pra distinguir "esta rota ainda não existe neste servidor"
+  // (404, normal enquanto o backend não sobe) de "deu erro" — e a tela acusava problema onde só
+  // faltava deploy. Campo NOVO, ninguém que já lia {ok,data} é afetado.
+  return { ok: resp.ok, status: resp.status, data };
 }
 
 // Autopreenche endereço pelo CEP (ViaCEP via nosso backend — a CSP bloqueia chamada direta).
@@ -33816,12 +33850,166 @@ function autgHtml() {
     + '<b>As respostas dos pacientes chegam em Conversas.</b> Elas não mudam o status do agendamento sozinhas — '
     + 'confirmar ou cancelar continua sendo feito na Agenda, na mão.</div></div>';
 
-  // Saíram daqui, a pedido do dono: o painel "O que a automação já enviou (últimas 48h)" (com o
-  // "Apagar para todos") e a lista "Últimas mensagens automáticas". Junto foram as funções
-  // autgEnviadasHtml/autgUltimosHtml/autgApagar/autgConfirmar e o CSS delas — código morto que
-  // fica pra trás é o que ressuscita sozinho depois. As rotas do servidor
-  // (/automacoes/enviadas e /automacoes/apagar) continuam existindo, mas SEM tela nenhuma.
+  // No lugar do antigo painel de envios (que só mandava apagar mensagem), o DIÁRIO: dia a dia,
+  // quem recebeu, o que respondeu e o que o sistema fez. Ver autgDiarioHtml.
+  h += autgDiarioHtml();
   return h;
+}
+
+// ============================================================
+// DIÁRIO DA CONFIRMAÇÃO — o que aconteceu, pessoa por pessoa, dia a dia.
+//
+// A regra que rege esta tela: NENHUM DESFECHO PODE SE DISFARÇAR DE OUTRO. São cinco, e cada um
+// manda fazer uma coisa diferente:
+//   não saiu      -> resolver o cadastro (telefone, teto, hora já passada)
+//   sem resposta  -> a recepção liga
+//   sim / não     -> o sistema já agiu; a linha mostra O QUE ele fez
+//   outra         -> o robô NÃO entendeu, e o texto da pessoa fica à vista pra corrigir a leitura
+// Juntar "não entendi" com "não respondeu" seria o pior erro possível aqui: são problemas
+// opostos, e o painel existe justamente pra achar o primeiro.
+// ============================================================
+let autgDia = { carregado: false, carregando: false, erro: null, dias: [], ligadas: true, janela: 7, abertos: {} };
+
+async function autgDiarioCarregar(janela) {
+  if (janela) autgDia.janela = janela;
+  autgDia.carregando = true; autgDia.erro = null; edRender();
+  let r = null;
+  try { r = await pacApi('/api/clinico/automacoes/diario?dias=' + autgDia.janela); } catch (e) { r = null; }
+  autgDia.carregando = false; autgDia.carregado = true;
+  if (!r || !r.ok || !r.data || !r.data.ok) {
+    // Servidor antigo (rota ainda não existe) é caso NORMAL aqui, não erro de operação.
+    autgDia.erro = (r && r.status === 404)
+      ? 'Este painel precisa da atualização do servidor. Assim que o backend subir, ele aparece.'
+      : ((r && r.data && r.data.erro) || 'Não consegui carregar o diário agora.');
+  } else {
+    autgDia.dias = r.data.dias || [];
+    autgDia.ligadas = r.data.respostas_ligadas !== false;
+  }
+  edRender();
+}
+
+// autgDiarioAbrir, e não autgDiaToggle: JÁ EXISTIA um autgDiaToggle nesta página (o dos dias
+// da semana, que faz classList.toggle num elemento). Arquivo único de 34 mil linhas = escopo
+// global único; nome repetido não dá erro, o último declarado apenas ENGOLE o outro em silêncio.
+function autgDiarioAbrir(dia) {
+  autgDia.abertos[dia] = !autgDia.abertos[dia];
+  edRender();
+}
+
+function autgDiaBR(iso) {
+  const p = String(iso || '').split('-');
+  if (p.length !== 3) return iso || '';
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  const sem = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][d.getDay()];
+  return sem + ', ' + p[2] + '/' + p[1];
+}
+function autgHoraBR(iso) {
+  try { return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  catch (e) { return ''; }
+}
+
+function autgDiarioHtml() {
+  let h = '<div class="cfg-grupo">Diário da confirmação</div>';
+
+  if (!autgDia.carregado && !autgDia.carregando) {
+    return h + '<div class="autg-di-vazio">Dia a dia: quem recebeu, o que respondeu e o que o sistema fez.'
+      + '<div style="margin-top:10px"><button class="pac-btn-secondary" onclick="autgDiarioCarregar()">'
+      + '<i class="ti ti-list-details"></i> Abrir o diário</button></div></div>';
+  }
+  if (autgDia.carregando) return h + '<div class="pt-empty">Montando…</div>';
+  if (autgDia.erro) {
+    return h + '<div class="ed-vazio">' + esc(autgDia.erro)
+      + '<div style="margin-top:10px"><button class="pac-btn-secondary" onclick="autgDiarioCarregar()">Tentar de novo</button></div></div>';
+  }
+
+  const janelas = [7, 14, 30].map(function (n) {
+    return '<button class="autg-di-jan' + (autgDia.janela === n ? ' on' : '') + '" onclick="autgDiarioCarregar(' + n + ')">'
+      + n + ' dias</button>';
+  }).join('');
+  h += '<div class="autg-di-barra">' + janelas
+    + '<button class="autg-di-jan" onclick="autgDiarioCarregar()" title="Atualizar"><i class="ti ti-refresh"></i></button></div>';
+
+  // Aviso HONESTO: sem a leitura de respostas ligada, "ninguém respondeu" seria mentira.
+  if (!autgDia.ligadas) {
+    h += '<div class="autg-di-aviso"><i class="ti ti-alert-triangle"></i><div>'
+      + 'A leitura das respostas ainda não está ligada neste servidor. O que aparece abaixo é só o '
+      + 'ENVIO — as colunas de resposta ficam vazias, e isso não quer dizer que ninguém respondeu.</div></div>';
+  }
+
+  if (!autgDia.dias.length) {
+    return h + '<div class="autg-di-vazio">Nenhuma mensagem de confirmação nos últimos ' + autgDia.janela + ' dias.</div>';
+  }
+
+  h += autgDia.dias.map(autgDiaCardHtml).join('');
+  return h;
+}
+
+function autgDiaChip(n, rot, cls) {
+  if (!n) return '';
+  return '<span class="autg-di-chip ' + cls + '">' + n + ' ' + rot + '</span>';
+}
+
+function autgDiaCardHtml(d) {
+  const aberto = !!autgDia.abertos[d.dia];
+  const chips = ''
+    + autgDiaChip(d.enviadas, d.enviadas === 1 ? 'enviada' : 'enviadas', 'ok')
+    + autgDiaChip(d.nao_enviadas, 'não saiu', 'pulo')
+    + autgDiaChip(d.sim, 'sim', 'sim')
+    + autgDiaChip(d.nao, 'não', 'nao')
+    + autgDiaChip(d.outra, 'não entendi', 'outra')
+    + autgDiaChip(d.sem_resposta, 'sem resposta', 'mudo')
+    + autgDiaChip(d.confirmados, d.confirmados === 1 ? 'confirmado' : 'confirmados', 'feito')
+    + autgDiaChip(d.tarefas, d.tarefas === 1 ? 'tarefa aberta' : 'tarefas abertas', 'feito');
+
+  return '<div class="autg-di-dia' + (aberto ? ' aberto' : '') + '">'
+    + '<div class="autg-di-cab" onclick="autgDiarioAbrir(\'' + esc(d.dia) + '\')">'
+    +   '<i class="ti ti-chevron-' + (aberto ? 'down' : 'right') + '"></i>'
+    +   '<b>' + esc(autgDiaBR(d.dia)) + '</b>'
+    +   '<span class="autg-di-chips">' + chips + '</span>'
+    + '</div>'
+    + (aberto ? '<div class="autg-di-linhas">' + d.linhas.map(autgDiaLinhaHtml).join('') + '</div>' : '')
+    + '</div>';
+}
+
+function autgDiaLinhaHtml(l) {
+  // O rótulo do desfecho é UM só por linha, e ele é a coisa mais à esquerda: quem varre a lista
+  // procurando problema tem que achar sem ler o resto.
+  let tag, cls, detalhe = '';
+  if (!l.saiu) {
+    tag = 'não saiu'; cls = 'pulo';
+    detalhe = l.motivo ? esc(l.motivo) : 'sem motivo registrado';
+  } else if (l.resposta === 'sim') {
+    tag = 'disse SIM'; cls = 'sim';
+    detalhe = l.acao === 'confirmado' ? 'agendamento confirmado ✓' : 'respondeu, mas o agendamento não estava mais em aberto';
+  } else if (l.resposta === 'nao') {
+    tag = 'disse NÃO'; cls = 'nao';
+    detalhe = l.acao === 'tarefa' ? 'tarefa de ligação criada ✓' : 'nenhuma tarefa foi aberta — confira';
+  } else if (l.resposta === 'outra') {
+    tag = 'não entendi'; cls = 'outra';
+    const t = (l.respostas || []).filter(function (r) { return r.resposta === 'outra'; })[0];
+    detalhe = t && t.texto ? '“' + esc(t.texto) + '”' : 'respondeu algo que o robô não classificou';
+  } else {
+    tag = 'sem resposta'; cls = 'mudo';
+    detalhe = l.entrega === 'pendente' ? 'na fila de envio' : 'entregue, sem resposta até agora';
+  }
+
+  // Disse sim e depois não (ou o contrário): a linha mostra as duas, senão o painel esconderia
+  // justamente o caso que mais confunde a recepção.
+  let extra = '';
+  if ((l.respostas || []).length > 1) {
+    extra = '<div class="autg-di-extra">' + l.respostas.map(function (r) {
+      return '<span>' + esc(r.resposta) + ' às ' + esc(autgHoraBR(r.em))
+        + (r.acao && r.acao !== 'nada' ? ' → ' + esc(r.acao) : '') + '</span>';
+    }).join('') + '</div>';
+  }
+
+  return '<div class="autg-di-linha">'
+    + '<span class="autg-di-tag ' + cls + '">' + tag + '</span>'
+    + '<span class="nm">' + esc(l.paciente) + '</span>'
+    + '<span class="cs">consulta ' + esc(autgHoraBR(l.consulta_em)) + '</span>'
+    + '<span class="dt">' + detalhe + '</span>'
+    + extra
+    + '</div>';
 }
 
 function autgCardHtml(tipo) {
