@@ -667,7 +667,9 @@
 
     <section class="filters bs-barra">
       <input id="bsBusca" placeholder="Buscar em qualquer campo da tabela…" aria-label="Buscar na base completa">
-      <label class="bs-check"><input type="checkbox" id="bsVazias"> Esconder colunas sem nenhum dado</label>
+      <!-- "no que está na tela" e não "sem nenhum dado": o filtro roda sobre as
+           linhas que a busca deixou passar, não sobre a base inteira. -->
+      <label class="bs-check"><input type="checkbox" id="bsVazias"> Esconder colunas vazias no que está na tela</label>
       <button class="btn ghost" id="bsCsv"><i class="ti ti-file-spreadsheet"></i> Baixar CSV</button>
     </section>
 
@@ -831,8 +833,10 @@
       start:{asap:"Imediato","15d":"Até 15 dias","30to60":"30–60 dias",exploring:"Conhecendo"},
       // Expectativa de cuidado. O Mapa Aplic manda código; o funil do Dr. Matheus
       // manda a frase inteira — por isso o rótulo cai no texto cru quando não acha.
+      // `multi` vem do funil antigo (clinica.html); sem ele o código cru
+      // aparecia na tela pra quem entrou antes de agosto.
       expectativa:{evaluation:"Avaliação completa",plan:"Plano personalizado",integrated:"Programa integrado",
-        management:"Gestão contínua",unsure:"Ainda não sabe"},
+        multi:"Programa estruturado",management:"Gestão contínua",unsure:"Ainda não sabe"},
       unidade:{udi:"Uberlândia",itb:"Ituiutaba",remote:"Remoto",unsure:"Ainda não sei"},
       clint:{enviado:"No Clint",erro:"Falhou",pendente:"A caminho",sem_webhook:"Sem integração",
         anterior_a_integracao:"Anterior à integração"}
@@ -1426,7 +1430,12 @@
     // código — e null quando não há valor. Os *Label() de cima devolvem "—",
     // que aqui viraria texto e faria "vazio" e "não sei traduzir" se
     // confundirem na hora de esconder coluna vazia.
-    const bsMapa = (mapa, v) => (v === 0 || v) ? (mapa[v] || v) : null;
+    // hasOwnProperty e não `mapa[v] ||`: um valor gravado como "constructor" ou
+    // "toString" acharia o protótipo do Object e a célula imprimiria
+    // "function Object() { [native code] }" como se fosse resposta da pessoa.
+    const bsMapa = (mapa, v) => (v === 0 || v)
+      ? (Object.prototype.hasOwnProperty.call(mapa, v) ? mapa[v] : v)
+      : null;
     const bsPrim = (...vs) => { for(const v of vs){ if(v === 0 || (v && String(v).trim())) return v; } return null; };
 
     // Junta lista. Se o campo não for lista (banco antigo, importação manual, um
@@ -1478,14 +1487,26 @@
 
       { g:"quiz", t:"Direção principal",  v:l => bsPrim(bsL(l).transformacao, bsMapa(LABELS.goal, bsA(l).goal), bsMapa(LABELS.goal, l.goal)) },
       { g:"quiz", t:"Queixa principal",   v:l => bsPrim(bsL(l).principal, bsA(l).complaint) },
-      // A partir da segunda: a primeira já é a "Queixa principal" ao lado.
-      { g:"quiz", t:"Outras queixas",     v:l => Array.isArray(bsL(l).queixas) ? bsLista(bsL(l).queixas, 1) : null },
+      // Tira a queixa principal PELO VALOR, não pelo índice. Cortar o primeiro
+      // item só funciona se ele for mesmo o principal — em lead antigo ou
+      // importado a ordem não é garantida, e aí a coluna escondia uma queixa de
+      // verdade e repetia a que já está na coluna ao lado.
+      { g:"quiz", t:"Outras queixas",     v:l => {
+          const q = bsL(l).queixas;
+          if(!Array.isArray(q)) return null;
+          const p = String(bsL(l).principal || "").trim();
+          return bsLista(p ? q.filter(x => String(x).trim() !== p) : q);
+        } },
       { g:"quiz", t:"O que já tentou",    v:l => bsPrim(bsL(l).tentativa, bsLista(bsA(l).attempts)) },
       { g:"quiz", t:"O que travou",       v:l => bsPrim(bsL(l).barreira, bsA(l).barrier) },
-      { g:"quiz", t:"Expectativa",        v:l => bsPrim(bsL(l).expectativa, bsMapa(LABELS.expectativa, bsA(l).expectation)) },
+      // `expectativa` é a chave do funil antigo. Sem ela na conta, lead antigo
+      // aparecia com travessão numa pergunta que ele RESPONDEU — a tabela
+      // escondendo dado real é pior que a tabela sem a coluna.
+      { g:"quiz", t:"Expectativa",        v:l => bsPrim(bsL(l).expectativa, bsMapa(LABELS.expectativa, bsPrim(bsA(l).expectativa, bsA(l).expectation))) },
       { g:"quiz", t:"Impacto (0–10)",     v:l => bsA(l).impact, tipo:"num" },
       { g:"quiz", t:"Nível de impacto",   v:l => bsA(l).impactLevel },
-      { g:"quiz", t:"Prazo p/ começar",   v:l => bsPrim(bsL(l).prazo, bsMapa(LABELS.start, bsA(l).start)) },
+      // idem: o funil antigo gravava `prazo`, o novo grava `start`.
+      { g:"quiz", t:"Prazo p/ começar",   v:l => bsPrim(bsL(l).prazo, bsMapa(LABELS.start, bsPrim(bsA(l).prazo, bsA(l).start))) },
       { g:"quiz", t:"Unidade",            v:l => bsPrim(bsL(l).unidade, bsMapa(LABELS.unidade, bsA(l).unidade)) },
       { g:"quiz", t:"Mensagem sugerida",  v:l => bsA(l).suggestedMessage },
 
@@ -1493,7 +1514,11 @@
       { g:"proto", t:"Protocolo secundário",    v:l => bsMapa(LABELS.protocolo, bsF(l).secundaria) },
       { g:"proto", t:"Protocolo complementar",  v:l => bsMapa(LABELS.protocolo, bsF(l).complementar) },
       { g:"proto", t:"Jornada integrada",       v:l => bsBool(l, bsF(l).integrada) },
-      { g:"proto", t:"Club",                    v:l => bsBool(l, bsF(l).club) },
+      // >= 8 é o MESMO limiar que a ficha usa (procure "Indicação Club"). O
+      // motor antigo mandava `club` como NOTA, não como sim/não: sem o limiar,
+      // um lead com club:3 aparecia "Sim" aqui e "—" na ficha — o painel se
+      // contradizendo sobre o mesmo paciente.
+      { g:"proto", t:"Club",                    v:l => bsBool(l, bsF(l).club === true || Number(bsF(l).club) >= 8) },
       // O funil do Dr. Matheus manda afinidade SEM notas de propósito (lá a
       // regra dá ordem de intenção, não nota). Coluna vazia ali é correta.
       { g:"proto", t:"Notas de afinidade",      v:l => {
@@ -1529,7 +1554,10 @@
       { g:"origem", t:"wbraid",            v:l => bsU(l).wbraid },
       { g:"origem", t:"gbraid",            v:l => bsU(l).gbraid },
       { g:"origem", t:"fbclid",            v:l => bsU(l).fbclid },
-      { g:"origem", t:"Hora do clique",    v:l => bsU(l).click_at, tipo:"data" },
+      // NÃO se chama "hora do clique": o valor é o `captured_at` da visita a
+      // que o lead foi atribuído. Em lead orgânico ou direto não houve clique
+      // em anúncio nenhum, e o nome antigo afirmava um clique que não existiu.
+      { g:"origem", t:"Hora da visita atribuída", v:l => bsU(l).click_at, tipo:"data" },
       { g:"origem", t:"Veio de (referrer)",v:l => bsU(l).referrer },
       { g:"origem", t:"Página de entrada", v:l => bsU(l).landing_url },
       { g:"origem", t:"Página do envio",   v:l => bsU(l).origin_url },
@@ -1555,7 +1583,9 @@
     let BS_ATIVOS = new Set(BS_GRUPOS.map(g => g.id));
     let BS_ORDEM = { i:BS_COLS.findIndex(c => c.t === "Entrada"), dir:-1 };
     let BASE_TOTAL = null;      // quantos existem no servidor (null = não sei)
+    let BASE_LIDA_EM = null;    // quando a lista foi lida do servidor
     let BASE_MONTADA = false;
+    const fmtHora = d => { try{ return new Intl.DateTimeFormat("pt-BR",{timeStyle:"short"}).format(d); }catch{ return "—"; } };
 
     // O valor já formatado pra leitura. Uma função só, usada pela tela E pelo
     // CSV — se fossem duas, um dia elas discordariam e o arquivo passaria a
@@ -1585,30 +1615,46 @@
       return txt;
     }
 
+    // As colunas dos grupos ligados, JÁ com a coluna Lead na frente.
+    //
+    // Essa reinserção não é detalhe: Lead é a coluna que gruda na esquerda, e
+    // sem o nome à vista uma tabela de 67 colunas fica ilegível. Mas ela criava
+    // um bug quando só o render sabia dela: a busca varria a lista SEM o Lead,
+    // então com o grupo Identificação desligado, procurar por um nome respondia
+    // "nenhum lead bate com essa busca" — com o nome escrito na tela. Uma
+    // função só, usada pela busca e pelo desenho, mata a divergência na raiz.
+    function bsColunasBase(){
+      const cols = BS_COLS.filter(c => BS_ATIVOS.has(c.g) && c.t !== "Lead");
+      return [BS_COLS[0], ...cols];
+    }
+
     function bsColunasVisiveis(linhas){
-      let cols = BS_COLS.filter(c => BS_ATIVOS.has(c.g));
-      if($("bsVazias").checked){
-        // Some só a coluna em que NINGUÉM respondeu. Coluna com um único
-        // preenchido continua: é exatamente esse lead que se quer achar.
-        cols = cols.filter(c => linhas.some(l => bsTexto(c, l) !== ""));
+      const cols = bsColunasBase();
+      // Some só a coluna em que NINGUÉM respondeu. Coluna com um único
+      // preenchido continua: é exatamente esse lead que se quer achar.
+      // Com zero linhas o filtro não opina — senão uma busca sem resultado
+      // deixaria o cabeçalho com uma coluna só, parecendo que a tabela quebrou.
+      if($("bsVazias").checked && linhas.length){
+        return cols.filter(c => c.t === "Lead" || linhas.some(l => bsTexto(c, l) !== ""));
       }
-      // A primeira coluna é a que gruda na esquerda. Se o grupo Identificação
-      // for desligado, quem gruda passa a ser outra — e sem nome na linha a
-      // tabela fica ilegível. Por isso o Lead é reinserido na marra.
-      if(!cols.length || cols[0].t !== "Lead") cols = [BS_COLS[0], ...cols.filter(c => c.t !== "Lead")];
       return cols;
     }
 
     function bsFiltradas(){
       const q = ($("bsBusca").value || "").toLowerCase().trim();
-      const cols = BS_COLS.filter(c => BS_ATIVOS.has(c.g));
+      const cols = bsColunasBase();
       let linhas = LEADS;
       if(q){
         // Busca no que está VISÍVEL. Achar um lead por um campo que a tela não
         // mostra deixaria a linha parecendo não corresponder à busca.
         linhas = linhas.filter(l => cols.some(c => bsTexto(c, l).toLowerCase().includes(q)));
       }
-      const col = BS_COLS[BS_ORDEM.i];
+      // Ordenar por uma coluna que foi DESLIGADA deixa a tabela numa ordem sem
+      // seta e sem explicação: a pessoa vê os leads embaralhados e não tem como
+      // descobrir por quê. Quando isso acontece, a ordenação volta pro Lead, que
+      // é a única coluna que nunca some.
+      let col = BS_COLS[BS_ORDEM.i];
+      if(col && !BS_ATIVOS.has(col.g)){ BS_ORDEM = { i:0, dir:1 }; col = BS_COLS[0]; }
       if(col){
         // Mesmo try/catch do bsTexto: um lead com JSON estranho não pode
         // derrubar a ordenação da tabela inteira.
@@ -1662,13 +1708,34 @@
       const naTela = linhas.length === LEADS.length
         ? `${LEADS.length} leads`
         : `${linhas.length} de ${LEADS.length} leads carregados`;
+      // "Carregar mais 1.000" e não "o resto": o servidor tem teto de 1.000 por
+      // requisição. Com 3.000 faltando, o botão que promete o resto entrega um
+      // terço e some — e ninguém confere.
       const noServidor = BASE_TOTAL === null
         ? "O servidor ainda não informa o total — atualize o servidor para esta aba saber se falta alguém."
         : (BASE_TOTAL > LEADS.length
-            ? `<b>Existem ${BASE_TOTAL} no total; ${BASE_TOTAL - LEADS.length} ainda não foram carregados.</b> <button class="btn ghost" id="bsMais" style="padding:4px 10px;font-size:11px;margin-left:4px"><i class="ti ti-plus"></i> Carregar o resto</button>`
-            : "É a base inteira — não falta ninguém.");
+            ? `<b>Existem ${BASE_TOTAL} no total; ${BASE_TOTAL - LEADS.length} ainda não foram carregados.</b> <button class="btn ghost" id="bsMais" style="padding:4px 10px;font-size:11px;margin-left:4px"><i class="ti ti-plus"></i> Carregar mais 1.000</button>`
+            // Datada, não absoluta: a aba só lê os leads no arranque. "É a base
+            // inteira" sem hora envelhece na tela e vira mentira sozinha
+            // enquanto alguém deixa o CRM aberto a tarde toda.
+            : `Era a base inteira às ${BASE_LIDA_EM ? fmtHora(BASE_LIDA_EM) : "—"} — desde então esta tela não perguntou de novo.`);
+      /*
+        DE ONDE VEM CADA COLUNA — e por que esta frase mudou.
+
+        A primeira versão dizia "nada nesta tabela é calculado ou deduzido".
+        Era FALSO, e falso do jeito pior: protocolo, score, classe e prioridade
+        são conta do funil, não frase que o paciente disse. Quem lesse o rodapé
+        e visse "Lipedema" na linha podia tratar como queixa relatada.
+
+        Nenhuma célula VAZIA é preenchida por dedução — isso continua sendo
+        verdade e é o que a garantia sempre quis dizer. O resto agora está
+        separado por origem, que é a única forma de a frase ser útil.
+      */
       $("bsRodape").innerHTML = `${naTela} · ${cols.length} de ${BS_COLS.length} colunas. ${noServidor}<br>
-        Travessão é campo que a pessoa não respondeu, não dado perdido. Nada nesta tabela é calculado ou deduzido: é o que chegou.`;
+        Travessão é campo que não veio — não respondido, ou nem perguntado pelo funil daquele lead. Nunca é dado perdido, e nenhuma célula vazia é preenchida por dedução.<br>
+        <b>De onde vem cada coluna:</b> identificação, respostas do quiz, origem e Clint são o que chegou.
+        Protocolo, score, classe e prioridade são <b>cálculo do funil</b>, não resposta da pessoa.
+        Status, responsável, próxima ação e observações são <b>digitados aqui</b> pela equipe.`;
       if($("bsMais")) $("bsMais").addEventListener("click", carregarRestoDaBase);
     }
 
@@ -1690,14 +1757,42 @@
 
     function bsCsv(){
       const linhas = bsFiltradas(), cols = bsColunasVisiveis(linhas);
-      const campo = s => /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+
+      /*
+        FÓRMULA NÃO É TEXTO. Excel e Google Sheets executam qualquer célula que
+        comece com = + - @ (ou TAB/CR). E o conteúdo aqui vem de FORA: nome,
+        observação e os utm entram por um formulário público, então alguém podia
+        gravar `=HYPERLINK("http://sitedele","clique")` num campo do quiz e a
+        planilha da clínica abriria aquilo como fórmula.
+
+        O apóstrofo na frente é a defesa padrão: o Excel mostra o texto e não
+        executa. Número negativo legítimo escapa da regra — senão -5 viraria
+        texto e pararia de somar.
+      */
+      const perigoso = s => /^[=+\-@\t\r]/.test(s) && !/^[-+]?\d+([.,]\d+)?$/.test(s);
+      const campo = s => {
+        const v = perigoso(s) ? "'" + s : s;
+        return /[";\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      };
+
       // Ponto e vírgula: no Excel em português a vírgula é separador DECIMAL, e
       // um arquivo com vírgula abre com tudo empilhado numa coluna só.
       const csv = [cols.map(c => campo(c.t)).join(";")]
         .concat(linhas.map(l => cols.map(c => campo(bsTexto(c, l))).join(";")))
         .join("\r\n");
-      baixarArquivo(`leads-${new Date().toISOString().slice(0,10)}.csv`, csv);
-      showToast(`${linhas.length} leads e ${cols.length} colunas no arquivo.`);
+
+      // O arquivo carrega no NOME que é parcial. Um CSV chamado "leads-15-08"
+      // com 500 de 1.240 vira a base oficial de alguém no dia seguinte, e nada
+      // dentro dele avisa que falta gente — aviso na primeira linha não serve,
+      // porque ali é o cabeçalho das colunas e quebraria a abertura no Excel.
+      const parcial = BASE_TOTAL !== null && BASE_TOTAL > LEADS.length;
+      const nome = parcial
+        ? `leads-PARCIAL-${LEADS.length}-de-${BASE_TOTAL}-${new Date().toISOString().slice(0,10)}.csv`
+        : `leads-${new Date().toISOString().slice(0,10)}.csv`;
+      baixarArquivo(nome, csv);
+      showToast(parcial
+        ? `${linhas.length} de ${BASE_TOTAL} leads (parcial) e ${cols.length} colunas no arquivo.`
+        : `${linhas.length} leads e ${cols.length} colunas no arquivo.`);
     }
 
     function montarBase(){
@@ -1768,6 +1863,7 @@
       // completa diz que NÃO SABE se falta gente — em vez de afirmar que está
       // completa contando as linhas que ela mesma carregou.
       BASE_TOTAL = typeof (r.data && r.data.total) === "number" ? r.data.total : null;
+      BASE_LIDA_EM = new Date();
       $("loading").classList.add("hidden");
       renderMetrics(); renderRows();
       if(BASE_MONTADA) renderBase();
@@ -1927,7 +2023,15 @@
           return;
         }
         LEADS = LEADS.filter(x => x.id !== l.id);
-        renderMetrics(); renderRows(); closeModal();
+        // O servidor tem um a menos agora. Sem este decremento, o rodapé da
+        // Base completa passaria a acusar um lead "que falta carregar" e que
+        // não existe mais — e o botão de carregar mais nunca sumiria.
+        if(BASE_TOTAL !== null) BASE_TOTAL--;
+        renderMetrics(); renderRows();
+        // Mesmo cuidado do saveLead: sem isto a linha do lead excluído fica na
+        // tabela como fantasma até alguém trocar de aba.
+        if(BASE_MONTADA) renderBase();
+        closeModal();
         showToast(r.data && r.data.foiParaClint
           ? "Lead excluído aqui. Lembre de apagar no Clint também."
           : "Lead excluído.");
