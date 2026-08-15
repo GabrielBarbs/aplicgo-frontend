@@ -5965,6 +5965,20 @@
     }
     .nvsplash-print-ins .b { font-size: 12px; color: var(--tx1); line-height: 1.55; }
     .nvsplash-print-ins .m { font-size: 10px; color: var(--tx4); margin-top: 6px; }
+    /* "print" do Diário da confirmação dentro do pop de novidade */
+    .nvsplash-di-cab { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--tx1); padding-bottom: 8px; margin-bottom: 6px; border-bottom: 1px solid var(--bd1); }
+    .nvsplash-di-chip { font-size: 9.5px; padding: 2px 6px; border-radius: 5px; background: var(--bg3); color: var(--tx3); }
+    .nvsplash-di-chip.ok { background: rgba(63,185,80,.13); color: #3fb950; }
+    .nvsplash-di-chip.sim { background: rgba(63,185,80,.13); color: #3fb950; }
+    .nvsplash-di-chip.nao { background: rgba(248,81,73,.14); color: #f85149; }
+    .nvsplash-di-l { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 11.5px; flex-wrap: wrap; }
+    .nvsplash-di-l .t { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 6px; border-radius: 4px; min-width: 74px; text-align: center; }
+    .nvsplash-di-l .t.sim { background: rgba(63,185,80,.14); color: #3fb950; }
+    .nvsplash-di-l .t.nao { background: rgba(248,81,73,.16); color: #f85149; }
+    .nvsplash-di-l .t.outra { background: rgba(224,164,88,.18); color: #e0a458; }
+    .nvsplash-di-l .t.pulo { background: rgba(239,159,39,.14); color: #EF9F27; }
+    .nvsplash-di-l .n { color: var(--tx1); }
+    .nvsplash-di-l .d { color: var(--tx3); }
     .nvsplash-bullets { list-style: none; padding: 0; margin: 0 0 20px; display: flex; flex-direction: column; gap: 9px; }
     .nvsplash-bullets li { display: flex; align-items: flex-start; gap: 9px; font-size: 13px; color: var(--tx2); line-height: 1.45; }
     .nvsplash-bullets li i { color: var(--ac); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
@@ -6869,7 +6883,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DX</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DY</b></span></div>
   </div>
 </div>
 
@@ -10604,23 +10618,29 @@
   <div class="nvsplash-modal">
     <button class="nvsplash-x" onclick="nvSplashFechar()" title="Fechar"><i class="ti ti-x"></i></button>
     <div class="nvsplash-badge"><i class="ti ti-sparkles"></i> Novidade no sistema</div>
-    <h2 class="nvsplash-titulo">Observações gerais + Insight da IA</h2>
-    <p class="nvsplash-sub">Agora todo acompanhamento e onboarding (médico, nutri e enfermagem) tem no final um campo pra escrever qualquer coisa do paciente — e uma IA que lê tudo e resume, em 2-3 frases, como ele está.</p>
+    <h2 class="nvsplash-titulo">O “SIM” do paciente agora confirma sozinho</h2>
+    <p class="nvsplash-sub">Quem responde <b>SIM</b> à mensagem de confirmação tem a consulta confirmada na hora. Quem responde <b>NÃO</b> não é cancelado: nasce uma tarefa urgente pra recepção ligar e remarcar. E tem um diário mostrando, dia a dia, tudo que aconteceu.</p>
 
     <div class="nvsplash-print">
-      <div class="nvsplash-print-sec">Observações gerais</div>
-      <div class="nvsplash-print-ta">Paciente animado, relatou melhora na disposição. Aderente à dieta e aos injetáveis.</div>
-      <div class="nvsplash-print-ins">
-        <div class="h"><i class="ti ti-sparkles"></i> Insight da IA — como o paciente está</div>
-        <div class="b">Evoluindo bem: perdeu 8,4 kg desde o início e o Metabolic subiu para 82 (Bom). Adesão consistente e humor estável — manter a conduta atual.</div>
-        <div class="m">Baseado em 4 observações registradas</div>
+      <div class="nvsplash-di-cab">
+        <b>sáb, 15/08</b>
+        <span class="nvsplash-di-chip ok">6 enviadas</span>
+        <span class="nvsplash-di-chip sim">3 sim</span>
+        <span class="nvsplash-di-chip nao">1 não</span>
       </div>
+      <div class="nvsplash-di-l"><span class="t sim">disse sim</span><span class="n">ALESSANDRA R.</span><span class="d">agendamento confirmado ✓</span></div>
+      <div class="nvsplash-di-l"><span class="t nao">disse não</span><span class="n">DAYANE U.</span><span class="d">tarefa de ligação criada ✓</span></div>
+      <div class="nvsplash-di-l"><span class="t outra">não entendi</span><span class="n">MELINDA S.</span><span class="d">“qual o endereço da unidade?”</span></div>
+      <div class="nvsplash-di-l"><span class="t pulo">não saiu</span><span class="n">BRUNO V.</span><span class="d">sem telefone válido no cadastro</span></div>
     </div>
 
     <ul class="nvsplash-bullets">
-      <li><i class="ti ti-circle-check"></i> Campo livre no fim de todo acompanhamento e onboarding — médico, nutri e enfermagem.</li>
-      <li><i class="ti ti-circle-check"></i> A IA lê todas as observações (as de hoje e as passadas) e resume como o paciente está.</li>
-      <li><i class="ti ti-circle-check"></i> Fica no prontuário e no histórico; não aparece para o paciente.</li>
+      <!-- O texto vai dentro de UM <span>: o <li> é flex, então cada filho solto virava COLUNA e
+           os trechos em negrito quebravam a frase no meio (visto no print de verificação). -->
+      <li><i class="ti ti-circle-check"></i><span><b>SIM</b> confirma o agendamento na hora, sozinho.</span></li>
+      <li><i class="ti ti-circle-check"></i><span><b>NÃO</b> nunca cancela sozinho — abre tarefa urgente pra recepção ligar. Quem libera a vaga é gente.</span></li>
+      <li><i class="ti ti-circle-check"></i><span>Resposta que o sistema não entende fica marcada <b>com o texto do paciente</b>, pra alguém ler.</span></li>
+      <li><i class="ti ti-circle-check"></i><span>O diário fica em <b>Editáveis → Relacionamento com o paciente</b>: quem recebeu, quem respondeu o quê e o que o sistema fez.</span></li>
     </ul>
 
     <button class="nvsplash-ok" onclick="nvSplashFechar()">Entendi!</button>
@@ -10633,6 +10653,18 @@
 // Cada mudança aqui adiciona uma entrada NO TOPO desse array.
 // ============================================================
 const CHANGELOG_CLINICO = [
+  {
+    versao: '1.2.0',
+    data: '2026-08-15',
+    titulo: 'A confirmação por WhatsApp agora responde sozinha',
+    mudancas: [
+      { tipo: 'add', texto: 'Paciente que responde SIM à mensagem de confirmação tem o agendamento CONFIRMADO na hora, sem ninguém mexer.' },
+      { tipo: 'add', texto: 'Paciente que responde NÃO não é cancelado: nasce uma tarefa URGENTE para a recepção ligar e remarcar. Cancelar continua sendo decisão de gente — uma palavra solta no WhatsApp não derruba agenda.' },
+      { tipo: 'add', texto: 'Novo "Diário da confirmação" em Editáveis → Relacionamento com o paciente: dia a dia, quem recebeu, quem respondeu o quê, e o que o sistema fez com cada resposta.' },
+      { tipo: 'melhoria', texto: 'Resposta que o sistema NÃO entende ("não sei", "talvez", uma pergunta) não faz nada e aparece no diário com o texto do paciente — "não entendi" e "não respondeu" são coisas diferentes e agora dá pra ver qual foi.' },
+      { tipo: 'melhoria', texto: 'No máximo UMA mensagem de retorno por agendamento, garantida pelo banco: paciente nenhum recebe resposta repetida.' }
+    ]
+  },
   {
     versao: '1.1.0',
     data: '2026-07-29',
@@ -15704,8 +15736,27 @@ function fecharNovidades() {
 // Pop de NOVIDADE única — mostra SÓ o aviso desta atualização (com "print" do
 // recurso), NÃO a changelog toda. Aparece 1x por pessoa ao entrar OU recarregar.
 // Pra anunciar a próxima novidade: troque o texto do #nvsplash-modal e bump o ID.
-const NOVIDADE_SPLASH_ID = 'obs-gerais-insight-2026-07-29';
+const NOVIDADE_SPLASH_ID = 'confirmacao-responde-sozinha-2026-08-15';
 const NOVIDADE_SPLASH_KEY = 'aplic_novidade_splash';
+// ============================================================
+// NOVIDADE QUE DEPENDE DO SERVIDOR.
+// A tela sobe na hora (Vercel); o backend sobe quando alguém dá deploy. Anunciar no intervalo
+// seria prometer pra clínica inteira um recurso que ainda não existe — exatamente o defeito que
+// esta novidade veio consertar (a mensagem pedia SIM/NÃO e ninguém lia).
+// `marcos` é a lista PÚBLICA de capacidades do servidor (GET /): booleano de constante
+// compilada, então se está lá o código está no ar. O pop espera o marco aparecer.
+// Novidade que não depende de backend: deixe null e ele abre normal.
+// ============================================================
+const NOVIDADE_EXIGE_MARCO = 'confirmacao_responde_sozinha';
+async function nvSplashServidorPronto() {
+  if (!NOVIDADE_EXIGE_MARCO) return true;
+  try {
+    const r = await fetch(API_BASE + '/');
+    if (!r.ok) return false;
+    const d = await r.json();
+    return !!(d && d.marcos && d.marcos[NOVIDADE_EXIGE_MARCO]);
+  } catch (e) { return false; }   // na dúvida NÃO anuncia: silêncio é melhor que promessa falsa
+}
 function nvSplashVista() { try { return localStorage.getItem(NOVIDADE_SPLASH_KEY) === NOVIDADE_SPLASH_ID; } catch (e) { return true; } }
 function nvSplashAbrir() { document.getElementById('nvsplash-overlay').classList.add('aberto'); }
 function nvSplashFechar() {
@@ -15720,10 +15771,13 @@ function novidadesAutoAbrir() {
   _novidadesAutoFeito = true;
   try {
     if (nvSplashVista()) return;
-    setTimeout(function () {
+    setTimeout(async function () {
       // não atropela login/convite/reset abertos
       const bloq = ['auth-overlay', 'reset-overlay', 'convite-overlay'];
       if (bloq.some(id => { const el = document.getElementById(id); return el && el.classList.contains('aberto'); })) return;
+      // Servidor ainda sem o recurso? Não anuncia — e NÃO marca como vista, então ela aparece
+      // sozinha no primeiro acesso depois do deploy. Ninguém precisa lembrar de nada.
+      if (!(await nvSplashServidorPronto())) { _novidadesAutoFeito = false; return; }
       nvSplashAbrir();
     }, 700);
   } catch (e) {}
