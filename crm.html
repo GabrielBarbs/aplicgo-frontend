@@ -1182,12 +1182,35 @@
     // Este é o card mais fácil de transformar em decisão errada, então ele tem
     // duas saídas: ou afirma com o número na mão, ou explica por que não dá pra
     // afirmar ainda. Nunca elege um vencedor tirado de três leads.
+    /*
+      DUAS AUSÊNCIAS QUE PARECEM IGUAIS E NÃO SÃO:
+
+        (a) o servidor calculou e concluiu que não há base para afirmar
+        (b) o servidor nem sabe calcular isto ainda (deploy pendente)
+
+      Na primeira ele precisa de mais leads; na segunda, de um deploy. Mostrar
+      a mesma frase nos dois casos manda o dono da clínica caçar lead quando o
+      problema é outro. O que separa: no caso (b) `motivoSemMelhorHorario` nem
+      existe na resposta, porque a versão antiga não tem esse campo.
+    */
+    const gsServidorAntigo = d => d.melhorHorario === undefined && d.motivoSemMelhorHorario === undefined;
+    const gsAvisoDeploy = "Esta métrica é nova e o servidor ainda não a calcula. Ela aparece sozinha no próximo deploy do servidor — não falta lead, falta atualizar.";
+    // O corpo do card também: "Nada registrado no período" é uma afirmação
+    // sobre os LEADS, e nesse estado o que falta é o servidor. Deixar a frase
+    // padrão mandaria procurar lead que existe.
+    const gsCorpo = (d, desenho) => gsServidorAntigo(d)
+      ? '<div class="gs-vazio">Aguardando a atualização do servidor.</div>'
+      : desenho;
+
     function melhorHorarioBloco(d){
       const m = d.melhorHorario;
       const pico = d.resumo.horaDePico, picoDia = d.resumo.diaDePico;
       const volume = pico
         ? `Onde chega <b style="color:var(--tx1);font-size:12px">mais gente</b>: ${String(pico.hora).padStart(2,"0")}h (${nfmt(pico.total)} leads)${picoDia ? `, e ${esc(picoDia.rotulo.toLowerCase())} (${nfmt(picoDia.total)})` : ""}.`
         : "";
+      if(gsServidorAntigo(d)){
+        return `<div class="gs-recusa"><b style="color:var(--tx2)">Aguardando o servidor.</b><br>${esc(gsAvisoDeploy)}</div>`;
+      }
       if(!m){
         return `<div class="gs-recusa"><b style="color:var(--tx2)">Ainda não dá para afirmar qual é o melhor horário.</b><br>
           ${esc(d.motivoSemMelhorHorario || "")}<br>${volume}</div>`;
@@ -1201,7 +1224,12 @@
 
     function cicloSub(d){
       const m = d.resumo;
-      if(m.medianaCicloDias === null) return "Quanto tempo entre a pessoa ver a clínica pela primeira vez e preencher o formulário.";
+      if(gsServidorAntigo(d)) return gsAvisoDeploy;
+      // `== null` e não `=== null`: com o servidor antigo o campo vem UNDEFINED,
+      // e o `===` deixava passar direto pro texto de baixo — a tela escrevia
+      // "Metade decide em até undefined dia(s)". Encontrado testando justamente
+      // o estado em que o CRM sobe antes do servidor.
+      if(m.medianaCicloDias == null) return "Quanto tempo entre a pessoa ver a clínica pela primeira vez e preencher o formulário.";
       const meta = m.medianaCicloDias === 0 ? "no mesmo dia" : `${String(m.medianaCicloDias).replace(".", ",")} dia(s)`;
       // O denominador aparece: a mediana descreve só quem TEM a data gravada, e
       // esconder isso faria o número parecer valer para a base inteira.
@@ -1397,19 +1425,23 @@
 
           ${gsCard("Hora que chegam", "Horário de Brasília. Contagem por hora cheia — é volume, ajuda a saber quando ter alguém pronto para responder.",
             gsColunas(d.porHora.map(h=>h.total), d.porHora.map(h=>String(h.hora).padStart(2,"0")), "Leads por hora"))}
-          ${gsCard("Turno do dia", `Os mesmos leads em blocos grandes o bastante para comparar qualidade. Abaixo de ${d.minimoParaPercentual} leads o percentual não é calculado.`,
-            gsTabela(d.porFaixaHoraria, "Turno"))}
+          ${gsCard("Turno do dia", gsServidorAntigo(d) ? gsAvisoDeploy
+              : `Os mesmos leads em blocos grandes o bastante para comparar qualidade. Abaixo de ${GS_MINIMO_PCT} leads o percentual não é calculado.`,
+            gsCorpo(d, gsTabela(d.porFaixaHoraria, "Turno")))}
 
-          ${gsCard("Mapa da semana", "Onde a semana concentra os leads. Só contagem: 28 casas divididas por poucos leads não sustentam percentual.",
-            gsMapa(d.mapaSemana, ["Madrugada","Manhã","Tarde","Noite"]), "full")}
+          ${gsCard("Mapa da semana", gsServidorAntigo(d) ? gsAvisoDeploy
+              : "Onde a semana concentra os leads. Só contagem: 28 casas divididas por poucos leads não sustentam percentual.",
+            gsCorpo(d, gsMapa(d.mapaSemana, ["Madrugada","Manhã","Tarde","Noite"])), "full")}
 
-          ${gsCard("Dia da semana", "Horário de Brasília, agora com a qualidade ao lado do volume.",
-            gsTabela(d.porDiaSemanaQualidade, "Dia"))}
+          ${gsCard("Dia da semana", gsServidorAntigo(d) ? gsAvisoDeploy
+              : "Horário de Brasília, agora com a qualidade ao lado do volume.",
+            gsCorpo(d, gsTabela(d.porDiaSemanaQualidade, "Dia")))}
           ${gsCard("Ciclo de decisão", cicloSub(d),
-            d.cicloDecisao && d.cicloDecisao.length ? gsBarras(d.cicloDecisao) : '<div class="gs-vazio">Nenhum lead do período tem a data do primeiro acesso gravada.</div>')}
+            gsCorpo(d, d.cicloDecisao && d.cicloDecisao.length ? gsBarras(d.cicloDecisao) : '<div class="gs-vazio">Nenhum lead do período tem a data do primeiro acesso gravada.</div>'))}
 
-          ${gsCard("Impacto declarado × resultado", "O quanto a queixa atrapalha a vida, contra o que aconteceu com o lead. Serve para saber se sofrimento declarado prevê fechamento.",
-            gsTabela(d.porFaixaImpacto, "O quanto incomoda"), "full")}
+          ${gsCard("Impacto declarado × resultado", gsServidorAntigo(d) ? gsAvisoDeploy
+              : "O quanto a queixa atrapalha a vida, contra o que aconteceu com o lead. Serve para saber se sofrimento declarado prevê fechamento.",
+            gsCorpo(d, gsTabela(d.porFaixaImpacto, "O quanto incomoda")), "full")}
 
           ${gsCard("Entrega no Clint", "Se o contato chegou no CRM comercial.", gsBarras(d.porClint), "full")}
 
