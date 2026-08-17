@@ -6885,7 +6885,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-DZ</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-EA</b></span></div>
   </div>
 </div>
 
@@ -12741,7 +12741,10 @@ async function tkSesSalvar(btn) {
       homeToast(problemas.length === 1 ? problemas[0].erro : `${problemas.length} sessões com problema — veja em vermelho.`);
       return;
     }
-    if (avisos.length && !confirmar(`${avisos.length === 1 ? 'Uma sessão tem' : avisos.length + ' sessões têm'} aviso: ${avisos[0].avisos[0]}. Salvar mesmo assim?`)) return;
+    // `confirm` nativo, como o resto desta tela. Aqui estava uma chamada a `confirmar`, que é o
+    // helper do APP DO PACIENTE (React Native) — nesta página ele nunca existiu. Resultado:
+    // salvar uma sessão que gerasse aviso (data no passado, p.ex.) estourava ReferenceError.
+    if (avisos.length && !confirm(`${avisos.length === 1 ? 'Uma sessão tem' : avisos.length + ' sessões têm'} aviso: ${avisos[0].avisos[0]}. Salvar mesmo assim?`)) return;
 
     const r = await pacApi('/api/clinico/appointments/lote-injetavel', { method: 'POST', body: JSON.stringify(corpo) });
     if (!r.ok) { homeToast((r.data && r.data.erro) || 'Não consegui salvar as datas.'); return; }
@@ -12789,7 +12792,10 @@ async function tkSesSalvar(btn) {
 // Tirar a data usa o DELETE que já existe (hard delete + auditoria + reabre a tarefa). Não
 // reimplementa: o caminho de apagar agendamento já é auditado e testado.
 async function tkSesTirarData(agId, semana) {
-  if (!confirmar(`Tirar a data da sessão ${semana}? O agendamento sai da agenda e a sessão volta pra lista sem data.`)) return;
+  // Mesmo defeito do salvar: `confirmar` não existe nesta página. Aqui era PIOR, porque não há
+  // try/catch em volta — o clique em "Tirar a data" estourava e não fazia absolutamente nada,
+  // sem mensagem nenhuma. Botão que falha calado é o que mais custa a ser reportado.
+  if (!confirm(`Tirar a data da sessão ${semana}? O agendamento sai da agenda e a sessão volta pra lista sem data.`)) return;
   const r = await pacApi('/api/clinico/appointments/' + agId, { method: 'DELETE' });
   if (!r.ok) { homeToast((r.data && r.data.erro) || 'Não consegui tirar a data.'); return; }
   const t = homeTkDet && homeTkDet.tarefa;
