@@ -1256,7 +1256,13 @@
         return;
       }
       const t = r.data.total || {};
-      box.innerHTML =
+      // Aviso de período parcial. Sem ele a tabela compara 30 dias de lead com
+      // horas de telemetria — e o funil sobe, que é sempre erro de contagem.
+      const desde = r.data.medindoDesde ? new Date(r.data.medindoDesde) : null;
+      const aviso = r.data.periodoParcial && desde
+        ? `<div class="ga-fora" style="margin:0 0 10px;color:var(--warn)">Medindo desde <b>${esc(fmtDate(desde))}</b> — foi quando a telemetria do quiz entrou no ar. Lead anterior a isso não entra nesta tabela, senão ela compararia períodos diferentes.</div>`
+        : "";
+      box.innerHTML = aviso +
         `<div class="ga-fora" style="margin:0 0 12px">No período: <b style="color:var(--tx1)">${nfmt(t.viu)}</b> abriram o quiz · `
         + `<b style="color:var(--tx1)">${nfmt(t.comecou)}</b> começaram · <b style="color:var(--tx1)">${nfmt(t.concluiu)}</b> terminaram · `
         + `<b style="color:var(--tx1)">${nfmt(t.leads)}</b> viraram lead.</div>`
@@ -1291,10 +1297,13 @@
       // "Metade decide em até undefined dia(s)". Encontrado testando justamente
       // o estado em que o CRM sobe antes do servidor.
       if(m.medianaCicloDias == null) return "Quanto tempo entre a pessoa ver a clínica pela primeira vez e preencher o formulário.";
-      const meta = m.medianaCicloDias === 0 ? "no mesmo dia" : `${String(m.medianaCicloDias).replace(".", ",")} dia(s)`;
+      // "em até no mesmo dia" saiu torto na tela real. Zero tem frase própria.
+      const meta = m.medianaCicloDias === 0
+        ? "decide no mesmo dia"
+        : `decide em até ${String(m.medianaCicloDias).replace(".", ",")} dia(s)`;
       // O denominador aparece: a mediana descreve só quem TEM a data gravada, e
       // esconder isso faria o número parecer valer para a base inteira.
-      return `Metade decide em até ${meta}. Calculado sobre ${nfmt(m.cicloComData)} leads que têm a data do primeiro acesso`
+      return `Metade ${meta}. Calculado sobre ${nfmt(m.cicloComData)} leads que têm a data do primeiro acesso`
         + (m.cicloDescartadoPorData ? `; ${nfmt(m.cicloDescartadoPorData)} ficaram de fora porque a data do aparelho estava adiantada.` : ".");
     }
 
