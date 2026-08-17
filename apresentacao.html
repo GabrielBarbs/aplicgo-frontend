@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<!-- Painel interno: fora do Google. Ver robots.txt e vercel.json (X-Robots-Tag). -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+:root{
+  --green:#6E9A4E; --green-d:#46663A; --green-l:#A9C67B; --soft:#EAF1E1;
+  --cream:#F6F4EE; --cream2:#FBFAF6; --ink:#2C302C; --gray:#7C837B; --line:#E6E3DA;
+}
+html,body{ font-family:'Inter','Segoe UI',system-ui,sans-serif; color:var(--ink); }
+@page{ size:148mm 210mm; margin:0; }
+.page{ width:148mm; height:210mm; position:relative; overflow:hidden; page-break-after:always; background:var(--cream); }
+.page:last-child{ page-break-after:auto; }
+
+/* brand */
+.brand{ display:flex; align-items:center; gap:6px; font-weight:600; font-size:11px; letter-spacing:.2px; color:var(--green-d); }
+.brand .dot{ width:16px;height:16px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:10px; }
+.brand.w{ color:#fff;} .brand.w .dot{ background:var(--green); }
+
+.kicker{ font-size:9px; letter-spacing:3px; color:var(--green); font-weight:600; text-transform:uppercase; }
+.title{ font-size:34px; font-weight:300; line-height:1.02; color:var(--green-d); letter-spacing:-.5px; }
+.title b{ font-weight:700; color:var(--green); }
+.rule{ width:34px; height:3px; background:var(--green); border-radius:2px; margin:14px 0; }
+.sub{ font-size:9.5px; letter-spacing:2px; text-transform:uppercase; color:var(--gray); font-weight:600; }
+.desc{ font-size:11px; line-height:1.55; color:#54594F; margin-top:10px; }
+.chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; }
+.chip{ font-size:8.5px; letter-spacing:.4px; color:var(--green-d); background:var(--soft); border-radius:20px; padding:5px 9px; font-weight:600; }
+.foot{ position:absolute; left:14mm; bottom:9mm; display:flex; align-items:center; justify-content:space-between; width:120mm; }
+.foot .pg{ font-size:9px; color:var(--gray); letter-spacing:1px; }
+.sidelabel{ position:absolute; right:5mm; top:50%; transform:translateY(-50%) rotate(180deg); writing-mode:vertical-rl; font-size:8px; letter-spacing:3px; color:#C3C8BC; text-transform:uppercase; font-weight:600; }
+.blob{ position:absolute; border-radius:50%; background:radial-gradient(circle at 30% 30%, #EAF1E1, #DCE8CE); opacity:.55; }
+
+/* phone */
+.phone{ width:208px; height:432px; border-radius:34px; background:#10130E; padding:9px; box-shadow:0 30px 60px rgba(50,70,30,.22), 0 8px 18px rgba(0,0,0,.12); }
+.screen{ width:100%; height:100%; border-radius:26px; background:#F3F4EF; overflow:hidden; position:relative; }
+.notch{ position:absolute; top:7px; left:50%; transform:translateX(-50%); width:54px; height:13px; background:#10130E; border-radius:10px; z-index:5; }
+.sbar{ display:flex; justify-content:space-between; align-items:center; padding:9px 14px 2px; font-size:8px; font-weight:600; color:#3a3f38;}
+.scr{ padding:4px 12px 0; }
+.s-h1{ font-size:13px; font-weight:700; color:#23282A; }
+.s-h1 .g{ color:var(--green);} .s-sub{ font-size:8px; color:#8A9199; margin-top:1px;}
+.card{ background:#fff; border:1px solid #EAECE3; border-radius:14px; padding:10px; margin-top:8px; box-shadow:0 4px 12px rgba(58,74,46,.05); }
+.cap{ font-size:7.5px; letter-spacing:.5px; text-transform:uppercase; color:#A9AFB4; font-weight:600;}
+.cap.g{ color:var(--green);}
+.val{ font-size:15px; font-weight:800; color:#23282A; }
+.row{ display:flex; gap:7px; } .row>*{ flex:1; }
+.mini{ font-size:7px; color:#A9AFB4; }
+.pill{ display:inline-block; font-size:7px; background:#F0F2EC; color:#8A9199; border-radius:12px; padding:3px 7px; font-weight:600;}
+.bar{ height:5px; background:#EAECE3; border-radius:9px; overflow:hidden; margin-top:5px;} .bar>i{ display:block; height:100%; background:var(--green); border-radius:9px;}
+.ic{ width:22px;height:22px;border-radius:50%;background:#F0F2EC;display:inline-flex;align-items:center;justify-content:center;font-size:11px;}
+.tabbar{ position:absolute; bottom:8px; left:10px; right:10px; height:34px; background:rgba(255,255,255,.92); border:1px solid #EAECE3; border-radius:20px; display:flex; align-items:center; justify-content:space-around; font-size:11px; box-shadow:0 6px 14px rgba(58,74,46,.08);}
+
+/* cover (dark) */
+.cover{ background:radial-gradient(120% 90% at 50% 38%, #14241A 0%, #0C140E 60%, #080C09 100%); color:#fff; }
+.orbWrap{ position:absolute; top:0; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:center; flex-direction:column; }
+.glab{ font-size:10px; letter-spacing:4px; color:#9FC58A; text-transform:uppercase; }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. CAPA (dark, estilo WHOOP) ============ -->
+<section data-document-role="page" class="page cover">
+  <div style="position:absolute; top:13mm; left:0; right:0; display:flex; justify-content:center;">
+    <div class="brand w"><span class="dot">a</span> aplic&go</div>
+  </div>
+  <div class="orbWrap">
+    <svg width="260" height="260" viewBox="0 0 260 260">
+      <defs>
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+          <stop offset="40%" stop-color="#3FA15A" stop-opacity="0"/>
+          <stop offset="78%" stop-color="#46B062" stop-opacity=".30"/>
+          <stop offset="100%" stop-color="#46B062" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#9DE08A"/><stop offset="100%" stop-color="#3FA15A"/>
+        </linearGradient>
+      </defs>
+      <rect width="260" height="260" fill="url(#glow)"/>
+      <circle cx="130" cy="130" r="96" fill="none" stroke="#1C3322" stroke-width="12"/>
+      <circle cx="130" cy="130" r="96" fill="none" stroke="url(#ring)" stroke-width="12" stroke-linecap="round"
+        stroke-dasharray="603" stroke-dashoffset="66" transform="rotate(-90 130 130)"/>
+      <!-- partículas -->
+      <g fill="#7BD08E">
+        <circle cx="58" cy="90" r="2.4" opacity=".9"/><circle cx="206" cy="78" r="2" opacity=".7"/>
+        <circle cx="78" cy="190" r="2.2" opacity=".8"/><circle cx="196" cy="186" r="1.8" opacity=".6"/>
+        <circle cx="130" cy="40" r="2" opacity=".5"/><circle cx="42" cy="140" r="1.8" opacity=".6"/>
+        <circle cx="222" cy="130" r="2.2" opacity=".7"/><circle cx="100" cy="226" r="1.6" opacity=".5"/>
+        <circle cx="160" cy="222" r="2" opacity=".6"/><circle cx="34" cy="100" r="1.5" opacity=".4"/>
+        <circle cx="226" cy="160" r="1.6" opacity=".5"/><circle cx="70" cy="56" r="1.6" opacity=".5"/>
+      </g>
+      <text x="130" y="126" text-anchor="middle" fill="#fff" font-size="56" font-weight="800" font-family="Inter">89</text>
+      <text x="130" y="150" text-anchor="middle" fill="#BFE8AC" font-size="12" letter-spacing="2" font-family="Inter">APLIC SCORE</text>
+      <text x="130" y="170" text-anchor="middle" fill="#7FB86A" font-size="10" font-family="Inter">● Excelente</text>
+    </svg>
+  </div>
+  <div style="position:absolute; bottom:24mm; left:0; right:0; text-align:center;">
+    <div style="font-size:26px; font-weight:300; letter-spacing:-.5px;">O auge, agora <b style="font-weight:700; color:#9DE08A;">no seu bolso.</b></div>
+    <div style="font-size:9px; letter-spacing:4px; color:#7E8F76; margin-top:14px;">O APLICATIVO · EDIÇÃO 2024</div>
+  </div>
+</section>
+
+<!-- ============ 2. CONCEITO ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:300px;height:300px; top:-90px; right:-110px;"></div>
+  <div style="position:absolute; top:14mm; left:14mm;"><div class="brand"><span class="dot">a</span> aplic&go</div></div>
+  <div style="position:absolute; top:46mm; left:14mm; width:120mm;">
+    <div class="kicker">O conceito, agora vivo</div>
+    <h1 class="title" style="margin-top:10px;">Do emagrecimento<br>à <b>longevidade.</b></h1>
+    <div class="rule"></div>
+    <p class="desc" style="width:108mm;">A Aplic deixou de ser só perda de peso para cuidar da sua saúde por inteiro — de forma <b>contínua</b>, não episódica. O aplicativo é onde essa visão vira rotina: seus dados, seu plano e seu acompanhamento, todos os dias, na palma da mão.</p>
+    <div style="display:flex; gap:0; margin-top:30px; border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+      <div style="flex:1; padding:16px 8px 16px 0;"><div style="font-size:20px;">🔥</div><div style="font-weight:700; font-size:13px; margin-top:6px; color:var(--green-d);">Emagrecimento</div><div class="mini" style="font-size:9px; color:#7C837B; margin-top:3px;">Perda de gordura com saúde e consistência.</div></div>
+      <div style="flex:1; padding:16px 8px; border-left:1px solid var(--line);"><div style="font-size:20px;">⚡</div><div style="font-weight:700; font-size:13px; margin-top:6px; color:var(--green-d);">Performance</div><div class="mini" style="font-size:9px; color:#7C837B; margin-top:3px;">Energia, sono e corpo no auge.</div></div>
+      <div style="flex:1; padding:16px 0 16px 8px; border-left:1px solid var(--line);"><div style="font-size:20px;">🌿</div><div style="font-weight:700; font-size:13px; margin-top:6px; color:var(--green-d);">Longevidade</div><div class="mini" style="font-size:9px; color:#7C837B; margin-top:3px;">Mais anos de vida com qualidade.</div></div>
+    </div>
+  </div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">02</div></div>
+</section>
+
+<!-- ============ 3. APLIC SCORE ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:260px;height:260px; bottom:-110px; left:-110px;"></div>
+  <div style="position:absolute; top:14mm; left:14mm;"><div class="kicker">Funcionalidade 01</div></div>
+  <div style="position:absolute; top:24mm; left:14mm; width:66mm;">
+    <h1 class="title">Aplic <b>Score</b></h1>
+    <div class="rule"></div>
+    <p class="sub">Sua saúde inteira em um número vivo</p>
+    <p class="desc">Um número que respira. O Aplic Score combina a sua <b>bioimpedância (InBody)</b> com a sua <b>Roda da Vida</b> num só indicador — e se atualiza a cada avaliação. Bateu o olho, entendeu como você está.</p>
+    <div class="chips"><span class="chip">InBody</span><span class="chip">Roda da Vida</span><span class="chip">Atualização contínua</span></div>
+  </div>
+  <div style="position:absolute; right:12mm; top:30mm;">
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="scr" style="text-align:center;">
+        <div style="margin-top:6px;"><span class="s-h1">Bom dia, <span class="g">Matheus</span></span></div>
+        <div class="s-sub">Seguimos juntos na sua melhor versão.</div>
+        <svg width="150" height="150" viewBox="0 0 150 150" style="margin-top:8px;">
+          <defs><linearGradient id="r2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A9C67B"/><stop offset="100%" stop-color="#5AA06A"/></linearGradient></defs>
+          <circle cx="75" cy="75" r="60" fill="none" stroke="#EAECE3" stroke-width="9"/>
+          <circle cx="75" cy="75" r="60" fill="none" stroke="url(#r2)" stroke-width="9" stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="41" transform="rotate(-90 75 75)"/>
+          <g fill="#7AA65A"><circle cx="40" cy="120" r="2" opacity=".5"/><circle cx="60" cy="130" r="1.6" opacity=".35"/><circle cx="28" cy="96" r="1.6" opacity=".4"/></g>
+          <text x="75" y="80" text-anchor="middle" font-size="34" font-weight="800" fill="#23282A" font-family="Inter">89</text>
+          <text x="75" y="96" text-anchor="middle" font-size="8" fill="#8A9199" font-family="Inter">Aplic Score</text>
+        </svg>
+        <div style="margin-top:2px;"><span class="pill" style="background:#EAF1E1; color:#5AA06A;">● Excelente</span></div>
+        <div class="card" style="text-align:left; margin-top:10px;"><div class="cap g">Coach IA</div><div style="font-size:8px; color:#54594F; line-height:1.5; margin-top:3px;">Excelente progresso! Você já perdeu <b style="color:var(--green)">7,4 kg</b> e reduziu <b style="color:var(--green)">4,2%</b> de gordura.</div></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="sidelabel">Emagrecimento · Performance · Longevidade</div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">03</div></div>
+</section>
+
+<!-- ============ 4. HOJE / HOME ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:240px;height:240px; top:-100px; left:-90px;"></div>
+  <div style="position:absolute; left:12mm; top:30mm;">
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="scr">
+        <div class="card" style="margin-top:6px;"><div class="cap">Seu programa</div>
+          <div style="display:flex; align-items:center; gap:5px; margin-top:3px;"><span class="val" style="font-size:13px;">Burn & Build</span><span class="pill">24 semanas</span></div>
+          <div class="mini" style="margin-top:3px;">Semana 8 de 24</div><div class="bar"><i style="width:33%"></i></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="card"><div class="cap g">Protocolo</div><div class="val" style="font-size:11px; margin-top:4px;">Tirzepatida</div><div class="mini">5 mg · #8</div></div>
+          <div class="card"><div class="cap g">Resultado</div><div class="val" style="font-size:13px; margin-top:4px; color:var(--green)">-7,4 kg</div><div class="mini">41% da meta</div></div>
+        </div>
+        <div class="card" style="background:linear-gradient(120deg,#7CAA58,#4F7A33); border:none; margin-top:8px; display:flex; align-items:center; gap:8px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;">📅</div>
+          <div><div style="font-size:7px; color:rgba(255,255,255,.8); letter-spacing:1px;">PRÓXIMA AÇÃO</div><div style="font-size:9.5px; color:#fff; font-weight:600;">Consulta de revisão em 3 dias</div></div>
+        </div>
+      </div>
+      <div class="tabbar"><span>☀️</span><span>📊</span><span style="color:var(--green)">✦</span><span>📋</span><span>❤️</span></div>
+    </div></div>
+  </div>
+  <div style="position:absolute; right:14mm; top:40mm; width:60mm; text-align:right;">
+    <div class="kicker">Funcionalidade 02</div>
+    <h1 class="title" style="margin-top:8px;">O seu dia,<br>numa <b>olhada.</b></h1>
+    <div class="rule" style="margin-left:auto;"></div>
+    <p class="sub">Tudo o que importa hoje</p>
+    <p class="desc">Programa, protocolo, resultado e a sua <b>próxima ação</b> — reunidos numa Home que abre e já te orienta. Sem procurar, sem planilha.</p>
+  </div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">04</div></div>
+</section>
+
+<!-- ============ 5. EVOLUÇÃO ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:260px;height:260px; bottom:-120px; right:-110px;"></div>
+  <div style="position:absolute; top:14mm; left:14mm;"><div class="kicker">Funcionalidade 03</div></div>
+  <div style="position:absolute; top:24mm; left:14mm; width:62mm;">
+    <h1 class="title">Veja a<br><b>transformação.</b></h1>
+    <div class="rule"></div>
+    <p class="sub">Cada semana, um marco</p>
+    <p class="desc">Gráficos do seu peso e composição ao longo do tempo, <b>fotos semanais gamificadas</b> que viram uma linha do tempo do seu corpo, e destaques que a IA encontra pra você.</p>
+    <div class="chips"><span class="chip">Gráficos</span><span class="chip">Foto semanal 🔥</span><span class="chip">Destaques IA</span></div>
+  </div>
+  <div style="position:absolute; right:12mm; top:28mm;">
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="scr">
+        <div class="s-h1" style="margin-top:4px;">Evolução</div><div class="s-sub">Sua transformação ao longo da jornada.</div>
+        <div class="card"><div class="cap">Evolução do peso</div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:3px;"><div><span class="val" style="font-size:16px;">82,6</span><span style="font-size:8px;color:#8A9199;"> kg</span></div><span style="font-size:11px; font-weight:700; color:var(--green)">-7,4 kg</span></div>
+          <svg width="100%" height="56" viewBox="0 0 180 56" preserveAspectRatio="none" style="margin-top:4px;">
+            <defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6E9A4E" stop-opacity=".22"/><stop offset="100%" stop-color="#6E9A4E" stop-opacity="0"/></linearGradient></defs>
+            <polygon points="6,52 6,12 30,18 54,24 78,29 102,33 126,38 150,42 174,46 174,52" fill="url(#ar)"/>
+            <polyline points="6,12 30,18 54,24 78,29 102,33 126,38 150,42 174,46" fill="none" stroke="#6E9A4E" stroke-width="2.4" stroke-linejoin="round"/>
+            <g fill="#6E9A4E"><circle cx="6" cy="12" r="2.6"/><circle cx="54" cy="24" r="2.6"/><circle cx="102" cy="33" r="2.6"/><circle cx="150" cy="42" r="2.6"/><circle cx="174" cy="46" r="2.6"/></g>
+          </svg>
+        </div>
+        <div class="card"><div style="display:flex; justify-content:space-between; align-items:center;"><div class="cap">Sua transformação</div><span class="pill" style="background:#FBF3EC; color:#E8743B;">🔥 4 semanas</span></div>
+          <div style="display:flex; justify-content:space-between; margin-top:8px;">
+            <div style="width:22px;height:22px;border-radius:6px;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">✓</div>
+            <div style="width:22px;height:22px;border-radius:6px;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">✓</div>
+            <div style="width:22px;height:22px;border-radius:6px;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">✓</div>
+            <div style="width:22px;height:22px;border-radius:6px;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;">✓</div>
+            <div style="width:22px;height:22px;border-radius:6px;background:#EAF1E1;border:1px dashed var(--green);display:flex;align-items:center;justify-content:center;font-size:9px;">📷</div>
+            <div style="width:22px;height:22px;border-radius:6px;background:#F0F2EC;display:flex;align-items:center;justify-content:center;font-size:9px;">📷</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div class="sidelabel">Performance · Ciência · Resultado</div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">05</div></div>
+</section>
+
+<!-- ============ 6. DISPOSITIVOS / WEARABLES ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:240px;height:240px; top:-90px; right:-90px;"></div>
+  <div style="position:absolute; left:12mm; top:30mm;">
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="scr">
+        <div class="s-h1" style="margin-top:4px;">Saúde</div><div class="s-sub">Seus dados, exames e sinais do corpo.</div>
+        <div class="card"><div class="cap">Dados dos seus dispositivos</div>
+          <div class="row" style="margin-top:7px;">
+            <div style="background:#F3F4EF; border-radius:9px; padding:7px;"><div class="cap" style="font-size:6.5px;">😴 Sono</div><div class="val" style="font-size:11px;">8h12</div></div>
+            <div style="background:#F3F4EF; border-radius:9px; padding:7px;"><div class="cap" style="font-size:6.5px;">❤️ FC</div><div class="val" style="font-size:11px;">56<span style="font-size:7px"> bpm</span></div></div>
+            <div style="background:#F3F4EF; border-radius:9px; padding:7px;"><div class="cap" style="font-size:6.5px;">📈 HRV</div><div class="val" style="font-size:11px;">68<span style="font-size:7px"> ms</span></div></div>
+          </div>
+          <div style="border-top:1px solid #EAECE3; margin-top:9px; padding-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:7.5px; color:#54594F;">⌚ Apple Watch <b style="color:var(--green)">●</b></span>
+            <span style="font-size:7.5px; color:#54594F;">💍 Oura <b style="color:var(--green)">●</b></span>
+            <span style="font-size:7.5px; color:#54594F;">🩸 Libre CGM <b style="color:var(--green)">●</b></span>
+            <span style="font-size:7.5px; color:#54594F;">⚖️ InBody <b style="color:var(--green)">●</b></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div style="position:absolute; right:14mm; top:40mm; width:60mm; text-align:right;">
+    <div class="kicker">Funcionalidade 04</div>
+    <h1 class="title" style="margin-top:8px;">Seu corpo,<br><b>conectado.</b></h1>
+    <div class="rule" style="margin-left:auto;"></div>
+    <p class="sub">Wearables, anel e glicose</p>
+    <p class="desc">Apple Watch, Oura Ring, balança InBody e até o <b>monitor de glicose</b> (FreeStyle Libre) conversam com o app. Sono, frequência cardíaca, HRV e glicemia — tudo num lugar só, automático.</p>
+  </div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">06</div></div>
+</section>
+
+<!-- ============ 7. PLANO ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:260px;height:260px; bottom:-120px; left:-110px;"></div>
+  <div style="position:absolute; top:14mm; left:14mm;"><div class="kicker">Funcionalidade 05</div></div>
+  <div style="position:absolute; top:24mm; left:14mm; width:62mm;">
+    <h1 class="title">Seu plano,<br><b>vivo.</b></h1>
+    <div class="rule"></div>
+    <p class="sub">Nutrição, suplementação e medicação</p>
+    <p class="desc">Suas metas de macros do dia, a distribuição das refeições, os suplementos em uso e a sua medicação — <b>tudo personalizado</b> e explicado. O plano da clínica, na sua mão.</p>
+    <div class="chips"><span class="chip">Macros do dia</span><span class="chip">Suplementos</span><span class="chip">Medicação</span></div>
+  </div>
+  <div style="position:absolute; right:12mm; top:28mm;">
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="scr">
+        <div class="s-h1" style="margin-top:4px;">Plano</div><div class="s-sub">Personalizado para a sua melhor versão.</div>
+        <div class="card"><div class="cap">Nutrição diária</div>
+          <div class="row" style="margin-top:7px;">
+            <div><div class="mini" style="font-size:6.5px;">🔥 Calorias</div><div class="val" style="font-size:11px;">1.850</div><div class="bar"><i style="width:100%; background:#7C6FD6;"></i></div></div>
+            <div><div class="mini" style="font-size:6.5px;">🍗 Proteína</div><div class="val" style="font-size:11px;">138g</div><div class="bar"><i style="width:98%;"></i></div></div>
+            <div><div class="mini" style="font-size:6.5px;">🌾 Carbo</div><div class="val" style="font-size:11px;">160g</div><div class="bar"><i style="width:100%; background:#E0B43A;"></i></div></div>
+          </div>
+        </div>
+        <div class="card"><div class="cap">Suplementação em uso</div>
+          <div style="display:flex; gap:5px; margin-top:7px;">
+            <div style="flex:1; background:#F3F4EF; border-radius:8px; padding:6px;"><div class="ic" style="width:18px;height:18px;font-size:9px;">🥤</div><div class="mini" style="margin-top:3px;">Whey</div><div style="font-size:8px; font-weight:700;">25 g</div></div>
+            <div style="flex:1; background:#F3F4EF; border-radius:8px; padding:6px;"><div class="ic" style="width:18px;height:18px;font-size:9px;">🐟</div><div class="mini" style="margin-top:3px;">Ômega 3</div><div style="font-size:8px; font-weight:700;">1000mg</div></div>
+            <div style="flex:1; background:#F3F4EF; border-radius:8px; padding:6px;"><div class="ic" style="width:18px;height:18px;font-size:9px;">💊</div><div class="mini" style="margin-top:3px;">Vit D3</div><div style="font-size:8px; font-weight:700;">2000UI</div></div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+  <div class="sidelabel">Nutrição · Ciência · Resultado</div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">07</div></div>
+</section>
+
+<!-- ============ 8. SAÚDE / EXAMES ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:240px;height:240px; top:-90px; left:-90px;"></div>
+  <div style="position:absolute; left:12mm; top:30mm;">
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="scr">
+        <div class="s-h1" style="margin-top:4px;">Exames</div><div class="s-sub">Seus marcadores, evoluindo.</div>
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; font-size:8px;"><span style="color:#23282A; font-weight:600;">Glicemia</span><span style="color:#23282A; font-weight:700;">87</span><span style="color:var(--green); font-weight:700;">↓15%</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:8px; margin-top:6px; padding-top:6px; border-top:1px solid #EAECE3;"><span style="color:#23282A; font-weight:600;">HOMA-IR</span><span style="color:#23282A; font-weight:700;">1,2</span><span style="color:var(--green); font-weight:700;">↓40%</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:8px; margin-top:6px; padding-top:6px; border-top:1px solid #EAECE3;"><span style="color:#23282A; font-weight:600;">LDL</span><span style="color:#23282A; font-weight:700;">92</span><span style="color:var(--green); font-weight:700;">↓28%</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:8px; margin-top:6px; padding-top:6px; border-top:1px solid #EAECE3;"><span style="color:#23282A; font-weight:600;">Vitamina D</span><span style="color:#23282A; font-weight:700;">46</span><span style="color:var(--green); font-weight:700;">↑109%</span></div>
+        </div>
+        <div class="card" style="background:#F3F4EF; border:none; display:flex; gap:8px;"><div style="font-size:14px;">✦</div><div><div class="cap g">Interpretação IA</div><div style="font-size:7.5px; color:#54594F; line-height:1.5; margin-top:2px;">Melhora significativa nos marcadores metabólicos — seu corpo responde muito bem ao tratamento.</div></div></div>
+      </div>
+    </div></div>
+  </div>
+  <div style="position:absolute; right:14mm; top:40mm; width:60mm; text-align:right;">
+    <div class="kicker">Funcionalidade 06</div>
+    <h1 class="title" style="margin-top:8px;">Exames que<br>se <b>explicam.</b></h1>
+    <div class="rule" style="margin-left:auto;"></div>
+    <p class="sub">Resultado atual vs anterior</p>
+    <p class="desc">Cada exame mostra a evolução — quanto melhorou desde a última coleta — e a <b>IA interpreta</b> em linguagem humana o que aquilo significa pra você.</p>
+  </div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">08</div></div>
+</section>
+
+<!-- ============ 9. COACH IA ============ -->
+<section data-document-role="page" class="page">
+  <div class="blob" style="width:260px;height:260px; bottom:-120px; right:-110px;"></div>
+  <div style="position:absolute; top:14mm; left:14mm;"><div class="kicker">Funcionalidade 07</div></div>
+  <div style="position:absolute; top:24mm; left:14mm; width:62mm;">
+    <h1 class="title">Um coach<br>que te <b>conhece.</b></h1>
+    <div class="rule"></div>
+    <p class="sub">Inteligência sobre os seus dados</p>
+    <p class="desc">A IA cruza peso, exames, sono e hábitos pra te dar <b>insights personalizados</b> — o que está funcionando, o que ajustar e o próximo passo. Disponível 24/7, com a sua história.</p>
+    <div class="chips"><span class="chip">Insights diários</span><span class="chip">100% personalizado</span></div>
+  </div>
+  <div style="position:absolute; right:12mm; top:30mm;">
+    <div class="phone"><div class="screen"><div class="notch"></div>
+      <div class="sbar"><span>9:41</span><span>●●● ●</span></div>
+      <div class="scr" style="text-align:center;">
+        <div style="width:46px;height:46px;border-radius:14px;background:#EAF1E1;display:inline-flex;align-items:center;justify-content:center;font-size:22px;margin-top:16px;">✦</div>
+        <div class="s-h1" style="margin-top:10px;">Coach <span class="g">IA</span></div>
+        <div class="card" style="text-align:left; margin-top:10px;"><div style="font-size:8.5px; color:#54594F; line-height:1.6;">Excelente progresso, Matheus! Você já perdeu <b style="color:var(--green)">7,4 kg</b> e reduziu <b style="color:var(--green)">4,2%</b> de gordura nas últimas 8 semanas. Seu sono e consistência estão impulsionando os resultados. 💪</div></div>
+        <div class="card" style="text-align:left; background:#F3F4EF; border:none;"><div style="font-size:8.5px; color:#54594F; line-height:1.6;">Sugestão de hoje: mantenha o foco em <b>proteína no café da manhã</b> pra sustentar a massa magra.</div></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="sidelabel">Inteligência · Cuidado · Contínuo</div>
+  <div class="foot"><div class="brand"><span class="dot">a</span> aplic&go</div><div class="pg">09</div></div>
+</section>
+
+<!-- ============ 10. LONGEVIDADE / IDADE APLIC (visão, dark) ============ -->
+<section data-document-role="page" class="page cover">
+  <div style="position:absolute; top:13mm; left:14mm;"><div class="brand w"><span class="dot">a</span> aplic&go</div></div>
+  <div style="position:absolute; top:13mm; right:14mm;"><span style="font-size:8px; letter-spacing:3px; color:#7E8F76;">EM BREVE</span></div>
+  <div style="position:absolute; top:34mm; left:0; right:0; text-align:center;">
+    <div class="glab">Expectativa de vida saudável</div>
+  </div>
+  <div class="orbWrap" style="top:20mm;">
+    <svg width="220" height="220" viewBox="0 0 220 220">
+      <rect width="220" height="220" fill="url(#glow)"/>
+      <g fill="#7BD08E">
+        <circle cx="50" cy="76" r="2.4" opacity=".9"/><circle cx="172" cy="66" r="2" opacity=".7"/><circle cx="66" cy="160" r="2.2" opacity=".8"/>
+        <circle cx="166" cy="158" r="1.8" opacity=".6"/><circle cx="110" cy="34" r="2" opacity=".5"/><circle cx="36" cy="118" r="1.8" opacity=".6"/>
+        <circle cx="186" cy="110" r="2.2" opacity=".7"/><circle cx="86" cy="190" r="1.6" opacity=".5"/><circle cx="134" cy="188" r="2" opacity=".6"/>
+        <circle cx="150" cy="46" r="1.6" opacity=".5"/><circle cx="190" cy="140" r="1.6" opacity=".5"/><circle cx="40" cy="150" r="1.5" opacity=".4"/>
+        <circle cx="110" cy="200" r="1.6" opacity=".5"/><circle cx="28" cy="92" r="1.4" opacity=".4"/>
+      </g>
+      <circle cx="110" cy="110" r="78" fill="none" stroke="#2BA84A" stroke-width="1" opacity=".25"/>
+      <text x="110" y="106" text-anchor="middle" fill="#fff" font-size="40" font-weight="800" font-family="Inter">29,9</text>
+      <text x="110" y="126" text-anchor="middle" fill="#BFE8AC" font-size="10" letter-spacing="2" font-family="Inter">IDADE APLIC</text>
+      <text x="110" y="142" text-anchor="middle" fill="#7FB86A" font-size="9" font-family="Inter">2,3 anos mais jovem</text>
+    </svg>
+  </div>
+  <div style="position:absolute; bottom:22mm; left:14mm; right:14mm; text-align:center;">
+    <div style="font-size:22px; font-weight:300; color:#fff;">Sua idade biológica, <b style="font-weight:700; color:#9DE08A;">viva.</b></div>
+    <p style="font-size:10px; color:#9AA896; line-height:1.6; margin-top:10px;">A partir dos seus exames, composição e wearables, o app vai calcular o quanto seu corpo está mais jovem — e o que te deixa assim. Longevidade que você acompanha em tempo real.</p>
+  </div>
+</section>
+
+<!-- ============ 11. FECHAMENTO ============ -->
+<section data-document-role="page" class="page" style="background:linear-gradient(160deg,#FBFAF6 0%,#EFEDE4 100%);">
+  <div class="blob" style="width:340px;height:340px; bottom:-160px; right:-120px; opacity:.4;"></div>
+  <div style="position:absolute; top:60mm; left:14mm; width:120mm;">
+    <h1 class="title" style="font-size:30px;">A nova fase da<br><b>saúde</b> já começou.</h1>
+    <div class="rule"></div>
+    <p class="desc" style="font-size:12px; width:100mm;">Emagrecimento, performance e longevidade — com acompanhamento contínuo, agora no seu bolso. <b>Esse é o app Aplic & Go.</b></p>
+    <div style="margin-top:40px;"><div class="brand" style="font-size:14px;"><span class="dot" style="width:22px;height:22px;font-size:13px;">a</span> aplic&go</div></div>
+    <div style="font-size:9px; color:var(--gray); margin-top:8px; letter-spacing:.5px;">Medicina, tecnologia e cuidado contínuo.</div>
+  </div>
+</section>
+
+</body>
+</html>

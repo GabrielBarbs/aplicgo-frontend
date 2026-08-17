@@ -1,0 +1,22 @@
+# Painéis internos da Aplic & Go. Nada aqui deve aparecer em busca.
+#
+# ATENÇÃO — ESTE ARQUIVO NÃO BLOQUEIA DE PROPÓSITO, E ISSO NÃO É ESQUECIMENTO.
+#
+# "Disallow" NÃO tira nada do Google: ele só proíbe o robô de LER a página. Uma página já
+# indexada continua na busca, e o Google passa a exibi-la SEM descrição ("nenhuma informação
+# disponível para este resultado") — o link fica lá pra sempre, porque o robô nunca mais entra
+# pra ver que ela mandou sair.
+#
+# Quem tira do índice é o `noindex`, que está em dois lugares:
+#   - cabeçalho HTTP  X-Robots-Tag: noindex  (vercel.json, vale pra TODO arquivo)
+#   - <meta name="robots" content="noindex"> em cada página
+# E pra respeitar o noindex, o robô PRECISA conseguir entrar. Por isso: Allow.
+#
+# Só depois que as páginas tiverem sumido da busca é que faria sentido bloquear aqui — e mesmo
+# assim não ganharia nada. Se alguém for "melhorar" este arquivo colocando Disallow: /,
+# vai congelar os links no Google exatamente como estão hoje.
+
+User-agent: *
+Allow: /
+
+# Sem sitemap de propósito: sitemap é convite pra indexar.
