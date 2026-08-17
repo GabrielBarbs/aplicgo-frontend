@@ -1204,6 +1204,65 @@
       ? '<div class="gs-vazio">Aguardando a atualização do servidor.</div>'
       : desenho;
 
+    /*
+      FUNIL DO QUIZ — quem chegou, quem começou, quem terminou.
+
+      O lead conta quem foi até o fim. Esta tabela conta quem NÃO foi: é a
+      diferença entre "o anúncio traz clique" e "o anúncio traz gente". Vem de
+      /api/site-eventos/funil, que cruza a telemetria anônima do quiz com os
+      leads pela mesma campanha e criativo.
+
+      Conta SESSÕES distintas, não eventos — quem volta numa etapa dispara de
+      novo, e contar evento inflaria o topo do funil.
+    */
+    function fnLinhas(d){
+      if(!d || !d.porCampanha || !d.porCampanha.length){
+        return `<div class="gs-vazio">${esc(
+          d && d.medindoDesde
+            ? "Nenhum evento de quiz chegou ainda. Ele começa a contar assim que alguém abrir o funil."
+            : "Nada registrado no período.")}</div>`;
+      }
+      const pct = v => v === null || v === undefined ? "—" : v + "%";
+      return `<table class="gs-tab">
+        <thead><tr><th>Campanha · criativo</th><th>Abriram</th><th>Começaram</th><th>Terminaram</th><th>Viraram lead</th><th>Conclusão</th></tr></thead>
+        <tbody>${d.porCampanha.map(l => `<tr>
+          <td class="${l.rotulo==="sem informação"?"fraco":""}" title="${esc(l.rotulo)}">${esc(l.rotulo)}</td>
+          <td>${nfmt(l.viu)}</td>
+          <td class="${l.comecou?"":"fraco"}">${l.comecou ? nfmt(l.comecou) : "—"}</td>
+          <td class="${l.concluiu?"":"fraco"}">${l.concluiu ? nfmt(l.concluiu) : "—"}</td>
+          <td class="${l.leads?"":"fraco"}">${l.leads ? nfmt(l.leads) : "—"}</td>
+          <td class="${l.taxaConclusao==null?"fraco":""}">${pct(l.taxaConclusao)}</td>
+        </tr>`).join("")}</tbody>
+        <tfoot><tr><td colspan="6" style="padding-top:8px;font-size:10px;color:var(--tx4);text-align:left;border:0">
+          Conta pessoas distintas, não cliques. “Terminaram” é quem respondeu tudo e chegou no formulário — a diferença para “viraram lead” é quem desistiu na hora de deixar o contato.
+        </td></tr></tfoot>
+      </table>`;
+    }
+
+    // Carrega à parte do /analytics: é outra rota, e ela pode não existir ainda
+    // (o CRM sobe sozinho pela Vercel, o servidor é deploy manual).
+    async function carregarFunilQuiz(){
+      const box = $("fnCorpo");
+      if(!box) return;
+      const r = await api("/api/site-eventos/funil?dias=" + ($("gsPeriodo").value || 30));
+      if(r.status === 404){
+        box.innerHTML = '<div class="gs-vazio">Disponível assim que o servidor for atualizado.</div>';
+        return;
+      }
+      if(!r.ok || !r.data){
+        // 500 aqui costuma ser a coluna `fonte` faltando no banco — ou seja, o
+        // funil-eventos.sql ainda não rodou. Dizer isso evita caçar no lugar errado.
+        box.innerHTML = '<div class="gs-vazio">Não foi possível carregar o funil. Se o servidor está atualizado, confira se o <b>funil-eventos.sql</b> já rodou no banco.</div>';
+        return;
+      }
+      const t = r.data.total || {};
+      box.innerHTML =
+        `<div class="ga-fora" style="margin:0 0 12px">No período: <b style="color:var(--tx1)">${nfmt(t.viu)}</b> abriram o quiz · `
+        + `<b style="color:var(--tx1)">${nfmt(t.comecou)}</b> começaram · <b style="color:var(--tx1)">${nfmt(t.concluiu)}</b> terminaram · `
+        + `<b style="color:var(--tx1)">${nfmt(t.leads)}</b> viraram lead.</div>`
+        + fnLinhas(r.data);
+    }
+
     function melhorHorarioBloco(d){
       const m = d.melhorHorario;
       const pico = d.resumo.horaDePico, picoDia = d.resumo.diaDePico;
@@ -1447,6 +1506,10 @@
 
           ${gsCard("Entrega no Clint", "Se o contato chegou no CRM comercial.", gsBarras(d.porClint), "full")}
 
+          ${gsCard("Funil do quiz",
+            "Quantos abriram, quantos começaram e quantos terminaram — por campanha e criativo. É o número que separa anúncio que traz clique de anúncio que traz gente.",
+            `<div id="fnCorpo"><div class="gs-vazio">Carregando…</div></div>`, "full")}
+
           ${gsCard("Conversões para o Google Ads",
             "Devolver ao Google quais cliques viraram lead. É assim que ele aprende qual anúncio traz gente de verdade — sem isso ele só sabe quem clicou.",
             `<div id="gaCorpo" class="ga-box"><div class="gs-vazio">Carregando…</div></div>`, "full")}
@@ -1456,9 +1519,10 @@
         Todos os números saem de campos que o lead realmente preencheu — quem não respondeu aparece como “sem informação” em vez de sumir da conta.
         O que o sistema não registra hoje (tempo até o primeiro contato, por exemplo, que exigiria guardar histórico de status) não aparece aqui em vez de aparecer estimado.</p>`;
 
-      // Chamada à parte: a exportação sempre olha 90 dias (teto do Google) e
-      // não o período escolhido acima, então não sai do mesmo /analytics.
+      // Chamadas à parte: saem de OUTRAS rotas, não do /analytics. A exportação
+      // sempre olha 90 dias (teto do Google) e não o período escolhido acima.
       carregarGoogleAds();
+      carregarFunilQuiz();
     }
     $("gsPeriodo").addEventListener("change", carregarGestor);
 
