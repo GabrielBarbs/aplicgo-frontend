@@ -6885,7 +6885,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-EA</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-EB</b></span></div>
   </div>
 </div>
 
@@ -22663,6 +22663,29 @@ async function agSalvar() {
   const mudouRecor = !!id && agRecorMudou(body);
   if (mudouRecor && !confirm(agRecorConfirmTxt(body))) return;
 
+  // Editando um agendamento de SÉRIE sem mexer na recorrência: pergunta o alcance e, se for além
+  // deste, SIMULA e mostra o que vai mudar antes de gravar. Ver agEscolherEscopo.
+  let escopo = 'this';
+  if (id && !mudouRecor && agState.recorOriginal && agState.recorOriginal.ativo) {
+    escopo = await agEscolherEscopo();
+    if (!escopo) return;                       // fechou sem escolher: não mexe em nada
+    if (escopo !== 'this') {
+      const prev = await pacApi('/api/clinico/appointments/' + id + '?scope=' + escopo + '&simular=1',
+        { method: 'PUT', body: JSON.stringify(body) });
+      if (!prev.ok || !prev.data || !prev.data.ok) {
+        erroEl.textContent = (prev.data && prev.data.erro) || 'Não consegui simular a mudança na série.';
+        erroEl.style.display = 'block';
+        return;
+      }
+      if (!(prev.data.mover || []).length) {
+        erroEl.textContent = 'Nenhum agendamento desta série pode ser alterado (todos já têm atendimento registrado).';
+        erroEl.style.display = 'block';
+        return;
+      }
+      if (!confirm(agSerieResumo(prev.data))) return;
+    }
+  }
+
   // O <span id="ag-modal-salvar-txt"> tem que sobreviver aos dois estados: agTrocarTab() lê ele, e
   // sem o span o próximo "Novo agendamento" quebrava antes de abrir o modal.
   const btn = document.getElementById('ag-modal-salvar');
@@ -22670,7 +22693,7 @@ async function agSalvar() {
 
   const rota = !id ? '/api/clinico/appointments'
     : mudouRecor ? '/api/clinico/appointments/' + id + '/recorrencia'
-    : '/api/clinico/appointments/' + id;
+    : '/api/clinico/appointments/' + id + (escopo !== 'this' ? '?scope=' + escopo : '');
   const r = await pacApi(rota, { method: id ? 'PUT' : 'POST', body: JSON.stringify(body) });
 
   btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> <span id="ag-modal-salvar-txt">Salvar</span>';
@@ -22681,6 +22704,14 @@ async function agSalvar() {
     return;
   }
   if (mudouRecor) homeToast(`Série atualizada: ${r.data.criados} agendamento(s) daqui pra frente.`);
+  else if (escopo !== 'this') {
+    // Repete o que o SERVIDOR fez, não o que a simulação previu: entre uma coisa e outra alguém
+    // pode ter atendido ou cancelado, e aí aquele ficou de fora.
+    const n = r.data.afetados || 0;
+    const fora = (r.data.mantidos || []).length;
+    homeToast(`${n} ${n === 1 ? 'agendamento alterado' : 'agendamentos alterados'}`
+      + (fora ? ` · ${fora} ${fora === 1 ? 'ficou' : 'ficaram'} de fora (atendimento registrado)` : ''));
+  }
   const eraVinculo = !!body.prescricao_inj_id || !!body.consulta_task_id;
   agFecharModal();
   agCarregar();
@@ -22689,6 +22720,61 @@ async function agSalvar() {
   // cara da pessoa até um F5 — a tela desmentindo a própria promessa. Só quando houve vínculo:
   // agendamento comum não mexe em tarefa nenhuma.
   if (eraVinculo && typeof homeTarefasSync === 'function') homeTarefasSync();
+}
+
+// ============================================================
+// EDITAR SÉRIE: escolher o alcance, e VER antes de gravar.
+//
+// Antes, marcar errado num agendamento de série só tinha uma saída: CANCELAR (com motivo, que é
+// registro de cancelamento de verdade) e remarcar tudo na mão. Editar em série não existia.
+//
+// Aqui se mexe na agenda de gente, então são dois passos deliberados: primeiro a pessoa diz o
+// ALCANCE, depois vê a LISTA do que vai mudar e confirma. Nada se move antes disso.
+// ============================================================
+function agEscolherEscopo() {
+  return new Promise(function (resolve) {
+    let ov = document.getElementById('ag-escopo-ov'); if (ov) ov.remove();
+    ov = document.createElement('div');
+    ov.id = 'ag-escopo-ov';
+    ov.className = 'ag-modal-overlay aberto';
+    const fim = function (v) { ov.remove(); resolve(v); };
+    ov.onclick = function (e) { if (e.target.id === 'ag-escopo-ov') fim(null); };
+    const opt = (v, ico, tt, sub) => '<div class="opt" data-v="' + v + '" style="cursor:pointer">'
+      + '<div class="ico"><i class="ti ' + ico + '"></i></div>'
+      + '<div><div class="ttl">' + tt + '</div><div class="sub">' + sub + '</div></div></div>';
+    ov.innerHTML = '<div class="pac-modal" style="max-width:520px">'
+      + '<div class="pac-modal-header"><div class="ttl"><i class="ti ti-repeat"></i> Este agendamento faz parte de uma série</div></div>'
+      + '<div class="pac-modal-body"><div class="opts">'
+      + opt('this', 'ti-calendar-event', 'Somente este', 'Muda só o agendamento aberto. Os outros ficam como estão.')
+      + opt('future', 'ti-arrow-bar-to-right', 'Este e os próximos', 'A mudança de horário DESLOCA os seguintes na mesma medida, mantendo o ritmo.')
+      + opt('all', 'ti-repeat', 'Toda a série', 'Vale para todos os que ainda estão em aberto, inclusive os anteriores.')
+      + '</div><div style="margin-top:14px;font-size:11.5px;color:var(--tx4);line-height:1.5">'
+      + 'Quem já tem atendimento registrado nunca é movido — a lista da próxima tela mostra quais ficam de fora.'
+      + '</div><div style="display:flex;justify-content:flex-end;margin-top:16px">'
+      + '<button class="pac-btn-secondary" id="ag-escopo-nao">Cancelar</button></div></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelectorAll('.opt').forEach(function (el) { el.onclick = function () { fim(el.dataset.v); }; });
+    ov.querySelector('#ag-escopo-nao').onclick = function () { fim(null); };
+  });
+}
+
+// Texto da simulação. Mostra DE → PARA de cada um, quem fica de fora e por quê, e avisa de
+// conflito — sem esconder nada atrás de um número.
+function agSerieResumo(d) {
+  const mover = d.mover || [];
+  const mantidos = d.mantidos || [];
+  const q = (iso) => { const x = new Date(iso); return isNaN(x.getTime()) ? '?' : x.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); };
+  let t = mover.length === 1 ? '1 agendamento vai mudar:\n\n' : mover.length + ' agendamentos vão mudar:\n\n';
+  mover.slice(0, 8).forEach(function (m) {
+    t += '  ' + q(m.de) + '  →  ' + q(m.para) + (m.conflito ? '   ⚠ ' + m.conflito : '') + '\n';
+  });
+  if (mover.length > 8) t += '  … e mais ' + (mover.length - 8) + '\n';
+  if (mantidos.length) {
+    t += '\n' + mantidos.length + (mantidos.length === 1 ? ' fica de fora' : ' ficam de fora') + ':\n';
+    mantidos.slice(0, 5).forEach(function (m) { t += '  ' + q(m.quando) + ' — ' + m.motivo + '\n'; });
+  }
+  if (d.conflitos) t += '\n⚠ ' + d.conflitos + ' com conflito de horário do profissional. Dá pra salvar assim mesmo, mas confira.';
+  return t + '\nConfirma?';
 }
 
 // A recorrência mudou em relação ao que estava salvo? Só isso justifica reescrever a série.
