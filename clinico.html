@@ -6885,7 +6885,7 @@
         <a href="#" onclick="mostrarReset(document.getElementById('login-email').value.trim()); return false;" style="color:var(--tx3b); font-size:13px; text-decoration:none;">Esqueci minha senha</a>
       </div>
     </form>
-    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-EB</b></span></div>
+    <div class="auth-footer">Acesso restrito · Aplic &amp; Go <span style="opacity:.65">· versão <b>22/07-EC</b></span></div>
   </div>
 </div>
 
@@ -12744,7 +12744,14 @@ async function tkSesSalvar(btn) {
     // `confirm` nativo, como o resto desta tela. Aqui estava uma chamada a `confirmar`, que é o
     // helper do APP DO PACIENTE (React Native) — nesta página ele nunca existiu. Resultado:
     // salvar uma sessão que gerasse aviso (data no passado, p.ex.) estourava ReferenceError.
-    if (avisos.length && !confirm(`${avisos.length === 1 ? 'Uma sessão tem' : avisos.length + ' sessões têm'} aviso: ${avisos[0].avisos[0]}. Salvar mesmo assim?`)) return;
+    // TODOS os avisos, de TODAS as sessões. Antes só saía `avisos[0].avisos[0]` — o primeiro
+    // aviso da primeira sessão. Com dois avisos na mesma linha (data no passado + paciente já tem
+    // algo nesse horário), o segundo ficava escondido justamente quando era o que importava.
+    if (avisos.length) {
+      const detalhe = avisos.map((l) => '  Sessão ' + l.semana + ': ' + (l.avisos || []).join('; ')).join('\n');
+      const cab = avisos.length === 1 ? 'Uma sessão tem aviso' : avisos.length + ' sessões têm aviso';
+      if (!confirm(cab + ':\n\n' + detalhe + '\n\nSalvar mesmo assim?')) return;
+    }
 
     const r = await pacApi('/api/clinico/appointments/lote-injetavel', { method: 'POST', body: JSON.stringify(corpo) });
     if (!r.ok) { homeToast((r.data && r.data.erro) || 'Não consegui salvar as datas.'); return; }
