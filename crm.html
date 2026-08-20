@@ -1795,7 +1795,7 @@
       // e o pixel geral, que nao recebe servidor, ficou sem nada. Lead antigo
       // (anterior a 19/ago/2026) nao tem o campo e aparece vazio, que e'
       // diferente de "nao".
-      { g:"origem", t:"Pixel carregado",   v:l => { const v = bsU(l).pixel_pronto; return v === "1" ? "Sim" : v === "0" ? "Nao" : null; } },
+      { g:"origem", t:"Pixel carregado",   v:l => { const v = bsU(l).pixel_pronto; return v === "1" ? "Sim" : v === "0" ? "Não" : null; } },
       { g:"origem", t:"Pixel do navegador",v:l => bsU(l).pixel_id },
       { g:"origem", t:"Página de entrada", v:l => bsU(l).landing_url },
       { g:"origem", t:"Página do envio",   v:l => bsU(l).origin_url },
